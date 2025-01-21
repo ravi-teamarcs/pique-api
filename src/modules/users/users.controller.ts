@@ -22,6 +22,8 @@ import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { User } from './entities/users.entity';
+import { Roles } from '../auth/roles.decorator';
+import { RolesGuard } from '../auth/roles.guard';
 
 @ApiTags('Users')
 @Controller('users')
@@ -47,6 +49,7 @@ export class UsersController {
    * Get all users
    */
   @Get()
+  @Roles('admin') // Only admin can access all the users.
   @ApiBearerAuth() // Swagger UI will ask for the Bearer token
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({
@@ -58,7 +61,7 @@ export class UsersController {
     status: 401,
     description: 'Unauthorized. Invalid or missing JWT token.',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard , RolesGuard)
   async getAllUsers(@Request() req): Promise<User[]> {
     return this.usersService.findAll();
   }
@@ -67,6 +70,7 @@ export class UsersController {
    * Get a user by ID
    */
   @Get(':id')
+  @Roles('admin')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiParam({ name: 'id', description: 'User ID', example: 1 })
   @ApiResponse({ status: 200, description: 'Returns the user.', type: User })

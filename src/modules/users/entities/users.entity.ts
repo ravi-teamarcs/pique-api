@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
+import { Booking } from 'src/modules/booking/entities/booking.entity';
 
 @Entity('users')
 export class User {
@@ -23,8 +24,14 @@ export class User {
   @Column({ type: 'varchar', length: 255 })
   password: string;
 
+  @Column({ type: 'varchar', length: 13 })
+  phoneNumber: string;
+
   @Column({ type: 'enum', enum: ['venue', 'entertainer'] })
   role: 'venue' | 'entertainer';
+  
+  // @Column({ type: 'enum', enum: ['active', 'inactive'] })
+  // status: string;
 
   @OneToMany(() => Venue, (venue) => venue.user)
   venues: Venue[];
@@ -32,9 +39,17 @@ export class User {
   @OneToMany(() => Entertainer, (entertainer) => entertainer.user)
   entertainers: Entertainer[];
 
+  // @OneToMany(() => Booking, (booking) => booking.user)
+  // bookings: Booking[];
+
   @CreateDateColumn({ type: 'timestamp' })
   createdDate: Date;
 
   @UpdateDateColumn({ type: 'timestamp' })
   updatedDate: Date;
 }
+
+// @OneToMany(() => Entertainer, (entertainer) => entertainer.user)
+// entertainers: Entertainer[];
+
+// Need to add a Relation that a user can have multiple Booking

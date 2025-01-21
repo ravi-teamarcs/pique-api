@@ -10,25 +10,38 @@ import { Venue } from './modules/venue/entities/venue.entity';
 import { VenueModule } from './modules/venue/venue.module';
 import { EntertainerModule } from './modules/entertainer/entertainer.module';
 import { Entertainer } from './modules/entertainer/entities/entertainer.entity';
+import { ConfigModule } from '@nestjs/config';
+import { Booking } from './modules/booking/entities/booking.entity';
+import { BookingModule } from './modules/booking/booking.module';
+import { NotificationModule } from './modules/notification/notification.module';
+import { Notification } from './modules/notification/entities/notification.entity';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      envFilePath: '.env',
+      isGlobal: true,
+    }),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',
       port: 3306,
       username: 'root',
-      password: '',
+      password: process.env.DB_Password,
       database: 'piquedb',
-      entities: [User, Venue, Entertainer],
+      entities: [User, Venue, Entertainer, Booking, Notification],
       synchronize: true,
     }),
     AuthModule,
     UsersModule,
     VenueModule,
-    EntertainerModule
+    EntertainerModule,
+    BookingModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
+
+// entities: [join(process.cwd(), 'dist/**/*.entity.js')],  for automatically fetching all the details
