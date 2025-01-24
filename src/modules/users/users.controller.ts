@@ -10,6 +10,7 @@ import {
   HttpStatus,
   UseGuards,
   Request,
+  Req,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -22,6 +23,7 @@ import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { User } from './entities/users.entity';
+import { UpdateProfileDto } from './dto/update-profile.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -117,5 +119,22 @@ export class UsersController {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
     return { message: 'User successfully deleted' };
+  }
+
+  @Put('update/profile')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Update user Profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'The user Profile has been Successfully updated .',
+  })
+  updateUserprofile(@Body() updateProfileDto: UpdateProfileDto, @Req() req) {
+    const { userId, role } = req.user;
+    // console.log('User', req.user);
+    return this.usersService.handleUpdateUserProfile(
+      updateProfileDto,
+      userId,
+      role,
+    );
   }
 }

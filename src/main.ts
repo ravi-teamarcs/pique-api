@@ -5,7 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
+  app.enableCors();
   // Configure Swagger options
   const config = new DocumentBuilder()
     .setTitle('API Documentation')
@@ -20,6 +20,8 @@ async function bootstrap() {
   // Setup Swagger module
   SwaggerModule.setup('api-docs', app, document);
 
-  await app.listen(3000);
+  const res = await app.listen(process.env.PORT ?? 3000);
+  // Printing server running port.  // process.env.PORT is used for heroku deployment.
+  console.log(`Server is running on ${res.address().port}`);
 }
 bootstrap();

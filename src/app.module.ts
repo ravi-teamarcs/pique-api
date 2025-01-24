@@ -2,31 +2,40 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-//import { UsersController } from './modules/users/users.controller';
-import { User } from './modules/users/entities/users.entity';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
-import { Venue } from './modules/venue/entities/venue.entity';
 import { VenueModule } from './modules/venue/venue.module';
 import { EntertainerModule } from './modules/entertainer/entertainer.module';
-import { Entertainer } from './modules/entertainer/entities/entertainer.entity';
+import { ConfigModule } from '@nestjs/config';
+import { join } from 'path';
+import { BookingModule } from './modules/booking/booking.module';
+import { MediaModule } from './modules/media/media.module';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({
+      envFilePath: '.env',
+      isGlobal: true,
+    }),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',
       port: 3306,
       username: 'root',
-      password: '',
-      database: 'piquedb',
-      entities: [User, Venue, Entertainer],
+      password: 'Arcs@123',
+      database: 'project',
+      entities: [join(process.cwd(), 'dist/**/*.entity.js')],
+      // logging: true,
+      // logger: 'advanced-console',
       synchronize: true,
     }),
+
     AuthModule,
     UsersModule,
     VenueModule,
-    EntertainerModule
+    EntertainerModule,
+    BookingModule,
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

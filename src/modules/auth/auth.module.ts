@@ -7,6 +7,8 @@ import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/users.entity';
 import { UsersService } from '../users/users.service';
+import { Venue } from '../venue/entities/venue.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
 
 @Module({
   imports: [
@@ -15,7 +17,7 @@ import { UsersService } from '../users/users.service';
       secret: process.env.JWT_SECRET || 'defaultSecretKey',
       signOptions: { expiresIn: '1h' },
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User ,Venue ,Entertainer]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, UsersService],

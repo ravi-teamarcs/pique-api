@@ -2,28 +2,65 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToOne,
+  JoinColumn,
 } from 'typeorm';
 import { User } from '../../users/entities/users.entity';
+// import { Booking } from '../../booking/entities/booking.entity';
 
 @Entity('entertainers')
 export class Entertainer {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
   @Column()
   name: string;
 
   @Column()
-  expertise: string;
+  type: string;
 
   @Column()
-  availability: string;
+  bio: string;
 
-  @ManyToOne(() => User, (user) => user.entertainers, { onDelete: 'CASCADE' })
+  @Column()
+  headshotUrl: string;
+
+  @Column({
+    type: 'enum',
+    enum: ['soloist', 'duo', 'trio', 'ensemble'],
+    nullable: false,
+  })
+  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
+
+  @Column()
+  phone1: string;
+
+  @Column()
+  phone2: string;
+
+  @Column()
+  pricePerEvent: number;
+
+  @Column()
+  mediaUrl: string;
+
+  @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
+  vaccinated: 'yes' | 'no';
+
+  @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
+  availability: 'yes' | 'no';
+
+  @OneToOne(() => User, (user) => user.entertainer)
+  @JoinColumn()
   user: User;
+
+  @Column()
+  status: string;
+
+  @Column()
+  socialLinks: string;
 
   @CreateDateColumn()
   createdAt: Date;

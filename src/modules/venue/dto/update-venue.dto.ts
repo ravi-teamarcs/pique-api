@@ -1,28 +1,87 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateVenueDto } from './create-venue.dto';
-
 export class UpdateVenueDto extends PartialType(CreateVenueDto) {}
 
-// venue/entities/venue.entity.ts
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+
+
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUrl,
+} from 'class-validator';
 
 @Entity('venues')
 export class Venue {
-  @PrimaryGeneratedColumn()
-  id: number;
-
-  @Column()
+  @IsString()
+  @IsNotEmpty()
   name: string;
 
-  @Column()
-  location: string;
+  @IsString()
+  @IsNotEmpty()
+  phone: string;
 
-  @Column({ nullable: true })
-  contactInfo: string;
+  @IsEmail()
+  @IsNotEmpty()
+  email: string;
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @IsString()
+  @IsNotEmpty()
+  addressLine1: string;
 
-  @UpdateDateColumn()
-  updatedAt: Date;
+  @IsString()
+  @IsOptional()
+  addressLine2?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  city: string;
+
+  @IsString()
+  @IsNotEmpty()
+  state: string;
+
+  @IsString()
+  @IsNotEmpty()
+  zipCode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  country: string;
+
+  @IsString()
+  @IsNotEmpty()
+  lat: string;
+
+  @IsString()
+  @IsNotEmpty()
+  long: string;
+
+  @IsString()
+  @IsOptional()
+  amenities?: string;
+
+  @IsUrl()
+  @IsOptional()
+  websiteUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  timings?: string;
+
+  @IsString()
+  @IsOptional()
+  bookingPolicies?: string;
 }
