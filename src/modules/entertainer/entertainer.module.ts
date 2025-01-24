@@ -6,10 +6,11 @@ import { Entertainer } from './entities/entertainer.entity';
 import { User } from '../users/entities/users.entity';
 // import { Booking } from '../booking/entities/booking.entity';
 import { Venue } from '../venue/entities/venue.entity';
+import { Booking } from '../booking/entities/booking.entity';
 // import { VenueService } from '../venue/venue.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Entertainer, User, Venue])],
+  imports: [TypeOrmModule.forFeature([Entertainer, User, Venue, Booking])],
   controllers: [EntertainerController],
   providers: [EntertainerService],
 })

@@ -14,6 +14,7 @@ import { User } from '../users/entities/users.entity';
 // import { Booking } from '../booking/entities/booking.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { BookingResponseDto } from './dto/booking-response.dto';
+import { Booking } from '../booking/entities/booking.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -22,8 +23,8 @@ export class EntertainerService {
     private readonly entertainerRepository: Repository<Entertainer>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    // @InjectRepository(Booking)
-    // private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(Venue)
     private readonly venueRepository: Repository<Venue>,
   ) {}
@@ -125,69 +126,73 @@ export class EntertainerService {
     const entertainer = await this.findOne(id, userId);
     await this.entertainerRepository.remove(entertainer);
   }
-  // async findAllBooking(userId: number): Promise<Booking[]> {
-  //   // Find entertainers belonging to the specified user
-  //   try {
-  //     const entertainers = await this.entertainerRepository.find({
-  //       where: { user: { id: userId } },
-  //     });
+  async findAllBooking(userId: number): Promise<Booking[]> {
+    // Find entertainers belonging to the specified user
+    try {
+      //     const entertainers = await this.entertainerRepository.find({
+      //       where: { user: { id: userId } },
+      //     });
 
-  // Extract entertainer IDs
-  // const entertainerIds = entertainers.map((entertainer) => entertainer.id);
+      // Extract entertainer IDs
+      // const entertainerIds = entertainers.map((entertainer) => entertainer.id);
 
-  // Find bookings for these entertainers
-  // const bookings = await this.bookingRepository.find({
-  //   where: { entertainer: { id: In(entertainerIds) } },
-  //   select: [
-  //     'id',
-  //     'status',
-  //     'showTime',
-  //     'isAccepted',
-  //     'showDate',
-  //     'specialNotes',
-  //     'specificLocation',
-  //   ],
-  //   relations: ['venue'],
-  // });
-  //     const bookings = await this.bookingRepository
-  //       .createQueryBuilder('booking')
-  //       .leftJoinAndSelect('booking.venue', 'venue')
-  //       .select([
-  //         'booking.id',
-  //         'booking.status',
-  //         'booking.showTime',
-  //         'booking.isAccepted',
-  //         'booking.showDate',
-  //         'booking.specialNotes',
-  //         'booking.specificLocation',
-  //         'venue.id', // Select specific fields from venue
-  //         'venue.name', // Example field, add others you need
-  //         'venue.location', // Example field, add others you need
-  //       ])
-  //       .where('booking.entertainer.id IN (:...entertainerIds)', {
-  //         entertainerIds,
-  //       })
-  //       .getMany();
-  //     return bookings;
-  //   } catch (error) {
-  //     throw new InternalServerErrorException('An unexpected error occurred');
-  //   }
-  // }
+      // Find bookings for these entertainers
+      // const bookings = await this.bookingRepository.find({
+      //   where: { entertainer: { id: In(entertainerIds) } },
+      //   select: [
+      //     'id',
+      //     'status',
+      //     'showTime',
+      //     'isAccepted',
+      //     'showDate',
+      //     'specialNotes',
+      //     'specificLocation',
+      //   ],
+      //   relations: ['venue'],
+      // });
+      const bookings = await this.bookingRepository.find({
+        where: { entertainerUser: { id: userId } },
+        select: [
+          'id',
+          'status',
+          'showTime',
+          'isAccepted',
+          'showDate',
+          'specialNotes',
+          'specificLocation',
+        ],
+      });
 
-  // async handleBookingResponse(bookingResponseDto: BookingResponseDto) {
-  //   const { bookingId, isAccepted } = bookingResponseDto;
+      return bookings;
+    } catch (error) {
+      throw new InternalServerErrorException('An unexpected error occurred');
+    }
+  }
 
-  //   const booking = await this.bookingRepository.update(
-  //     { id: bookingId },
-  //     { isAccepted: isAccepted },
-  //   );
-  //   console.log('booking updated', booking);
-  //   if (!booking.affected) {
-  //     throw new NotFoundException('Booking not found');
-  //   }
+  async handleBookingResponse(bookingResponseDto: BookingResponseDto) {
+    const { bookingId, isAccepted } = bookingResponseDto;
 
-  //   return { message: 'Response registered successfully' };
-  // }
+    const booking = await this.bookingRepository.update(
+      { id: bookingId },
+      { isAccepted: isAccepted },
+    );
+    console.log('booking updated', booking);
+    if (!booking.affected) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    return { message: 'Response registered successfully' };
+  }
 }
 
 // bookingId, { isAccepted: isAccepted }
+
+// select([
+//   'id',
+//   'status',
+//   'showTime',
+//   'isAccepted',
+//   'showDate',
+//   'specialNotes',
+//   'specificLocation',
+// ]);

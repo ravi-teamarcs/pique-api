@@ -58,13 +58,11 @@ export class EntertainerController {
   @ApiOperation({ summary: 'Get all entertainers for the logged-in user' })
   findAll(@Request() req) {
     return this.entertainerService.findAll(req.user.userId);
-    return this.entertainerService.findAll(req.user.userId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific entertainer by ID' })
   findOne(@Param('id') id: number, @Request() req) {
-    return this.entertainerService.findOne(+id, req.user.userId);
     return this.entertainerService.findOne(+id, req.user.userId);
   }
 
@@ -75,7 +73,6 @@ export class EntertainerController {
     description: 'Entertainer updated sucessfully.',
     type: Entertainer,
   })
- 
   update(
     @Param('id') id: number,
     @Body() updateEntertainerDto: UpdateEntertainerDto,
@@ -101,32 +98,32 @@ export class EntertainerController {
 
   // conflict in Rotes
 
-  // @ApiOperation({ summary: 'Entertainer response to a Booking' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'Response registered Successfully',
-  // })
-  // @Put('booking-response')
-  // @Roles('entertainer')
-  // entertainerBookingResponse(
-  //   @Body() bookingResponseDto: BookingResponseDto,
-  //   @Request() req,
-  // ) {
-  //   const userId = req.user.userId;
-  //   return this.entertainerService.handleBookingResponse(bookingResponseDto);
-  // }
+  @ApiOperation({ summary: 'Entertainer response to a Booking' })
+  @ApiResponse({
+    status: 200,
+    description: 'Response registered Successfully',
+  })
+  @Put('booking/response')
+  @Roles('entertainer')
+  entertainerBookingResponse(
+    @Body() bookingResponseDto: BookingResponseDto,
+    @Request() req,
+  ) {
+    const userId = req.user.userId;
+    return this.entertainerService.handleBookingResponse(bookingResponseDto);
+  }
 
-  //   @Get('/booking/request')
-  //   @Roles('entertainer')
-  //   @ApiOperation({ summary: 'Get all the booking of the  Entertainer' })
-  //   @ApiResponse({
-  //     status: 200,
-  //     description: 'Booking fetched Successfully.',
-  //     // type: [Booking],
-  //   })
-  //   getBooking(@Request() req) {
-  //     const userId = req.user.userId;
-  //     console.log('userId', userId);
-  //     return this.entertainerService.findAllBooking(userId);
-  //   }
+  @Get('/booking/request')
+  @Roles('entertainer')
+  @ApiOperation({ summary: 'Get all the booking of the  Entertainer' })
+  @ApiResponse({
+    status: 200,
+    description: 'Booking fetched Successfully.',
+    // type: [Booking],
+  })
+  getBooking(@Request() req) {
+    const userId = req.user.userId;
+    console.log('userId', userId);
+    return this.entertainerService.findAllBooking(userId);
+  }
 }

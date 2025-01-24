@@ -10,7 +10,7 @@ import { ConfigModule } from '@nestjs/config';
 import { join } from 'path';
 import { BookingModule } from './modules/booking/booking.module';
 import { MediaModule } from './modules/media/media.module';
-import { Invoice } from './modules/invoice/entities/invoice.entity';
+import { InvoiceModule } from './modules/invoice/invoice.module';
 
 @Module({
   imports: [
@@ -26,13 +26,13 @@ import { Invoice } from './modules/invoice/entities/invoice.entity';
       type: 'mysql',
       host: 'localhost',
       port: 3306,
-      username: 'root',
+      username: process.env.DB_User,
       password: process.env.DB_Password,
       database: process.env.DB_Name,
       entities: [join(process.cwd(), 'dist/**/*.entity.js')],
       // logging: true,
       // logger: 'advanced-console',
-      synchronize: true,
+      synchronize: true, //  Precaution : Must be False for Production.
     }),
 
     AuthModule,
@@ -41,7 +41,7 @@ import { Invoice } from './modules/invoice/entities/invoice.entity';
     EntertainerModule,
     BookingModule,
     MediaModule,
-    Invoice,
+    InvoiceModule,
   ],
   controllers: [AppController],
   providers: [AppService],
