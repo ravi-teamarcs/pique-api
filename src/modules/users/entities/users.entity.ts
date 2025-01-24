@@ -30,6 +30,9 @@ export class User {
   @Column({ type: 'varchar', length: 255 })
   password: string;
 
+  @Column({ type: 'varchar', length: 13 })
+  phoneNumber: string;
+
   @Column({ type: 'enum', enum: ['venue', 'entertainer'] })
   role: 'venue' | 'entertainer';
 
@@ -75,3 +78,8 @@ export class User {
   @UpdateDateColumn({ type: 'timestamp' })
   updatedDate: Date;
 }
+
+// @OneToMany(() => Entertainer, (entertainer) => entertainer.user)
+// entertainers: Entertainer[];
+
+// Need to add a Relation that a user can have multiple Booking

@@ -42,8 +42,38 @@ export class Entertainer {
 
   @Column()
   pricePerEvent: number;
+  type: string;
 
   @Column()
+  bio: string;
+
+  @Column()
+  headshotUrl: string;
+
+  @Column({
+    type: 'enum',
+    enum: ['soloist', 'duo', 'trio', 'ensemble'],
+    nullable: false,
+  })
+  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
+
+  @Column()
+  phone1: string;
+
+  @Column()
+  phone2: string;
+
+  @Column()
+  pricePerEvent: number;
+
+  @Column()
+  mediaUrl: string;
+
+  @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
+  vaccinated: 'yes' | 'no';
+
+  @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
+  availability: 'yes' | 'no';
   mediaUrl: string;
 
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
@@ -55,6 +85,12 @@ export class Entertainer {
   @OneToOne(() => User, (user) => user.entertainer)
   @JoinColumn()
   user: User;
+
+  @Column()
+  status: string;
+
+  @Column()
+  socialLinks: string;
 
   @Column()
   status: string;

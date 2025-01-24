@@ -60,7 +60,7 @@ export class UsersController {
     status: 401,
     description: 'Unauthorized. Invalid or missing JWT token.',
   })
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard , RolesGuard)
   async getAllUsers(@Request() req): Promise<User[]> {
     return this.usersService.findAll();
   }
@@ -69,6 +69,7 @@ export class UsersController {
    * Get a user by ID
    */
   @Get(':id')
+  @Roles('admin')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiParam({ name: 'id', description: 'User ID', example: 1 })
   @ApiResponse({ status: 200, description: 'Returns the user.', type: User })

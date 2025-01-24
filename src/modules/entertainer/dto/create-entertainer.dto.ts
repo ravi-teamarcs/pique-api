@@ -1,5 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsInt, IsNumber, IsEnum } from 'class-validator';
+import { IsNotEmpty, IsString, IsInt, IsNumber, IsEnum } from 'class-validator';
 
 export class CreateEntertainerDto {
   @ApiProperty({ description: 'Name of the entertainer' })

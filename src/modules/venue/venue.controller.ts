@@ -64,7 +64,7 @@ export class VenueController {
   @ApiResponse({ status: 200, description: 'Venue details.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async findOne(@Param('id') id: number, @Request() req): Promise<Venue> {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     return this.venueService.findOneByUser(id, userId);
   }
 

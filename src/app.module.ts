@@ -17,6 +17,10 @@ import { MediaModule } from './modules/media/media.module';
       envFilePath: '.env',
       isGlobal: true,
     }),
+    ConfigModule.forRoot({
+      envFilePath: '.env',
+      isGlobal: true,
+    }),
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: 'localhost',
@@ -41,3 +45,5 @@ import { MediaModule } from './modules/media/media.module';
   providers: [AppService],
 })
 export class AppModule {}
+
+// entities: [join(process.cwd(), 'dist/**/*.entity.js')],  for automatically fetching all the details

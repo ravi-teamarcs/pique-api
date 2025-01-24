@@ -21,6 +21,8 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, UsersService],
-  exports: [AuthService],
+  exports: [AuthService], 
 })
 export class AuthModule {}
+
+

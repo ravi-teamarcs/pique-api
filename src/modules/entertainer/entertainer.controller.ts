@@ -55,8 +55,10 @@ export class EntertainerController {
 
   @Get()
   @Roles('entertainer')
+  @Roles('entertainer')
   @ApiOperation({ summary: 'Get all entertainers for the logged-in user' })
   findAll(@Request() req) {
+    return this.entertainerService.findAll(req.user.userId);
     return this.entertainerService.findAll(req.user.userId);
   }
 
@@ -64,10 +66,16 @@ export class EntertainerController {
   @ApiOperation({ summary: 'Get a specific entertainer by ID' })
   findOne(@Param('id') id: number, @Request() req) {
     return this.entertainerService.findOne(+id, req.user.userId);
+    return this.entertainerService.findOne(+id, req.user.userId);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update a specific entertainer by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Entertainer updated sucessfully.',
+    type: Entertainer,
+  })
   @ApiResponse({
     status: 200,
     description: 'Entertainer updated sucessfully.',
@@ -82,11 +90,17 @@ export class EntertainerController {
       +id,
       updateEntertainerDto,
       req.user.userId,
+      req.user.userId,
     );
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a specific entertainer by ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Entertainer removed sucessfully.',
+    type: Entertainer,
+  })
   @ApiResponse({
     status: 200,
     description: 'Entertainer removed sucessfully.',
