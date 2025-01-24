@@ -11,6 +11,6 @@ import { Venue } from '../venue/entities/venue.entity';
 @Module({
   imports: [TypeOrmModule.forFeature([Entertainer, User, Venue])],
   controllers: [EntertainerController],
-  providers: [EntertainerService, VenueService],
+  providers: [EntertainerService],
 })
 export class EntertainerModule {}

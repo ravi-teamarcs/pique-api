@@ -25,8 +25,8 @@ export class VenueService {
 
   async create(createVenueDto: CreateVenueDto, userId: number): Promise<Venue> {
     console.log(userId);
-    
-    const existingVenue = this.venueRepository.findOne({
+
+    const existingVenue = await this.venueRepository.findOne({
       where: { user: { id: userId } },
     });
 
@@ -34,16 +34,11 @@ export class VenueService {
       throw new BadRequestException('Venue already exists for the user');
     }
 
-    // const user = await this.userRepository.findOne({ where: { id: userId } });
-    // if (!user) {
-    //   throw new Error('User not found');
-    // }
-
     const venue = this.venueRepository.create({
       ...createVenueDto,
-      user:{ id: userId },
+      user: { id: userId },
     });
-    return this.venueRepository.save(venue);
+    return await this.venueRepository.save(venue);
   }
 
   async findAllByUser(userId: number): Promise<Venue> {

@@ -54,7 +54,7 @@ export class VenueController {
   @ApiOperation({ summary: 'Get all venues for logged-in user' })
   @ApiResponse({ status: 200, description: 'List of venues.', type: Venue })
   async findAll(@Request() req): Promise<Venue> {
-    const userId = req.user.id;
+    const userId = req.user.userId;
     return await this.venueService.findAllByUser(userId);
   }
 

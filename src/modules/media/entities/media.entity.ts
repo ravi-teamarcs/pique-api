@@ -1,7 +1,9 @@
+import { User } from '../../users/entities/users.entity';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -13,9 +15,13 @@ export class Media {
 
   @Column()
   url: string;
+  @Column()
+  name: string;
   @Column({ type: 'enum', enum: ['image', 'video'] })
   type: 'image' | 'video';
   // Relation to userId
+  @ManyToOne(() => User, (user) => user.media, { eager: true })
+  user: User;
   @CreateDateColumn()
   createdAt: Date;
   @UpdateDateColumn()

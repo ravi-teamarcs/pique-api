@@ -3,7 +3,7 @@ import { InvoiceService } from './invoice.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { InvoiceDto } from './dto/create-invoice.dto';
 
-@ApiTags('invoice')
+@ApiTags('Invoice')
 @Controller('invoice')
 export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}

@@ -1,6 +1,6 @@
 import { extname, join } from 'path';
-import fs from 'fs';
-import crypto from 'crypto';
+import * as fs from 'fs';
+import * as crypto from 'crypto';
 
 export async function uploadFile(file: Express.Multer.File): Promise<string> {
   const now = new Date();

@@ -27,7 +27,6 @@ import { Roles } from '../auth/roles.decorator';
 // import { Booking } from '../booking/entities/booking.entity';
 import { BookingResponseDto } from './dto/booking-response.dto';
 
-
 @ApiTags('Entertainers')
 @ApiBearerAuth()
 @Controller('entertainers')
@@ -44,9 +43,9 @@ export class EntertainerController {
     type: Entertainer,
   })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  create(@Body() createEntertainerDto: CreateEntertainerDto , @Req() req) {
+  create(@Body() createEntertainerDto: CreateEntertainerDto, @Req() req) {
     const userId = req.user.userId;
-    return this.entertainerService.create(createEntertainerDto , userId);
+    return this.entertainerService.create(createEntertainerDto, userId);
   }
   //   create(@Body() createEntertainerDto: CreateEntertainerDto, @Request() req) {
   //     console.log('---', req.user);
@@ -76,11 +75,7 @@ export class EntertainerController {
     description: 'Entertainer updated sucessfully.',
     type: Entertainer,
   })
-  @ApiResponse({
-    status: 200,
-    description: 'Entertainer updated sucessfully.',
-    type: Entertainer,
-  })
+ 
   update(
     @Param('id') id: number,
     @Body() updateEntertainerDto: UpdateEntertainerDto,
@@ -90,17 +85,11 @@ export class EntertainerController {
       +id,
       updateEntertainerDto,
       req.user.userId,
-      req.user.userId,
     );
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a specific entertainer by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Entertainer removed sucessfully.',
-    type: Entertainer,
-  })
   @ApiResponse({
     status: 200,
     description: 'Entertainer removed sucessfully.',
@@ -128,16 +117,16 @@ export class EntertainerController {
   // }
 
   //   @Get('/booking/request')
-//   @Roles('entertainer')
-//   @ApiOperation({ summary: 'Get all the booking of the  Entertainer' })
-//   @ApiResponse({
-//     status: 200,
-//     description: 'Booking fetched Successfully.',
-//     // type: [Booking],
-//   })
-//   getBooking(@Request() req) {
-//     const userId = req.user.userId;
-//     console.log('userId', userId);
-//     return this.entertainerService.findAllBooking(userId);
-//   }
+  //   @Roles('entertainer')
+  //   @ApiOperation({ summary: 'Get all the booking of the  Entertainer' })
+  //   @ApiResponse({
+  //     status: 200,
+  //     description: 'Booking fetched Successfully.',
+  //     // type: [Booking],
+  //   })
+  //   getBooking(@Request() req) {
+  //     const userId = req.user.userId;
+  //     console.log('userId', userId);
+  //     return this.entertainerService.findAllBooking(userId);
+  //   }
 }

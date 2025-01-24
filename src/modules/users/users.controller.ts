@@ -24,6 +24,7 @@ import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { User } from './entities/users.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
+import { RolesGuard } from '../auth/roles.guard';
 
 @ApiTags('Users')
 @Controller('users')
@@ -69,7 +70,7 @@ export class UsersController {
    * Get a user by ID
    */
   @Get(':id')
-  @Roles('admin')
+  // @Roles('admin')
   @ApiOperation({ summary: 'Get user by ID' })
   @ApiParam({ name: 'id', description: 'User ID', example: 1 })
   @ApiResponse({ status: 200, description: 'Returns the user.', type: User })

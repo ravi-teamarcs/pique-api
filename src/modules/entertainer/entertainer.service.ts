@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
-import { In, Repository } from 'typeorm';
 import { CreateEntertainerDto } from './dto/create-entertainer.dto';
 import { UpdateEntertainerDto } from './dto/update-entertainer.dto';
 import { Entertainer } from './entities/entertainer.entity';
@@ -82,46 +81,12 @@ export class EntertainerService {
         'socialLinks',
       ],
       // relations: ['user'],
-      select: [
-        'id',
-        'name',
-        'type',
-        'bio',
-        'headshotUrl',
-        'performanceRole',
-        'phone1',
-        'phone2',
-        'pricePerEvent',
-        'mediaUrl',
-        'vaccinated',
-        'availability',
-        'status',
-        'socialLinks',
-      ],
-      // relations: ['user'],
     });
   }
 
   async findOne(id: number, userId: number): Promise<Entertainer> {
     const entertainer = await this.entertainerRepository.findOne({
       where: { id, user: { id: userId } },
-      select: [
-        'id',
-        'name',
-        'type',
-        'bio',
-        'headshotUrl',
-        'performanceRole',
-        'phone1',
-        'phone2',
-        'pricePerEvent',
-        'mediaUrl',
-        'vaccinated',
-        'availability',
-        'status',
-        'socialLinks',
-      ],
-      // relations: ['user'],
       select: [
         'id',
         'name',

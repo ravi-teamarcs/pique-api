@@ -8,6 +8,7 @@ import { Venue } from '../venue/entities/venue.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { Invoice } from '../invoice/entities/invoice.entity';
 import { VenueEvent } from '../event/entities/event.entity';
+import { Media } from '../media/entities/media.entity';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { VenueEvent } from '../event/entities/event.entity';
       Booking,
       Invoice,
       VenueEvent,
+      Media
     ]),
   ],
   controllers: [UsersController],

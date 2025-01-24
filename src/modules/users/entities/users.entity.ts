@@ -14,6 +14,7 @@ import {
 import { Booking } from '../../booking/entities/booking.entity';
 import { Invoice } from '../../invoice/entities/invoice.entity';
 import { VenueEvent } from '../../event/entities/event.entity';
+import { Media } from '../../media/entities/media.entity';
 // import { Invoice } from '../../invoice/entities/invoice.entity';
 
 @Entity('users')
@@ -67,7 +68,10 @@ export class User {
   @OneToMany(() => Booking, (booking) => booking.entertainerUser)
   @JoinColumn({ name: 'Venue' })
   entertainerBookings: Booking[];
+  // Relation with Media
 
+  @OneToMany(() => Media, (media) => media.user, { cascade: true })
+  media: Media[];
   // Invoice
   @OneToMany(() => Invoice, (invoice) => invoice.customer)
   invoices: User;
