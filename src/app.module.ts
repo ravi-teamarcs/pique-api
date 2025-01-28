@@ -14,6 +14,7 @@ import { InvoiceModule } from './modules/invoice/invoice.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { EventModule } from './modules/event/event.module';
 import { EmailModule } from './modules/Email/email.module';
+import { LocationModule } from './modules/location/location.module';
 
 @Module({
   imports: [
@@ -35,7 +36,7 @@ import { EmailModule } from './modules/Email/email.module';
       entities: [join(process.cwd(), 'dist/**/*.entity.js')],
       // logging: true,
       // logger: 'advanced-console',
-      synchronize: true, //  Precaution : Must be False for Production.
+      // synchronize: true, //  Precaution : Must be False for Production.
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
@@ -50,6 +51,7 @@ import { EmailModule } from './modules/Email/email.module';
     InvoiceModule,
     EventModule,
     EmailModule,
+    LocationModule,
   ],
   controllers: [AppController],
   providers: [AppService],
