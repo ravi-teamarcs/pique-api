@@ -70,12 +70,12 @@ export class EntertainerService {
         'name',
         'type',
         'bio',
-        'headshotUrl',
+
         'performanceRole',
         'phone1',
         'phone2',
         'pricePerEvent',
-        'mediaUrl',
+
         'vaccinated',
         'availability',
         'status',
@@ -93,12 +93,10 @@ export class EntertainerService {
         'name',
         'type',
         'bio',
-        'headshotUrl',
         'performanceRole',
         'phone1',
         'phone2',
         'pricePerEvent',
-        'mediaUrl',
         'vaccinated',
         'availability',
         'status',
@@ -184,15 +182,3 @@ export class EntertainerService {
     return { message: 'Response registered successfully' };
   }
 }
-
-// bookingId, { isAccepted: isAccepted }
-
-// select([
-//   'id',
-//   'status',
-//   'showTime',
-//   'isAccepted',
-//   'showDate',
-//   'specialNotes',
-//   'specificLocation',
-// ]);

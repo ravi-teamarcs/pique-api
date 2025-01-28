@@ -1,9 +1,15 @@
-import { IsString, IsOptional, IsDateString, IsEnum, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsDateString,
+  IsEnum,
+  IsNumber,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class CreateEventDto {
   @IsNumber()
-  venueId: number;
+  userId: number;
 
   @IsString()
   title: string;

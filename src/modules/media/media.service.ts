@@ -11,6 +11,7 @@ export class MediaService {
   ) {}
 
   async handleMediaUpload(userId: number, uploadedFiles: Array<{}>) {
+    console.log('In Server ', userId, uploadedFiles);
     try {
       for (const file of uploadedFiles) {
         const media = this.mediaRepository.create({
@@ -20,8 +21,10 @@ export class MediaService {
         });
         await this.mediaRepository.save(media);
       }
+      return { message: 'Files Saved Successfully' };
     } catch (error) {
-      throw new Error(`Erro while Saving the Files`);
+      console.log(error);
+      throw new Error(`Error while Saving the Files`);
     }
   }
 

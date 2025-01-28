@@ -57,6 +57,7 @@ export class User {
   @OneToOne(() => Venue, (venue) => venue.user, { cascade: true })
   venue: Venue;
 
+  // Events linked with venueUser
   @OneToOne(() => VenueEvent, (event) => event.user, { cascade: true })
   events: VenueEvent;
 
@@ -70,8 +71,10 @@ export class User {
   entertainerBookings: Booking[];
   // Relation with Media
 
+  // Media
   @OneToMany(() => Media, (media) => media.user, { cascade: true })
   media: Media[];
+
   // Invoice
   @OneToMany(() => Invoice, (invoice) => invoice.customer)
   invoices: User;

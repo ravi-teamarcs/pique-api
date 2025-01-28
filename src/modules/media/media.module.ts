@@ -6,7 +6,7 @@ import { User } from '../users/entities/users.entity';
 import { Media } from './entities/media.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User ,Media])],
+  imports: [TypeOrmModule.forFeature([User, Media])],
   providers: [MediaService],
   controllers: [MediaController],
   exports: [],

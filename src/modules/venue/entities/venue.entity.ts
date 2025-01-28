@@ -54,8 +54,8 @@ export class Venue {
   @Column()
   long: string;
 
-  @Column()
-  amenities: string;
+  @Column('simple-array')
+  amenities: string[];
 
   @Column()
   websiteUrl: string;

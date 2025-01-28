@@ -65,7 +65,7 @@ export class CreateVenueDto {
   @ApiProperty({ description: 'Amenities available at Venue ' })
   @IsString()
   @IsOptional()
-  amenities?: string;
+  amenities?: string[];
 
   @ApiProperty({ description: 'Website Url of  Venue ' })
   @IsUrl()

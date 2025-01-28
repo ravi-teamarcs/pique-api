@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post, Put, Req } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EventService } from './event.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -11,7 +11,7 @@ export class EventController {
     status: 200,
     description: 'Event has been  Created Sucessfully.',
   })
-  @Post()
+  @Post('create')
   createEvent(@Body() createEventDto: CreateEventDto) {
     return this.eventService.createEvent(createEventDto);
   }
@@ -20,13 +20,13 @@ export class EventController {
   //   return this.eventService.createEvent(createEventDto);
   // }
 
-  @ApiOperation({ summary: 'Send an  Event Reminder' })
+  @ApiOperation({ summary: 'Update an Event' })
   @ApiResponse({
     status: 200,
-    description: 'Event  reminder  Sent  Sucessfully.',
+    description: 'Event  Update  Sent  Sucessfully.',
   })
-  @Post()
-  sendEventReminder(@Body() createEventDto: CreateEventDto) {
-    return this.eventService.sendEventReminder();
+  @Put('update')
+  updateEvent(@Body() createEventDto: CreateEventDto, @Req() req) {
+    return this.eventService.handleUpdateEvent();
   }
 }

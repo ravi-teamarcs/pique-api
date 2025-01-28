@@ -45,14 +45,14 @@ export class AuthService {
     const { email, password } = loginDto;
 
     const user = await this.usersService.findByEmail(email);
-    
+
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
     }
-    
+
     const payload = { sub: user.id, email: user.email, role: user.role };
     const token = this.jwtService.sign(payload);
 
-    return { access_token: token };
+    return { access_token: token, role: user.role };
   }
 }

@@ -7,6 +7,7 @@ import {
   UseGuards,
   Request,
   Put,
+  Query,
 } from '@nestjs/common';
 import { VenueService } from './venue.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
@@ -84,7 +85,7 @@ export class VenueController {
     return this.venueService.findAllEntertainers();
   }
 
-  @Post('search/entertainers')
+  @Get('search/entertainers')
   @Roles('venue')
   @ApiOperation({ summary: 'Search entertainers by availability and type' })
   @ApiResponse({
@@ -96,8 +97,8 @@ export class VenueController {
     status: 404,
     description: 'Cannot get entertainers.',
   })
-  search(@Body() searchEntertainerDto: SearchEntertainerDto) {
-    return this.venueService.findByAvailabilityAndType(searchEntertainerDto);
+  search(@Query() query: SearchEntertainerDto) {
+    return this.venueService.findByAvailabilityAndType(query);
   }
 
   // Booking Request   and create a new requet

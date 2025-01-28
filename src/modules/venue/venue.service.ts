@@ -59,9 +59,8 @@ export class VenueService {
     return venue;
   }
 
-  async findByAvailabilityAndType(searchEntertainerDto: SearchEntertainerDto) {
-    const { availability, type } = searchEntertainerDto;
-
+  async findByAvailabilityAndType(query: SearchEntertainerDto) {
+    const { availability, type } = query;
     const entertainers = await this.entertainerRepository.find({
       where: { availability: availability, type: type },
       select: [
@@ -69,19 +68,19 @@ export class VenueService {
         'name',
         'type',
         'bio',
-        'headshotUrl',
+
         'performanceRole',
         'phone1',
         'phone2',
         'pricePerEvent',
-        'mediaUrl',
+
         'vaccinated',
         'availability',
         'status',
         'socialLinks',
       ],
     });
-    return { message: '', entertainers };
+    return { message: 'Entertainers fetched Sucessfully', entertainers };
   }
 
   async findAllEntertainers() {
@@ -91,12 +90,12 @@ export class VenueService {
         'name',
         'type',
         'bio',
-        'headshotUrl',
+
         'performanceRole',
         'phone1',
         'phone2',
         'pricePerEvent',
-        'mediaUrl',
+
         'vaccinated',
         'availability',
         'status',

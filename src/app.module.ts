@@ -11,6 +11,9 @@ import { join } from 'path';
 import { BookingModule } from './modules/booking/booking.module';
 import { MediaModule } from './modules/media/media.module';
 import { InvoiceModule } from './modules/invoice/invoice.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { EventModule } from './modules/event/event.module';
+import { EmailModule } from './modules/Email/email.module';
 
 @Module({
   imports: [
@@ -34,7 +37,10 @@ import { InvoiceModule } from './modules/invoice/invoice.module';
       // logger: 'advanced-console',
       synchronize: true, //  Precaution : Must be False for Production.
     }),
-
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
+    }),
     AuthModule,
     UsersModule,
     VenueModule,
@@ -42,6 +48,8 @@ import { InvoiceModule } from './modules/invoice/invoice.module';
     BookingModule,
     MediaModule,
     InvoiceModule,
+    EventModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],

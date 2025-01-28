@@ -17,26 +17,32 @@ export class EventService {
   ) {}
 
   async createEvent(createEventDto: CreateEventDto) {
-    const { venueId, ...details } = createEventDto;
+    const { userId, ...details } = createEventDto;
     const event = this.eventRepository.create({
-      // venue:{ id:venueId },
-      // details,
+      user: { id: userId },
+      ...details,
     });
-    if (!this.eventRepository.save(event)) {
+
+    const savedEvent = await this.eventRepository.save(event);
+    if (savedEvent) {
       throw new InternalServerErrorException('Error while creating event');
     }
 
     return { message: 'Event created Successfully', event };
   }
 
-  async sendEventReminder() {
-    const event = await this.eventRepository.find({ where: { id: 1 } });
+  async handleUpdateEvent() {
+    //   const event = await this.eventRepository.find({ where: user:{ id: userId } });
+    // const { userId, ...details } = updateEventDto;
+    // //
+    // const event = await this.eventRepository.find({
+    //   where: { user: { id: userId } },
+    // });
+    //  if (!event) {
+    //     throw new BadRequestException('Event not found');
+    //   }
 
-    if (!event) {
-      throw new BadRequestException('Event not found');
-    }
-
-    // Send email reminder to event organizer
-    // 1. Entertainer , Admin , venue
+    //   // Send email reminder to event organizer
+    //   // 1. Entertainer , Admin , venue
   }
 }

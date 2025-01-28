@@ -50,14 +50,15 @@ export class UpdateUserDto {
   @IsOptional()
   name?: string;
 
-  @ApiProperty({
-    description: 'Email of the user',
-    example: 'john.doe@example.com',
-    required: false,
-  })
-  @IsEmail()
-  @IsOptional()
-  email?: string;
+  // @ApiProperty({
+  //   description: 'Email of the user',
+  //   example: 'john.doe@example.com',
+  //   required: false,
+  // })
+  // @IsEmail()
+  // @IsOptional()
+  // email?: string;
+
   @ApiProperty({
     description: 'Phone Number of the user',
     example: '9876543210',
@@ -67,22 +68,22 @@ export class UpdateUserDto {
   @IsOptional()
   phoneNumber?: string;
 
-  @ApiProperty({
-    description: 'Password of the user',
-    example: 'password123',
-    required: false,
-  })
-  @IsString()
-  @IsOptional()
-  password?: string;
+  // @ApiProperty({
+  //   description: 'Password of the user',
+  //   example: 'password123',
+  //   required: false,
+  // })
+  // @IsString()
+  // @IsOptional()
+  // password?: string;
 
-  @ApiProperty({
-    description: 'Role of the user',
-    example: 'venue',
-    enum: ['venue', 'entertainer'],
-    required: false,
-  })
-  @IsEnum(['venue', 'entertainer'])
-  @IsOptional()
-  role?: 'venue' | 'entertainer';
+  //   @ApiProperty({
+  //     description: 'Role of the user',
+  //     example: 'venue',
+  //     enum: ['venue', 'entertainer'],
+  //     required: false,
+  //   })
+  //   @IsEnum(['venue', 'entertainer'])
+  //   @IsOptional()
+  //   role?: 'venue' | 'entertainer';
 }

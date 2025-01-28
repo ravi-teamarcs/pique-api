@@ -38,7 +38,7 @@ export class Invoice {
   @Column({ type: 'timestamp' })
   issuedDate: Date;
 
-  @Column({ type: 'timestamp' })
+  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   dueDate: Date;
 
   @CreateDateColumn()

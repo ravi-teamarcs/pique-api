@@ -29,14 +29,14 @@ export class CreateEntertainerDto {
   @IsNotEmpty()
   phone2: string;
 
-  @ApiProperty({ description: 'Headshot of entertainer' })
-  @IsString()
-  @IsNotEmpty()
-  headshotUrl: string;
+  // @ApiProperty({ description: 'Headshot of entertainer' })
+  // @IsString()
+  // @IsNotEmpty()
+  // headshotUrl: string;
 
-  @ApiProperty({ description: 'Medias of the entertainer' })
-  @IsString()
-  mediaUrl: string;
+  // @ApiProperty({ description: 'Medias of the entertainer' })
+  // @IsString()
+  // mediaUrl: string;
 
   @ApiProperty({ description: ' Role of entertainer (soloist , duo , trio)' })
   @IsEnum(['soloist', 'duo', 'trio', 'ensemble'])
