@@ -36,7 +36,7 @@ import { LocationModule } from './modules/location/location.module';
       entities: [join(process.cwd(), 'dist/**/*.entity.js')],
       // logging: true,
       // logger: 'advanced-console',
-      // synchronize: true, //  Precaution : Must be False for Production.
+      synchronize: true, //  Precaution : Must be False for Production.
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),

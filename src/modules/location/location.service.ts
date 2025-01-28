@@ -50,8 +50,8 @@ export class LocationService {
       const states = await this.stateRepository.find();
       return {
         message: 'State fetched successfully',
-        states,
         count: states.length,
+        states,
       };
     } catch (error) {
       throw new Error(error.message);
@@ -68,15 +68,15 @@ export class LocationService {
         }
         return {
           message: 'Cities fetched successfully',
-          cities,
           count: cities.length,
+          cities,
         };
       }
       const cities = await this.cityRepository.find();
       return {
         message: 'Cities fetched successfully',
-        cities,
         count: cities.length,
+        cities,
       };
     } catch (error) {
       throw new Error(error.message);
