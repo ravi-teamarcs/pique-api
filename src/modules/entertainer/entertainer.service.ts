@@ -13,7 +13,6 @@ import { Entertainer } from './entities/entertainer.entity';
 import { User } from '../users/entities/users.entity';
 // import { Booking } from '../booking/entities/booking.entity';
 import { Venue } from '../venue/entities/venue.entity';
-import { BookingResponseDto } from './dto/booking-response.dto';
 import { Booking } from '../booking/entities/booking.entity';
 
 @Injectable()
@@ -157,7 +156,6 @@ export class EntertainerService {
           'isAccepted',
           'showDate',
           'specialNotes',
-          'specificLocation',
         ],
       });
 
@@ -165,20 +163,5 @@ export class EntertainerService {
     } catch (error) {
       throw new InternalServerErrorException('An unexpected error occurred');
     }
-  }
-
-  async handleBookingResponse(bookingResponseDto: BookingResponseDto) {
-    const { bookingId, isAccepted } = bookingResponseDto;
-
-    const booking = await this.bookingRepository.update(
-      { id: bookingId },
-      { isAccepted: isAccepted },
-    );
-    console.log('booking updated', booking);
-    if (!booking.affected) {
-      throw new NotFoundException('Booking not found');
-    }
-
-    return { message: 'Response registered successfully' };
   }
 }

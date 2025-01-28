@@ -1,6 +1,7 @@
 import {
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { CreateBookingDto } from './dto/create-booking.dto';
@@ -51,5 +52,31 @@ export class BookingService {
     }
     // const { createdAt, updatedAt, ...bookingData } = savedBooking;
     return { message: 'Booking created successfully', booking: bookingData };
+  }
+
+  async handleBookingResponse(role, payload) {
+    console.log('Booking Service', role, payload);
+    const { bookingId, ...data } = payload;
+    if (role === 'entertainer') {
+      const booking = await this.bookingRepository.update(
+        { id: bookingId },
+        data,
+      );
+      if (!booking.affected) {
+        throw new NotFoundException('Booking not found');
+      }
+    }
+
+    if (role === 'venue') {
+      const booking = await this.bookingRepository.update(
+        { id: bookingId },
+        data,
+      );
+      if (!booking.affected) {
+        throw new NotFoundException('Booking not found');
+      }
+    }
+
+    return { message: 'Response registered successfully' };
   }
 }

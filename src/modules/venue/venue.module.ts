@@ -10,7 +10,7 @@ import { Booking } from '../booking/entities/booking.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Venue, User, Entertainer]),
+    TypeOrmModule.forFeature([Venue, User, Entertainer ,Booking]),
     BookingModule,
   ],
   controllers: [VenueController],

@@ -11,6 +11,7 @@ import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { User } from '../users/entities/users.entity';
+import { Booking } from '../booking/entities/booking.entity';
 
 @Injectable()
 export class VenueService {
@@ -21,6 +22,8 @@ export class VenueService {
     private readonly entertainerRepository: Repository<Entertainer>,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>,
   ) {}
 
   async create(createVenueDto: CreateVenueDto, userId: number): Promise<Venue> {
@@ -108,4 +111,31 @@ export class VenueService {
 
     return { message: 'Entertainers returned successfully', entertainers };
   }
+
+  // To find Booking related to Venue user
+  async findAllBooking(userId: number) {
+    console.log(userId);
+    const bookings = await this.bookingRepository.find({
+      where: { venueUser: { id: userId } },
+    });
+
+    if (!bookings) {
+      throw new Error('No bookings found');
+    }
+
+    return { message: 'Bookings returned successfully', bookings };
+  }
+
+  // async handleBookingResponse(bookingId: number, status) {
+  //   const booking = await this.bookingRepository.update(
+  //     { id: bookingId },
+  //     { status: status },
+  //   );
+  //   console.log('booking updated', booking);
+  //   if (!booking.affected) {
+  //     throw new NotFoundException('Booking not found');
+  //   }
+
+  //   return { message: 'Response registered successfully' };
+  // }
 }

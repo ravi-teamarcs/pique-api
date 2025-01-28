@@ -4,10 +4,10 @@ import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 export class Countries {
   @PrimaryGeneratedColumn()
   id: number;
-  @Column()
+  @Column({ type: 'varchar', length: 150, nullable: false })
   name: string;
-  @Column()
+  @Column({ type: 'varchar', length: 3, nullable: false })
   cc: string;
-  @Column()
+  @Column({ nullable: false })
   phonecode: number;
 }

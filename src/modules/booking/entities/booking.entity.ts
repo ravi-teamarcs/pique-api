@@ -59,8 +59,8 @@ export class Booking {
   @Column()
   specialNotes: string;
 
-  @Column()
-  specificLocation: string;
+  // @Column()
+  // specificLocation: string;
 
   @CreateDateColumn()
   createdAt: Date;

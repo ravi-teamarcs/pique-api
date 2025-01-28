@@ -25,14 +25,18 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Entertainer } from './entities/entertainer.entity';
 import { Roles } from '../auth/roles.decorator';
 // import { Booking } from '../booking/entities/booking.entity';
-import { BookingResponseDto } from './dto/booking-response.dto';
+import { BookingService } from '../booking/booking.service';
+import { EntertainerResponseDto } from '../booking/dto/booking-response-dto';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
 @Controller('entertainers')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class EntertainerController {
-  constructor(private readonly entertainerService: EntertainerService) {}
+  constructor(
+    private readonly entertainerService: EntertainerService,
+    private readonly bookingService: BookingService,
+  ) {}
 
   @Post()
   @Roles('entertainer') // Only users with the 'venue' role can access this route
@@ -106,11 +110,14 @@ export class EntertainerController {
   @Put('booking/response')
   @Roles('entertainer')
   entertainerBookingResponse(
-    @Body() bookingResponseDto: BookingResponseDto,
+    @Body() entertainerResponseDto: EntertainerResponseDto,
     @Request() req,
   ) {
-    const userId = req.user.userId;
-    return this.entertainerService.handleBookingResponse(bookingResponseDto);
+    const role = req.user.role;
+    return this.bookingService.handleBookingResponse(
+      role,
+      entertainerResponseDto,
+    );
   }
 
   @Get('/booking/request')

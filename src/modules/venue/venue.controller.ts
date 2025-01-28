@@ -26,6 +26,7 @@ import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { BookingService } from '../booking/booking.service';
 import { CreateBookingDto } from '../booking/dto/create-booking.dto';
+import { VenueResponseDto } from '../booking/dto/booking-response-dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -112,5 +113,30 @@ export class VenueController {
   createBooking(@Body() createBookingDto: CreateBookingDto, @Request() req) {
     const userId = req.user.userId;
     return this.bookingService.createBooking(createBookingDto, userId);
+  }
+
+  @ApiOperation({ summary: 'Get list of all Booking' })
+  @ApiResponse({
+    status: 200,
+    description: 'Booking list fetched Successfully .',
+  })
+  @Get('bookings/active')
+  @Roles('venue')
+  getAllBooking(@Request() req) {
+    const userId = req.user.userId;
+    console.log('controller got hit', userId);
+    return this.venueService.findAllBooking(userId);
+  }
+  @ApiOperation({ summary: 'Get list of all Booking' })
+  @ApiResponse({
+    status: 200,
+    description: 'Booking list fetched Successfully .',
+  })
+  @Put('booking/response')
+  @Roles('venue')
+  bookingResponse(@Body() venueResponseDto: VenueResponseDto, @Request() req) {
+    const role = req.user.role;
+
+    return this.bookingService.handleBookingResponse(role, venueResponseDto);
   }
 }

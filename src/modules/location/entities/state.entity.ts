@@ -4,8 +4,8 @@ import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm';
 export class States {
   @PrimaryGeneratedColumn()
   id: number;
-  @Column()
+  @Column({ type: 'varchar', length: 30, nullable: false })
   name: string;
-  @Column()
+  @Column({ nullable: false })
   country_id: number;
 }
