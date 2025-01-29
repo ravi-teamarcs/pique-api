@@ -9,6 +9,9 @@ import { User } from '../users/entities/users.entity';
 import { UsersService } from '../users/users.service';
 import { Venue } from '../venue/entities/venue.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { Role } from './entities/role.entity';
+import { Access } from './entities/access.entity';
+import { EndPoints } from './entities/endpoint.entity';
 
 @Module({
   imports: [
@@ -17,12 +20,17 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
       secret: process.env.JWT_SECRET || 'defaultSecretKey',
       signOptions: { expiresIn: '1h' },
     }),
-    TypeOrmModule.forFeature([User ,Venue ,Entertainer]),
+    TypeOrmModule.forFeature([
+      User,
+      Venue,
+      Entertainer,
+      Role,
+      Access,
+      EndPoints,
+    ]),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, UsersService],
-  exports: [AuthService], 
+  exports: [AuthService],
 })
 export class AuthModule {}
-
-

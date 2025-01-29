@@ -7,10 +7,13 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { User } from '../users/entities/users.entity';
 import { BookingModule } from '../booking/booking.module';
 import { Booking } from '../booking/entities/booking.entity';
+import { Role } from '../auth/entities/role.entity';
+import { Access } from '../auth/entities/access.entity';
+import { EndPoints } from '../auth/entities/endpoint.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Venue, User, Entertainer ,Booking]),
+    TypeOrmModule.forFeature([Venue, User, Entertainer ,Booking ,Role,Access,EndPoints]),
     BookingModule,
   ],
   controllers: [VenueController],

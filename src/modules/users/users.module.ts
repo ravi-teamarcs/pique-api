@@ -9,6 +9,9 @@ import { Booking } from '../booking/entities/booking.entity';
 import { Invoice } from '../invoice/entities/invoice.entity';
 import { VenueEvent } from '../event/entities/event.entity';
 import { Media } from '../media/entities/media.entity';
+import { Role } from '../auth/entities/role.entity';
+import { Access } from '../auth/entities/access.entity';
+import { EndPoints } from '../auth/entities/endpoint.entity';
 
 @Module({
   imports: [
@@ -19,7 +22,10 @@ import { Media } from '../media/entities/media.entity';
       Booking,
       Invoice,
       VenueEvent,
-      Media
+      Media,
+      Role,
+      Access,
+      EndPoints,
     ]),
   ],
   controllers: [UsersController],

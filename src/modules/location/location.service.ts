@@ -17,7 +17,9 @@ export class LocationService {
   ) {}
   async findAllCountries() {
     try {
-      const countries = await this.countryRepository.find();
+      const countries = await this.countryRepository.find({
+        where: { status: 1 },
+      });
 
       if (!countries) {
         throw new Error('Failed to fetch list of countries');

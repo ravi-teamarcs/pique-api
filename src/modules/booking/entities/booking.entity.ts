@@ -59,8 +59,11 @@ export class Booking {
   @Column()
   specialNotes: string;
 
-  // @Column()
-  // specificLocation: string;
+  @Column({ type: 'timestamp', nullable: true })
+  statusDate: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  isAcceptedDate: Date;
 
   @CreateDateColumn()
   createdAt: Date;

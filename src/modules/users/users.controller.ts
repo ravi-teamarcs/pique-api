@@ -25,6 +25,7 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { User } from './entities/users.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @ApiTags('Users')
 @Controller('users')
@@ -50,6 +51,7 @@ export class UsersController {
    * Get all users
    */
   @Get()
+  @Roles('findAll')
   @ApiBearerAuth() // Swagger UI will ask for the Bearer token
   @ApiOperation({ summary: 'Get all users' })
   @ApiResponse({
@@ -61,7 +63,7 @@ export class UsersController {
     status: 401,
     description: 'Unauthorized. Invalid or missing JWT token.',
   })
-  @UseGuards(JwtAuthGuard , RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   async getAllUsers(@Request() req): Promise<User[]> {
     return this.usersService.findAll();
   }

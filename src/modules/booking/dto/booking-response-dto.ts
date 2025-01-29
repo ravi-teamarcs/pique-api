@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsNumber } from 'class-validator';
+import { IsDate, IsEnum, IsNotEmpty, IsNumber } from 'class-validator';
 import { type } from 'os';
 
 export class VenueResponseDto {
@@ -24,6 +24,7 @@ export class EntertainerResponseDto {
   @IsNumber()
   @IsNotEmpty()
   bookingId: number;
+
   @ApiProperty({ description: 'If user is entertainer' })
   @IsNotEmpty()
   isAccepted: 'accepted' | 'rejected';

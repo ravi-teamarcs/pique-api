@@ -133,10 +133,10 @@ export class VenueController {
     description: 'Booking list fetched Successfully .',
   })
   @Put('booking/response')
-  @Roles('venue')
+  @Roles('findAll')
   bookingResponse(@Body() venueResponseDto: VenueResponseDto, @Request() req) {
     const role = req.user.role;
-
+    venueResponseDto['statusDate'] = new Date();
     return this.bookingService.handleBookingResponse(role, venueResponseDto);
   }
 }

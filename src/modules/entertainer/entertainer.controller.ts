@@ -114,6 +114,7 @@ export class EntertainerController {
     @Request() req,
   ) {
     const role = req.user.role;
+    entertainerResponseDto['isAcceptedDate'] = new Date();
     return this.bookingService.handleBookingResponse(
       role,
       entertainerResponseDto,
