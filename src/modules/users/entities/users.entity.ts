@@ -63,11 +63,9 @@ export class User {
 
   // Booking
   @OneToMany(() => Booking, (booking) => booking.venueUser)
-  @JoinColumn({ name: 'Venue' })
   venueBookings: Booking[];
 
   @OneToMany(() => Booking, (booking) => booking.entertainerUser)
-  @JoinColumn({ name: 'Venue' })
   entertainerBookings: Booking[];
   // Relation with Media
 
@@ -77,7 +75,7 @@ export class User {
 
   // Invoice
   @OneToMany(() => Invoice, (invoice) => invoice.customer)
-  invoices: User;
+  invoices: Invoice[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdDate: Date;

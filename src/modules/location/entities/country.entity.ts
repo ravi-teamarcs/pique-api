@@ -10,4 +10,7 @@ export class Countries {
   cc: string;
   @Column({ nullable: false })
   phonecode: number;
+
+  @Column({ nullable: false, default: 0 })
+  status: number;
 }

@@ -147,17 +147,38 @@ export class EntertainerService {
       //   ],
       //   relations: ['venue'],
       // });
-      const bookings = await this.bookingRepository.find({
-        where: { entertainerUser: { id: userId } },
-        select: [
-          'id',
-          'status',
-          'showTime',
-          'isAccepted',
-          'showDate',
-          'specialNotes',
-        ],
-      });
+      // const bookings = await this.bookingRepository.find({
+      //   where: { entertainerUser: { id: userId } },
+      //   select: [
+      //     'id',
+      //     'status',
+      //     'showTime',
+      //     'isAccepted',
+      //     'showDate',
+      //     'specialNotes',
+      //   ],
+      // });
+      const bookings = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoinAndSelect('booking.venueUser', 'venueUser')
+        .leftJoinAndSelect('venueUser.venue', 'venue')
+        .where('booking.entertainerUserId = :userId', { userId })
+        .select([
+          'booking.id',
+          'booking.status',
+          'booking.showDate',
+          'booking.showTime',
+          'booking.specialNotes',
+          'venueUser.id',
+          'venue.name',
+          'venue.phone',
+          'venue.amenities',
+          'venue.email',
+          'venue.description',
+          'venue.state',
+          'venue.city',
+        ])
+        .getMany();
 
       return bookings;
     } catch (error) {
@@ -165,3 +186,17 @@ export class EntertainerService {
     }
   }
 }
+
+// "name": "JW Marriot",
+//                 "phone": "9876543210",
+//                 "email": "J@mariott.com",
+//                 "addressLine1": "s,lasda",
+//                 "addressLine2": "sdmlddmdm,",
+//                 "description": "hotel w",
+//                 "city": "noida",
+//                 "state": "UP",
+//                 "zipCode": "123",
+//                 "country": "India",
+//                 "lat": "12",
+//                 "long": "63",
+//                 "amenities": [],
