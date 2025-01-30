@@ -122,7 +122,7 @@ export class EntertainerController {
   }
 
   @Get('/booking/request')
-  @Roles('entertainer')
+  @Roles('findAll')
   @ApiOperation({ summary: 'Get all the booking of the  Entertainer' })
   @ApiResponse({
     status: 200,

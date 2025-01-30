@@ -34,8 +34,8 @@ import { LocationModule } from './modules/location/location.module';
       password: process.env.DB_Password,
       database: process.env.DB_Name,
       entities: [join(process.cwd(), 'dist/**/*.entity.js')],
-      logging: true,
-      logger: 'advanced-console',
+      // logging: true,
+      // logger: 'advanced-console',
       synchronize: true, //  Precaution : Must be False for Production.
     }),
     ServeStaticModule.forRoot({

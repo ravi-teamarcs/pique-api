@@ -31,10 +31,10 @@ export class CreateBookingDto {
   @IsEnum(['soloist', 'duo', 'trio', 'ensemble'])
   performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 
-  // @ApiProperty({ example: 1, description: 'Reference to the Venue' })
-  // @IsNumber()
-  // @IsNotEmpty()
-  // venueId: number;
+  @ApiProperty({ example: 1, description: 'Reference to the Venue' })
+  @IsNumber()
+  @IsNotEmpty()
+  venueId: number;
 
   @ApiProperty({ example: 1, description: 'Reference to the Entertainers' })
   @IsNumber()

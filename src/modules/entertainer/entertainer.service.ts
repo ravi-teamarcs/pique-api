@@ -6,12 +6,11 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { CreateEntertainerDto } from './dto/create-entertainer.dto';
 import { UpdateEntertainerDto } from './dto/update-entertainer.dto';
 import { Entertainer } from './entities/entertainer.entity';
 import { User } from '../users/entities/users.entity';
-// import { Booking } from '../booking/entities/booking.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { Booking } from '../booking/entities/booking.entity';
 
@@ -28,29 +27,16 @@ export class EntertainerService {
     private readonly venueRepository: Repository<Venue>,
   ) {}
 
-  // create(
-  //   createEntertainerDto: CreateEntertainerDto,
-  //   userId: number,
-  // ): Promise<Entertainer> {
-  //   const entertainer = this.entertainerRepository.create({
-  //     ...createEntertainerDto,
-  //     user: { id: userId },
-  //   });
-  //   return this.entertainerRepository.save(entertainer);
-  // }
-
   async create(
     createEntertainerDto: CreateEntertainerDto,
     userId: number,
   ): Promise<Entertainer> {
-    // const user = await this.userRepository.findOneBy({ id: userId });
     const existingEntertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
 
     if (existingEntertainer) {
       throw new BadRequestException('Entertainer already exists for the user');
-      // throw new NotFoundException(`User with ID ${userId} not found`);
     }
     // Create the entertainer
     const entertainer = this.entertainerRepository.create({
@@ -69,18 +55,15 @@ export class EntertainerService {
         'name',
         'type',
         'bio',
-
         'performanceRole',
         'phone1',
         'phone2',
         'pricePerEvent',
-
         'vaccinated',
         'availability',
         'status',
         'socialLinks',
       ],
-      // relations: ['user'],
     });
   }
 
@@ -101,7 +84,6 @@ export class EntertainerService {
         'status',
         'socialLinks',
       ],
-      // relations: ['user'],
     });
     if (!entertainer) {
       throw new NotFoundException('Entertainer not found');
@@ -160,25 +142,24 @@ export class EntertainerService {
       // });
       const bookings = await this.bookingRepository
         .createQueryBuilder('booking')
-        .leftJoinAndSelect('booking.venueUser', 'venueUser')
-        .leftJoinAndSelect('venueUser.venue', 'venue')
+        .leftJoin(Venue, 'venue', 'venue.id = booking.venueId') // Manual join since there's no relation
         .where('booking.entertainerUserId = :userId', { userId })
         .select([
-          'booking.id',
-          'booking.status',
-          'booking.showDate',
-          'booking.showTime',
-          'booking.specialNotes',
-          'venueUser.id',
-          'venue.name',
-          'venue.phone',
-          'venue.amenities',
-          'venue.email',
-          'venue.description',
-          'venue.state',
-          'venue.city',
+          'booking.id AS id',
+          'booking.status AS status',
+          'booking.showDate As showDate',
+          'booking.showTime As showTime',
+          'booking.specialNotes  As specialNotes',
+          // 'venue.id AS venue', // Ensure venue ID is included
+          'venue.name AS name',
+          'venue.phone AS phone',
+          'venue.amenities AS amenities',
+          'venue.email AS email',
+          'venue.description AS description',
+          'venue.state AS state',
+          'venue.city AS city',
         ])
-        .getMany();
+        .getRawMany(); // Use getRawMany() since we are manually selecting fields
 
       return bookings;
     } catch (error) {
@@ -186,17 +167,3 @@ export class EntertainerService {
     }
   }
 }
-
-// "name": "JW Marriot",
-//                 "phone": "9876543210",
-//                 "email": "J@mariott.com",
-//                 "addressLine1": "s,lasda",
-//                 "addressLine2": "sdmlddmdm,",
-//                 "description": "hotel w",
-//                 "city": "noida",
-//                 "state": "UP",
-//                 "zipCode": "123",
-//                 "country": "India",
-//                 "lat": "12",
-//                 "long": "63",
-//                 "amenities": [],

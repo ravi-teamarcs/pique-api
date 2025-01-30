@@ -15,12 +15,13 @@ export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
   @ManyToOne(() => User, (user) => user.venueBookings)
-  @JoinColumn()
   venueUser: User;
 
   @ManyToOne(() => User, (user) => user.entertainerBookings)
-  @JoinColumn()
   entertainerUser: User;
+
+  @Column()
+  venueId: number;
 
   @Column({
     type: 'enum',

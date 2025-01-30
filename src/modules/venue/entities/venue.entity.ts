@@ -72,8 +72,7 @@ export class Venue {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
-  @JoinColumn()
+  @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
   user: User;
 
   // @OneToMany(() => Booking, (booking) => booking.venue)

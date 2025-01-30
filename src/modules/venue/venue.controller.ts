@@ -39,7 +39,7 @@ export class VenueController {
   ) {}
 
   @Post()
-  @Roles('venue') // Only users with the 'venue' role can access this route
+  @Roles('findAll') // Only users with the 'venue' role can access this route
   @ApiOperation({ summary: 'Create a venue' })
   @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -52,10 +52,10 @@ export class VenueController {
   }
 
   @Get()
-  @Roles('venue') // Restrict access to the 'venue' role
+  @Roles('findAll') // Restrict access to the 'venue' role
   @ApiOperation({ summary: 'Get all venues for logged-in user' })
   @ApiResponse({ status: 200, description: 'List of venues.', type: Venue })
-  async findAll(@Request() req): Promise<Venue> {
+  async findAll(@Request() req): Promise<Venue[]> {
     const userId = req.user.userId;
     return await this.venueService.findAllByUser(userId);
   }
@@ -109,7 +109,7 @@ export class VenueController {
     description: 'Booking Created Sucessfully.',
   })
   @Post('createbooking')
-  @Roles('venue')
+  @Roles('findAll')
   createBooking(@Body() createBookingDto: CreateBookingDto, @Request() req) {
     const userId = req.user.userId;
     return this.bookingService.createBooking(createBookingDto, userId);
