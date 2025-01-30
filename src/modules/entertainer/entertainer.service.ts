@@ -150,7 +150,6 @@ export class EntertainerService {
           'booking.showDate As showDate',
           'booking.showTime As showTime',
           'booking.specialNotes  As specialNotes',
-          // 'venue.id AS venue', // Ensure venue ID is included
           'venue.name AS name',
           'venue.phone AS phone',
           'venue.amenities AS amenities',

@@ -45,12 +45,50 @@ export class VenueService {
   async findAllByUser(userId: number): Promise<Venue[]> {
     return this.venueRepository.find({
       where: { user: { id: userId } },
+      select: [
+        'id',
+        'name',
+        'phone',
+        'email',
+        'addressLine1',
+        'addressLine2',
+        'description',
+        'city',
+        'state',
+        'zipCode',
+        'country',
+        'lat',
+        'long',
+        'amenities',
+        'websiteUrl',
+        'timings',
+        'bookingPolicies',
+      ],
     });
   }
 
   async findOneByUser(id: number, userId: number): Promise<Venue> {
     const venue = await this.venueRepository.findOne({
       where: { id, user: { id: userId } },
+      select: [
+        'id',
+        'name',
+        'phone',
+        'email',
+        'addressLine1',
+        'addressLine2',
+        'description',
+        'city',
+        'state',
+        'zipCode',
+        'country',
+        'lat',
+        'long',
+        'amenities',
+        'websiteUrl',
+        'timings',
+        'bookingPolicies',
+      ],
     });
 
     if (!venue) {
@@ -113,9 +151,35 @@ export class VenueService {
   // To find Booking related to Venue user
   async findAllBooking(userId: number) {
     console.log(userId);
-    const bookings = await this.bookingRepository.find({
-      where: { venueUser: { id: userId } },
-    });
+    const bookings = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.entertainerUser', 'entertainerUser')
+      .leftJoinAndSelect('entertainerUser.entertainer', 'entertainer')
+      .where('booking.venueUser.id = :userId', { userId })
+      .select([
+        'booking.id', // Select only necessary columns from booking
+        'booking.status', // Select only necessary columns from booking
+        'booking.showDate', // Select only necessary columns from booking
+        'booking.isAccepted', // Select only necessary columns from booking
+        'booking.specialNotes', // Select only necessary columns from booking
+        'entertainerUser.id', // Select only necessary columns from entertainerUser
+        'entertainer.id', // Select only necessary columns from entertainer
+        'entertainer.name', // Example, add other required fields
+        'entertainer.type',
+        'entertainer.bio',
+        'entertainer.phone1',
+        'entertainer.phone2',
+        'entertainer.performanceRole',
+        'entertainer.availability',
+        'entertainer.pricePerEvent',
+        'entertainer.socialLinks',
+        'entertainer.vaccinated',
+        'entertainer.status',
+      ])
+      .getMany();
+    // const bookings = await this.bookingRepository.find({
+    //   where: { venueUser: { id: userId } },
+    // });
 
     if (!bookings) {
       throw new Error('No bookings found');

@@ -8,9 +8,6 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany,
-  OneToOne,
-  JoinColumn,
 } from 'typeorm';
 
 @Entity('venue')

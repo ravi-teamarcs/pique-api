@@ -33,7 +33,7 @@ export class MediaController {
     FileFieldsInterceptor(
       [
         { name: 'images', maxCount: 2 },
-        { name: 'videos', maxCount: 1 },
+        { name: 'videos', maxCount: 4 },
         { name: 'headshot', maxCount: 1 },
       ],
       {
@@ -52,7 +52,6 @@ export class MediaController {
   )
   async uploadMedia(
     @Req() req: any,
-    // Accessing the request object to access the uploaded files
     @UploadedFiles()
     files: {
       images?: Express.Multer.File[];
@@ -62,6 +61,7 @@ export class MediaController {
     @Body() body,
   ) {
     const uploadedFiles = [];
+
     const userId = req.user.userId;
     const venueId =
       body.venueId === undefined ? body.venueId : Number(body.venueId);

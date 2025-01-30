@@ -20,7 +20,7 @@ export class Booking {
   @ManyToOne(() => User, (user) => user.entertainerBookings)
   entertainerUser: User;
 
-  @Column()
+  @Column({nullable: false})
   venueId: number;
 
   @Column({

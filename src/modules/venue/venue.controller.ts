@@ -61,17 +61,18 @@ export class VenueController {
   }
 
   @Get(':id')
-  @Roles('venue')
+  @Roles('findAll')
   @ApiOperation({ summary: 'Get a single venue by ID' })
   @ApiResponse({ status: 200, description: 'Venue details.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async findOne(@Param('id') id: number, @Request() req): Promise<Venue> {
     const userId = req.user.userId;
+    console.log('veneu id', id);
     return this.venueService.findOneByUser(id, userId);
   }
 
   @Get('available/entertainer')
-  @Roles('venue')
+  @Roles('findAll')
   @ApiOperation({ summary: 'Get all  the entertainers' })
   @ApiResponse({
     status: 200,
@@ -87,7 +88,7 @@ export class VenueController {
   }
 
   @Get('search/entertainers')
-  @Roles('venue')
+  @Roles('findAll')
   @ApiOperation({ summary: 'Search entertainers by availability and type' })
   @ApiResponse({
     status: 200,
@@ -120,8 +121,8 @@ export class VenueController {
     status: 200,
     description: 'Booking list fetched Successfully .',
   })
-  @Get('bookings/active')
-  @Roles('venue')
+  @Get('bookings/request')
+  @Roles('findAll')
   getAllBooking(@Request() req) {
     const userId = req.user.userId;
     console.log('controller got hit', userId);
