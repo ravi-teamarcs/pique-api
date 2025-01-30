@@ -19,6 +19,9 @@ export class Media {
   name: string;
   @Column({ type: 'enum', enum: ['image', 'video', 'headshot'] })
   type: 'image' | 'video' | 'headshot';
+
+  @Column()
+  refId: number;
   // Relation to userId
   @ManyToOne(() => User, (user) => user.media, { eager: true })
   user: User;

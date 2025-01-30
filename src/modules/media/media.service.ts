@@ -10,14 +10,18 @@ export class MediaService {
     private readonly mediaRepository: Repository<Media>,
   ) {}
 
-  async handleMediaUpload(userId: number, uploadedFiles: Array<{}>) {
-    console.log('In Server ', userId, uploadedFiles);
+  async handleMediaUpload(
+    userId: number,
+    uploadedFiles: Array<{}>,
+    venueId: number,
+  ) {
+    console.log('In Server ', userId, uploadedFiles ,venueId);
     try {
       for (const file of uploadedFiles) {
         const media = this.mediaRepository.create({
           ...file,
           user: { id: userId },
-          // TODO: Add file details here.
+          refId: venueId ?? null,
         });
         await this.mediaRepository.save(media);
       }
@@ -28,9 +32,22 @@ export class MediaService {
     }
   }
 
-  async findAllMedia(userId: number) {
+  async findAllMedia(userId: number, venueId: number) {
+    if (venueId) {
+      const media = await this.mediaRepository.find({
+        where: {
+          refId: venueId, // Exact match for refId
+          user: { id: userId }, // Exact match for userId
+        },
+        select: ['url', 'type', 'refId', 'name'],
+      });
+
+      return { message: 'Multimedia returned successfully', media };
+    }
+
     const media = await this.mediaRepository.find({
       where: { user: { id: userId } },
+      select: ['url', 'type', 'name'],
     });
 
     if (!media) {

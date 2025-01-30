@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   Req,
   UploadedFiles,
   UseGuards,
@@ -50,17 +51,20 @@ export class MediaController {
     ),
   )
   async uploadMedia(
-    @Req() req: any, // Accessing the request object to access the uploaded files
+    @Req() req: any,
+    // Accessing the request object to access the uploaded files
     @UploadedFiles()
     files: {
       images?: Express.Multer.File[];
       videos?: Express.Multer.File[];
       headshot?: Express.Multer.File[];
     },
+    @Body() body,
   ) {
     const uploadedFiles = [];
     const userId = req.user.userId;
-    // Handle images
+    const venueId = Number(body.venueId);
+
     if (files.images) {
       for (const file of files.images) {
         const filePath = await uploadFile(file); // Call the upload function
@@ -97,9 +101,7 @@ export class MediaController {
       }
     }
 
-    console.log('Array of uploaded file ', uploadedFiles);
-
-    return this.mediaService.handleMediaUpload(userId, uploadedFiles);
+    return this.mediaService.handleMediaUpload(userId, uploadedFiles, venueId);
   }
 
   @Get('uploads')
@@ -107,8 +109,8 @@ export class MediaController {
     summary: 'Get all the multimedia of the logged in User.',
   })
   @ApiResponse({ status: 200, description: 'Multimedia fetched Successfully.' })
-  getAllMedia(@Req() req: any) {
+  getAllMedia(@Req() req: any, @Query('venueId') venueId?: number) {
     const userId = req.user.userId; // Replace with actual user id
-    return this.mediaService.findAllMedia(userId);
+    return this.mediaService.findAllMedia(userId, venueId);
   }
 }
