@@ -63,7 +63,8 @@ export class MediaController {
   ) {
     const uploadedFiles = [];
     const userId = req.user.userId;
-    const venueId = Number(body.venueId);
+    const venueId =
+      body.venueId === undefined ? body.venueId : Number(body.venueId);
 
     if (files.images) {
       for (const file of files.images) {
