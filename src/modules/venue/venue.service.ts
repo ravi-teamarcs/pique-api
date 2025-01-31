@@ -103,13 +103,20 @@ export class VenueService {
   }
 
   async findByAvailabilityAndType(query: SearchEntertainerDto) {
-    const { availability, type } = query;
+    const {
+      availability = '',
+      type = '',
+      search = '',
+      page = 1,
+      pageSize = 10,
+    } = query;
 
-    const res = await this.entertainerRepository
+    // Number of records per page
+    const skip = (Number(page) - 1) * Number(pageSize); // Calculate offset
+
+    const res = this.entertainerRepository
       .createQueryBuilder('entertainer')
       .leftJoinAndSelect('entertainer.user', 'user')
-      .where('entertainer.type = :type', { type })
-      .andWhere('entertainer.availability = :availability', { availability })
       .select([
         'entertainer.id',
         'entertainer.name',
@@ -124,25 +131,60 @@ export class VenueService {
         'entertainer.status',
         'entertainer.socialLinks',
         'user.id',
-      ])
-      .getMany();
+        'user.email', // Example: More control over user relation
+      ]);
+
+    if (availability) {
+      res.andWhere('entertainer.availability = :availability', {
+        availability,
+      });
+    }
+
+    // Apply `type` filter if provided
+    if (type) {
+      res.andWhere('entertainer.type = :type', { type });
+    }
+
+    // Apply search filter if provided (searches across multiple fields)
+    if (search.trim() !== '') {
+      res.andWhere(
+        `(entertainer.name LIKE :search OR 
+            entertainer.type LIKE :search OR 
+            entertainer.bio LIKE :search OR 
+            entertainer.performanceRole LIKE :search OR 
+            entertainer.phone1 LIKE :search OR 
+            entertainer.phone2 LIKE :search OR 
+            entertainer.status LIKE :search OR 
+            user.email LIKE :search)`, // Example: Searching user email too
+        { search: `%${search}%` },
+      );
+    }
+
+    // Get total count before pagination
+    const totalCount = await res.getCount();
+
+    // // Apply pagination
+    const results = await res.skip(skip).take(Number(pageSize)).getMany();
 
     const entertainers = await Promise.all(
-      res.map(async (item) => {
+      results.map(async (item) => {
         const media = await this.mediaRepository.find({
           where: { user: { id: item.user.id } }, // Corrected filtering
           select: ['url', 'name', 'type'],
         });
-
-        console.log('Media returned', media);
-
-        return { ...item, media };
+        return {
+          ...item,
+          media,
+        };
       }),
     );
 
     return {
       message: 'Entertainers fetched Sucessfully',
-      count: entertainers.length,
+      totalCount,
+      page,
+      pageSize, // Records per Page
+      totalPages: Math.ceil(totalCount / Number(pageSize)),
       entertainers,
     };
   }
