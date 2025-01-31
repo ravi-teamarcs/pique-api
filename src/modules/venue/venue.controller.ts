@@ -125,7 +125,7 @@ export class VenueController {
   @Roles('findAll')
   getAllBooking(@Request() req) {
     const userId = req.user.userId;
-    console.log('controller got hit', userId);
+
     return this.venueService.findAllBooking(userId);
   }
   @ApiOperation({ summary: 'Get list of all Booking' })
@@ -139,5 +139,28 @@ export class VenueController {
     const role = req.user.role;
     venueResponseDto['statusDate'] = new Date();
     return this.bookingService.handleBookingResponse(role, venueResponseDto);
+  }
+
+  @ApiOperation({ summary: 'Update details of venue ' })
+  @ApiResponse({
+    status: 200,
+    description: 'Venue updates Successfully .',
+  })
+  @Put('update')
+  @Roles('findAll')
+  updateVenue(@Body() UpdateVenueDto: UpdateVenueDto, @Request() req) {
+    const userId = req.user.userId;
+    return this.venueService.handleUpdateVenueDetails(UpdateVenueDto, userId);
+  }
+  @ApiOperation({ summary: 'Remove venue  of specific user ' })
+  @ApiResponse({
+    status: 200,
+    description: 'Venue removed Successfully .',
+  })
+  @Put('remove')
+  @Roles('findAll')
+  remove(@Body('id') id: number, @Request() req) {
+    const userId = req.user.userId;
+    return this.venueService.handleRemoveVenue(id, userId);
   }
 }

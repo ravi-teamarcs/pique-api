@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,6 +13,7 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { User } from '../users/entities/users.entity';
 import { Booking } from '../booking/entities/booking.entity';
+import { Media } from '../media/entities/media.entity';
 
 @Injectable()
 export class VenueService {
@@ -24,6 +26,8 @@ export class VenueService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Media)
+    private readonly mediaRepository: Repository<Media>,
   ) {}
 
   async create(createVenueDto: CreateVenueDto, userId: number): Promise<Venue> {
@@ -100,25 +104,59 @@ export class VenueService {
 
   async findByAvailabilityAndType(query: SearchEntertainerDto) {
     const { availability, type } = query;
-    const entertainers = await this.entertainerRepository.find({
-      where: { availability: availability, type: type },
-      select: [
-        'id',
-        'name',
-        'type',
-        'bio',
+    // const entertainers = await this.entertainerRepository.find({
+    //   where: { availability: availability, type: type },
+    //   select: [
+    //     'id',
+    //     'name',
+    //     'type',
+    //     'bio',
+    //     'performanceRole',
+    //     'phone1',
+    //     'phone2',
+    //     'pricePerEvent',
+    //     'vaccinated',
+    //     'availability',
+    //     'status',
+    //     'socialLinks',
+    //   ],
+    // });
 
-        'performanceRole',
-        'phone1',
-        'phone2',
-        'pricePerEvent',
+    const res = await this.entertainerRepository
+      .createQueryBuilder('entertainer')
+      .leftJoinAndSelect('entertainer.user', 'user')
+      .where('entertainer.type = :type', { type })
+      .andWhere('entertainer.availability = :availability', { availability })
+      .select([
+        'entertainer.id',
+        'entertainer.name',
+        'entertainer.type',
+        'entertainer.bio',
+        'entertainer.performanceRole',
+        'entertainer.phone1',
+        'entertainer.phone2',
+        'entertainer.pricePerEvent',
+        'entertainer.vaccinated',
+        'entertainer.availability',
+        'entertainer.status',
+        'entertainer.socialLinks',
+        'user.id',
+      ])
+      .getMany();
 
-        'vaccinated',
-        'availability',
-        'status',
-        'socialLinks',
-      ],
-    });
+    const entertainers = await Promise.all(
+      res.map(async (item) => {
+        const media = await this.mediaRepository.find({
+          where: { user: { id: item.user.id } }, // Corrected filtering
+          select: ['url', 'name', 'type'],
+        });
+
+        console.log('Media returned', media);
+
+        return { ...item, media };
+      }),
+    );
+
     return { message: 'Entertainers fetched Sucessfully', entertainers };
   }
 
@@ -200,4 +238,40 @@ export class VenueService {
 
   //   return { message: 'Response registered successfully' };
   // }
+
+  async handleUpdateVenueDetails(
+    updateVenueDto: UpdateVenueDto,
+    userId: number,
+  ) {
+    const { venueId, ...details } = updateVenueDto;
+    const venue = await this.venueRepository.findOne({
+      where: { id: venueId, user: { id: userId } },
+    });
+
+    if (!venue) {
+      throw new NotFoundException('Venue not found');
+    }
+
+    return await this.venueRepository.update({ id: venue.id }, details);
+  }
+
+  async handleRemoveVenue(id: number, userId: number) {
+    try {
+      const venue = await this.venueRepository.findOne({
+        where: { id: id, user: { id: userId } },
+      });
+
+      if (!venue) {
+        throw new NotFoundException('Venue not found');
+      }
+
+      const res = await this.venueRepository.delete({ id: venue.id });
+
+      if (res.affected) {
+        return { message: 'Venue deleted successfully' };
+      }
+    } catch (error) {
+      throw new InternalServerErrorException('Failed to delete venue');
+    }
+  }
 }
