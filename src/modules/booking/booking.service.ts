@@ -50,12 +50,12 @@ export class BookingService {
     if (!savedBooking) {
       throw new InternalServerErrorException('Failed to save Booking');
     }
-    // const { createdAt, updatedAt, ...bookingData } = savedBooking;
+    
     return { message: 'Booking created successfully', booking: bookingData };
   }
 
   async handleBookingResponse(role, payload) {
-    console.log('Booking Service', role, payload);
+    // console.log('Booking Service', role, payload);
     const { bookingId, ...data } = payload;
     if (role === 'entertainer') {
       const booking = await this.bookingRepository.update(

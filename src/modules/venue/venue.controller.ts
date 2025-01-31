@@ -8,6 +8,8 @@ import {
   Request,
   Put,
   Query,
+  Delete,
+  Patch,
 } from '@nestjs/common';
 import { VenueService } from './venue.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
@@ -67,11 +69,11 @@ export class VenueController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async findOne(@Param('id') id: number, @Request() req): Promise<Venue> {
     const userId = req.user.userId;
-    console.log('veneu id', id);
+
     return this.venueService.findOneByUser(id, userId);
   }
 
-  @Get('available/entertainer')
+  @Get('/entertainers/all')
   @Roles('findAll')
   @ApiOperation({ summary: 'Get all  the entertainers' })
   @ApiResponse({
@@ -121,7 +123,7 @@ export class VenueController {
     status: 200,
     description: 'Booking list fetched Successfully .',
   })
-  @Get('bookings/request')
+  @Get('booking/request')
   @Roles('findAll')
   getAllBooking(@Request() req) {
     const userId = req.user.userId;
@@ -133,7 +135,7 @@ export class VenueController {
     status: 200,
     description: 'Booking list fetched Successfully .',
   })
-  @Put('booking/response')
+  @Patch('booking/response')
   @Roles('findAll')
   bookingResponse(@Body() venueResponseDto: VenueResponseDto, @Request() req) {
     const role = req.user.role;
@@ -152,15 +154,15 @@ export class VenueController {
     const userId = req.user.userId;
     return this.venueService.handleUpdateVenueDetails(UpdateVenueDto, userId);
   }
-  @ApiOperation({ summary: 'Remove venue  of specific user ' })
+  @ApiOperation({ summary: 'Remove venue By id. ' })
   @ApiResponse({
     status: 200,
     description: 'Venue removed Successfully .',
   })
-  @Put('remove')
+  @Delete(':id')
   @Roles('findAll')
-  remove(@Body('id') id: number, @Request() req) {
+  remove(@Param('id') id: number, @Request() req) {
     const userId = req.user.userId;
-    return this.venueService.handleRemoveVenue(id, userId);
+    return this.venueService.handleRemoveVenue(Number(id), userId);
   }
 }

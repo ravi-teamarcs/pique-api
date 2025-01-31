@@ -108,38 +108,6 @@ export class EntertainerService {
   async findAllBooking(userId: number): Promise<Booking[]> {
     // Find entertainers belonging to the specified user
     try {
-      //     const entertainers = await this.entertainerRepository.find({
-      //       where: { user: { id: userId } },
-      //     });
-
-      // Extract entertainer IDs
-      // const entertainerIds = entertainers.map((entertainer) => entertainer.id);
-
-      // Find bookings for these entertainers
-      // const bookings = await this.bookingRepository.find({
-      //   where: { entertainer: { id: In(entertainerIds) } },
-      //   select: [
-      //     'id',
-      //     'status',
-      //     'showTime',
-      //     'isAccepted',
-      //     'showDate',
-      //     'specialNotes',
-      //     'specificLocation',
-      //   ],
-      //   relations: ['venue'],
-      // });
-      // const bookings = await this.bookingRepository.find({
-      //   where: { entertainerUser: { id: userId } },
-      //   select: [
-      //     'id',
-      //     'status',
-      //     'showTime',
-      //     'isAccepted',
-      //     'showDate',
-      //     'specialNotes',
-      //   ],
-      // });
       const bookings = await this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin(Venue, 'venue', 'venue.id = booking.venueId') // Manual join since there's no relation

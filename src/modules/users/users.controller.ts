@@ -134,7 +134,7 @@ export class UsersController {
   })
   updateUserprofile(@Body() updateProfileDto: UpdateProfileDto, @Req() req) {
     const { userId, role } = req.user;
-    // console.log('User', req.user);
+
     return this.usersService.handleUpdateUserProfile(
       updateProfileDto,
       userId,

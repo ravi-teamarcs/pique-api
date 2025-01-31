@@ -89,6 +89,8 @@ export class UsersService {
     role: string,
   ) {
     const { userData, venueData, entertainerData } = updateProfileDto;
+    const { venueId, ...venueDetails } = venueData;
+
     const user = this.userRepository.findOne({ where: { id: userId } });
 
     console.log(userId);
@@ -102,7 +104,7 @@ export class UsersService {
     // Venue Role update handling.  // If venue exists.
     if (role == 'venue') {
       const existingVenue = await this.venueRepository.findOne({
-        where: { user: { id: userId } },
+        where: { user: { id: userId }, id: venueId },
       });
 
       if (!existingVenue) {
@@ -121,7 +123,7 @@ export class UsersService {
 
       const updatedVenue = await this.venueRepository.update(
         { id: existingVenue.id },
-        venueData,
+        venueDetails,
       );
       // return {
       //   message: 'Profile Updated Successfully',

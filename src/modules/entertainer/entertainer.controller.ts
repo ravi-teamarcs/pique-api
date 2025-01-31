@@ -39,7 +39,7 @@ export class EntertainerController {
   ) {}
 
   @Post()
-  @Roles('entertainer') // Only users with the 'venue' role can access this route
+  @Roles('findAll') // Only users with the 'venue' role can access this route
   @ApiOperation({ summary: 'Create a entertainer' })
   @ApiResponse({
     status: 201,
@@ -107,7 +107,7 @@ export class EntertainerController {
     status: 200,
     description: 'Response registered Successfully',
   })
-  @Put('booking/response')
+  @Patch('booking/response')
   @Roles('entertainer')
   entertainerBookingResponse(
     @Body() entertainerResponseDto: EntertainerResponseDto,
