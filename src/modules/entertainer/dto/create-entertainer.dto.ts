@@ -10,7 +10,12 @@ export class CreateEntertainerDto {
   @ApiProperty({ description: 'Type  of the entertainer' })
   @IsString()
   @IsNotEmpty()
-  type: string;
+  category: string;
+
+  @ApiProperty({ description: 'Type  of the entertainer' })
+  @IsString()
+  @IsNotEmpty()
+  specific_category: string;
 
   @ApiProperty({ description: 'Bio of the entertainer' })
   @IsString()
@@ -28,15 +33,6 @@ export class CreateEntertainerDto {
   @IsString()
   @IsNotEmpty()
   phone2: string;
-
-  // @ApiProperty({ description: 'Headshot of entertainer' })
-  // @IsString()
-  // @IsNotEmpty()
-  // headshotUrl: string;
-
-  // @ApiProperty({ description: 'Medias of the entertainer' })
-  // @IsString()
-  // mediaUrl: string;
 
   @ApiProperty({ description: ' Role of entertainer (soloist , duo , trio)' })
   @IsEnum(['soloist', 'duo', 'trio', 'ensemble'])
@@ -63,9 +59,4 @@ export class CreateEntertainerDto {
   @ApiProperty({ description: 'Status of Entertainer' })
   @IsString()
   status: string;
-
-  // @ApiProperty({ example: 1 })
-  // @IsInt()
-  // @IsNotEmpty()
-  // userId: number; // Reference to the user
 }

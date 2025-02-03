@@ -34,22 +34,15 @@ export class LocationService {
     }
   }
 
-  async findAllStates(countryId?: number) {
+  async findAllStates(countryId: number = 101) {
     try {
-      if (countryId) {
-        const states = await this.stateRepository.find({
-          where: { country_id: countryId },
-        });
-        if (!states) {
-          throw new Error('Failed to fetch list of States');
-        }
-        return {
-          message: 'State fetched successfully',
-          count: states.length,
-          states,
-        };
+      const states = await this.stateRepository.find({
+        where: { country_id: countryId },
+      });
+
+      if (states.length === 0) {
+        throw new Error('No states found for the provided country');
       }
-      const states = await this.stateRepository.find();
       return {
         message: 'State fetched successfully',
         count: states.length,
@@ -59,22 +52,16 @@ export class LocationService {
       throw new Error(error.message);
     }
   }
-  async findAllCities(stateId?: number) {
+
+  async findAllCities(stateId: number=38) {
     try {
-      if (stateId) {
-        const cities = await this.cityRepository.find({
-          where: { state_id: stateId },
-        });
-        if (!cities) {
-          throw new Error('Failed to fetch list of Cities');
-        }
-        return {
-          message: 'Cities fetched successfully',
-          count: cities.length,
-          cities,
-        };
+      const cities = await this.cityRepository.find({
+        where: { state_id: stateId },
+      });
+
+      if (cities.length === 0) {
+        throw new Error('Failed to fetch list of Cities');
       }
-      const cities = await this.cityRepository.find();
       return {
         message: 'Cities fetched successfully',
         count: cities.length,

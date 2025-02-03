@@ -73,22 +73,6 @@ export class VenueController {
     return this.venueService.findOneByUser(id, userId);
   }
 
-  @Get('/entertainers/all')
-  @Roles('findAll')
-  @ApiOperation({ summary: 'Get all  the entertainers' })
-  @ApiResponse({
-    status: 200,
-    description: 'Entertainers fetched successfully.',
-    type: [Entertainer],
-  })
-  @ApiResponse({
-    status: 404,
-    description: 'Cannot get entertainers.',
-  })
-  getAllEntertainers() {
-    return this.venueService.findAllEntertainers();
-  }
-
   @Get('search/entertainers')
   @Roles('findAll')
   @ApiOperation({ summary: 'Search entertainers by availability and type' })
@@ -102,7 +86,7 @@ export class VenueController {
     description: 'Cannot get entertainers.',
   })
   search(@Query() query: SearchEntertainerDto) {
-    return this.venueService.findByAvailabilityAndType(query);
+    return this.venueService.findAllEntertainers(query);
   }
 
   // Booking Request   and create a new requet

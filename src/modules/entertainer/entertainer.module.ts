@@ -11,6 +11,7 @@ import { BookingModule } from '../booking/booking.module';
 import { Role } from '../auth/entities/role.entity';
 import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
+import { Category } from './entities/categories.entity';
 // import { VenueService } from '../venue/venue.service';
 
 @Module({
@@ -23,6 +24,7 @@ import { EndPoints } from '../auth/entities/endpoint.entity';
       Role,
       Access,
       EndPoints,
+      Category,
     ]),
     BookingModule,
   ],

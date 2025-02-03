@@ -31,14 +31,6 @@ export class VenueService {
   ) {}
 
   async create(createVenueDto: CreateVenueDto, userId: number): Promise<Venue> {
-    // const existingVenue = await this.venueRepository.findOne({
-    //   where: { user: { id: userId } },
-    // });
-
-    // if (existingVenue) {
-    //   throw new BadRequestException('Venue already exists for the user');
-    // }
-
     const venue = this.venueRepository.create({
       ...createVenueDto,
       user: { id: userId },
@@ -102,10 +94,10 @@ export class VenueService {
     return venue;
   }
 
-  async findByAvailabilityAndType(query: SearchEntertainerDto) {
+  async findAllEntertainers(query: SearchEntertainerDto) {
     const {
       availability = '',
-      type = '',
+      category = '',
       search = '',
       page = 1,
       pageSize = 10,
@@ -120,7 +112,8 @@ export class VenueService {
       .select([
         'entertainer.id',
         'entertainer.name',
-        'entertainer.type',
+        'entertainer.category',
+        'entertainer.specific_category',
         'entertainer.bio',
         'entertainer.performanceRole',
         'entertainer.phone1',
@@ -141,15 +134,15 @@ export class VenueService {
     }
 
     // Apply `type` filter if provided
-    if (type) {
-      res.andWhere('entertainer.type = :type', { type });
+    if (category) {
+      res.andWhere('entertainer.category = :category', { category });
     }
 
     // Apply search filter if provided (searches across multiple fields)
     if (search.trim() !== '') {
       res.andWhere(
         `(entertainer.name LIKE :search OR 
-            entertainer.type LIKE :search OR 
+            entertainer.category LIKE :search OR 
             entertainer.bio LIKE :search OR 
             entertainer.performanceRole LIKE :search OR 
             entertainer.phone1 LIKE :search OR 
@@ -185,40 +178,6 @@ export class VenueService {
       page,
       pageSize, // Records per Page
       totalPages: Math.ceil(totalCount / Number(pageSize)),
-      entertainers,
-    };
-  }
-
-  async findAllEntertainers() {
-    const entertainers = await this.entertainerRepository
-      .createQueryBuilder('entertainer')
-      .leftJoinAndSelect('entertainer.user', 'user')
-      .where('entertainer.user.id =  user.id')
-      .select([
-        'entertainer.id',
-        'entertainer.name',
-        'entertainer.type',
-        'entertainer.bio',
-        'entertainer.performanceRole',
-        'entertainer.phone1',
-        'entertainer.phone2',
-        'entertainer.pricePerEvent',
-        'entertainer.vaccinated',
-        'entertainer.availability',
-        'entertainer.status',
-        'entertainer.socialLinks',
-        'user.id',
-      ])
-
-      .getMany();
-
-    if (!entertainers) {
-      throw new Error('No entertainer found');
-    }
-
-    return {
-      message: 'Entertainer returned successfully',
-      count: entertainers.length,
       entertainers,
     };
   }

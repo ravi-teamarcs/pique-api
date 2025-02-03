@@ -19,7 +19,10 @@ export class Entertainer {
   name: string;
 
   @Column()
-  type: string;
+  category: string;
+
+  @Column()
+  specific_category: string;
 
   @Column()
   bio: string;

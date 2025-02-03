@@ -10,6 +10,7 @@ import {
   Request,
   Put,
   Req,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -27,6 +28,7 @@ import { Roles } from '../auth/roles.decorator';
 // import { Booking } from '../booking/entities/booking.entity';
 import { BookingService } from '../booking/booking.service';
 import { EntertainerResponseDto } from '../booking/dto/booking-response-dto';
+import { Category } from './entities/categories.entity';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -133,5 +135,22 @@ export class EntertainerController {
     const userId = req.user.userId;
     console.log('userId', userId);
     return this.entertainerService.findAllBooking(userId);
+  }
+  @ApiOperation({
+    summary: 'Get  entertainers  categories and sub categories. ',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Categories fetched Successfully.',
+  })
+  @Get('categories/all')
+  @Roles('findAll')
+  async getCategories() {
+    return this.entertainerService.getCategories();
+  }
+  @Get('categories/subcategories')
+  @Roles('findAll')
+  getSubCategories(@Query('id') id: number) {
+    return this.entertainerService.getSubCategories(id);
   }
 }

@@ -6,13 +6,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { CreateEntertainerDto } from './dto/create-entertainer.dto';
 import { UpdateEntertainerDto } from './dto/update-entertainer.dto';
 import { Entertainer } from './entities/entertainer.entity';
 import { User } from '../users/entities/users.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { Booking } from '../booking/entities/booking.entity';
+import { Category } from './entities/categories.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -25,6 +26,8 @@ export class EntertainerService {
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(Venue)
     private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
   ) {}
 
   async create(
@@ -53,7 +56,8 @@ export class EntertainerService {
       select: [
         'id',
         'name',
-        'type',
+        'category',
+        'specific_category',
         'bio',
         'performanceRole',
         'phone1',
@@ -73,7 +77,8 @@ export class EntertainerService {
       select: [
         'id',
         'name',
-        'type',
+        'category',
+        'specific_category',
         'bio',
         'performanceRole',
         'phone1',
@@ -132,5 +137,24 @@ export class EntertainerService {
     } catch (error) {
       throw new InternalServerErrorException('An unexpected error occurred');
     }
+  }
+
+  async getCategories() {
+    const categories = await this.categoryRepository.find({
+      where: { parentId: 0 },
+      select: ['id', 'name'],
+    });
+    if (categories.length === 0)
+      throw new NotFoundException('Categories not found');
+    return { message: 'categories returned Successfully ', categories };
+  }
+  async getSubCategories(catId: number) {
+    const categories = await this.categoryRepository.find({
+      where: { parentId: catId },
+    });
+    if (categories.length === 0) {
+      return { message: 'Sub-categories not found', categories: null };
+    }
+    return { message: ' Sub-categories returned Successfully ', categories };
   }
 }
