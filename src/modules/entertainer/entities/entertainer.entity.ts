@@ -27,9 +27,6 @@ export class Entertainer {
   @Column()
   bio: string;
 
-  // @Column()
-  // headshotUrl: string;
-
   @Column({
     type: 'enum',
     enum: ['soloist', 'duo', 'trio', 'ensemble'],
@@ -45,10 +42,6 @@ export class Entertainer {
 
   @Column()
   pricePerEvent: number;
-
-  // @Column()
-  // mediaUrl: string;
-
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
   vaccinated: 'yes' | 'no';
 

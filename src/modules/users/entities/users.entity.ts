@@ -57,10 +57,6 @@ export class User {
   @OneToMany(() => Venue, (venue) => venue.user, { cascade: true })
   venue: Venue[];
 
-  // Events linked with venueUser
-  @OneToOne(() => VenueEvent, (event) => event.user, { cascade: true })
-  events: VenueEvent;
-
   // Booking
   @OneToMany(() => Booking, (booking) => booking.venueUser)
   venueBookings: Booking[];

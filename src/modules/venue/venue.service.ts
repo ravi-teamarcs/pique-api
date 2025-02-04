@@ -265,4 +265,38 @@ export class VenueService {
       throw new InternalServerErrorException('Failed to delete venue');
     }
   }
+
+  async findEntertainerDetails(userId: number) {
+    console.log('User Id ', userId, typeof userId);
+    const details = await this.entertainerRepository.findOne({
+      where: { user: { id: Number(userId) } },
+      select: [
+        'id',
+        'name',
+        'category',
+        'specific_category',
+        'bio',
+        'performanceRole',
+        'phone1',
+        'phone2',
+        'pricePerEvent',
+        'vaccinated',
+        'availability',
+        'status',
+        'socialLinks',
+      ],
+    });
+
+    if (!details) throw new NotFoundException('Entertainer not Found');
+
+    const media = await this.mediaRepository.find({
+      where: { user: { id: userId } }, // Corrected filtering
+      select: ['url', 'name', 'type'],
+    });
+
+    return {
+      message: 'Entertainer Details returned Successfully ',
+      entertainer: { ...details, media: media },
+    };
+  }
 }

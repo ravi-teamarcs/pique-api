@@ -8,6 +8,7 @@ import { Repository } from 'typeorm';
 import { Booking } from '../booking/entities/booking.entity';
 import { VenueEvent } from './entities/event.entity';
 import { CreateEventDto } from './dto/create-event.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
 
 @Injectable()
 export class EventService {
@@ -17,32 +18,32 @@ export class EventService {
   ) {}
 
   async createEvent(createEventDto: CreateEventDto) {
-    const { userId, ...details } = createEventDto;
-    const event = this.eventRepository.create({
-      user: { id: userId },
-      ...details,
-    });
+    const event = this.eventRepository.create(createEventDto);
 
     const savedEvent = await this.eventRepository.save(event);
-    if (savedEvent) {
+    if (!savedEvent) {
       throw new InternalServerErrorException('Error while creating event');
     }
 
     return { message: 'Event created Successfully', event };
   }
 
-  async handleUpdateEvent() {
-    //   const event = await this.eventRepository.find({ where: user:{ id: userId } });
-    // const { userId, ...details } = updateEventDto;
-    // //
-    // const event = await this.eventRepository.find({
-    //   where: { user: { id: userId } },
-    // });
-    //  if (!event) {
-    //     throw new BadRequestException('Event not found');
-    //   }
+  async handleUpdateEvent(updateEventDto: UpdateEventDto, userId: number) {
+    const { eventId, ...details } = updateEventDto;
+    const event = await this.eventRepository.find({
+      where: { id: eventId, userId: userId },
+    });
+    if (!event) {
+      throw new BadRequestException('Event not found');
+    }
 
-    //   // Send email reminder to event organizer
-    //   // 1. Entertainer , Admin , venue
+    const updatedEvent = await this.eventRepository.update(
+      { id: eventId },
+      details,
+    );
+
+    if (updatedEvent.affected) {
+      return { message: 'Event updated successfully' };
+    }
   }
 }

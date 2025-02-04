@@ -29,6 +29,7 @@ import { UpdateVenueDto } from './dto/update-venue.dto';
 import { BookingService } from '../booking/booking.service';
 import { CreateBookingDto } from '../booking/dto/create-booking.dto';
 import { VenueResponseDto } from '../booking/dto/booking-response-dto';
+import { DateTimeChangeDto } from './dto/change-booking.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -87,6 +88,23 @@ export class VenueController {
   })
   search(@Query() query: SearchEntertainerDto) {
     return this.venueService.findAllEntertainers(query);
+  }
+
+  @Get('entertainer-profile/:id')
+  @Roles('findAll')
+  @ApiOperation({ summary: 'Get Entertainer by Id' })
+  @ApiResponse({
+    status: 200,
+    description: 'Entertainer fetched successfully.',
+    type: Entertainer,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Cannot get entertainers.',
+  })
+  GetEntertainerDetails(@Param('id') userId: number) {
+    console.log('Controller Detail', userId);
+    return this.venueService.findEntertainerDetails(Number(userId));
   }
 
   // Booking Request   and create a new requet
@@ -148,5 +166,13 @@ export class VenueController {
   remove(@Param('id') id: number, @Request() req) {
     const userId = req.user.userId;
     return this.venueService.handleRemoveVenue(Number(id), userId);
+  }
+
+  @Post('request-change')
+  @Roles('findAll')
+  requestChange(@Body() dateTimeChangeDto: DateTimeChangeDto, @Request() req) {
+    const userId = req.user.userId;
+
+    return this.bookingService.handleChangeRequest(dateTimeChangeDto, userId);
   }
 }

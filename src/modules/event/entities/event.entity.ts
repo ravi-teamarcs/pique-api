@@ -1,5 +1,3 @@
-import { User } from '../../users/entities/users.entity';
-import { Venue } from '../../venue/entities/venue.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -28,20 +26,20 @@ export class VenueEvent {
   @Column()
   location: string;
 
-  @ManyToOne(() => User, (user) => user.events)
-  user: User;
+  @Column()
+  userId: number;
+
+  @Column()
+  venueId: number;
 
   @Column()
   description: string;
 
-  @Column({})
+  @Column()
   type: string;
-  @Column({})
-  image?: string;
-  @Column({})
+
+  @Column()
   status: string;
-  @Column({})
-  additionalNotes: string;
 
   @CreateDateColumn()
   createdAt: Date;

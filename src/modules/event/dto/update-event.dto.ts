@@ -1,15 +1,16 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateEventDto } from './create-event.dto';
-import { IsDateString, IsOptional, IsString } from 'class-validator';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class UpdateEventDto {
+  @IsNumber()
+  eventId: number; //  //  Update eventId in the request body.
+
   @IsOptional()
   @IsString()
   title: string;
 
   // Use IsDateString to ensure that the date is in the correct 'YYYY-MM-DD' format
   @IsOptional()
-  @IsDateString()
+  @IsString()
   date: string;
 
   // Use IsString for time field and ensure it's in the correct 'HH:MM:SS' format
@@ -30,15 +31,7 @@ export class UpdateEventDto {
   @IsString()
   type: string;
 
-  @IsOptional() // Image is optional
-  @IsString()
-  image?: string;
-
   @IsOptional()
   @IsString()
   status: string;
-
-  @IsOptional()
-  @IsString()
-  additionalNotes: string;
 }

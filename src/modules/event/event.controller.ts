@@ -1,7 +1,9 @@
-import { Body, Controller, Post, Put, Req } from '@nestjs/common';
+import { Body, Controller, Patch, Post, Put, Req } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EventService } from './event.service';
 import { CreateEventDto } from './dto/create-event.dto';
+import { Roles } from '../auth/roles.decorator';
+import { UpdateEventDto } from './dto/update-event.dto';
 @ApiTags('Events')
 @Controller('event')
 export class EventController {
@@ -12,6 +14,7 @@ export class EventController {
     description: 'Event has been  Created Sucessfully.',
   })
   @Post('create')
+  @Roles('findAll')
   createEvent(@Body() createEventDto: CreateEventDto) {
     return this.eventService.createEvent(createEventDto);
   }
@@ -23,10 +26,12 @@ export class EventController {
   @ApiOperation({ summary: 'Update an Event' })
   @ApiResponse({
     status: 200,
-    description: 'Event  Update  Sent  Sucessfully.',
+    description: 'Event  updated Successfully.',
   })
-  @Put('update')
-  updateEvent(@Body() createEventDto: CreateEventDto, @Req() req) {
-    return this.eventService.handleUpdateEvent();
+  @Patch('update')
+  updateEvent(@Body() updateEventDto: UpdateEventDto, @Req() req) {
+    const { userId } = req.user;
+    return this.eventService.handleUpdateEvent(updateEventDto, userId);
   }
+  
 }
