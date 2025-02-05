@@ -1,14 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsNotEmpty,
-  IsString,
-  IsEnum,
-  IsOptional,
-  IsNumber,
-} from 'class-validator';
+import { IsEnum, IsOptional, IsNumber } from 'class-validator';
 
 export class SearchEntertainerDto {
   @ApiProperty({ description: 'Name of the venue', required: false })
+  @IsOptional()
   @IsEnum(['yes', 'no'])
   availability: 'yes' | 'no';
 

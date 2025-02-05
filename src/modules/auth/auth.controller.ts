@@ -13,8 +13,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto } from './auth.dto';
 import { JwtAuthGuard } from './jwt.guard';
+import { LoginDto, RegisterDto } from './auth.dto';
 
 @ApiTags('Auth')
 @Controller('auth')

@@ -114,16 +114,13 @@ export class VenueService {
         'entertainer.name',
         'entertainer.category',
         'entertainer.specific_category',
-        'entertainer.bio',
         'entertainer.performanceRole',
-        'entertainer.phone1',
-        'entertainer.phone2',
         'entertainer.pricePerEvent',
         'entertainer.vaccinated',
         'entertainer.availability',
         'entertainer.status',
-        'entertainer.socialLinks',
         'user.id',
+        'user.name', // Example: More control over user relation
         'user.email', // Example: More control over user relation
       ]);
 
@@ -161,10 +158,17 @@ export class VenueService {
 
     const entertainers = await Promise.all(
       results.map(async (item) => {
-        const media = await this.mediaRepository.find({
-          where: { user: { id: item.user.id } }, // Corrected filtering
-          select: ['url', 'name', 'type'],
-        });
+        const userId = item.user.id;
+        const media = await this.mediaRepository
+          .createQueryBuilder('media')
+          .select([
+            'media.id AS id',
+            `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+            'media.type AS type',
+            'media.name  AS name',
+          ])
+          .where('media.userId = :userId', { userId })
+          .getRawMany();
         return {
           ...item,
           media,

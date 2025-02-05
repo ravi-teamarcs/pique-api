@@ -50,23 +50,23 @@ export class UsersController {
   /**
    * Get all users
    */
-  @Get()
-  @Roles('findAll')
-  @ApiBearerAuth() // Swagger UI will ask for the Bearer token
-  @ApiOperation({ summary: 'Get all users' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns a list of all users.',
-    type: [User],
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized. Invalid or missing JWT token.',
-  })
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async getAllUsers(@Request() req): Promise<User[]> {
-    return this.usersService.findAll();
-  }
+  // @Get()
+  // @Roles('findAll')
+  // @ApiBearerAuth() // Swagger UI will ask for the Bearer token
+  // @ApiOperation({ summary: 'Get all users' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Returns a list of all users.',
+  //   type: [User],
+  // })
+  // @ApiResponse({
+  //   status: 401,
+  //   description: 'Unauthorized. Invalid or missing JWT token.',
+  // })
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // async getAllUsers(@Request() req): Promise<User[]> {
+  //   return this.usersService.findAll();
+  // }
 
   /**
    * Get a user by ID
@@ -112,18 +112,18 @@ export class UsersController {
   /**
    * Delete a user by ID
    */
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete user by ID' })
-  @ApiParam({ name: 'id', description: 'User ID', example: 1 })
-  @ApiResponse({ status: 200, description: 'The user has been deleted.' })
-  @ApiResponse({ status: 404, description: 'User not found.' })
-  async deleteUser(@Param('id') id: number): Promise<{ message: string }> {
-    const deleted = await this.usersService.delete(id);
-    if (!deleted) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    }
-    return { message: 'User successfully deleted' };
-  }
+  // @Delete(':id')
+  // @ApiOperation({ summary: 'Delete user by ID' })
+  // @ApiParam({ name: 'id', description: 'User ID', example: 1 })
+  // @ApiResponse({ status: 200, description: 'The user has been deleted.' })
+  // @ApiResponse({ status: 404, description: 'User not found.' })
+  // async deleteUser(@Param('id') id: number): Promise<{ message: string }> {
+  //   const deleted = await this.usersService.delete(id);
+  //   if (!deleted) {
+  //     throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+  //   }
+  //   return { message: 'User successfully deleted' };
+  // }
 
   @Put('update/profile')
   @UseGuards(JwtAuthGuard)

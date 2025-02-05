@@ -60,26 +60,55 @@ export class MediaService {
 
   async findAllMedia(userId: number, venueId: number) {
     if (venueId) {
-      const media = await this.mediaRepository.find({
-        where: {
-          refId: venueId, // Exact match for refId
-          user: { id: userId }, // Exact match for userId
-        },
-        select: ['url', 'type', 'refId', 'name'],
-      });
+      const media = await this.mediaRepository
+        .createQueryBuilder('media')
+        .select([
+          'media.id AS id',
+          `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+          'media.type AS type',
+          'media.refId AS venueId',
+          'media.name AS name',
+        ])
+        .where('media.refId = :venueId', { venueId })
+        .andWhere('media.userId = :userId', { userId })
+        .getRawMany();
 
       return { message: 'Multimedia returned successfully', media };
     }
 
-    const media = await this.mediaRepository.find({
-      where: { user: { id: userId } },
-      select: ['url', 'type', 'name'],
-    });
+    const media = await this.mediaRepository
+      .createQueryBuilder('media')
+      .select([
+        'media.id AS id',
+        `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+        'media.type AS type',
+        'media.name  AS name',
+      ])
+      .where('media.userId = :userId', { userId })
+      .getRawMany();
 
     if (!media) {
       throw new BadRequestException('Media Not Found');
     }
-
     return { message: 'Multimedia returned successfully', media };
+  }
+
+  async updateMedia(mediaId: number, userId: number, uploadedFile) {
+    console.log(uploadedFile);
+    // console.log('mediaId', typeof mediaId, mediaId);
+    const media = await this.mediaRepository.findOne({
+      where: { id: mediaId, user: { id: userId } },
+    });
+
+    if (!media) {
+      throw new BadRequestException(
+        'Media not found or not associated with the provided venue.',
+      );
+    }
+
+    // Update media
+    await this.mediaRepository.update({ id: media.id }, uploadedFile);
+
+    return { message: 'Media updated Successfully' };
   }
 }

@@ -3,7 +3,9 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
+  Put,
   Query,
   Req,
   UploadedFiles,
@@ -12,13 +14,10 @@ import {
 } from '@nestjs/common';
 import { MediaService } from './media.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import {
-  AnyFilesInterceptor,
-  FileFieldsInterceptor,
-} from '@nestjs/platform-express';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
-import multer, { Multer } from 'multer';
 import { JwtAuthGuard } from '../auth/jwt.guard';
+import { MediaDto } from './dto/update-media.dto';
 
 @ApiTags('Media')
 @Controller('media')
@@ -113,5 +112,76 @@ export class MediaController {
   getAllMedia(@Req() req: any, @Query('venueId') venueId?: number) {
     const userId = req.user.userId; // Replace with actual user id
     return this.mediaService.findAllMedia(userId, venueId);
+  }
+
+  @Put(':mediaId')
+  @ApiOperation({
+    summary: 'Update media by id.',
+  })
+  @ApiResponse({ status: 200, description: 'Multimedia updated Successfully.' })
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 2 },
+        { name: 'videos', maxCount: 4 },
+        { name: 'headshot', maxCount: 1 },
+      ],
+      {
+        fileFilter: (req, file, callback) => {
+          if (file.fieldname === 'videos' && file.size > 500 * 1024 * 1024) {
+            // 500 MB in bytes
+            return callback(
+              new BadRequestException('Video file size cannot exceed 500 MB'),
+              false,
+            );
+          }
+          callback(null, true);
+        },
+      },
+    ),
+  )
+  async updateMedia(
+    @Param('mediaId') mediaId: number,
+    @UploadedFiles()
+    files: {
+      images?: Express.Multer.File[];
+      videos?: Express.Multer.File[];
+      headshot?: Express.Multer.File[];
+    },
+
+    @Req() req,
+  ) {
+    console.log(files);
+    const { userId } = req.user;
+    console.log(Object.keys(files));
+    // Ensure exactly one file type is provided
+    const fileTypes = Object.keys(files).filter(
+      (key) => files[key]?.length > 0,
+    );
+
+    console.log('FileTypes', fileTypes);
+    if (fileTypes.length !== 1) {
+      throw new BadRequestException(
+        'You must upload exactly one media type (image, video, or headshot).',
+      );
+    }
+
+    const fileType = fileTypes[0]; // The provided file type
+    const file = files[fileType][0]; // Get the single uploaded file
+
+    const filePath = await uploadFile(file); // Call the upload function
+
+    const uploadedFile = {
+      url: filePath,
+      name: file.originalname,
+      type:
+        fileType === 'images'
+          ? 'image'
+          : fileType === 'videos'
+            ? 'video'
+            : 'headshot',
+    };
+
+    // return this.mediaService.updateMedia(Number(mediaId), userId, uploadedFile);
   }
 }

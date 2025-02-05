@@ -145,10 +145,10 @@ export class VenueController {
     return this.bookingService.handleBookingResponse(role, venueResponseDto);
   }
 
-  @ApiOperation({ summary: 'Update details of venue ' })
+  @ApiOperation({ summary: 'Update details of venue.' })
   @ApiResponse({
     status: 200,
-    description: 'Venue updates Successfully .',
+    description: 'Venue updated Successfully .',
   })
   @Put('update')
   @Roles('findAll')
