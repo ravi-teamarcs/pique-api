@@ -28,8 +28,8 @@ import { LocationModule } from './modules/location/location.module';
     }),
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
-      port: 3306,
+      host: process.env.DB_Host,
+      port: Number(process.env.DB_Port),
       username: process.env.DB_User,
       password: process.env.DB_Password,
       database: process.env.DB_Name,

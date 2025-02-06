@@ -8,7 +8,7 @@ export class UpdateProfileDto {
     description: 'User Data you want to update',
     example: { name: 'ram', phoneNumber: 6230446543 },
   })
-  userData: UpdateUserDto;
+  userData?: UpdateUserDto;
 
   @ApiProperty({
     description: 'Venue details  you want to update',

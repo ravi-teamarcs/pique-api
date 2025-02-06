@@ -122,8 +122,8 @@ export class MediaController {
   @UseInterceptors(
     FileFieldsInterceptor(
       [
-        { name: 'images', maxCount: 2 },
-        { name: 'videos', maxCount: 4 },
+        { name: 'images', maxCount: 1 },
+        { name: 'videos', maxCount: 1 },
         { name: 'headshot', maxCount: 1 },
       ],
       {
@@ -151,12 +151,11 @@ export class MediaController {
 
     @Req() req,
   ) {
-    console.log(files);
     const { userId } = req.user;
-    console.log(Object.keys(files));
+    console.log(files);
     // Ensure exactly one file type is provided
     const fileTypes = Object.keys(files).filter(
-      (key) => files[key]?.length > 0,
+      (key) => files[key]?.length > 0, // Because of multiple images
     );
 
     console.log('FileTypes', fileTypes);
@@ -168,20 +167,22 @@ export class MediaController {
 
     const fileType = fileTypes[0]; // The provided file type
     const file = files[fileType][0]; // Get the single uploaded file
-
+    const { fieldname } = file;
     const filePath = await uploadFile(file); // Call the upload function
+
+    const typeMap = {
+      images: 'image',
+      videos: 'video',
+      headshot: 'headshot',
+    };
 
     const uploadedFile = {
       url: filePath,
       name: file.originalname,
-      type:
-        fileType === 'images'
-          ? 'image'
-          : fileType === 'videos'
-            ? 'video'
-            : 'headshot',
+      type: typeMap[fieldname],
     };
 
+    console.log(uploadedFile);
     // return this.mediaService.updateMedia(Number(mediaId), userId, uploadedFile);
   }
 }

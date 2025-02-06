@@ -57,7 +57,7 @@ export class VenueService {
         'long',
         'amenities',
         'websiteUrl',
-        'timings',
+
         'bookingPolicies',
       ],
     });
@@ -82,7 +82,7 @@ export class VenueService {
         'long',
         'amenities',
         'websiteUrl',
-        'timings',
+
         'bookingPolicies',
       ],
     });

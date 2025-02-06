@@ -34,22 +34,22 @@ export class Venue {
   description: string;
 
   @Column()
-  city: string;
+  city: number;
 
   @Column()
-  state: string;
+  state: number;
 
   @Column()
   zipCode: string;
 
   @Column()
-  country: string;
+  country: number;
 
-  @Column()
-  lat: string;
+  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: false })
+  lat: number;
 
-  @Column()
-  long: string;
+  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: false })
+  long: number;
 
   @Column('simple-array')
   amenities: string[];
@@ -57,8 +57,8 @@ export class Venue {
   @Column()
   websiteUrl: string;
 
-  @Column()
-  timings: string;
+  // @Column()
+  // timings: string;
 
   @Column()
   bookingPolicies: string;
