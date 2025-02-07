@@ -7,7 +7,6 @@ export class UpdateEventDto {
   @IsOptional()
   @IsString()
   title: string;
-
   // Use IsDateString to ensure that the date is in the correct 'YYYY-MM-DD' format
   @IsOptional()
   @IsString()
@@ -30,8 +29,4 @@ export class UpdateEventDto {
   @IsOptional()
   @IsString()
   type: string;
-
-  @IsOptional()
-  @IsString()
-  status: string;
 }

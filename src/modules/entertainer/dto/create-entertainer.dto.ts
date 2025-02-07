@@ -1,5 +1,10 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsNumber, IsEnum } from 'class-validator';
+import {
+  Availability,
+  PerformanceType,
+  Vaccinated,
+} from 'src/common/enums/entertainer.enum';
 
 export class CreateEntertainerDto {
   @ApiProperty({
@@ -10,18 +15,18 @@ export class CreateEntertainerDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ example: 'Singers', description: 'Type  of the entertainer' })
-  @IsString()
+  @ApiProperty({ example: 1, description: 'Category  of the entertainer' })
+  @IsNumber()
   @IsNotEmpty()
-  category: string;
+  category: number;
 
   @ApiProperty({
-    example: 'A Capella Group',
-    description: 'Type  of the entertainer',
+    example: 13,
+    description: 'specific-category of the entertainer',
   })
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
-  specific_category: string;
+  specific_category: number;
 
   @ApiProperty({
     example: 'performed in  a lot of shows.',
@@ -51,17 +56,17 @@ export class CreateEntertainerDto {
     example: 'solo',
     description: ' Role of entertainer (soloist , duo , trio)',
   })
-  @IsEnum(['soloist', 'duo', 'trio', 'ensemble'])
+  @IsEnum(PerformanceType)
   @IsNotEmpty()
-  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
+  performanceRole: PerformanceType;
 
   @ApiProperty({
     example: 'yes',
     description: 'Availability schedule of the entertainer',
   })
-  @IsEnum(['yes', 'no'])
+  @IsEnum(Availability)
   @IsNotEmpty()
-  availability: 'yes' | 'no';
+  availability: Availability;
 
   @ApiProperty({
     example: 3000,
@@ -78,8 +83,8 @@ export class CreateEntertainerDto {
   socialLinks: string;
 
   @ApiProperty({ example: 'yes', description: 'Vaccinated or Not' })
-  @IsEnum(['yes', 'no'])
-  vaccinated: 'yes' | 'no';
+  @IsEnum(Vaccinated)
+  vaccinated: Vaccinated;
 
   @ApiProperty({ example: 'active', description: 'Status of Entertainer' })
   @IsString()

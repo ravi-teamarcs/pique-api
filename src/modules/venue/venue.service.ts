@@ -57,7 +57,6 @@ export class VenueService {
         'long',
         'amenities',
         'websiteUrl',
-
         'bookingPolicies',
       ],
     });
@@ -82,7 +81,6 @@ export class VenueService {
         'long',
         'amenities',
         'websiteUrl',
-
         'bookingPolicies',
       ],
     });
@@ -202,7 +200,8 @@ export class VenueService {
         'entertainerUser.id',
         'entertainer.id',
         'entertainer.name',
-        'entertainer.type',
+        'entertainer.category',
+        'entertainer.specific_category',
         'entertainer.bio',
         'entertainer.phone1',
         'entertainer.phone2',
@@ -293,10 +292,16 @@ export class VenueService {
 
     if (!details) throw new NotFoundException('Entertainer not Found');
 
-    const media = await this.mediaRepository.find({
-      where: { user: { id: userId } }, // Corrected filtering
-      select: ['url', 'name', 'type'],
-    });
+    const media = await this.mediaRepository
+      .createQueryBuilder('media')
+      .select([
+        'media.id AS id',
+        `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+        'media.type AS type',
+        'media.name  AS name',
+      ])
+      .where('media.userId = :userId', { userId })
+      .getRawMany();
 
     return {
       message: 'Entertainer Details returned Successfully ',

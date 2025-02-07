@@ -19,10 +19,10 @@ export class Entertainer {
   name: string;
 
   @Column()
-  category: string;
+  category: number;
 
   @Column()
-  specific_category: string;
+  specific_category: number;
 
   @Column()
   bio: string;
@@ -42,6 +42,7 @@ export class Entertainer {
 
   @Column()
   pricePerEvent: number;
+
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
   vaccinated: 'yes' | 'no';
 

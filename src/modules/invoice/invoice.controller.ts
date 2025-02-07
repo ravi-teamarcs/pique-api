@@ -14,7 +14,7 @@ export class InvoiceController {
   })
 
   // Route to Generate the Invoice for specific  Booking
-  @Post('create')
+  @Post()
   createInvoice(@Body() invoiceDto: InvoiceDto) {
     return this.invoiceService.generateInvoice(invoiceDto);
   }

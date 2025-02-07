@@ -17,8 +17,8 @@ export class EventService {
     private readonly eventRepository: Repository<VenueEvent>,
   ) {}
 
-  async createEvent(createEventDto: CreateEventDto) {
-    const event = this.eventRepository.create(createEventDto);
+  async createEvent(createEventDto: CreateEventDto, userId: number) {
+    const event = this.eventRepository.create({ userId, ...createEventDto });
 
     const savedEvent = await this.eventRepository.save(event);
     if (!savedEvent) {
@@ -30,7 +30,7 @@ export class EventService {
 
   async handleUpdateEvent(updateEventDto: UpdateEventDto, userId: number) {
     const { eventId, ...details } = updateEventDto;
-    const event = await this.eventRepository.find({
+    const event = await this.eventRepository.findOne({
       where: { id: eventId, userId: userId },
     });
     if (!event) {
@@ -39,11 +39,22 @@ export class EventService {
 
     const updatedEvent = await this.eventRepository.update(
       { id: eventId },
-      details,
+      {
+        ...details,
+      },
     );
 
     if (updatedEvent.affected) {
       return { message: 'Event updated successfully' };
     }
+  }
+
+  async getAllEvents(userId: number) {
+    const events = await this.eventRepository.find({
+      where: { userId },
+      order: { createdAt: 'DESC' },
+    });
+
+    return { message: 'Events fetched successfully', events };
   }
 }

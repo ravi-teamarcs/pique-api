@@ -59,7 +59,7 @@ export class EntertainerController {
   //   }
 
   @Get()
-  @Roles('entertainer')
+  @Roles('findAll')
   @Roles('entertainer')
   @ApiOperation({ summary: 'Get all entertainers for the logged-in user' })
   findAll(@Request() req) {

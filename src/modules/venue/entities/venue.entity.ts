@@ -57,9 +57,6 @@ export class Venue {
   @Column()
   websiteUrl: string;
 
-  // @Column()
-  // timings: string;
-
   @Column()
   bookingPolicies: string;
 

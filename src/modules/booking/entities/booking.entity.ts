@@ -14,6 +14,7 @@ import {
 export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
+ 
   @ManyToOne(() => User, (user) => user.venueBookings)
   venueUser: User;
 

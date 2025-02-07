@@ -4,7 +4,6 @@ import {
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
 } from 'typeorm';
 
 @Entity('event')
@@ -16,7 +15,7 @@ export class VenueEvent {
   title: string;
 
   // Use 'date' type for storing date in YYYY-MM-DD format
-  @Column({ type: 'date' })
+  @Column()
   date: string;
 
   // Use 'time' type for storing time in HH:MM:SS format
@@ -38,8 +37,8 @@ export class VenueEvent {
   @Column()
   type: string;
 
-  @Column()
-  status: string;
+  @Column({ default: 'pending' })
+  status: 'pending' | 'completed';
 
   @CreateDateColumn()
   createdAt: Date;
