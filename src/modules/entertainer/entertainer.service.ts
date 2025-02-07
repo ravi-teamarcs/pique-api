@@ -30,16 +30,16 @@ export class EntertainerService {
     private readonly categoryRepository: Repository<Category>,
   ) {}
 
-  async create(
-    createEntertainerDto: CreateEntertainerDto,
-    userId: number,
-  ): Promise<Entertainer> {
+  async create(createEntertainerDto: CreateEntertainerDto, userId: number) {
     const existingEntertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
 
     if (existingEntertainer) {
-      throw new BadRequestException('Entertainer already exists for the user');
+      throw new BadRequestException({
+        message: 'Entertainer already exists for the user',
+        status: false,
+      });
     }
     // Create the entertainer
     const entertainer = this.entertainerRepository.create({
@@ -47,11 +47,16 @@ export class EntertainerService {
       user: { id: userId },
     });
 
-    return this.entertainerRepository.save(entertainer);
+    const savedEntertainer = this.entertainerRepository.save(entertainer);
+    return {
+      message: 'Entertainer saved Successfully',
+      status: true,
+      entertainer,
+    };
   }
 
-  findAll(userId: number): Promise<Entertainer[]> {
-    return this.entertainerRepository.find({
+  findAll(userId: number) {
+    const entertainers = this.entertainerRepository.find({
       where: { user: { id: userId } },
       select: [
         'id',
@@ -69,9 +74,15 @@ export class EntertainerService {
         'socialLinks',
       ],
     });
+
+    return {
+      message: 'Entertainer Fetched Successfully',
+      entertainers,
+      status: true,
+    };
   }
 
-  async findOne(id: number, userId: number): Promise<Entertainer> {
+  async findOne(id: number, userId: number) {
     const entertainer = await this.entertainerRepository.findOne({
       where: { id, user: { id: userId } },
       select: [
@@ -91,26 +102,40 @@ export class EntertainerService {
       ],
     });
     if (!entertainer) {
-      throw new NotFoundException('Entertainer not found');
+      throw new NotFoundException({
+        message: 'Entertainer not found',
+        status: false,
+      });
     }
-    return entertainer;
+    return {
+      message: 'Entertainer fetched Successfully',
+      entertainer,
+      status: true,
+    };
   }
 
   async update(
     id: number,
     updateEntertainerDto: UpdateEntertainerDto,
     userId: number,
-  ): Promise<Entertainer> {
-    const entertainer = await this.findOne(id, userId);
+  ) {
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { id, user: { id: userId } },
+    });
     Object.assign(entertainer, updateEntertainerDto);
-    return this.entertainerRepository.save(entertainer);
+    await this.entertainerRepository.save(entertainer);
+    return { message: 'Entertainer updated Successfully', status: true };
   }
 
-  async remove(id: number, userId: number): Promise<void> {
-    const entertainer = await this.findOne(id, userId);
+  async remove(id: number, userId: number) {
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { id, user: { id: userId } },
+    });
     await this.entertainerRepository.remove(entertainer);
+    return { message: 'Entertainer removed Sucessfully', status: true };
   }
-  async findAllBooking(userId: number): Promise<Booking[]> {
+
+  async findAllBooking(userId: number) {
     // Find entertainers belonging to the specified user
     try {
       const bookings = await this.bookingRepository
@@ -133,7 +158,11 @@ export class EntertainerService {
         ])
         .getRawMany(); // Use getRawMany() since we are manually selecting fields
 
-      return bookings;
+      return {
+        message: 'Booking created Suceessfully',
+        bookings,
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException('An unexpected error occurred');
     }
@@ -144,9 +173,12 @@ export class EntertainerService {
       where: { parentId: 0 },
       select: ['id', 'name'],
     });
-    if (categories.length === 0)
-      throw new NotFoundException('Categories not found');
-    return { message: 'categories returned Successfully ', categories };
+
+    return {
+      message: 'categories returned Successfully ',
+      categories,
+      status: true,
+    };
   }
   async getSubCategories(catId: number) {
     const categories = await this.categoryRepository.find({
@@ -155,6 +187,10 @@ export class EntertainerService {
     if (categories.length === 0) {
       return { message: 'Sub-categories not found', categories: null };
     }
-    return { message: ' Sub-categories returned Successfully ', categories };
+    return {
+      message: ' Sub-categories returned Successfully ',
+      categories,
+      status: true,
+    };
   }
 }

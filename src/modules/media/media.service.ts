@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Media } from './entities/media.entity';
 import { Repository } from 'typeorm';
@@ -51,10 +55,13 @@ export class MediaService {
         await this.mediaRepository.save(media);
       }
 
-      return { message: 'Files Saved Successfully' };
+      return { message: 'Files Saved Successfully', status: true };
     } catch (error) {
       console.error('Error uploading media:', error);
-      throw new Error('Media upload failed');
+      throw new InternalServerErrorException({
+        message: 'Failed to upload media',
+        status: false,
+      });
     }
   }
 
@@ -73,7 +80,11 @@ export class MediaService {
         .andWhere('media.userId = :userId', { userId })
         .getRawMany();
 
-      return { message: 'Multimedia returned successfully', media };
+      return {
+        message: 'Multimedia returned successfully',
+        media,
+        status: true,
+      };
     }
 
     const media = await this.mediaRepository
@@ -88,9 +99,12 @@ export class MediaService {
       .getRawMany();
 
     if (!media) {
-      throw new BadRequestException('Media Not Found');
+      throw new BadRequestException({
+        message: 'Media Not Found',
+        status: false,
+      });
     }
-    return { message: 'Multimedia returned successfully', media };
+    return { message: 'Multimedia returned successfully', media, status: true };
   }
 
   async updateMedia(mediaId: number, userId: number, uploadedFile) {
@@ -109,6 +123,6 @@ export class MediaService {
     // Update media
     await this.mediaRepository.update({ id: media.id }, uploadedFile);
 
-    return { message: 'Media updated Successfully' };
+    return { message: 'Media updated Successfully', status: true };
   }
 }

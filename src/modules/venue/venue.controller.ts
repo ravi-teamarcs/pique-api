@@ -46,10 +46,7 @@ export class VenueController {
   @ApiOperation({ summary: 'Create a venue' })
   @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async create(
-    @Body() createVenueDto: CreateVenueDto,
-    @Request() req,
-  ): Promise<Venue> {
+  async create(@Body() createVenueDto: CreateVenueDto, @Request() req) {
     const userId = req.user.userId;
     return this.venueService.create(createVenueDto, userId);
   }
@@ -58,9 +55,9 @@ export class VenueController {
   @Roles('findAll') // Restrict access to the 'venue' role
   @ApiOperation({ summary: 'Get all venues for logged-in user' })
   @ApiResponse({ status: 200, description: 'List of venues.', type: Venue })
-  async findAll(@Request() req): Promise<Venue[]> {
+  async findAll(@Request() req) {
     const userId = req.user.userId;
-    return await this.venueService.findAllByUser(userId);
+    return this.venueService.findAllByUser(userId);
   }
 
   @Get(':id')
@@ -68,7 +65,7 @@ export class VenueController {
   @ApiOperation({ summary: 'Get a single venue by ID' })
   @ApiResponse({ status: 200, description: 'Venue details.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async findOne(@Param('id') id: number, @Request() req): Promise<Venue> {
+  async findOne(@Param('id') id: number, @Request() req) {
     const userId = req.user.userId;
 
     return this.venueService.findOneByUser(id, userId);

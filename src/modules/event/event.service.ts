@@ -25,7 +25,7 @@ export class EventService {
       throw new InternalServerErrorException('Error while creating event');
     }
 
-    return { message: 'Event created Successfully', event };
+    return { message: 'Event created Successfully', event, status: true };
   }
 
   async handleUpdateEvent(updateEventDto: UpdateEventDto, userId: number) {
@@ -45,7 +45,7 @@ export class EventService {
     );
 
     if (updatedEvent.affected) {
-      return { message: 'Event updated successfully' };
+      return { message: 'Event updated successfully', status: true };
     }
   }
 
@@ -55,6 +55,6 @@ export class EventService {
       order: { createdAt: 'DESC' },
     });
 
-    return { message: 'Events fetched successfully', events };
+    return { message: 'Events fetched successfully', events, status: true };
   }
 }

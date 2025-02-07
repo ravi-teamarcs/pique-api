@@ -46,17 +46,12 @@ export class EntertainerController {
   @ApiResponse({
     status: 201,
     description: 'entertainer created.',
-    type: Entertainer,
   })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   create(@Body() createEntertainerDto: CreateEntertainerDto, @Req() req) {
     const userId = req.user.userId;
     return this.entertainerService.create(createEntertainerDto, userId);
   }
-  //   create(@Body() createEntertainerDto: CreateEntertainerDto, @Request() req) {
-  //     console.log('---', req.user);
-  //     return this.entertainerService.create(createEntertainerDto, req.user.id);
-  //   }
 
   @Get()
   @Roles('findAll')
@@ -77,7 +72,6 @@ export class EntertainerController {
   @ApiResponse({
     status: 200,
     description: 'Entertainer updated sucessfully.',
-    type: Entertainer,
   })
   update(
     @Param('id') id: number,
@@ -96,7 +90,6 @@ export class EntertainerController {
   @ApiResponse({
     status: 200,
     description: 'Entertainer removed sucessfully.',
-    type: Entertainer,
   })
   remove(@Param('id') id: number, @Request() req) {
     return this.entertainerService.remove(+id, req.user.userId);
@@ -129,7 +122,6 @@ export class EntertainerController {
   @ApiResponse({
     status: 200,
     description: 'Booking fetched Successfully.',
-    // type: [Booking],
   })
   getBooking(@Request() req) {
     const userId = req.user.userId;

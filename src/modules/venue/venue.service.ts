@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpStatus,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -14,6 +15,7 @@ import { UpdateVenueDto } from './dto/update-venue.dto';
 import { User } from '../users/entities/users.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { Media } from '../media/entities/media.entity';
+import { HttpErrorByCode } from '@nestjs/common/utils/http-error-by-code.util';
 
 @Injectable()
 export class VenueService {
@@ -30,16 +32,17 @@ export class VenueService {
     private readonly mediaRepository: Repository<Media>,
   ) {}
 
-  async create(createVenueDto: CreateVenueDto, userId: number): Promise<Venue> {
+  async create(createVenueDto: CreateVenueDto, userId: number) {
     const venue = this.venueRepository.create({
       ...createVenueDto,
       user: { id: userId },
     });
-    return await this.venueRepository.save(venue);
+    await this.venueRepository.save(venue);
+    return { message: 'Venue created successfully', venue, status: true };
   }
 
-  async findAllByUser(userId: number): Promise<Venue[]> {
-    return this.venueRepository.find({
+  async findAllByUser(userId: number) {
+    const venues = await this.venueRepository.find({
       where: { user: { id: userId } },
       select: [
         'id',
@@ -60,9 +63,16 @@ export class VenueService {
         'bookingPolicies',
       ],
     });
+
+    return {
+      message: 'Venues returned successfully',
+      count: venues.length,
+      venues,
+      status: true,
+    };
   }
 
-  async findOneByUser(id: number, userId: number): Promise<Venue> {
+  async findOneByUser(id: number, userId: number) {
     const venue = await this.venueRepository.findOne({
       where: { id, user: { id: userId } },
       select: [
@@ -86,10 +96,14 @@ export class VenueService {
     });
 
     if (!venue) {
-      throw new NotFoundException('Venue not found');
+      throw new NotFoundException({
+        message: 'Venue not found',
+        error: ' Not Found',
+        status: false,
+      });
     }
 
-    return venue;
+    return { message: 'Venue fetched successfully', venue, status: true };
   }
 
   async findAllEntertainers(query: SearchEntertainerDto) {
@@ -108,18 +122,17 @@ export class VenueService {
       .createQueryBuilder('entertainer')
       .leftJoinAndSelect('entertainer.user', 'user')
       .select([
-        'entertainer.id',
-        'entertainer.name',
-        'entertainer.category',
-        'entertainer.specific_category',
-        'entertainer.performanceRole',
-        'entertainer.pricePerEvent',
-        'entertainer.vaccinated',
-        'entertainer.availability',
-        'entertainer.status',
-        'user.id',
-        'user.name', // Example: More control over user relation
-        'user.email', // Example: More control over user relation
+        'entertainer.id AS id',
+        'user.id AS eid',
+        'entertainer.name AS name',
+        'entertainer.category AS category',
+        'entertainer.specific_category AS specific_category',
+        'entertainer.performanceRole AS performanceRole',
+        'entertainer.pricePerEvent AS pricePerEvent',
+        'entertainer.vaccinated AS vaccinated',
+        'entertainer.availability AS availability',
+        'entertainer.status AS status',
+        'user.email AS email', // Example: More control over user relation
       ]);
 
     if (availability) {
@@ -152,11 +165,11 @@ export class VenueService {
     const totalCount = await res.getCount();
 
     // // Apply pagination
-    const results = await res.skip(skip).take(Number(pageSize)).getMany();
-
+    const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
+    console.log(results);
     const entertainers = await Promise.all(
       results.map(async (item) => {
-        const userId = item.user.id;
+        const userId = item.id;
         const media = await this.mediaRepository
           .createQueryBuilder('media')
           .select([
@@ -181,6 +194,7 @@ export class VenueService {
       pageSize, // Records per Page
       totalPages: Math.ceil(totalCount / Number(pageSize)),
       entertainers,
+      status: true,
     };
   }
 
@@ -192,27 +206,22 @@ export class VenueService {
       .leftJoinAndSelect('entertainerUser.entertainer', 'entertainer')
       .where('booking.venueUser.id = :userId', { userId })
       .select([
-        'booking.id',
-        'booking.status',
-        'booking.showDate',
-        'booking.isAccepted',
-        'booking.specialNotes',
-        'entertainerUser.id',
-        'entertainer.id',
-        'entertainer.name',
-        'entertainer.category',
-        'entertainer.specific_category',
-        'entertainer.bio',
-        'entertainer.phone1',
-        'entertainer.phone2',
-        'entertainer.performanceRole',
-        'entertainer.availability',
-        'entertainer.pricePerEvent',
-        'entertainer.socialLinks',
-        'entertainer.vaccinated',
-        'entertainer.status',
+        'booking.id AS id',
+        'booking.status AS status',
+        'booking.showDate AS showDate',
+        'booking.isAccepted AS isAccepted',
+        'booking.specialNotes AS specialNotes',
+        'entertainerUser.id AS eid',
+        'entertainerUser.email AS email',
+        'entertainer.name AS name',
+        'entertainer.category AS category',
+        'entertainer.specific_category AS  specific_category',
+        'entertainer.phone1 AS phone1',
+        'entertainer.performanceRole AS performanceRole',
+        'entertainer.availability AS availability',
+        'entertainer.pricePerEvent AS pricePerEvent',
       ])
-      .getMany();
+      .getRawMany();
 
     if (!bookings) {
       throw new Error('No bookings found');
@@ -222,6 +231,7 @@ export class VenueService {
       message: 'Bookings returned successfully',
       count: bookings.length,
       bookings,
+      status: true,
     };
   }
 
@@ -235,7 +245,11 @@ export class VenueService {
     });
 
     if (!venue) {
-      throw new NotFoundException('Venue not found');
+      throw new NotFoundException({
+        message: 'Venue not found',
+        error: 'Not Found',
+        status: 'false',
+      });
     }
 
     const updateVenue = await this.venueRepository.update(
@@ -243,9 +257,12 @@ export class VenueService {
       details,
     );
     if (updateVenue.affected) {
-      return { message: 'Venue updated successfully', venue };
+      return { message: 'Venue updated successfully', status: true };
     } else {
-      throw new InternalServerErrorException('Failed to update venue');
+      throw new InternalServerErrorException({
+        message: 'something went wrong ',
+        status: false,
+      });
     }
   }
 
@@ -256,16 +273,22 @@ export class VenueService {
       });
 
       if (!venue) {
-        throw new NotFoundException('Venue not found');
+        throw new NotFoundException({
+          message: 'Venue not found',
+          status: false,
+        });
       }
 
       const res = await this.venueRepository.delete({ id: venue.id });
 
-      if (res.affected) {
-        return { message: 'Venue deleted successfully' };
+      if (res.affected && res.affected > 0) {
+        return { message: 'Venue deleted successfully', status: true };
       }
     } catch (error) {
-      throw new InternalServerErrorException('Failed to delete venue');
+      throw new InternalServerErrorException({
+        message: 'something went wrong',
+        status: false,
+      });
     }
   }
 
@@ -290,7 +313,11 @@ export class VenueService {
       ],
     });
 
-    if (!details) throw new NotFoundException('Entertainer not Found');
+    if (!details)
+      throw new NotFoundException({
+        message: 'Entertainer details not found',
+        status: false,
+      });
 
     const media = await this.mediaRepository
       .createQueryBuilder('media')
@@ -306,6 +333,13 @@ export class VenueService {
     return {
       message: 'Entertainer Details returned Successfully ',
       entertainer: { ...details, media: media },
+      status: true,
     };
   }
 }
+
+// 'entertainer.id',
+//
+//         'entertainer.socialLinks',
+//         'entertainer.vaccinated',
+//         'entertainer.status',

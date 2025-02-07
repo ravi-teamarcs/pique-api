@@ -21,13 +21,11 @@ export class LocationService {
         where: { status: 1 },
       });
 
-      if (!countries) {
-        throw new Error('Failed to fetch list of countries');
-      }
       return {
         message: 'countries fetched successfully',
         count: countries.length,
         countries,
+        status: true,
       };
     } catch (error) {
       throw new Error(error.message);
@@ -47,25 +45,24 @@ export class LocationService {
         message: 'State fetched successfully',
         count: states.length,
         states,
+        status: true,
       };
     } catch (error) {
       throw new Error(error.message);
     }
   }
 
-  async findAllCities(stateId: number=38) {
+  async findAllCities(stateId: number = 38) {
     try {
       const cities = await this.cityRepository.find({
         where: { state_id: stateId },
       });
 
-      if (cities.length === 0) {
-        throw new Error('Failed to fetch list of Cities');
-      }
       return {
         message: 'Cities fetched successfully',
         count: cities.length,
         cities,
+        status: true,
       };
     } catch (error) {
       throw new Error(error.message);

@@ -51,6 +51,10 @@ export class AuthController {
   @Post('profile')
   @UseGuards(JwtAuthGuard)
   getProfile(@Request() req) {
-    return req.user; // Returns the user data from the JWT token
+    return {
+      message: 'Profile returned successfully',
+      user: req.user,
+      status: true,
+    }; // Returns the user data from the JWT token
   }
 }
