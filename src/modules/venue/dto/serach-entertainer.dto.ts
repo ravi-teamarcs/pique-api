@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsNumber } from 'class-validator';
+import { IsEnum, IsOptional, IsNumber, IsString } from 'class-validator';
 
 export class SearchEntertainerDto {
   @ApiProperty({ description: 'Name of the venue', required: false })
@@ -21,7 +21,7 @@ export class SearchEntertainerDto {
     required: false,
   })
   @IsOptional()
-  @IsNumber()
+  @IsString()
   search: string;
 
   @ApiProperty({ description: 'Records per page you want .', required: false })

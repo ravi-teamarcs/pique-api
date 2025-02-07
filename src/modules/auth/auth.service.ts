@@ -30,7 +30,14 @@ export class AuthService {
 
     const existingUser = await this.usersService.findByEmail(email);
     if (existingUser) {
-      throw new HttpException('Email already in use', HttpStatus.CONFLICT);
+      throw new HttpException(
+        {
+          message: 'Email Already in Use',
+          error: 'Bad Request',
+          status: false,
+        },
+        HttpStatus.CONFLICT,
+      );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -38,7 +45,11 @@ export class AuthService {
       ...registerDto,
       password: hashedPassword,
     });
-    return { message: 'User registered successfully', user: newUser };
+    return {
+      message: 'User registered successfully',
+      user: newUser,
+      status: true,
+    };
   }
 
   async login(loginDto: LoginDto) {
@@ -47,7 +58,10 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
-      throw new HttpException('Invalid credentials', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(
+        { message: 'Validation failed', error: 'Bad Request', status: false },
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     const payload = { sub: user.id, email: user.email, role: user.role };
