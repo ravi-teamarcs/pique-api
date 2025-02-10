@@ -14,14 +14,14 @@ import {
 export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
- 
+
   @ManyToOne(() => User, (user) => user.venueBookings)
   venueUser: User;
 
   @ManyToOne(() => User, (user) => user.entertainerBookings)
   entertainerUser: User;
 
-  @Column({nullable: false})
+  @Column({ nullable: false })
   venueId: number;
 
   @Column({
@@ -45,10 +45,10 @@ export class Booking {
     | 'completed'
     | 'rescheduled';
 
-  @Column()
+  @Column({ type: 'time' })
   showTime: string;
 
-  @Column()
+  @Column({ type: 'date' })
   showDate: string;
 
   @Column({

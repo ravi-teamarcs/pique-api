@@ -27,18 +27,6 @@ export class BookingService {
   async createBooking(createBookingDto: CreateBookingDto, userId: number) {
     const { entertainerId, ...bookingData } = createBookingDto;
 
-    // Validate the venue refrence to the current User.
-    // const venue = await this.venueRepository.findOne({
-    //   where: { id: venueId, user: { id: userId } },
-    // });
-
-    // if (!venue) {
-    //   throw new UnauthorizedException({
-    //     message: 'Access Denied',
-    //     reason: "Cannot create booking for others' venue.",
-    //   });
-    // }
-
     // Create the booking
 
     const newBooking = this.bookingRepository.create({
@@ -59,7 +47,11 @@ export class BookingService {
       throw new InternalServerErrorException('Failed to save Booking');
     }
 
-    return { message: 'Booking created successfully', booking: bookingData };
+    return {
+      message: 'Booking created successfully',
+      booking: bookingData,
+      status: true,
+    };
   }
 
   async handleBookingResponse(role, payload) {
@@ -71,7 +63,10 @@ export class BookingService {
         data,
       );
       if (!booking.affected) {
-        throw new NotFoundException('Booking not found');
+        throw new NotFoundException({
+          message: 'Booking not found',
+          status: false,
+        });
       }
     }
 
@@ -81,11 +76,14 @@ export class BookingService {
         data,
       );
       if (!booking.affected) {
-        throw new NotFoundException('Booking not found');
+        throw new NotFoundException({
+          message: 'Booking not found',
+          status: false,
+        });
       }
     }
 
-    return { message: 'Response registered successfully' };
+    return { message: 'Response registered successfully', status: true };
   }
 
   async handleChangeRequest(
@@ -99,7 +97,10 @@ export class BookingService {
     });
 
     if (!venue) {
-      throw new UnauthorizedException('You are not Authorized');
+      throw new UnauthorizedException({
+        message: 'You are not Authorized',
+        status: false,
+      });
     }
 
     const booking = await this.bookingRepository.findOne({
@@ -107,7 +108,10 @@ export class BookingService {
     });
 
     if (!booking || booking.venueId !== venueId) {
-      throw new NotFoundException('Booking not found');
+      throw new NotFoundException({
+        message: 'Booking not found',
+        status: false,
+      });
     }
 
     const req = this.reqRepository.create({ ...dateTimeChangeDto, userId });
@@ -124,7 +128,10 @@ export class BookingService {
 
     // Use Firebase to send the Notification.
 
-    return { message: 'Your Request have registered Successfully.' };
+    return {
+      message: 'Your Request have registered Successfully.',
+      status: true,
+    };
   }
 
   // approve service for both Entertainer and Admin
@@ -174,6 +181,6 @@ export class BookingService {
 
     await this.reqRepository.save(request);
 
-    return { message: 'response registered Successfully' };
+    return { message: 'response registered Successfully', status: 'true' };
   }
 }

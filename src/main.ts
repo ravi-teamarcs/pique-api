@@ -9,7 +9,6 @@ async function bootstrap() {
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
-  // Configure Swagger options
   const config = new DocumentBuilder()
     .setTitle('API Documentation')
     .setDescription('The API description')
@@ -26,5 +25,6 @@ async function bootstrap() {
   const res = await app.listen(process.env.PORT ?? 3000);
   // Printing server running port.  // process.env.PORT is used for heroku deployment.
   console.log(`Server is running on ${res.address().port}`);
+  console.log(`WebSocket running on ws://localhost: ${res.address().port}`);
 }
 bootstrap();

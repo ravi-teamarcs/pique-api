@@ -211,6 +211,7 @@ export class VenueService {
         'booking.showDate AS showDate',
         'booking.isAccepted AS isAccepted',
         'booking.specialNotes AS specialNotes',
+        'booking.venueId AS vid',
         'entertainerUser.id AS eid',
         'entertainerUser.email AS email',
         'entertainer.name AS name',
