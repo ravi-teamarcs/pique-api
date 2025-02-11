@@ -166,10 +166,10 @@ export class VenueService {
 
     // // Apply pagination
     const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
-    console.log(results);
+
     const entertainers = await Promise.all(
       results.map(async (item) => {
-        const userId = item.id;
+        const userId = item.eid;
         const media = await this.mediaRepository
           .createQueryBuilder('media')
           .select([
@@ -180,6 +180,7 @@ export class VenueService {
           ])
           .where('media.userId = :userId', { userId })
           .getRawMany();
+
         return {
           ...item,
           media,

@@ -55,8 +55,8 @@ export class EntertainerService {
     };
   }
 
-  findAll(userId: number) {
-    const entertainers = this.entertainerRepository.find({
+  async findAll(userId: number) {
+    const entertainers = await this.entertainerRepository.find({
       where: { user: { id: userId } },
       select: [
         'id',

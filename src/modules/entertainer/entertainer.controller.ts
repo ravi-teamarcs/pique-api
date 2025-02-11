@@ -68,6 +68,7 @@ export class EntertainerController {
   }
 
   @Patch(':id')
+  @Roles('findAll')
   @ApiOperation({ summary: 'Update a specific entertainer by ID' })
   @ApiResponse({
     status: 200,
@@ -103,7 +104,7 @@ export class EntertainerController {
     description: 'Response registered Successfully',
   })
   @Patch('booking/response')
-  @Roles('entertainer')
+  @Roles('findAll')
   entertainerBookingResponse(
     @Body() entertainerResponseDto: EntertainerResponseDto,
     @Request() req,

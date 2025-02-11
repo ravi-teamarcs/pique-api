@@ -16,6 +16,7 @@ import { EventModule } from './modules/event/event.module';
 import { EmailModule } from './modules/Email/email.module';
 import { LocationModule } from './modules/location/location.module';
 import { ChatModule } from './modules/chat/chat.module';
+import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module';
 
 @Module({
   imports: [
@@ -54,6 +55,7 @@ import { ChatModule } from './modules/chat/chat.module';
     EmailModule,
     LocationModule,
     ChatModule,
+    GoogleCalendarModule,
   ],
   controllers: [AppController],
   providers: [AppService],
