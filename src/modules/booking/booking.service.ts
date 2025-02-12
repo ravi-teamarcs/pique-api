@@ -96,7 +96,7 @@ export class BookingService {
     }
 
     return {
-      message: `Booking request confirmed  ${data.status}  successfully`,
+      message: `Booking request ${data.status}  successfully`,
       status: true,
     };
   }

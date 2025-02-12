@@ -18,7 +18,7 @@ import { EndPoints } from './entities/endpoint.entity';
     PassportModule,
     JwtModule.register({
       secret: process.env.JWT_SECRET || 'defaultSecretKey',
-      signOptions: { expiresIn: '1h' },
+      signOptions: { expiresIn: '24h' },
     }),
     TypeOrmModule.forFeature([
       User,
