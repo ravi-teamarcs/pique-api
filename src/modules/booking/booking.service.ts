@@ -57,7 +57,14 @@ export class BookingService {
   async handleBookingResponse(role, payload) {
     // console.log('Booking Service', role, payload);
     const { bookingId, ...data } = payload;
+
     if (role === 'entertainer') {
+      const alreadyResponded = await this.bookingRepository.findOne({
+        where: { id: bookingId, isAccepted: 'pending' },
+      });
+      if (!alreadyResponded) {
+        return { message: 'You have already responded to this booking' };
+      }
       const booking = await this.bookingRepository.update(
         { id: bookingId },
         data,
@@ -68,6 +75,11 @@ export class BookingService {
           status: false,
         });
       }
+
+      return {
+        message: `Request ${data.isAccepted} successfully`,
+        status: true,
+      };
     }
 
     if (role === 'venue') {
@@ -83,7 +95,10 @@ export class BookingService {
       }
     }
 
-    return { message: 'Response registered successfully', status: true };
+    return {
+      message: `Booking request confirmed  ${data.status}  successfully`,
+      status: true,
+    };
   }
 
   async handleChangeRequest(
