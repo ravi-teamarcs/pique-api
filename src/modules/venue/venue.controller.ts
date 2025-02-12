@@ -175,4 +175,15 @@ export class VenueController {
 
     return this.bookingService.handleChangeRequest(dateTimeChangeDto, userId);
   }
+
+  @ApiOperation({ summary: 'Get search suggestions based on category' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search suggestions fetched successfully.',
+  })
+  @Get('search/suggstion/cat')
+  @Roles('findAll')
+  async getSuggestions(@Query('q') query: string) {
+    return this.venueService.getSearchSuggestions(query);
+  }
 }

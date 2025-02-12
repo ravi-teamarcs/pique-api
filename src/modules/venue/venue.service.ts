@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { Venue } from './entities/venue.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
@@ -16,6 +16,7 @@ import { User } from '../users/entities/users.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { Media } from '../media/entities/media.entity';
 import { HttpErrorByCode } from '@nestjs/common/utils/http-error-by-code.util';
+import { Category } from '../entertainer/entities/categories.entity';
 
 @Injectable()
 export class VenueService {
@@ -30,6 +31,8 @@ export class VenueService {
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(Media)
     private readonly mediaRepository: Repository<Media>,
+    @InjectRepository(Category)
+    private readonly catRepository: Repository<Category>,
   ) {}
 
   async create(createVenueDto: CreateVenueDto, userId: number) {
@@ -338,10 +341,16 @@ export class VenueService {
       status: true,
     };
   }
-}
 
-// 'entertainer.id',
-//
-//         'entertainer.socialLinks',
-//         'entertainer.vaccinated',
-//         'entertainer.status',
+  async getSearchSuggestions(query: string) {
+    const categories = await this.catRepository.find({
+      where: { name: Like(`%${query}%`) },
+    });
+
+    return {
+      message: 'Categories returned successfully',
+      data: categories,
+      status: true,
+    };
+  }
+}
