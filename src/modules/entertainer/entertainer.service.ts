@@ -142,6 +142,10 @@ export class EntertainerService {
         .createQueryBuilder('booking')
         .leftJoin(Venue, 'venue', 'venue.id = booking.venueId') // Manual join since there's no relation
         .where('booking.entertainerUserId = :userId', { userId })
+        .andWhere('booking.status IN (:...statuses)', {
+          statuses: ['pending', 'confirmed'],
+        }) // Add status filter
+
         .select([
           'booking.id AS id',
           'booking.status AS status',

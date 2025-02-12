@@ -400,4 +400,4 @@ dist
 .serverless/**/*.zip
 
 # removed from git Tracking
-
+uploads/
