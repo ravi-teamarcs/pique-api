@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsDateString, IsNumber, IsNotEmpty } from 'class-validator';
+import {
+  IsString,
+  IsNumber,
+  IsNotEmpty,
+  IsBoolean,
+  IsEnum,
+} from 'class-validator';
+import { Recurring, Status } from 'src/common/enums/event.enum';
 
 export class CreateEventDto {
   @ApiProperty({ example: 1, description: 'Venue for  which event is created' })
@@ -15,17 +22,21 @@ export class CreateEventDto {
   @IsString()
   title: string;
 
-  @ApiProperty({ example: '12-10-2025', description: 'Date of the event' })
-  // Use IsDateString to ensure that the date is in the correct 'YYYY-MM-DD' format
+  @ApiProperty({
+    example: '2025-02-13T14:30:00Z',
+    description: 'Start dateTime of the event',
+  })
   @IsNotEmpty()
   @IsString()
-  date: string;
+  startTime: string;
 
-  // Use IsString for time field and ensure it's in the correct 'HH:MM:SS' format
-  @ApiProperty({ example: '12:04', description: 'Type of event' })
+  @ApiProperty({
+    example: '2025-02-13T14:30:00Z',
+    description: 'End dateTime of the event',
+  })
   @IsNotEmpty()
   @IsString()
-  time: string;
+  endTime: string;
 
   @ApiProperty({ example: 'Noida', description: 'Type of event' })
   @IsNotEmpty()
@@ -37,8 +48,26 @@ export class CreateEventDto {
   @IsString()
   description: string;
 
-  @ApiProperty({ example: 'singing', description: 'Type of the event' })
+  // @ApiProperty({ example: 'singing', description: 'Type of the event' })
+  // @IsNotEmpty()
+  // @IsString()
+  // type: string;
+
+  @ApiProperty({ example: false, description: 'Is Event creator Admin ?' })
+  @IsBoolean()
   @IsNotEmpty()
-  @IsString()
-  type: string;
+  isAdmin: boolean;
+
+  @ApiProperty({ example: 'none', description: 'Describe event recurrence' })
+  @IsEnum(Recurring)
+  @IsNotEmpty()
+  recurring: Recurring;
+
+  @ApiProperty({
+    example: 'scheduled',
+    description: 'Status of the Event',
+  })
+  @IsEnum(Status)
+  @IsNotEmpty()
+  status: Status;
 }

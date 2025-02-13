@@ -14,14 +14,6 @@ export class VenueEvent {
   @Column()
   title: string;
 
-  // Use 'date' type for storing date in YYYY-MM-DD format
-  @Column()
-  date: string;
-
-  // Use 'time' type for storing time in HH:MM:SS format
-  @Column({ type: 'time' })
-  time: string;
-
   @Column()
   location: string;
 
@@ -34,11 +26,31 @@ export class VenueEvent {
   @Column()
   description: string;
 
-  @Column()
-  type: string;
+  // @Column()
+  // type: string;
 
-  @Column({ default: 'pending' })
-  status: 'pending' | 'completed';
+  @Column({ type: 'timestamp' })
+  startTime: Date;
+
+  @Column({ type: 'timestamp' })
+  endTime: Date;
+
+  @Column({
+    type: 'enum',
+    enum: ['none', 'daily', 'weekly', 'monthly'],
+    default: 'none',
+  })
+  recurring: 'none' | 'daily' | 'weekly' | 'monthly';
+
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'scheduled', 'confirmed', 'cancelled', 'completed'],
+    default: 'scheduled',
+  })
+  status: 'pending' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+
+  @Column({ type: 'boolean', default: false })
+  isAdmin: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

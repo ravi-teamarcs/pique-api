@@ -8,12 +8,17 @@ import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
 import { RegisterDto, LoginDto } from './auth.dto';
 import * as bcrypt from 'bcryptjs';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { Venue } from '../venue/entities/venue.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    @InjectRepository(Venue)
+    private readonly venueRepository: Repository<Venue>,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -45,6 +50,7 @@ export class AuthService {
       ...registerDto,
       password: hashedPassword,
     });
+
     return {
       message: 'User registered successfully',
       user: newUser,
@@ -67,16 +73,29 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const token = this.jwtService.sign(payload);
 
-    return {
+    const response: any = {
       message: 'Logged in Successfully',
       access_token: token,
-      user: {
-        name: user.name,
-        status: user.status,
-        role: user.role,
-        id: user.id,
+      data: {
+        user: {
+          name: user.name,
+          status: user.status,
+          role: user.role,
+          id: user.id,
+        },
       },
       status: true,
     };
+
+    // Add venueCount dynamically if the user is a venue
+    if (user.role === 'venue') {
+      const venueCount = await this.venueRepository.count({
+        where: { user: { id: user.id } },
+      });
+
+      response.data.venueCount = venueCount > 0 ? 'true' : 'false';
+    }
+
+    return response;
   }
 }
