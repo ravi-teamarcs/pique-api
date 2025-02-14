@@ -53,8 +53,26 @@ export class EventService {
     const events = await this.eventRepository.find({
       where: { userId },
       order: { createdAt: 'DESC' },
+      select: [
+        'id',
+        'title',
+        'location',
+        'userId',
+        'venueId',
+        'description',
+        'startTime',
+        'endTime',
+        'recurring',
+        'status',
+        'isAdmin',
+      ],
     });
 
-    return { message: 'Events fetched successfully', events, status: true };
+    return {
+      message: 'Events fetched successfully',
+      count: events.length,
+      data: events,
+      status: true,
+    };
   }
 }

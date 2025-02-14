@@ -93,7 +93,7 @@ export class AuthService {
         where: { user: { id: user.id } },
       });
 
-      response.data.venueCount = venueCount > 0 ? 'true' : 'false';
+      response.data.venueCount = venueCount > 0 ? true : false;
     }
 
     return response;

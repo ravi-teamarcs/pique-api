@@ -14,6 +14,7 @@ import { User } from '../users/entities/users.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { Category } from './entities/categories.entity';
+import { Media } from '../media/entities/media.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -28,6 +29,8 @@ export class EntertainerService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Media)
+    private readonly mediaRepository: Repository<Media>,
   ) {}
 
   async create(createEntertainerDto: CreateEntertainerDto, userId: number) {

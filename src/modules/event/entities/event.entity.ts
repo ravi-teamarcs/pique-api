@@ -26,9 +26,6 @@ export class VenueEvent {
   @Column()
   description: string;
 
-  // @Column()
-  // type: string;
-
   @Column({ type: 'timestamp' })
   startTime: Date;
 
@@ -45,11 +42,11 @@ export class VenueEvent {
   @Column({
     type: 'enum',
     enum: ['pending', 'scheduled', 'confirmed', 'cancelled', 'completed'],
-    default: 'scheduled',
+    default: 'pending',
   })
   status: 'pending' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
 
-  @Column({ type: 'boolean', default: false })
+  @Column({ type: 'boolean' })
   isAdmin: boolean;
 
   @CreateDateColumn()

@@ -181,9 +181,14 @@ export class VenueController {
     status: 200,
     description: 'Search suggestions fetched successfully.',
   })
-  @Get('search/suggstion/cat')
+  @Get('search/suggestion/cat')
   @Roles('findAll')
   async getSuggestions(@Query('q') query: string) {
     return this.venueService.getSearchSuggestions(query);
+  }
+  @Get('search/category/:id')
+  @Roles('findAll')
+  getEntertainerByCategory(@Param('id') cid: number) {
+    return this.venueService.getAllEntertainersByCategory(cid);
   }
 }

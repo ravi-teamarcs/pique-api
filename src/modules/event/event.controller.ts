@@ -48,7 +48,7 @@ export class EventController {
     status: 200,
     description: 'Event  updated Successfully.',
   })
-  @Patch('update')
+  @Patch()
   @Roles('findAll')
   updateEvent(@Body() updateEventDto: UpdateEventDto, @Req() req) {
     const { userId } = req.user;

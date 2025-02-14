@@ -344,12 +344,58 @@ export class VenueService {
 
   async getSearchSuggestions(query: string) {
     const categories = await this.catRepository.find({
-      where: { name: Like(`%${query}%`) },
+      where: { name: Like(`%${query}%`), parentId: 0 },
     });
 
     return {
       message: 'Categories returned successfully',
       data: categories,
+      status: true,
+    };
+  }
+
+  async getAllEntertainersByCategory(cid: number) {
+    const results = await this.entertainerRepository
+      .createQueryBuilder('entertainer')
+      .leftJoin('entertainer.user', 'user')
+      .select([
+        'user.id AS eid',
+        'entertainer.name AS name',
+        'entertainer.bio AS bio',
+        'entertainer.phone1 AS phone1',
+        'entertainer.phone2 AS phone2',
+        'entertainer.category AS category',
+        'entertainer.pricePerEvent AS pricePerEvent',
+        'entertainer.availability AS availability',
+        'entertainer.socialLinks AS socialLinks',
+        // Selecting only the ID from the user table
+      ])
+      .where('entertainer.category = :cid', { cid })
+      .getRawMany();
+    const entertainers = await Promise.all(
+      results.map(async (item) => {
+        const userId = item.eid;
+        const media = await this.mediaRepository
+          .createQueryBuilder('media')
+          .select([
+            'media.id AS id',
+            `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+            'media.type AS type',
+            'media.name  AS name',
+          ])
+          .where('media.userId = :userId', { userId })
+          .getRawMany();
+
+        return {
+          ...item,
+          media,
+        };
+      }),
+    );
+
+    return {
+      message: 'Entertainers returned Successfully ',
+      data: entertainers,
       status: true,
     };
   }
