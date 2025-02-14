@@ -146,4 +146,18 @@ export class EntertainerController {
   getSubCategories(@Query('id') id: number) {
     return this.entertainerService.getSubCategories(id);
   }
+
+  @ApiOperation({
+    summary: 'Get Event Details  linked with Booking',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Events  fetched Successfully.',
+  })
+  @Get('event/all/details')
+  @Roles('findAll')
+  getEventDetails(@Req() req) {
+    const { userId } = req.user;
+    return this.entertainerService.getEventDetails(userId);
+  }
 }

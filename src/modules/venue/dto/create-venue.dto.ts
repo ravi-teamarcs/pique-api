@@ -73,14 +73,14 @@ export class CreateVenueDto {
   @IsNotEmpty()
   country: number;
   @ApiProperty({ example: 101.34, description: 'longitude' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(-90)
   @Max(90)
   lat: number;
 
   @ApiProperty({ example: 43.553, description: 'latitude' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(-180)
   @Max(180)

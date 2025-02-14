@@ -200,4 +200,29 @@ export class EntertainerService {
       status: true,
     };
   }
+
+  async getEventDetails(userId: number) {
+    const events = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoin('event', 'event', 'event.id = booking.eventId')
+      .where('booking.entertainerUserId = :userId', { userId })
+      // .andWhere('booking.status = :status', { status: 'completed' })
+      .select([
+        'booking.id AS bookingId',
+        'event.id AS eid',
+        'event.title AS title',
+        'event.location AS location',
+        'event.status AS  status',
+        'event.description AS description',
+        'event.startTime AS startTime',
+        'event.endTime AS endTime',
+      ])
+      .getRawMany();
+
+    return {
+      message: 'Events returned Successfully',
+      data: events,
+      status: true,
+    };
+  }
 }

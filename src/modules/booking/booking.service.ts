@@ -65,6 +65,9 @@ export class BookingService {
       if (!alreadyResponded) {
         return { message: 'You have already responded to this booking' };
       }
+      data.isAccepted === 'rejected' ? (data.status = 'cancelled') : data;
+
+      console.log('After Cancelling ', data);
       const booking = await this.bookingRepository.update(
         { id: bookingId },
         data,

@@ -61,6 +61,7 @@ export class UpdateEventDto {
   // type: string;
 
   @ApiProperty({ example: false, description: 'Is Event creator Admin ?' })
+  @IsOptional()
   @IsBoolean()
   isAdmin: boolean;
 
