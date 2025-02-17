@@ -44,11 +44,13 @@ export class User {
   })
   status: 'active' | 'inactive' | 'pending';
 
+  @Column()
+  completed: boolean;
+
   // @OneToMany(() => Venue, (venue) => venue.user)
   // venues: Venue[];
   // @OneToMany(() => Invoice, (invoice) => invoice.customer)
   // invoice: Invoice[];
-
   @OneToOne(() => Entertainer, (entertainer) => entertainer.user, {
     cascade: true,
   })

@@ -41,6 +41,13 @@ export class VenueService {
       user: { id: userId },
     });
     await this.venueRepository.save(venue);
+    const venueCount = await this.venueRepository.count({
+      where: { user: { id: userId } },
+    });
+    if (venueCount === 1) {
+      await this.userRepository.update({ id: userId }, { completed: true });
+    }
+
     return { message: 'Venue created successfully', venue, status: true };
   }
 

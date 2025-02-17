@@ -73,29 +73,21 @@ export class AuthService {
     const payload = { sub: user.id, email: user.email, role: user.role };
     const token = this.jwtService.sign(payload);
 
-    const response: any = {
+    return {
       message: 'Logged in Successfully',
       access_token: token,
       data: {
         user: {
+          id: user.id,
           name: user.name,
           status: user.status,
           role: user.role,
-          id: user.id,
+          completed: user.completed,
         },
       },
       status: true,
     };
 
     // Add venueCount dynamically if the user is a venue
-    if (user.role === 'venue') {
-      const venueCount = await this.venueRepository.count({
-        where: { user: { id: user.id } },
-      });
-
-      response.data.venueCount = venueCount > 0 ? true : false;
-    }
-
-    return response;
   }
 }
