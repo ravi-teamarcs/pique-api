@@ -51,7 +51,7 @@ export class EntertainerService {
     });
 
     const savedEntertainer = await this.entertainerRepository.save(entertainer);
-    await this.userRepository.update({ id: userId }, { completed: true });
+
     return {
       message: 'Entertainer saved Successfully',
       status: true,

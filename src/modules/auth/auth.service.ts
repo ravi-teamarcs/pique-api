@@ -11,6 +11,8 @@ import * as bcrypt from 'bcryptjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Venue } from '../venue/entities/venue.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { User } from '../users/entities/users.entity';
 
 @Injectable()
 export class AuthService {
@@ -19,6 +21,8 @@ export class AuthService {
     private readonly jwtService: JwtService,
     @InjectRepository(Venue)
     private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(Entertainer)
+    private readonly entertainerRepository: Repository<Entertainer>,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -62,13 +66,15 @@ export class AuthService {
     const { email, password } = loginDto;
 
     const user = await this.usersService.findByEmail(email);
-
+    console.log(user);
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new HttpException(
         { message: 'Validation failed', error: 'Bad Request', status: false },
         HttpStatus.UNAUTHORIZED,
       );
     }
+    const completed = await this.isProfileCompleted(user);
+    console.log('Profile Completed', completed);
 
     const payload = { sub: user.id, email: user.email, role: user.role };
     const token = this.jwtService.sign(payload);
@@ -82,12 +88,30 @@ export class AuthService {
           name: user.name,
           status: user.status,
           role: user.role,
-          completed: user.completed,
+          completed,
         },
       },
       status: true,
     };
 
     // Add venueCount dynamically if the user is a venue
+  }
+
+  private async isProfileCompleted(user: User) {
+    if (user.role === 'venue') {
+      const venueCount = await this.venueRepository.count({
+        where: { user: { id: user.id } },
+      });
+      return venueCount > 0;
+    }
+
+    if (user.role === 'entertainer') {
+      const profileExists = await this.entertainerRepository.count({
+        where: { user: { id: user.id } },
+      });
+      return profileExists > 0;
+    }
+
+    return false;
   }
 }

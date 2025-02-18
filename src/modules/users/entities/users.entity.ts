@@ -44,13 +44,6 @@ export class User {
   })
   status: 'active' | 'inactive' | 'pending';
 
-  @Column()
-  completed: boolean;
-
-  // @OneToMany(() => Venue, (venue) => venue.user)
-  // venues: Venue[];
-  // @OneToMany(() => Invoice, (invoice) => invoice.customer)
-  // invoice: Invoice[];
   @OneToOne(() => Entertainer, (entertainer) => entertainer.user, {
     cascade: true,
   })
@@ -81,8 +74,3 @@ export class User {
   @UpdateDateColumn({ type: 'timestamp' })
   updatedDate: Date;
 }
-
-// @OneToMany(() => Entertainer, (entertainer) => entertainer.user)
-// entertainers: Entertainer[];
-
-// Need to add a Relation that a user can have multiple Booking

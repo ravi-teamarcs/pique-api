@@ -62,6 +62,6 @@ export class AuthController {
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)
   logout() {
-    return { message: 'Logged out successfully.', data:null, status: true };
+    return { message: 'Logged out successfully.', data: null, status: true };
   }
 }

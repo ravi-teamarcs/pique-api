@@ -26,10 +26,10 @@ export class VenueEvent {
   @Column()
   description: string;
 
-  @Column({ type: 'timestamp' })
+  @Column()
   startTime: Date;
 
-  @Column({ type: 'timestamp' })
+  @Column()
   endTime: Date;
 
   @Column({
