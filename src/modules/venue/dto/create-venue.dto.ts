@@ -106,7 +106,7 @@ export class CreateVenueDto {
   bookingPolicies?: string;
 
   @ApiProperty({ example: true, description: 'Is venue Booking Venue' })
-  @IsString()
+  @IsBoolean()
   isParent: boolean;
 
   @ApiProperty({

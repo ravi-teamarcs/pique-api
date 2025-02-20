@@ -496,6 +496,30 @@ export class VenueService {
     const results = await this.entertainerRepository
       .createQueryBuilder('entertainer')
       .leftJoin('entertainer.user', 'user')
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'booking.entertainerUserId AS entertainerId',
+              'JSON_ARRAYAGG(JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookings',
+            ])
+            .from('booking', 'booking')
+            .groupBy('booking.entertainerUserId'),
+        'bookings',
+        'bookings.entertainerId = user.id',
+      )
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'media.userId AS userId',
+              "JSON_ARRAYAGG(JSON_OBJECT('id', media.id, 'url', CONCAT(:serverUri, media.url), 'type', media.type, 'name', media.name)) AS mediaFiles",
+            ])
+            .from('media', 'media')
+            .groupBy('media.userId'),
+        'media',
+        'media.userId = user.id',
+      )
       .select([
         'user.id AS eid',
         'entertainer.name AS name',
@@ -506,33 +530,22 @@ export class VenueService {
         'entertainer.pricePerEvent AS pricePerEvent',
         'entertainer.availability AS availability',
         'entertainer.socialLinks AS socialLinks',
-        // Selecting only the ID from the user table
+        'COALESCE(bookings.bookings, "[]") AS bookings', // Default to empty array if no bookings
+        'COALESCE(media.mediaFiles, "[]") AS media',
       ])
       .where('entertainer.category = :cid', { cid })
+      .setParameter('serverUri', process.env.SERVER_URI)
       .getRawMany();
-    const entertainers = await Promise.all(
-      results.map(async (item) => {
-        const userId = item.eid;
-        const media = await this.mediaRepository
-          .createQueryBuilder('media')
-          .select([
-            'media.id AS id',
-            `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
-            'media.type AS type',
-            'media.name  AS name',
-          ])
-          .where('media.userId = :userId', { userId })
-          .getRawMany();
 
-        return {
-          ...item,
-          media,
-        };
-      }),
-    );
+    // Parse JSON fields
+    const entertainers = results.map((item) => ({
+      ...item,
+      bookings: JSON.parse(item.bookings), // Convert string JSON to array
+      media: JSON.parse(item.media),
+    }));
 
     return {
-      message: 'Entertainers returned Successfully ',
+      message: 'Entertainers returned Successfully',
       data: entertainers,
       status: true,
     };
