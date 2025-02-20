@@ -83,84 +83,147 @@ export class UsersService {
     return true;
   }
 
-  async handleUpdateUserProfile(
-    updateProfileDto: UpdateProfileDto,
-    userId: number,
-    role: string,
-  ) {
-    const { userData, venueData, entertainerData } = updateProfileDto;
-    const { venueId, ...venueDetails } = venueData;
+  // User Profile
 
-    const user = this.userRepository.findOne({ where: { id: userId } });
+  async handleGetUserProfile(userId: number, role: string) {
+    const response = { message: 'Profile fetched Successfully', status: true };
 
-    if (!user) {
-      throw new NotFoundException('User Not Found');
+    if (role === 'venue') {
+      const details = await this.venueRepository
+        .createQueryBuilder('venue')
+        .leftJoinAndSelect('venue.user', 'user')
+        .where('venue.user.id = :userId', { userId })
+        .select([
+          'user.id AS uid',
+          'user.name AS name',
+          'user.email AS email',
+          'user.phoneNumber AS phoneNumber',
+          'user.role AS role',
+          'venue.id AS vid',
+          'venue.name AS vName',
+          'venue.phone AS vPhone',
+          'venue.email AS vEmail',
+          'venue.addressLine1 As  vAddressLine1',
+          'venue.addressLine2 As vAddressLine2',
+          'venue.description AS vDescription',
+          'venue.city As vCity',
+          'venue.state As vState',
+          'venue.zipCode AS vZipCode',
+          'venue.country AS vCountry',
+          'venue.isParent As vIsParent',
+          'venue.parentId As vParentId',
+        ])
+        .getRawMany();
+
+      response['data'] = details;
+      return response;
     }
+    const entDetails = await this.entertainerRepository
+      .createQueryBuilder('ent')
+      .leftJoinAndSelect('ent.user', 'user')
+      .where('ent.user.id = :userId', { userId })
+      .select([
+        'user.id AS uid',
+        'ent.name AS stageName',
+        'user.name AS name',
+        'user.email AS email',
+        'user.phoneNumber AS phoneNumber',
+        'user.role AS role',
+        'ent.category AS category',
+        'ent.bio AS bio',
+        'ent.pricePerEvent AS pricePerEvent',
+        'ent.availability AS availability',
+        'ent.vaccinated AS vaccinated',
+      ])
+      .getRawOne();
 
-    await this.userRepository.update({ id: userId }, userData);
+    response['data'] = entDetails;
+    return response;
+  }
 
-    // Venue Role update handling.  // If venue exists.
-    if (role == 'venue') {
-      const existingVenue = await this.venueRepository.findOne({
-        where: { user: { id: userId }, id: venueId },
-      });
+  // async handleUpdateUserProfile(
+  //   updateProfileDto: UpdateProfileDto,
+  //   userId: number,
+  //   role: string,
+  // ) {
+  //   const { userData, venueData, entertainerData } = updateProfileDto;
+  //   const { venueId, ...venueDetails } = venueData;
 
-      if (!existingVenue) {
-        // If venue do not exists.
-        const venue = this.venueRepository.create({
-          ...venueData,
-          user: { id: userId },
-        });
+  //   const user = this.userRepository.findOne({ where: { id: userId } });
 
-        const newVenue = await this.venueRepository.save(venue);
-        return {
-          message: 'Profile Updated Successfully',
-          upDatedDetails: newVenue,
-        };
-      }
+  //   if (!user) {
+  //     throw new NotFoundException('User Not Found');
+  //   }
 
-      const updatedVenue = await this.venueRepository.update(
-        { id: existingVenue.id },
-        venueDetails,
-      );
-      // return {
-      //   message: 'Profile Updated Successfully',
-      //   upDatedDetails: updatedVenue,
-      // };
-    }
+  //   await this.userRepository.update({ id: userId }, userData);
 
-    // Entertainer Role update handling.  // If entertainer exists.
+  //   // Venue Role update handling.  // If venue exists.
+  //   if (role == 'venue') {
+  //     const existingVenue = await this.venueRepository.findOne({
+  //       where: { user: { id: userId }, id: venueId },
+  //     });
 
-    if (role == 'entertainer') {
-      const existingEntertainer = await this.entertainerRepository.findOne({
-        where: { user: { id: userId } },
-      });
+  //     if (!existingVenue) {
+  //       // If venue do not exists.
+  //       const venue = this.venueRepository.create({
+  //         ...venueData,
+  //         user: { id: userId },
+  //       });
 
-      if (!existingEntertainer) {
-        console.log('non existing entertainer block');
-        const entertainer = this.entertainerRepository.create({
-          ...entertainerData,
-          user: { id: userId },
-        });
+  //       const newVenue = await this.venueRepository.save(venue);
+  //       return {
+  //         message: 'Profile Updated Successfully',
+  //         upDatedDetails: newVenue,
+  //       };
+  //     }
 
-        const newEntertainer =
-          await this.entertainerRepository.save(entertainer);
-        return {
-          message: 'Profile Updated Successfully',
-          upDatedDetails: newEntertainer,
-        };
-      }
+  //     const updatedVenue = await this.venueRepository.update(
+  //       { id: existingVenue.id },
+  //       venueDetails,
+  //     );
+  //     // return {
+  //     //   message: 'Profile Updated Successfully',
+  //     //   upDatedDetails: updatedVenue,
+  //     // };
+  //   }
 
-      const upDatedEntertainer = await this.entertainerRepository.update(
-        { id: existingEntertainer.id },
-        entertainerData,
-      );
-      // return {
-      //   message: 'Profile Updated Successfully',
-      //   upDatedDetails: upDatedEntertainer,
-      // };
-    }
+  //   // Entertainer Role update handling.  // If entertainer exists.
 
-    return { message: 'User Profile updated successfully' };
+  //   if (role == 'entertainer') {
+  //     const existingEntertainer = await this.entertainerRepository.findOne({
+  //       where: { user: { id: userId } },
+  //     });
+
+  //     if (!existingEntertainer) {
+  //       console.log('non existing entertainer block');
+  //       const entertainer = this.entertainerRepository.create({
+  //         ...entertainerData,
+  //         user: { id: userId },
+  //       });
+
+  //       const newEntertainer =
+  //         await this.entertainerRepository.save(entertainer);
+  //       return {
+  //         message: 'Profile Updated Successfully',
+  //         upDatedDetails: newEntertainer,
+  //       };
+  //     }
+
+  //     const upDatedEntertainer = await this.entertainerRepository.update(
+  //       { id: existingEntertainer.id },
+  //       entertainerData,
+  //     );
+  //     // return {
+  //     //   message: 'Profile Updated Successfully',
+  //     //   upDatedDetails: upDatedEntertainer,
+  //     // };
+  //   }
+
+  //   return { message: 'User Profile updated successfully' };
+  // }
+
+  async updateFCMToken(userId: number, fcmToken: string) {
+    // await this.userRepository.update(userId, { fcmToken });
+    return { message: 'FCM token updated successfully', status: true };
   }
 }

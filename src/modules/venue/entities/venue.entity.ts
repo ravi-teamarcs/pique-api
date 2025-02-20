@@ -30,7 +30,7 @@ export class Venue {
   @Column()
   addressLine2: string;
 
-  @Column()
+  @Column({ type: 'text' })
   description: string;
 
   @Column()
@@ -68,6 +68,12 @@ export class Venue {
 
   @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
   user: User;
+
+  @Column({ default: false })
+  isParent: boolean;
+
+  @Column({ nullable: true })
+  parentId: number;
 
   // @OneToMany(() => Booking, (booking) => booking.venue)
   // bookings: Booking[];

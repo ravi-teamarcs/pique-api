@@ -37,7 +37,7 @@ export async function uploadFile(file: Express.Multer.File): Promise<string> {
   const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
   const fileName = `${uniqueName}${ext}`;
   const filePath = folderPath + fileName;
-  console.log('FilePath', filePath);
+
   fs.writeFileSync(filePath, file.buffer);
 
   return filePath;

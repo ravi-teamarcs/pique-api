@@ -136,7 +136,7 @@ export class GoogleCalendarServices {
     const userToken = await this.tokenRepository.findOne({
       where: { user: userId },
     });
-    console.log('inside get');
+
     if (!userToken) {
       throw new NotFoundException({
         message: 'User has not linked Google Calendar.',

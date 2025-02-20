@@ -15,7 +15,6 @@ import { UpdateVenueDto } from './dto/update-venue.dto';
 import { User } from '../users/entities/users.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { Media } from '../media/entities/media.entity';
-import { HttpErrorByCode } from '@nestjs/common/utils/http-error-by-code.util';
 import { Category } from '../entertainer/entities/categories.entity';
 
 @Injectable()
@@ -41,9 +40,6 @@ export class VenueService {
       user: { id: userId },
     });
     await this.venueRepository.save(venue);
-    const venueCount = await this.venueRepository.count({
-      where: { user: { id: userId } },
-    });
 
     return { message: 'Venue created successfully', venue, status: true };
   }
@@ -71,10 +67,31 @@ export class VenueService {
       ],
     });
 
+    const resultingVenue = await Promise.all(
+      venues.map(async (item) => {
+        const venueId = item.id;
+        const media = await this.mediaRepository
+          .createQueryBuilder('media')
+          .select([
+            'media.id AS id',
+            `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+            'media.type AS type',
+            'media.name  AS name',
+          ])
+          .where('media.userId = :userId', { userId })
+          .andWhere('media.refId = :venueId', { venueId })
+          .getRawMany();
+
+        return {
+          ...item,
+          media,
+        };
+      }),
+    );
     return {
       message: 'Venues returned successfully',
       count: venues.length,
-      venues,
+      venues: resultingVenue,
       status: true,
     };
   }
@@ -112,7 +129,109 @@ export class VenueService {
 
     return { message: 'Venue fetched successfully', venue, status: true };
   }
+  // My code
 
+  // async findAllEntertainers(query: SearchEntertainerDto) {
+  //   const {
+  //     availability = '',
+  //     category = '',
+  //     search = '',
+  //     page = 1,
+  //     pageSize = 10,
+  //   } = query;
+
+  //   // Number of records per page
+  //   const skip = (Number(page) - 1) * Number(pageSize); // Calculate offset
+
+  //   const res = this.entertainerRepository
+  //     .createQueryBuilder('entertainer')
+  //     .leftJoinAndSelect('entertainer.user', 'user')
+  //     .select([
+  //       'entertainer.id AS id',
+  //       'user.id AS eid',
+  //       'entertainer.name AS name',
+  //       'entertainer.category AS category',
+  //       'entertainer.specific_category AS specific_category',
+  //       'entertainer.performanceRole AS performanceRole',
+  //       'entertainer.pricePerEvent AS pricePerEvent',
+  //       'entertainer.vaccinated AS vaccinated',
+  //       'entertainer.availability AS availability',
+  //       'entertainer.status AS status',
+  //       'user.email AS email', // Example: More control over user relation
+  //     ]);
+
+  //   if (availability) {
+  //     res.andWhere('entertainer.availability = :availability', {
+  //       availability,
+  //     });
+  //   }
+
+  //   // Apply `type` filter if provided
+  //   if (category) {
+  //     res.andWhere('entertainer.category = :category', { category });
+  //   }
+
+  //   // Apply search filter if provided (searches across multiple fields)
+  //   if (search.trim() !== '') {
+  //     res.andWhere(
+  //       `(entertainer.name LIKE :search OR
+  //           entertainer.category LIKE :search OR
+  //           entertainer.bio LIKE :search OR
+  //           entertainer.performanceRole LIKE :search OR
+  //           entertainer.phone1 LIKE :search OR
+  //           entertainer.phone2 LIKE :search OR
+  //           entertainer.status LIKE :search OR
+  //           user.email LIKE :search)`, // Example: Searching user email too
+  //       { search: `%${search}%` },
+  //     );
+  //   }
+
+  //   // Get total count before pagination
+  //   const totalCount = await res.getCount();
+
+  //   // // Apply pagination
+  //   const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
+
+  //   const entertainers = await Promise.all(
+  //     results.map(async (item) => {
+  //       const userId = item.eid;
+
+  //       const bookings = await this.bookingRepository.find({
+  //         where: { entertainerUser: { id: item.eid }, status: 'confirmed' },
+  //         select: ['showDate', 'showTime'],
+  //       });
+
+  //       const media = await this.mediaRepository
+  //         .createQueryBuilder('media')
+  //         .select([
+  //           'media.id AS id',
+  //           `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+  //           'media.type AS type',
+  //           'media.name  AS name',
+  //         ])
+  //         .where('media.userId = :userId', { userId })
+  //         .getRawMany();
+
+  //       return {
+  //         ...item,
+  //         media,
+  //         bookedFor: bookings,
+  //       };
+  //     }),
+  //   );
+
+  //   return {
+  //     message: 'Entertainers fetched Sucessfully',
+  //     totalCount,
+  //     page,
+  //     pageSize, // Records per Page
+  //     totalPages: Math.ceil(totalCount / Number(pageSize)),
+  //     entertainers,
+  //     status: true,
+  //   };
+  // }
+
+  // To find Booking related to Venue user
   async findAllEntertainers(query: SearchEntertainerDto) {
     const {
       availability = '',
@@ -122,12 +241,38 @@ export class VenueService {
       pageSize = 10,
     } = query;
 
-    // Number of records per page
-    const skip = (Number(page) - 1) * Number(pageSize); // Calculate offset
+    // Pagination
+    const skip = (Number(page) - 1) * Number(pageSize);
 
+    // Base Query
     const res = this.entertainerRepository
       .createQueryBuilder('entertainer')
-      .leftJoinAndSelect('entertainer.user', 'user')
+      .leftJoinAndSelect('entertainer.user', 'user') // Join with user table
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'booking.entertainerUserId',
+              'JSON_ARRAYAGG(DISTINCT JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookedDates',
+            ])
+            .from('booking', 'booking')
+            .where('booking.status = :confirmed', { confirmed: 'confirmed' })
+            .groupBy('booking.entertainerUserId'),
+        'bookings',
+        'bookings.entertainerUserId = user.id',
+      )
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'media.userId',
+              "JSON_ARRAYAGG(JSON_OBJECT('id', media.id, 'url', CONCAT(:serverUri, media.url), 'type', media.type, 'name', media.name)) AS mediaFiles",
+            ])
+            .from('media', 'media')
+            .groupBy('media.userId'),
+        'media',
+        'media.userId = user.id',
+      )
       .select([
         'entertainer.id AS id',
         'user.id AS eid',
@@ -139,74 +284,63 @@ export class VenueService {
         'entertainer.vaccinated AS vaccinated',
         'entertainer.availability AS availability',
         'entertainer.status AS status',
-        'user.email AS email', // Example: More control over user relation
-      ]);
+        'user.email AS email',
+        'COALESCE(bookings.bookedDates, "[]") AS bookedFor', // Default empty array if no bookings
+        'COALESCE(media.mediaFiles, "[]") AS media',
+      ])
+      .setParameter('serverUri', process.env.SERVER_URI);
 
+    // Filters
     if (availability) {
       res.andWhere('entertainer.availability = :availability', {
         availability,
       });
     }
 
-    // Apply `type` filter if provided
     if (category) {
       res.andWhere('entertainer.category = :category', { category });
     }
 
-    // Apply search filter if provided (searches across multiple fields)
     if (search.trim() !== '') {
       res.andWhere(
-        `(entertainer.name LIKE :search OR 
-            entertainer.category LIKE :search OR 
-            entertainer.bio LIKE :search OR 
-            entertainer.performanceRole LIKE :search OR 
-            entertainer.phone1 LIKE :search OR 
-            entertainer.phone2 LIKE :search OR 
-            entertainer.status LIKE :search OR 
-            user.email LIKE :search)`, // Example: Searching user email too
-        { search: `%${search}%` },
+        `(
+          LOWER(entertainer.name) LIKE :search OR
+          LOWER(entertainer.category) LIKE :search OR
+          LOWER(entertainer.bio) LIKE :search OR
+          LOWER(entertainer.performanceRole) LIKE :search OR
+          LOWER(entertainer.phone1) LIKE :search OR
+          LOWER(entertainer.phone2) LIKE :search OR
+          LOWER(entertainer.status) LIKE :search OR
+          LOWER(user.email) LIKE :search
+        )`,
+        { search: `%${search.toLowerCase()}%` },
       );
     }
 
     // Get total count before pagination
     const totalCount = await res.getCount();
 
-    // // Apply pagination
+    // Apply pagination
     const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
 
-    const entertainers = await Promise.all(
-      results.map(async (item) => {
-        const userId = item.eid;
-        const media = await this.mediaRepository
-          .createQueryBuilder('media')
-          .select([
-            'media.id AS id',
-            `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
-            'media.type AS type',
-            'media.name  AS name',
-          ])
-          .where('media.userId = :userId', { userId })
-          .getRawMany();
-
-        return {
-          ...item,
-          media,
-        };
-      }),
-    );
+    // Parse JSON fields
+    const entertainers = results.map((item) => ({
+      ...item,
+      bookedFor: JSON.parse(item.bookedFor),
+      media: JSON.parse(item.media),
+    }));
 
     return {
-      message: 'Entertainers fetched Sucessfully',
+      message: 'Entertainers fetched successfully',
       totalCount,
       page,
-      pageSize, // Records per Page
+      pageSize,
       totalPages: Math.ceil(totalCount / Number(pageSize)),
       entertainers,
       status: true,
     };
   }
 
-  // To find Booking related to Venue user
   async findAllBooking(userId: number) {
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
@@ -230,6 +364,7 @@ export class VenueService {
         'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
       ])
+      .orderBy('booking.createdAt', 'DESC')
       .getRawMany();
 
     if (!bookings) {
@@ -302,7 +437,6 @@ export class VenueService {
   }
 
   async findEntertainerDetails(userId: number) {
-    console.log('User Id ', userId, typeof userId);
     const details = await this.entertainerRepository.findOne({
       where: { user: { id: Number(userId) } },
       select: [

@@ -12,6 +12,8 @@ import { DateTimeChangeDto } from '../venue/dto/change-booking.dto';
 import { Venue } from '../venue/entities/venue.entity';
 import { BookingRequest } from './entities/changeReq.entity';
 import { ReqBookingDto } from './dto/request-booking.dto';
+import { ResponseDto } from './dto/booking-response-dto';
+import { BookingLog } from './entities/booking-log.entity';
 
 @Injectable()
 export class BookingService {
@@ -22,6 +24,8 @@ export class BookingService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(BookingRequest)
     private readonly reqRepository: Repository<BookingRequest>,
+    @InjectRepository(BookingLog)
+    private readonly logRepository: Repository<BookingLog>,
   ) {}
 
   async createBooking(createBookingDto: CreateBookingDto, userId: number) {
@@ -42,11 +46,11 @@ export class BookingService {
 
     // changes must be there
     const savedBooking = await this.bookingRepository.save(newBooking);
-
+    console.log('Saved Booking', savedBooking);
     if (!savedBooking) {
       throw new InternalServerErrorException('Failed to save Booking');
     }
-
+    this.generateBookingLog(savedBooking);
     return {
       message: 'Booking created successfully',
       booking: bookingData,
@@ -54,20 +58,17 @@ export class BookingService {
     };
   }
 
-  async handleBookingResponse(role, payload) {
-    // console.log('Booking Service', role, payload);
+  async handleBookingResponse(role: string, payload: ResponseDto) {
     const { bookingId, ...data } = payload;
 
     if (role === 'entertainer') {
       const alreadyResponded = await this.bookingRepository.findOne({
-        where: { id: bookingId, isAccepted: 'pending' },
+        where: { id: bookingId, status: 'pending' },
       });
       if (!alreadyResponded) {
         return { message: 'You have already responded to this booking' };
       }
-      data.isAccepted === 'rejected' ? (data.status = 'cancelled') : data;
 
-      console.log('After Cancelling ', data);
       const booking = await this.bookingRepository.update(
         { id: bookingId },
         data,
@@ -80,7 +81,7 @@ export class BookingService {
       }
 
       return {
-        message: `Request ${data.isAccepted} successfully`,
+        message: `Request ${data.status} successfully`,
         status: true,
       };
     }
@@ -200,5 +201,36 @@ export class BookingService {
     await this.reqRepository.save(request);
 
     return { message: 'response registered Successfully', status: 'true' };
+  }
+
+  private async generateBookingLog(payload) {
+    console.log(payload);
+    const {
+      id,
+      venueUser,
+      entertainerUser,
+      showTime,
+      showDate,
+      specialNotes,
+      eventId,
+      venueId,
+    } = payload;
+
+    const log = this.logRepository.create({
+      bookingId: id,
+      userId: venueUser.id,
+      venueId: venueId,
+      entertainerId: entertainerUser.id,
+      eventId: eventId,
+      showTime: showTime,
+      showDate: showDate,
+      specialNotes: specialNotes,
+      performedBy: 'venue',
+      Date: new Date(),
+    });
+
+    await this.logRepository.save(log);
+
+    return { message: 'Log generated Successfully', status: true };
   }
 }

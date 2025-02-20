@@ -31,7 +31,7 @@ import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { BookingService } from '../booking/booking.service';
 import { CreateBookingDto } from '../booking/dto/create-booking.dto';
-import { VenueResponseDto } from '../booking/dto/booking-response-dto';
+import { ResponseDto } from '../booking/dto/booking-response-dto';
 import { DateTimeChangeDto } from './dto/change-booking.dto';
 
 @ApiTags('venues')
@@ -50,7 +50,7 @@ export class VenueController {
   @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async create(@Body() createVenueDto: CreateVenueDto, @Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.venueService.create(createVenueDto, userId);
   }
 
@@ -59,7 +59,7 @@ export class VenueController {
   @ApiOperation({ summary: 'Get all venues for logged-in user' })
   @ApiResponse({ status: 200, description: 'List of venues.', type: Venue })
   async findAll(@Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.venueService.findAllByUser(userId);
   }
 
@@ -69,7 +69,7 @@ export class VenueController {
   @ApiResponse({ status: 200, description: 'Venue details.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async findOne(@Param('id') id: number, @Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
 
     return this.venueService.findOneByUser(id, userId);
   }
@@ -103,7 +103,6 @@ export class VenueController {
     description: 'Cannot get entertainers.',
   })
   GetEntertainerDetails(@Param('id') userId: number) {
-    console.log('Controller Detail', userId);
     return this.venueService.findEntertainerDetails(Number(userId));
   }
 
@@ -116,7 +115,7 @@ export class VenueController {
   @Post('createbooking')
   @Roles('findAll')
   createBooking(@Body() createBookingDto: CreateBookingDto, @Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.bookingService.createBooking(createBookingDto, userId);
   }
 
@@ -139,10 +138,10 @@ export class VenueController {
   })
   @Patch('booking/response')
   @Roles('findAll')
-  bookingResponse(@Body() venueResponseDto: VenueResponseDto, @Request() req) {
-    const role = req.user.role;
-    venueResponseDto['statusDate'] = new Date();
-    return this.bookingService.handleBookingResponse(role, venueResponseDto);
+  bookingResponse(@Body() resDto: ResponseDto, @Request() req) {
+    const { role } = req.user;
+    // venueResponseDto['statusDate'] = new Date();
+    return this.bookingService.handleBookingResponse(role, resDto);
   }
 
   @ApiOperation({ summary: 'Update details of venue.' })

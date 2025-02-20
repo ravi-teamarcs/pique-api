@@ -164,6 +164,7 @@ export class EntertainerService {
           'venue.state AS state',
           'venue.city AS city',
         ])
+        .orderBy('booking.createdAt', 'DESC') // Corrected sorting
         .getRawMany(); // Use getRawMany() since we are manually selecting fields
 
       return {

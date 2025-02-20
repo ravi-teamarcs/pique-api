@@ -20,19 +20,10 @@ export class CreateBookingDto {
   @IsString()
   specialNotes?: string;
 
-  // @ApiProperty({ description: 'Location of the Show' })
-  // @IsString()
-  // @IsNotEmpty()
-  // specificLocation: string;
-
   @ApiProperty({
     example: 'duo',
     description: 'Role of entertainer (soloist, duo, trio, ensemble)',
   })
-  @IsNotEmpty()
-  @IsEnum(['soloist', 'duo', 'trio', 'ensemble'])
-  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
-
   @ApiProperty({ example: 1, description: 'Reference to the Venue' })
   @IsNumber()
   @IsNotEmpty()

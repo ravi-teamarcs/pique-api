@@ -11,7 +11,7 @@ import { ChatService } from './chat.service';
 import { JoinDto } from './dto/chat-join.dto';
 
 @WebSocketGateway({
-   path: '/piqueapi/', // This sets the WebSocket server path to /piqueapi
+  path: '/piqueapi/', // This sets the WebSocket server path to /piqueapi
   cors: {
     origin: 'https://dev.teamarcs.com', // Allowing your frontend domain
     methods: ['GET', 'POST'],
@@ -105,7 +105,7 @@ export class ChatGateway implements OnGatewayDisconnect {
     return undefined;
   }
 
-  // 🔴 When a user disconnects, remove them from the active users map
+  //  When a user disconnects, remove them from the active users map
   handleDisconnect(client: Socket) {
     const userId = this.activeUsers.get(client.id);
 

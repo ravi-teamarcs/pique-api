@@ -9,6 +9,7 @@ import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { BookingRequest } from './entities/changeReq.entity';
+import { BookingLog } from './entities/booking-log.entity';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { BookingRequest } from './entities/changeReq.entity';
       EndPoints,
       Venue,
       BookingRequest,
+      BookingLog,
     ]),
   ],
   controllers: [BookingController],

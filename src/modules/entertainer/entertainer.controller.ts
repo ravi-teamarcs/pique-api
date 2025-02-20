@@ -27,7 +27,7 @@ import { Entertainer } from './entities/entertainer.entity';
 import { Roles } from '../auth/roles.decorator';
 // import { Booking } from '../booking/entities/booking.entity';
 import { BookingService } from '../booking/booking.service';
-import { EntertainerResponseDto } from '../booking/dto/booking-response-dto';
+import { ResponseDto } from '../booking/dto/booking-response-dto';
 import { Category } from './entities/categories.entity';
 
 @ApiTags('Entertainers')
@@ -105,16 +105,10 @@ export class EntertainerController {
   })
   @Patch('booking/response')
   @Roles('findAll')
-  entertainerBookingResponse(
-    @Body() entertainerResponseDto: EntertainerResponseDto,
-    @Request() req,
-  ) {
-    const role = req.user.role;
-    entertainerResponseDto['isAcceptedDate'] = new Date();
-    return this.bookingService.handleBookingResponse(
-      role,
-      entertainerResponseDto,
-    );
+  entertainerBookingResponse(@Body() resDto: ResponseDto, @Request() req) {
+    const { role } = req.user;
+    // entertainerResponseDto['isAcceptedDate'] = new Date();
+    return this.bookingService.handleBookingResponse(role, resDto);
   }
 
   @Get('/booking/request')
@@ -125,7 +119,7 @@ export class EntertainerController {
     description: 'Booking fetched Successfully.',
   })
   getBooking(@Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     console.log('userId', userId);
     return this.entertainerService.findAllBooking(userId);
   }

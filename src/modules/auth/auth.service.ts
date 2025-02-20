@@ -66,7 +66,7 @@ export class AuthService {
     const { email, password } = loginDto;
 
     const user = await this.usersService.findByEmail(email);
-    console.log(user);
+
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new HttpException(
         { message: 'Validation failed', error: 'Bad Request', status: false },
@@ -74,7 +74,6 @@ export class AuthService {
       );
     }
     const completed = await this.isProfileCompleted(user);
-    console.log('Profile Completed', completed);
 
     const payload = { sub: user.id, email: user.email, role: user.role };
     const token = this.jwtService.sign(payload);
