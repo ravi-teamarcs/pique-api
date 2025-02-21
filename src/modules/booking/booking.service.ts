@@ -50,7 +50,13 @@ export class BookingService {
     if (!savedBooking) {
       throw new InternalServerErrorException('Failed to save Booking');
     }
-    this.generateBookingLog(savedBooking);
+    const payload = {
+      bookingId: savedBooking.id,
+      status: savedBooking.status,
+      user: savedBooking.venueUser.id,
+      performedBy: 'venue',
+    };
+    this.generateBookingLog(payload);
     return {
       message: 'Booking created successfully',
       booking: bookingData,
@@ -58,49 +64,50 @@ export class BookingService {
     };
   }
 
-  async handleBookingResponse(role: string, payload: ResponseDto) {
-    const { bookingId, ...data } = payload;
-
-    if (role === 'entertainer') {
-      const alreadyResponded = await this.bookingRepository.findOne({
-        where: { id: bookingId, status: 'pending' },
+  async handleBookingResponse(
+    role: string,
+    payload: ResponseDto,
+    // userId: number,
+  ) {
+    const { bookingId, status } = payload;
+    let userId;
+    const booking = await this.bookingRepository.findOne({
+      where: { id: bookingId },
+    });
+    if (!booking) {
+      throw new NotFoundException({
+        message: 'Booking not found',
+        status: false,
       });
-      if (!alreadyResponded) {
-        return { message: 'You have already responded to this booking' };
-      }
+    }
 
-      const booking = await this.bookingRepository.update(
-        { id: bookingId },
-        data,
-      );
-      if (!booking.affected) {
-        throw new NotFoundException({
-          message: 'Booking not found',
-          status: false,
-        });
-      }
-
+    if (role === 'entertainer' && booking.status !== 'pending') {
       return {
-        message: `Request ${data.status} successfully`,
-        status: true,
+        message: 'You have already responded to this booking',
+        status: false,
       };
     }
 
-    if (role === 'venue') {
-      const booking = await this.bookingRepository.update(
-        { id: bookingId },
-        data,
-      );
-      if (!booking.affected) {
-        throw new NotFoundException({
-          message: 'Booking not found',
-          status: false,
-        });
-      }
+    const updatedBooking = await this.bookingRepository.update(
+      { id: booking.id },
+      { status },
+    );
+    if (!updatedBooking.affected) {
+      throw new NotFoundException({
+        message: 'Booking not found',
+        status: false,
+      });
     }
 
+    this.generateBookingLog({
+      bookingId,
+      status: status,
+      user: userId,
+      performedBy: role,
+    });
+
     return {
-      message: `Booking request ${data.status}  successfully`,
+      message: `Request ${status} successfully`,
       status: true,
     };
   }
@@ -204,29 +211,11 @@ export class BookingService {
   }
 
   private async generateBookingLog(payload) {
-    console.log(payload);
-    const {
-      id,
-      venueUser,
-      entertainerUser,
-      showTime,
-      showDate,
-      specialNotes,
-      eventId,
-      venueId,
-    } = payload;
+    const { bookingId, user, status, performedBy } = payload;
 
     const log = this.logRepository.create({
-      bookingId: id,
-      userId: venueUser.id,
-      venueId: venueId,
-      entertainerId: entertainerUser.id,
-      eventId: eventId,
-      showTime: showTime,
-      showDate: showDate,
-      specialNotes: specialNotes,
-      performedBy: 'venue',
-      Date: new Date(),
+      ...payload,
+      date: new Date(),
     });
 
     await this.logRepository.save(log);

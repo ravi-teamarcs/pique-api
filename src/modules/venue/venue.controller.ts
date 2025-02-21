@@ -71,7 +71,7 @@ export class VenueController {
   async findOne(@Param('id') id: number, @Request() req) {
     const { userId } = req.user;
 
-    return this.venueService.findOneByUser(id, userId);
+    return this.venueService.findVenueLocation(id, userId);
   }
 
   @Get('search/entertainers')

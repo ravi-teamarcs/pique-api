@@ -93,6 +93,7 @@ export class UsersService {
         .createQueryBuilder('venue')
         .leftJoinAndSelect('venue.user', 'user')
         .where('venue.user.id = :userId', { userId })
+        .andWhere('venue.isParent = :isParent', { isParent: true })
         .select([
           'user.id AS uid',
           'user.name AS name',
@@ -113,7 +114,7 @@ export class UsersService {
           'venue.isParent As vIsParent',
           'venue.parentId As vParentId',
         ])
-        .getRawMany();
+        .getRawOne();
 
       response['data'] = details;
       return response;

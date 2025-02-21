@@ -64,6 +64,8 @@ export class VenueService {
         'amenities',
         'websiteUrl',
         'bookingPolicies',
+        'parentId',
+        'isParent',
       ],
     });
 
@@ -96,9 +98,9 @@ export class VenueService {
     };
   }
 
-  async findOneByUser(id: number, userId: number) {
-    const venue = await this.venueRepository.findOne({
-      where: { id, user: { id: userId } },
+  async findVenueLocation(id: number, userId: number) {
+    const venue = await this.venueRepository.find({
+      where: { parentId: id },
       select: [
         'id',
         'name',
@@ -113,21 +115,23 @@ export class VenueService {
         'country',
         'lat',
         'long',
+        'parentId',
+        'isParent',
         'amenities',
         'websiteUrl',
         'bookingPolicies',
       ],
     });
 
-    if (!venue) {
-      throw new NotFoundException({
-        message: 'Venue not found',
-        error: ' Not Found',
-        status: false,
-      });
-    }
+    // if (!venue) {
+    //   throw new NotFoundException({
+    //     message: 'Venue not found',
+    //     error: 'Not Found',
+    //     status: false,
+    //   });
+    // }
 
-    return { message: 'Venue fetched successfully', venue, status: true };
+    return { message: 'Venue fetched successfully', data: venue, status: true };
   }
   // My code
 

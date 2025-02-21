@@ -11,19 +11,12 @@ export class BookingLog {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'int' })
-  bookingId: number; // References the booking
-
-  @Column({ type: 'int', nullable: true })
-  venueId: number; // Optional, references the venue
-
-  @Column({ type: 'int', nullable: true })
-  entertainerId: number; // Optional, references the entertainer
   @Column()
-  userId: number; // References the user
+  bookingId: number;
 
-  @Column({ nullable: false })
-  eventId: number;
+  @Column()
+  user: number;
+
   @Column({
     type: 'enum',
     enum: [
@@ -45,20 +38,11 @@ export class BookingLog {
     | 'completed'
     | 'rescheduled';
 
-  @Column({ type: 'time' })
-  showTime: string;
-
-  @Column({ type: 'date' })
-  showDate: string;
+  @Column()
+  performedBy: 'venue' | 'entertainer' | 'admin';
 
   @Column()
-  specialNotes: string;
-
-  @Column()
-  Date: Date;
-
-  @Column()
-  performedBy: 'venue' | 'entertainer';
+  date: Date;
 
   @CreateDateColumn()
   createdAt: Date;

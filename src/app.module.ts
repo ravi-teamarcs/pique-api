@@ -24,10 +24,7 @@ import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.
       envFilePath: '.env',
       isGlobal: true,
     }),
-    ConfigModule.forRoot({
-      envFilePath: '.env',
-      isGlobal: true,
-    }),
+
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DB_Host,

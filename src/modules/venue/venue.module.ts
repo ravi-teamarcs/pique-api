@@ -24,7 +24,7 @@ import { Category } from '../entertainer/entities/categories.entity';
       Access,
       EndPoints,
       Media,
-      Category
+      Category,
     ]),
     BookingModule,
   ],
