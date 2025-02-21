@@ -48,10 +48,10 @@ export class Booking {
     | 'rescheduled';
 
   @Column({ type: 'time' })
-  showTime: string;
+  showTime: Date;
 
   @Column({ type: 'date' })
-  showDate: string;
+  showDate: Date;
 
   @Column({
     type: 'enum',

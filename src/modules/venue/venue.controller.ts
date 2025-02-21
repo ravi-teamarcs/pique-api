@@ -33,6 +33,7 @@ import { BookingService } from '../booking/booking.service';
 import { CreateBookingDto } from '../booking/dto/create-booking.dto';
 import { ResponseDto } from '../booking/dto/booking-response-dto';
 import { DateTimeChangeDto } from './dto/change-booking.dto';
+import { VenueLocationDto } from './dto/add-location.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -139,9 +140,9 @@ export class VenueController {
   @Patch('booking/response')
   @Roles('findAll')
   bookingResponse(@Body() resDto: ResponseDto, @Request() req) {
-    const { role } = req.user;
+    const { role, userId } = req.user;
     // venueResponseDto['statusDate'] = new Date();
-    return this.bookingService.handleBookingResponse(role, resDto);
+    return this.bookingService.handleBookingResponse(role, resDto, userId);
   }
 
   @ApiOperation({ summary: 'Update details of venue.' })
@@ -189,5 +190,12 @@ export class VenueController {
   @Roles('findAll')
   getEntertainerByCategory(@Param('id') cid: number) {
     return this.venueService.getAllEntertainersByCategory(cid);
+  }
+
+  @Post('/location/add')
+  @Roles('findAll')
+  addLocation(@Body() locationDto: VenueLocationDto, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.addVenueLocation(userId, locationDto);
   }
 }

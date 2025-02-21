@@ -106,9 +106,9 @@ export class EntertainerController {
   @Patch('booking/response')
   @Roles('findAll')
   entertainerBookingResponse(@Body() resDto: ResponseDto, @Request() req) {
-    const { role } = req.user;
+    const { role, userId } = req.user;
     // entertainerResponseDto['isAcceptedDate'] = new Date();
-    return this.bookingService.handleBookingResponse(role, resDto);
+    return this.bookingService.handleBookingResponse(role, resDto, userId);
   }
 
   @Get('/booking/request')

@@ -105,13 +105,13 @@ export class CreateVenueDto {
   @IsOptional()
   bookingPolicies?: string;
 
-  @ApiProperty({ example: true, description: 'Is venue Booking Venue' })
-  @IsBoolean()
-  isParent: boolean;
+  //   @ApiProperty({ example: true, description: 'Is venue Booking Venue' })
+  //   @IsBoolean()
+  //   isParent: boolean;
 
-  @ApiProperty({
-    example: 9,
-    description: 'Parent venue Id',
-  })
-  parentId: number | null;
+  //   @ApiProperty({
+  //     example: 9,
+  //     description: 'Parent venue Id',
+  //   })
+  //   parentId: number | null;
 }

@@ -30,7 +30,7 @@ export class BookingService {
 
   async createBooking(createBookingDto: CreateBookingDto, userId: number) {
     const { entertainerId, ...bookingData } = createBookingDto;
-
+    console.log('Booking Dto', createBookingDto);
     // Create the booking
 
     const newBooking = this.bookingRepository.create({
@@ -38,7 +38,7 @@ export class BookingService {
       venueUser: { id: userId },
       entertainerUser: { id: entertainerId },
     });
-
+    console.log('New Booking', newBooking);
     // Save the booking
     if (!newBooking) {
       throw new Error('Failed to create booking');
@@ -56,7 +56,8 @@ export class BookingService {
       user: savedBooking.venueUser.id,
       performedBy: 'venue',
     };
-    this.generateBookingLog(payload);
+    const log = await this.generateBookingLog(payload);
+    console.log('booking log', log);
     return {
       message: 'Booking created successfully',
       booking: bookingData,
@@ -67,10 +68,10 @@ export class BookingService {
   async handleBookingResponse(
     role: string,
     payload: ResponseDto,
-    // userId: number,
+    userId: number,
   ) {
     const { bookingId, status } = payload;
-    let userId;
+
     const booking = await this.bookingRepository.findOne({
       where: { id: bookingId },
     });
@@ -99,12 +100,14 @@ export class BookingService {
       });
     }
 
-    this.generateBookingLog({
+    const log = await this.generateBookingLog({
       bookingId,
       status: status,
       user: userId,
       performedBy: role,
     });
+
+    console.log('booking log', log);
 
     return {
       message: `Request ${status} successfully`,

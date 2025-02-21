@@ -16,6 +16,8 @@ import { User } from '../users/entities/users.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { Media } from '../media/entities/media.entity';
 import { Category } from '../entertainer/entities/categories.entity';
+import { VenueEvent } from '../event/entities/event.entity';
+import { VenueLocationDto } from './dto/add-location.dto';
 
 @Injectable()
 export class VenueService {
@@ -35,9 +37,21 @@ export class VenueService {
   ) {}
 
   async create(createVenueDto: CreateVenueDto, userId: number) {
+    const venueExists = await this.venueRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    if (venueExists) {
+      throw new BadRequestException({
+        message: 'Venue already exists for the user',
+        status: false,
+      });
+    }
     const venue = this.venueRepository.create({
       ...createVenueDto,
       user: { id: userId },
+      parentId: null,
+      isParent: true,
     });
     await this.venueRepository.save(venue);
 
@@ -551,6 +565,33 @@ export class VenueService {
     return {
       message: 'Entertainers returned Successfully',
       data: entertainers,
+      status: true,
+    };
+  }
+
+  async addVenueLocation(userId: number, locDto: VenueLocationDto) {
+    const location = await this.venueRepository.findOne({
+      where: { user: { id: userId }, isParent: true },
+    });
+
+    if (!location) {
+      throw new BadRequestException({
+        message: 'Can not Add venue Location',
+        status: false,
+        error: 'Parent venue do not exists',
+      });
+    }
+
+    const venueLoc = this.venueRepository.create({
+      ...locDto,
+      name: location.name,
+      parentId: location.id,
+      isParent: false,
+    });
+
+    await this.venueRepository.save(venueLoc);
+    return {
+      message: 'Venue location added successfully',
       status: true,
     };
   }
