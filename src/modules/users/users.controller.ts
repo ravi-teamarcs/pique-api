@@ -9,7 +9,6 @@ import {
   HttpException,
   HttpStatus,
   UseGuards,
-  Request,
   Req,
 } from '@nestjs/common';
 import {
@@ -50,23 +49,23 @@ export class UsersController {
   /**
    * Get all users
    */
-  @Get()
-  @Roles('findAll')
-  @ApiBearerAuth() // Swagger UI will ask for the Bearer token
-  @ApiOperation({ summary: 'Get all users' })
-  @ApiResponse({
-    status: 200,
-    description: 'Returns a list of all users.',
-    type: [User],
-  })
-  @ApiResponse({
-    status: 401,
-    description: 'Unauthorized. Invalid or missing JWT token.',
-  })
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  async getAllUsers(@Request() req): Promise<User[]> {
-    return this.usersService.findAll();
-  }
+  // @Get()
+  // @Roles('findAll')
+  // @ApiBearerAuth() // Swagger UI will ask for the Bearer token
+  // @ApiOperation({ summary: 'Get all users' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Returns a list of all users.',
+  //   type: [User],
+  // })
+  // @ApiResponse({
+  //   status: 401,
+  //   description: 'Unauthorized. Invalid or missing JWT token.',
+  // })
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // async getAllUsers(@Request() req): Promise<User[]> {
+  //   return this.usersService.findAll();
+  // }
 
   /**
    * Get a user by ID
@@ -112,33 +111,61 @@ export class UsersController {
   /**
    * Delete a user by ID
    */
-  @Delete(':id')
-  @ApiOperation({ summary: 'Delete user by ID' })
-  @ApiParam({ name: 'id', description: 'User ID', example: 1 })
-  @ApiResponse({ status: 200, description: 'The user has been deleted.' })
-  @ApiResponse({ status: 404, description: 'User not found.' })
-  async deleteUser(@Param('id') id: number): Promise<{ message: string }> {
-    const deleted = await this.usersService.delete(id);
-    if (!deleted) {
-      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-    }
-    return { message: 'User successfully deleted' };
-  }
+  // @Delete(':id')
+  // @ApiOperation({ summary: 'Delete user by ID' })
+  // @ApiParam({ name: 'id', description: 'User ID', example: 1 })
+  // @ApiResponse({ status: 200, description: 'The user has been deleted.' })
+  // @ApiResponse({ status: 404, description: 'User not found.' })
+  // async deleteUser(@Param('id') id: number): Promise<{ message: string }> {
+  //   const deleted = await this.usersService.delete(id);
+  //   if (!deleted) {
+  //     throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+  //   }
+  //   return { message: 'User successfully deleted' };
+  // }
 
-  @Put('update/profile')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Update user Profile' })
+  @Get('loggedIn/profile')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  @ApiOperation({ summary: 'Fetch the current user Profile' })
   @ApiResponse({
     status: 200,
-    description: 'The user Profile has been Successfully updated .',
+    description: 'User profile fetched successfully',
   })
-  updateUserprofile(@Body() updateProfileDto: UpdateProfileDto, @Req() req) {
+  getUserprofile(@Req() req) {
     const { userId, role } = req.user;
-    // console.log('User', req.user);
-    return this.usersService.handleUpdateUserProfile(
-      updateProfileDto,
-      userId,
-      role,
-    );
+
+    console.log(req.user);
+
+    return this.usersService.handleGetUserProfile(userId, role);
+  }
+
+  // @Put('update/profile')
+  // @UseGuards(JwtAuthGuard)
+  // @ApiOperation({ summary: 'Update user Profile' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'The user Profile has been Successfully updated .',
+  // })
+  // updateUserprofile(@Body() updateProfileDto: UpdateProfileDto, @Req() req) {
+  //   const { userId, role } = req.user;
+
+  //   return this.usersService.handleUpdateUserProfile(
+  //     updateProfileDto,
+  //     userId,
+  //     role,
+  //   );
+  // }
+
+  @Post('fcm-token')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({ summary: 'Stores a  fcm token.' })
+  @ApiResponse({
+    status: 201,
+    description: 'The token is  stored  successfully .',
+  })
+  async updateFCMToken(@Body() body: { fcmToken: string }, @Req() req) {
+    const { userId } = req.user;
+    return this.usersService.updateFCMToken(userId, body.fcmToken);
   }
 }

@@ -1,12 +1,9 @@
-import { User } from '../../users/entities/users.entity';
-import { Venue } from '../../venue/entities/venue.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
 } from 'typeorm';
 
 @Entity('event')
@@ -17,31 +14,40 @@ export class VenueEvent {
   @Column()
   title: string;
 
-  // Use 'date' type for storing date in YYYY-MM-DD format
-  @Column({ type: 'date' })
-  date: string;
-
-  // Use 'time' type for storing time in HH:MM:SS format
-  @Column({ type: 'time' })
-  time: string;
-
   @Column()
   location: string;
 
-  @ManyToOne(() => User, (user) => user.events)
-  user: User;
+  @Column()
+  userId: number;
+
+  @Column()
+  venueId: number;
 
   @Column()
   description: string;
 
-  @Column({})
-  type: string;
-  @Column({})
-  image?: string;
-  @Column({})
-  status: string;
-  @Column({})
-  additionalNotes: string;
+  @Column()
+  startTime: Date;
+
+  @Column()
+  endTime: Date;
+
+  @Column({
+    type: 'enum',
+    enum: ['none', 'daily', 'weekly', 'monthly'],
+    default: 'none',
+  })
+  recurring: 'none' | 'daily' | 'weekly' | 'monthly';
+
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'scheduled', 'confirmed', 'cancelled', 'completed'],
+    default: 'pending',
+  })
+  status: 'pending' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+
+  @Column({ type: 'boolean' })
+  isAdmin: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -32,7 +32,7 @@ export class LocationController {
     description: 'Filter state by country ID (optional)',
   })
   @Get('states')
-  getAllStates(@Query('countryId') countryId?: number) {
+  getAllStates(@Query('countryId') countryId: number) {
     return this.locationService.findAllStates(countryId);
   }
   @ApiOperation({ summary: 'Get the list of all the Cities' })
@@ -47,7 +47,7 @@ export class LocationController {
     description: 'Filter cities by state ID (optional)',
   })
   @Get('cities')
-  getAllCities(@Query('stateId') stateId?: number) {
+  getAllCities(@Query('stateId') stateId: number) {
     return this.locationService.findAllCities(stateId);
   }
 }

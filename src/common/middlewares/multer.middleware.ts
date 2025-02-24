@@ -6,7 +6,7 @@ export async function uploadFile(file: Express.Multer.File): Promise<string> {
   const now = new Date();
   const year = now.getFullYear();
   const month = String(now.getMonth() + 1).padStart(2, '0');
-  const folderPath = join('uploads', year.toString(), month);
+  const folderPath = 'uploads/' + year.toString() + '/' + month;
 
   if (!fs.existsSync(folderPath)) {
     fs.mkdirSync(folderPath, { recursive: true });
@@ -19,7 +19,7 @@ export async function uploadFile(file: Express.Multer.File): Promise<string> {
   // Check if a file with the same hash already exists
   const existingFiles = fs.readdirSync(folderPath);
   for (const existingFile of existingFiles) {
-    const existingFilePath = join(folderPath, existingFile);
+    const existingFilePath = folderPath + '/' + existingFile;
 
     // Compare hash of existing files with the new file
     const existingFileBuffer = fs.readFileSync(existingFilePath);
@@ -36,8 +36,9 @@ export async function uploadFile(file: Express.Multer.File): Promise<string> {
   // If the file doesn't exist, upload it
   const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
   const fileName = `${uniqueName}${ext}`;
-  const filePath = join(folderPath, fileName);
+  const filePath = folderPath + fileName;
 
   fs.writeFileSync(filePath, file.buffer);
+
   return filePath;
 }

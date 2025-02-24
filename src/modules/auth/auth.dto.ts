@@ -6,6 +6,7 @@ import {
   MinLength,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { UserRole } from 'src/common/enums/auth.enum';
 
 export class RegisterDto {
   @ApiProperty({
@@ -13,13 +14,15 @@ export class RegisterDto {
     description: 'Email address of the user',
   })
   @IsEmail()
+  @IsNotEmpty()
   email: string;
 
   @ApiProperty({
-    example: 'user@example.com',
-    description: 'Email address of the user',
+    example: '9876543210',
+    description: 'Phone Number of User',
   })
   @IsString()
+  @IsNotEmpty()
   phoneNumber: string;
 
   @ApiProperty({
@@ -38,11 +41,12 @@ export class RegisterDto {
   @ApiProperty({
     description: 'Role of the user',
     example: 'venue',
-    enum: ['venue', 'entertainer'],
+    enum: UserRole,
+    required: true,
   })
-  @IsEnum(['venue', 'entertainer'])
+  @IsEnum(UserRole) // Use the Enum instead of an array
   @IsNotEmpty()
-  role: 'venue' | 'entertainer';
+  role: UserRole;
 }
 
 export class LoginDto {
@@ -51,6 +55,7 @@ export class LoginDto {
     description: 'Email address of the user',
   })
   @IsEmail()
+  @IsNotEmpty()
   email: string;
 
   @ApiProperty({ example: 'password123', description: 'Password of the user' })

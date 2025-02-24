@@ -13,4 +13,7 @@ export class Countries {
 
   @Column({ nullable: false, default: 0 })
   status: number;
+
+  @Column({ nullable: false, default: 0 })
+  isallowed: number;
 }

@@ -1,12 +1,14 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ValidationPipe } from '@nestjs/common';
 //import { writeFileSync } from 'fs';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors();
-  // Configure Swagger options
+  app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
+
   const config = new DocumentBuilder()
     .setTitle('API Documentation')
     .setDescription('The API description')
@@ -21,7 +23,6 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, document);
 
   const res = await app.listen(process.env.PORT ?? 3000);
-  // Printing server running port.  // process.env.PORT is used for heroku deployment.
   console.log(`Server is running on ${res.address().port}`);
 }
 bootstrap();

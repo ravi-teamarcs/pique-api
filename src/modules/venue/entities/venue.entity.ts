@@ -1,5 +1,6 @@
 // import { Booking } from '../../booking/entities/booking.entity';
 // import { VenueEvent } from '../../event/entities/event.entity';
+import { Transform } from 'class-transformer';
 import { User } from '../../users/entities/users.entity';
 import {
   Entity,
@@ -8,9 +9,6 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
-  OneToMany,
-  OneToOne,
-  JoinColumn,
 } from 'typeorm';
 
 @Entity('venue')
@@ -33,35 +31,32 @@ export class Venue {
   @Column()
   addressLine2: string;
 
-  @Column()
+  @Column({ type: 'text' })
   description: string;
 
   @Column()
-  city: string;
+  city: number;
 
   @Column()
-  state: string;
+  state: number;
 
   @Column()
   zipCode: string;
 
   @Column()
-  country: string;
+  country: number;
 
-  @Column()
-  lat: string;
+  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: false })
+  lat: number;
 
-  @Column()
-  long: string;
+  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: false })
+  long: number;
 
   @Column('simple-array')
   amenities: string[];
 
   @Column()
   websiteUrl: string;
-
-  @Column()
-  timings: string;
 
   @Column()
   bookingPolicies: string;
@@ -74,6 +69,13 @@ export class Venue {
 
   @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
   user: User;
+
+  @Column({ type: 'boolean', default: false })
+  @Transform(({ value }) => Boolean(value))
+  isParent: boolean;
+
+  @Column({ nullable: true })
+  parentId: number;
 
   // @OneToMany(() => Booking, (booking) => booking.venue)
   // bookings: Booking[];

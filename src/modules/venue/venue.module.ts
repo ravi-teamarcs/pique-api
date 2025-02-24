@@ -10,10 +10,22 @@ import { Booking } from '../booking/entities/booking.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
+import { Media } from '../media/entities/media.entity';
+import { Category } from '../entertainer/entities/categories.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Venue, User, Entertainer ,Booking ,Role,Access,EndPoints]),
+    TypeOrmModule.forFeature([
+      Venue,
+      User,
+      Entertainer,
+      Booking,
+      Role,
+      Access,
+      EndPoints,
+      Media,
+      Category,
+    ]),
     BookingModule,
   ],
   controllers: [VenueController],

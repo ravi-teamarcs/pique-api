@@ -13,8 +13,8 @@ import {
   ApiBearerAuth,
 } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto } from './auth.dto';
 import { JwtAuthGuard } from './jwt.guard';
+import { LoginDto, RegisterDto } from './auth.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -51,6 +51,17 @@ export class AuthController {
   @Post('profile')
   @UseGuards(JwtAuthGuard)
   getProfile(@Request() req) {
-    return req.user; // Returns the user data from the JWT token
+    return {
+      message: 'Profile returned successfully',
+      user: req.user,
+      status: true,
+    }; // Returns the user data from the JWT token
+  }
+
+  @Post('logout')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  logout() {
+    return { message: 'Logged out successfully.', data: null, status: true };
   }
 }

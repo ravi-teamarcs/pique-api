@@ -23,7 +23,7 @@ export class Media {
   @Column({ nullable: true })
   refId: number;
   // Relation to userId
-  @ManyToOne(() => User, (user) => user.media, { eager: true })
+  @ManyToOne(() => User, (user) => user.media, { onDelete: 'CASCADE' })
   user: User;
   @CreateDateColumn()
   createdAt: Date;

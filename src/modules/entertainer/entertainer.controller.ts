@@ -10,6 +10,7 @@ import {
   Request,
   Put,
   Req,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -26,7 +27,8 @@ import { Entertainer } from './entities/entertainer.entity';
 import { Roles } from '../auth/roles.decorator';
 // import { Booking } from '../booking/entities/booking.entity';
 import { BookingService } from '../booking/booking.service';
-import { EntertainerResponseDto } from '../booking/dto/booking-response-dto';
+import { ResponseDto } from '../booking/dto/booking-response-dto';
+import { Category } from './entities/categories.entity';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -39,25 +41,20 @@ export class EntertainerController {
   ) {}
 
   @Post()
-  @Roles('entertainer') // Only users with the 'venue' role can access this route
+  @Roles('findAll') // Only users with the 'venue' role can access this route
   @ApiOperation({ summary: 'Create a entertainer' })
   @ApiResponse({
     status: 201,
     description: 'entertainer created.',
-    type: Entertainer,
   })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   create(@Body() createEntertainerDto: CreateEntertainerDto, @Req() req) {
     const userId = req.user.userId;
     return this.entertainerService.create(createEntertainerDto, userId);
   }
-  //   create(@Body() createEntertainerDto: CreateEntertainerDto, @Request() req) {
-  //     console.log('---', req.user);
-  //     return this.entertainerService.create(createEntertainerDto, req.user.id);
-  //   }
 
   @Get()
-  @Roles('entertainer')
+  @Roles('findAll')
   @Roles('entertainer')
   @ApiOperation({ summary: 'Get all entertainers for the logged-in user' })
   findAll(@Request() req) {
@@ -71,11 +68,11 @@ export class EntertainerController {
   }
 
   @Patch(':id')
+  @Roles('findAll')
   @ApiOperation({ summary: 'Update a specific entertainer by ID' })
   @ApiResponse({
     status: 200,
     description: 'Entertainer updated sucessfully.',
-    type: Entertainer,
   })
   update(
     @Param('id') id: number,
@@ -94,7 +91,6 @@ export class EntertainerController {
   @ApiResponse({
     status: 200,
     description: 'Entertainer removed sucessfully.',
-    type: Entertainer,
   })
   remove(@Param('id') id: number, @Request() req) {
     return this.entertainerService.remove(+id, req.user.userId);
@@ -107,18 +103,12 @@ export class EntertainerController {
     status: 200,
     description: 'Response registered Successfully',
   })
-  @Put('booking/response')
-  @Roles('entertainer')
-  entertainerBookingResponse(
-    @Body() entertainerResponseDto: EntertainerResponseDto,
-    @Request() req,
-  ) {
-    const role = req.user.role;
-    entertainerResponseDto['isAcceptedDate'] = new Date();
-    return this.bookingService.handleBookingResponse(
-      role,
-      entertainerResponseDto,
-    );
+  @Patch('booking/response')
+  @Roles('findAll')
+  entertainerBookingResponse(@Body() resDto: ResponseDto, @Request() req) {
+    const { role, userId } = req.user;
+    // entertainerResponseDto['isAcceptedDate'] = new Date();
+    return this.bookingService.handleBookingResponse(role, resDto, userId);
   }
 
   @Get('/booking/request')
@@ -127,11 +117,41 @@ export class EntertainerController {
   @ApiResponse({
     status: 200,
     description: 'Booking fetched Successfully.',
-    // type: [Booking],
   })
   getBooking(@Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     console.log('userId', userId);
     return this.entertainerService.findAllBooking(userId);
+  }
+  @ApiOperation({
+    summary: 'Get  entertainers  categories and sub categories. ',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Categories fetched Successfully.',
+  })
+  @Get('categories/all')
+  @Roles('findAll')
+  async getCategories() {
+    return this.entertainerService.getCategories();
+  }
+  @Get('categories/subcategories')
+  @Roles('findAll')
+  getSubCategories(@Query('id') id: number) {
+    return this.entertainerService.getSubCategories(id);
+  }
+
+  @ApiOperation({
+    summary: 'Get Event Details  linked with Booking',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Events  fetched Successfully.',
+  })
+  @Get('event/all/details')
+  @Roles('findAll')
+  getEventDetails(@Req() req) {
+    const { userId } = req.user;
+    return this.entertainerService.getEventDetails(userId);
   }
 }

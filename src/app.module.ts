@@ -15,6 +15,8 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { EventModule } from './modules/event/event.module';
 import { EmailModule } from './modules/Email/email.module';
 import { LocationModule } from './modules/location/location.module';
+import { ChatModule } from './modules/chat/chat.module';
+import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module';
 
 @Module({
   imports: [
@@ -22,14 +24,11 @@ import { LocationModule } from './modules/location/location.module';
       envFilePath: '.env',
       isGlobal: true,
     }),
-    ConfigModule.forRoot({
-      envFilePath: '.env',
-      isGlobal: true,
-    }),
+
     TypeOrmModule.forRoot({
       type: 'mysql',
-      host: 'localhost',
-      port: 3306,
+      host: process.env.DB_Host,
+      port: Number(process.env.DB_Port),
       username: process.env.DB_User,
       password: process.env.DB_Password,
       database: process.env.DB_Name,
@@ -52,6 +51,8 @@ import { LocationModule } from './modules/location/location.module';
     EventModule,
     EmailModule,
     LocationModule,
+    ChatModule,
+    GoogleCalendarModule,
   ],
   controllers: [AppController],
   providers: [AppService],

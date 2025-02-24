@@ -1,14 +1,34 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsEnum } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { IsEnum, IsOptional, IsNumber, IsString } from 'class-validator';
 
 export class SearchEntertainerDto {
-  @ApiProperty({ description: 'Name of the venue' })
+  @ApiProperty({ description: 'Name of the venue', required: false })
+  @IsOptional()
   @IsEnum(['yes', 'no'])
-  @IsNotEmpty()
   availability: 'yes' | 'no';
 
-  @ApiProperty({ description: 'Type of the entertainer' })
+  @ApiProperty({ description: 'Category of the entertainer', required: false })
+  @IsOptional()
+  category: string;
+
+  @ApiProperty({ description: 'Page Number', required: false })
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  page: number;
+
+  @ApiProperty({
+    description: 'Global search across multiple fields',
+    required: false,
+  })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
-  type: string;
+  search: string;
+
+  @ApiProperty({ description: 'Records per page you want .', required: false })
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  pageSize: number;
 }

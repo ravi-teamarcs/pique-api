@@ -15,7 +15,7 @@ export class Invoice {
   id: string;
 
   @Column({ type: 'varchar', unique: true })
-  invoiceNumber: string;
+  invoiceNumber: string; 
 
   @ManyToOne(() => User, (user) => user.invoices)
   customer: User;
