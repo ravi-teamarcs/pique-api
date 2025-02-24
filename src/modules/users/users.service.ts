@@ -12,6 +12,7 @@ import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Venue } from '../venue/entities/venue.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { instanceToPlain } from 'class-transformer';
 //import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -111,11 +112,25 @@ export class UsersService {
           'venue.state As vState',
           'venue.zipCode AS vZipCode',
           'venue.country AS vCountry',
-          'venue.isParent As vIsParent',
-          'venue.parentId As vParentId',
         ])
         .getRawOne();
-
+      details['vIsParent'] = Boolean(details.isParent);
+      const location = await this.venueRepository.find({
+        where: { user: { id: userId }, isParent: false },
+        select: [
+          'phone',
+          'addressLine1',
+          'addressLine2',
+          'country',
+          'zipCode',
+          'city',
+          'state',
+          'country',
+          'zipCode',
+        ],
+      });
+      const rest = instanceToPlain(location);
+      details['locations'] = rest;
       response['data'] = details;
       return response;
     }

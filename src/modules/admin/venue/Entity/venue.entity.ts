@@ -1,7 +1,6 @@
 // import { Booking } from '../../booking/entities/booking.entity';
 // import { VenueEvent } from '../../event/entities/event.entity';
-import { Transform } from 'class-transformer';
-import { User } from '../../users/entities/users.entity';
+import { User } from '../../users/Entity/users.entity';
 import {
   Entity,
   Column,
@@ -9,6 +8,7 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
 
 @Entity('venue')
@@ -46,17 +46,20 @@ export class Venue {
   @Column()
   country: number;
 
-  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: false })
-  lat: number;
+  @Column()
+  lat: string;
 
-  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: false })
-  long: number;
+  @Column()
+  long: string;
 
   @Column('simple-array')
   amenities: string[];
 
   @Column()
   websiteUrl: string;
+
+  // @Column()
+  // timings: string;
 
   @Column()
   bookingPolicies: string;
@@ -67,21 +70,18 @@ export class Venue {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
-  user: User;
 
-  @Column({ type: 'boolean', default: false })
-  @Transform(({ value }) => Boolean(value))
+  @Column({ default: false })
   isParent: boolean;
 
   @Column({ nullable: true })
   parentId: number;
 
-  // @OneToMany(() => Booking, (booking) => booking.venue)
-  // bookings: Booking[];
+  @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
+  user: User;
 
-  // @OneToMany(() => VenueEvent, (event) => event.venue)
-  // events: VenueEvent[];
+
+
 }
 
-//Note in second callback first Argument Doesn't Matter it the second one that must be property name.
+

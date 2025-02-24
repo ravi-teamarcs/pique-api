@@ -69,7 +69,7 @@ export class VenueController {
   @ApiOperation({ summary: 'Get a single venue by ID' })
   @ApiResponse({ status: 200, description: 'Venue details.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async findOne(@Param('id') id: number, @Request() req) {
+  async findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
     const { userId } = req.user;
 
     return this.venueService.findVenueLocation(id, userId);
@@ -103,7 +103,7 @@ export class VenueController {
     status: 404,
     description: 'Cannot get entertainers.',
   })
-  GetEntertainerDetails(@Param('id') userId: number) {
+  GetEntertainerDetails(@Param('id', ParseIntPipe) userId: number) {
     return this.venueService.findEntertainerDetails(Number(userId));
   }
 
@@ -163,7 +163,7 @@ export class VenueController {
   })
   @Delete(':id')
   @Roles('findAll')
-  remove(@Param('id') id: number, @Request() req) {
+  remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
     const userId = req.user.userId;
     return this.venueService.handleRemoveVenue(Number(id), userId);
   }

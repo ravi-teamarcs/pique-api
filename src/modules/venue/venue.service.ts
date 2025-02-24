@@ -40,7 +40,7 @@ export class VenueService {
     const venueExists = await this.venueRepository.findOne({
       where: { user: { id: userId } },
     });
-
+      console.log("venue exists" , venueExists)
     if (venueExists) {
       throw new BadRequestException({
         message: 'Venue already exists for the user',
@@ -570,11 +570,11 @@ export class VenueService {
   }
 
   async addVenueLocation(userId: number, locDto: VenueLocationDto) {
-    const location = await this.venueRepository.findOne({
+    const parentVenue = await this.venueRepository.findOne({
       where: { user: { id: userId }, isParent: true },
     });
 
-    if (!location) {
+    if (!parentVenue) {
       throw new BadRequestException({
         message: 'Can not Add venue Location',
         status: false,
@@ -584,8 +584,9 @@ export class VenueService {
 
     const venueLoc = this.venueRepository.create({
       ...locDto,
-      name: location.name,
-      parentId: location.id,
+      name: parentVenue.name,
+      description: parentVenue.description,
+      parentId: parentVenue.id,
       isParent: false,
     });
 
