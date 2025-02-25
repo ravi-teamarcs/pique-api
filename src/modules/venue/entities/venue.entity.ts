@@ -1,5 +1,6 @@
 // import { Booking } from '../../booking/entities/booking.entity';
 // import { VenueEvent } from '../../event/entities/event.entity';
+import { Transform } from 'class-transformer';
 import { User } from '../../users/entities/users.entity';
 import {
   Entity,
@@ -30,7 +31,7 @@ export class Venue {
   @Column()
   addressLine2: string;
 
-  @Column()
+  @Column({ type: 'text' })
   description: string;
 
   @Column()
@@ -68,6 +69,13 @@ export class Venue {
 
   @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
   user: User;
+
+  @Column({ type: 'boolean', default: false })
+  @Transform(({ value }) => Boolean(value))
+  isParent: boolean;
+
+  @Column({ nullable: true })
+  parentId: number;
 
   // @OneToMany(() => Booking, (booking) => booking.venue)
   // bookings: Booking[];

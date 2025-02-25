@@ -23,8 +23,6 @@ async function bootstrap() {
   SwaggerModule.setup('api-docs', app, document);
 
   const res = await app.listen(process.env.PORT ?? 3000);
-  // Printing server running port.  // process.env.PORT is used for heroku deployment.
   console.log(`Server is running on ${res.address().port}`);
-  console.log(`WebSocket running on ws://localhost: ${res.address().port}`);
 }
 bootstrap();

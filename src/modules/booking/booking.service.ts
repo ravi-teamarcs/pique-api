@@ -12,6 +12,8 @@ import { DateTimeChangeDto } from '../venue/dto/change-booking.dto';
 import { Venue } from '../venue/entities/venue.entity';
 import { BookingRequest } from './entities/changeReq.entity';
 import { ReqBookingDto } from './dto/request-booking.dto';
+import { ResponseDto } from './dto/booking-response-dto';
+import { BookingLog } from './entities/booking-log.entity';
 
 @Injectable()
 export class BookingService {
@@ -22,11 +24,13 @@ export class BookingService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(BookingRequest)
     private readonly reqRepository: Repository<BookingRequest>,
+    @InjectRepository(BookingLog)
+    private readonly logRepository: Repository<BookingLog>,
   ) {}
 
   async createBooking(createBookingDto: CreateBookingDto, userId: number) {
     const { entertainerId, ...bookingData } = createBookingDto;
-
+    console.log('Booking Dto', createBookingDto);
     // Create the booking
 
     const newBooking = this.bookingRepository.create({
@@ -34,7 +38,7 @@ export class BookingService {
       venueUser: { id: userId },
       entertainerUser: { id: entertainerId },
     });
-
+    console.log('New Booking', newBooking);
     // Save the booking
     if (!newBooking) {
       throw new Error('Failed to create booking');
@@ -42,11 +46,18 @@ export class BookingService {
 
     // changes must be there
     const savedBooking = await this.bookingRepository.save(newBooking);
-
+    console.log('Saved Booking', savedBooking);
     if (!savedBooking) {
       throw new InternalServerErrorException('Failed to save Booking');
     }
-
+    const payload = {
+      bookingId: savedBooking.id,
+      status: savedBooking.status,
+      user: savedBooking.venueUser.id,
+      performedBy: 'venue',
+    };
+    const log = await this.generateBookingLog(payload);
+    console.log('booking log', log);
     return {
       message: 'Booking created successfully',
       booking: bookingData,
@@ -54,36 +65,54 @@ export class BookingService {
     };
   }
 
-  async handleBookingResponse(role, payload) {
-    // console.log('Booking Service', role, payload);
-    const { bookingId, ...data } = payload;
-    if (role === 'entertainer') {
-      const booking = await this.bookingRepository.update(
-        { id: bookingId },
-        data,
-      );
-      if (!booking.affected) {
-        throw new NotFoundException({
-          message: 'Booking not found',
-          status: false,
-        });
-      }
+  async handleBookingResponse(
+    role: string,
+    payload: ResponseDto,
+    userId: number,
+  ) {
+    const { bookingId, status } = payload;
+
+    const booking = await this.bookingRepository.findOne({
+      where: { id: bookingId },
+    });
+    if (!booking) {
+      throw new NotFoundException({
+        message: 'Booking not found',
+        status: false,
+      });
     }
 
-    if (role === 'venue') {
-      const booking = await this.bookingRepository.update(
-        { id: bookingId },
-        data,
-      );
-      if (!booking.affected) {
-        throw new NotFoundException({
-          message: 'Booking not found',
-          status: false,
-        });
-      }
+    if (role === 'entertainer' && booking.status !== 'pending') {
+      return {
+        message: 'You have already responded to this booking',
+        status: false,
+      };
     }
 
-    return { message: 'Response registered successfully', status: true };
+    const updatedBooking = await this.bookingRepository.update(
+      { id: booking.id },
+      { status },
+    );
+    if (!updatedBooking.affected) {
+      throw new NotFoundException({
+        message: 'Booking not found',
+        status: false,
+      });
+    }
+
+    const log = await this.generateBookingLog({
+      bookingId,
+      status: status,
+      user: userId,
+      performedBy: role,
+    });
+
+    console.log('booking log', log);
+
+    return {
+      message: `Request ${status} successfully`,
+      status: true,
+    };
   }
 
   async handleChangeRequest(
@@ -182,5 +211,18 @@ export class BookingService {
     await this.reqRepository.save(request);
 
     return { message: 'response registered Successfully', status: 'true' };
+  }
+
+  private async generateBookingLog(payload) {
+    const { bookingId, user, status, performedBy } = payload;
+
+    const log = this.logRepository.create({
+      ...payload,
+      date: new Date(),
+    });
+
+    await this.logRepository.save(log);
+
+    return { message: 'Log generated Successfully', status: true };
   }
 }

@@ -14,10 +14,15 @@ import {
 } from '@nestjs/common';
 import { MediaService } from './media.service';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { FileFieldsInterceptor } from '@nestjs/platform-express';
+import {
+  AnyFilesInterceptor,
+  FileFieldsInterceptor,
+} from '@nestjs/platform-express';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { MediaDto } from './dto/update-media.dto';
+import { typeMap } from 'src/common/constants/media.constants';
+import { UploadedFile } from 'src/common/types/media.type';
 
 @ApiTags('Media')
 @Controller('media')
@@ -29,78 +34,58 @@ export class MediaController {
   @ApiResponse({ status: 201, description: 'Media uploaded successfully.' })
   @Post('uploads')
   @UseInterceptors(
-    FileFieldsInterceptor(
-      [
-        { name: 'images', maxCount: 2 },
-        { name: 'videos', maxCount: 4 },
-        { name: 'headshot', maxCount: 1 },
-      ],
-      {
-        fileFilter: (req, file, callback) => {
-          if (file.fieldname === 'videos' && file.size > 500 * 1024 * 1024) {
-            // 500 MB in bytes
-            return callback(
-              new BadRequestException('Video file size cannot exceed 500 MB'),
-              false,
-            );
-          }
-          callback(null, true);
-        },
+    AnyFilesInterceptor({
+      fileFilter: (req, file, callback) => {
+        // Check file type from typeMap
+        const fileType = typeMap[file.fieldname];
+
+        if (!fileType) {
+          return callback(
+            new BadRequestException({
+              message: 'Invalid file field name',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        // Restrict video file size to 500MB
+        if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
+          return callback(
+            new BadRequestException({
+              message: 'Video file size cannot exceed 500 MB',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        callback(null, true);
       },
-    ),
+    }),
   )
   async uploadMedia(
     @Req() req: any,
-    @UploadedFiles()
-    files: {
-      images?: Express.Multer.File[];
-      videos?: Express.Multer.File[];
-      headshot?: Express.Multer.File[];
-    },
+    @UploadedFiles() files: Array<Express.Multer.File>,
     @Body() body,
   ) {
-    const uploadedFiles = [];
+    const uploadedFiles: UploadedFile[] = [];
 
-    const userId = req.user.userId;
+    const { userId } = req.user;
     const venueId =
       body.venueId === undefined ? body.venueId : Number(body.venueId);
-
-    if (files.images) {
-      for (const file of files.images) {
-        const filePath = await uploadFile(file); // Call the upload function
-        const fileObj = {
-          url: filePath,
-          name: file.originalname,
-          type: 'image',
-        };
-        uploadedFiles.push(fileObj); // Push the constructed object to the array
-      }
+    if (files.length > 0) {
+      const uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: typeMap[file.fieldname],
+          };
+        }),
+      );
     }
-
-    // // Handle videos
-    if (files.videos) {
-      for (const file of files.videos) {
-        const filePath = await uploadFile(file); // Call the upload function
-        const fileObj = {
-          url: filePath,
-          name: file.originalname,
-          type: 'video',
-        };
-        uploadedFiles.push(fileObj); // Push the constructed object to the array
-      }
-    }
-    if (files.headshot) {
-      for (const file of files.headshot) {
-        const filePath = await uploadFile(file); // Call the upload function
-        const fileObj = {
-          url: filePath,
-          name: file.originalname,
-          type: 'headshot',
-        };
-        uploadedFiles.push(fileObj); // Push the constructed object to the array
-      }
-    }
-
     return this.mediaService.handleMediaUpload(userId, uploadedFiles, venueId);
   }
 
@@ -110,7 +95,7 @@ export class MediaController {
   })
   @ApiResponse({ status: 200, description: 'Multimedia fetched Successfully.' })
   getAllMedia(@Req() req: any, @Query('venueId') venueId?: number) {
-    const userId = req.user.userId; // Replace with actual user id
+    const { userId } = req.user;
     return this.mediaService.findAllMedia(userId, venueId);
   }
 
@@ -170,19 +155,37 @@ export class MediaController {
     const { fieldname } = file;
     const filePath = await uploadFile(file); // Call the upload function
 
-    const typeMap = {
-      images: 'image',
-      videos: 'video',
-      headshot: 'headshot',
-    };
-
     const uploadedFile = {
       url: filePath,
       name: file.originalname,
       type: typeMap[fieldname],
     };
 
-    console.log(uploadedFile);
+    // console.log(uploadedFile);
     // return this.mediaService.updateMedia(Number(mediaId), userId, uploadedFile);
+  }
+
+  @Post('photo')
+  @UseInterceptors(AnyFilesInterceptor())
+  async testingMedia(@UploadedFiles() files: Array<Express.Multer.File>) {
+    const newUploadedFiles = [];
+    const typeMap = {
+      images: 'image',
+      videos: 'video',
+      headshot: 'headshot',
+    };
+    files.length > 0 &&
+      files.map(async (file) => {
+        const filePath = await uploadFile(file); // Call the upload function
+        const fileObj = {
+          url: filePath,
+          name: file.originalname,
+          type: typeMap[file.fieldname],
+        };
+        // uploadedFiles.push(fileObj);
+
+        newUploadedFiles.push(fileObj);
+        console.log(`new Files`, newUploadedFiles);
+      });
   }
 }

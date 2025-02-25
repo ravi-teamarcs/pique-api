@@ -57,4 +57,11 @@ export class AuthController {
       status: true,
     }; // Returns the user data from the JWT token
   }
+
+  @Post('logout')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  logout() {
+    return { message: 'Logged out successfully.', data: null, status: true };
+  }
 }

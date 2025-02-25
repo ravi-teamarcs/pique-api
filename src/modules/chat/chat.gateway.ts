@@ -10,7 +10,16 @@ import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { JoinDto } from './dto/chat-join.dto';
 
-@WebSocketGateway({ cors: true })
+@WebSocketGateway({
+  path: '/piqueapi/', // This sets the WebSocket server path to /piqueapi
+  cors: {
+    origin: 'https://dev.teamarcs.com', // Allowing your frontend domain
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true,
+  },
+  transports: ['websocket'],
+})
 export class ChatGateway implements OnGatewayDisconnect {
   @WebSocketServer() server: Server;
   private activeUsers = new Map<string, string>(); // socketId -> userId mapping
@@ -96,7 +105,7 @@ export class ChatGateway implements OnGatewayDisconnect {
     return undefined;
   }
 
-  // 🔴 When a user disconnects, remove them from the active users map
+  //  When a user disconnects, remove them from the active users map
   handleDisconnect(client: Socket) {
     const userId = this.activeUsers.get(client.id);
 

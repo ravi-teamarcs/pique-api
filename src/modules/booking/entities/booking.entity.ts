@@ -7,7 +7,6 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
-  JoinColumn,
 } from 'typeorm';
 
 @Entity('booking')
@@ -23,6 +22,9 @@ export class Booking {
 
   @Column({ nullable: false })
   venueId: number;
+
+  @Column({ nullable: false })
+  eventId: number;
 
   @Column({
     type: 'enum',
@@ -46,10 +48,10 @@ export class Booking {
     | 'rescheduled';
 
   @Column({ type: 'time' })
-  showTime: string;
+  showTime: Date;
 
   @Column({ type: 'date' })
-  showDate: string;
+  showDate: Date;
 
   @Column({
     type: 'enum',

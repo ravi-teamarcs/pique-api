@@ -4,17 +4,20 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Booking } from '../booking/entities/booking.entity';
 import { VenueEvent } from './entities/event.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { Venue } from '../venue/entities/venue.entity';
 
 @Injectable()
 export class EventService {
   constructor(
     @InjectRepository(VenueEvent)
     private readonly eventRepository: Repository<VenueEvent>,
+    @InjectRepository(Venue)
+    private readonly venueRepository: Repository<Venue>,
   ) {}
 
   async createEvent(createEventDto: CreateEventDto, userId: number) {
@@ -50,11 +53,33 @@ export class EventService {
   }
 
   async getAllEvents(userId: number) {
-    const events = await this.eventRepository.find({
-      where: { userId },
-      order: { createdAt: 'DESC' },
-    });
-
-    return { message: 'Events fetched successfully', events, status: true };
+    const [events, totalCount] = await this.eventRepository
+      .createQueryBuilder('event')
+      .where(
+        'event.venueId IN ' +
+          `(SELECT venue.id FROM venue WHERE venue.userId = :userId)`,
+        { userId },
+      )
+      .orderBy('event.createdAt', 'DESC')
+      .select([
+        'event.id',
+        'event.title',
+        'event.location',
+        'event.userId',
+        'event.venueId',
+        'event.description',
+        'event.startTime',
+        'event.endTime',
+        'event.recurring',
+        'event.status',
+        'event.isAdmin',
+      ])
+      .getManyAndCount();
+    return {
+      message: 'Events fetched successfully',
+      count: totalCount,
+      data: events,
+      status: true,
+    };
   }
 }

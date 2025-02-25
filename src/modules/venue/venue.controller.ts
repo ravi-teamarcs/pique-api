@@ -31,8 +31,9 @@ import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
 import { UpdateVenueDto } from './dto/update-venue.dto';
 import { BookingService } from '../booking/booking.service';
 import { CreateBookingDto } from '../booking/dto/create-booking.dto';
-import { VenueResponseDto } from '../booking/dto/booking-response-dto';
+import { ResponseDto } from '../booking/dto/booking-response-dto';
 import { DateTimeChangeDto } from './dto/change-booking.dto';
+import { VenueLocationDto } from './dto/add-location.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -50,7 +51,7 @@ export class VenueController {
   @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async create(@Body() createVenueDto: CreateVenueDto, @Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.venueService.create(createVenueDto, userId);
   }
 
@@ -59,7 +60,7 @@ export class VenueController {
   @ApiOperation({ summary: 'Get all venues for logged-in user' })
   @ApiResponse({ status: 200, description: 'List of venues.', type: Venue })
   async findAll(@Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.venueService.findAllByUser(userId);
   }
 
@@ -68,10 +69,10 @@ export class VenueController {
   @ApiOperation({ summary: 'Get a single venue by ID' })
   @ApiResponse({ status: 200, description: 'Venue details.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async findOne(@Param('id') id: number, @Request() req) {
-    const userId = req.user.userId;
+  async findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    const { userId } = req.user;
 
-    return this.venueService.findOneByUser(id, userId);
+    return this.venueService.findVenueLocation(id, userId);
   }
 
   @Get('search/entertainers')
@@ -102,8 +103,7 @@ export class VenueController {
     status: 404,
     description: 'Cannot get entertainers.',
   })
-  GetEntertainerDetails(@Param('id') userId: number) {
-    console.log('Controller Detail', userId);
+  GetEntertainerDetails(@Param('id', ParseIntPipe) userId: number) {
     return this.venueService.findEntertainerDetails(Number(userId));
   }
 
@@ -116,7 +116,7 @@ export class VenueController {
   @Post('createbooking')
   @Roles('findAll')
   createBooking(@Body() createBookingDto: CreateBookingDto, @Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.bookingService.createBooking(createBookingDto, userId);
   }
 
@@ -139,10 +139,10 @@ export class VenueController {
   })
   @Patch('booking/response')
   @Roles('findAll')
-  bookingResponse(@Body() venueResponseDto: VenueResponseDto, @Request() req) {
-    const role = req.user.role;
-    venueResponseDto['statusDate'] = new Date();
-    return this.bookingService.handleBookingResponse(role, venueResponseDto);
+  bookingResponse(@Body() resDto: ResponseDto, @Request() req) {
+    const { role, userId } = req.user;
+    // venueResponseDto['statusDate'] = new Date();
+    return this.bookingService.handleBookingResponse(role, resDto, userId);
   }
 
   @ApiOperation({ summary: 'Update details of venue.' })
@@ -163,7 +163,7 @@ export class VenueController {
   })
   @Delete(':id')
   @Roles('findAll')
-  remove(@Param('id') id: number, @Request() req) {
+  remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
     const userId = req.user.userId;
     return this.venueService.handleRemoveVenue(Number(id), userId);
   }
@@ -174,5 +174,28 @@ export class VenueController {
     const userId = req.user.userId;
 
     return this.bookingService.handleChangeRequest(dateTimeChangeDto, userId);
+  }
+
+  @ApiOperation({ summary: 'Get search suggestions based on category' })
+  @ApiResponse({
+    status: 200,
+    description: 'Search suggestions fetched successfully.',
+  })
+  @Get('search/suggestion/cat')
+  @Roles('findAll')
+  async getSuggestions(@Query('q') query: string) {
+    return this.venueService.getSearchSuggestions(query);
+  }
+  @Get('search/category/:id')
+  @Roles('findAll')
+  getEntertainerByCategory(@Param('id') cid: number) {
+    return this.venueService.getAllEntertainersByCategory(cid);
+  }
+
+  @Post('/location/add')
+  @Roles('findAll')
+  addLocation(@Body() locationDto: VenueLocationDto, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.addVenueLocation(userId, locationDto);
   }
 }

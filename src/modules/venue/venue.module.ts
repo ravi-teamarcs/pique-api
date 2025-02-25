@@ -11,6 +11,7 @@ import { Role } from '../auth/entities/role.entity';
 import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Media } from '../media/entities/media.entity';
+import { Category } from '../entertainer/entities/categories.entity';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { Media } from '../media/entities/media.entity';
       Access,
       EndPoints,
       Media,
+      Category,
     ]),
     BookingModule,
   ],

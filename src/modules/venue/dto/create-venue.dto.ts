@@ -3,11 +3,11 @@ import {
   IsNotEmpty,
   IsString,
   IsOptional,
-  IsUrl,
   IsEmail,
   IsNumber,
   Min,
   Max,
+  IsBoolean,
 } from 'class-validator';
 
 export class CreateVenueDto {
@@ -73,14 +73,14 @@ export class CreateVenueDto {
   @IsNotEmpty()
   country: number;
   @ApiProperty({ example: 101.34, description: 'longitude' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(-90)
   @Max(90)
   lat: number;
 
   @ApiProperty({ example: 43.553, description: 'latitude' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber({ maxDecimalPlaces: 6 })
   @Min(-180)
   @Max(180)
@@ -100,13 +100,18 @@ export class CreateVenueDto {
   @IsOptional()
   websiteUrl?: string;
 
-  // @ApiProperty({ example: '12:30', description: 'Timings of  Venue ' })
-  // @IsString()
-  // @IsOptional()
-  // timings?: string;
-
-  @ApiProperty({ example: 'yes we have', description: 'Booking Policies' })
+  @ApiProperty({ example: 'Yes we have', description: 'Booking Policies' })
   @IsString()
   @IsOptional()
   bookingPolicies?: string;
+
+  //   @ApiProperty({ example: true, description: 'Is venue Booking Venue' })
+  //   @IsBoolean()
+  //   isParent: boolean;
+
+  //   @ApiProperty({
+  //     example: 9,
+  //     description: 'Parent venue Id',
+  //   })
+  //   parentId: number | null;
 }

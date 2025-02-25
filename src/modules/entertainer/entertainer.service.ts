@@ -14,6 +14,7 @@ import { User } from '../users/entities/users.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { Category } from './entities/categories.entity';
+import { Media } from '../media/entities/media.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -28,6 +29,8 @@ export class EntertainerService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(Category)
     private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(Media)
+    private readonly mediaRepository: Repository<Media>,
   ) {}
 
   async create(createEntertainerDto: CreateEntertainerDto, userId: number) {
@@ -47,7 +50,8 @@ export class EntertainerService {
       user: { id: userId },
     });
 
-    const savedEntertainer = this.entertainerRepository.save(entertainer);
+    const savedEntertainer = await this.entertainerRepository.save(entertainer);
+
     return {
       message: 'Entertainer saved Successfully',
       status: true,
@@ -55,8 +59,8 @@ export class EntertainerService {
     };
   }
 
-  findAll(userId: number) {
-    const entertainers = this.entertainerRepository.find({
+  async findAll(userId: number) {
+    const entertainers = await this.entertainerRepository.find({
       where: { user: { id: userId } },
       select: [
         'id',
@@ -142,6 +146,10 @@ export class EntertainerService {
         .createQueryBuilder('booking')
         .leftJoin(Venue, 'venue', 'venue.id = booking.venueId') // Manual join since there's no relation
         .where('booking.entertainerUserId = :userId', { userId })
+        .andWhere('booking.status IN (:...statuses)', {
+          statuses: ['pending', 'confirmed'],
+        }) // Add status filter
+
         .select([
           'booking.id AS id',
           'booking.status AS status',
@@ -156,6 +164,7 @@ export class EntertainerService {
           'venue.state AS state',
           'venue.city AS city',
         ])
+        .orderBy('booking.createdAt', 'DESC') // Corrected sorting
         .getRawMany(); // Use getRawMany() since we are manually selecting fields
 
       return {
@@ -190,6 +199,31 @@ export class EntertainerService {
     return {
       message: ' Sub-categories returned Successfully ',
       categories,
+      status: true,
+    };
+  }
+
+  async getEventDetails(userId: number) {
+    const events = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoin('event', 'event', 'event.id = booking.eventId')
+      .where('booking.entertainerUserId = :userId', { userId })
+      // .andWhere('booking.status = :status', { status: 'completed' })
+      .select([
+        'booking.id AS bookingId',
+        'event.id AS eid',
+        'event.title AS title',
+        'event.location AS location',
+        'event.status AS  status',
+        'event.description AS description',
+        'event.startTime AS startTime',
+        'event.endTime AS endTime',
+      ])
+      .getRawMany();
+
+    return {
+      message: 'Events returned Successfully',
+      data: events,
       status: true,
     };
   }

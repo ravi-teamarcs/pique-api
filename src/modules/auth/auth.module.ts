@@ -12,14 +12,19 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Role } from './entities/role.entity';
 import { Access } from './entities/access.entity';
 import { EndPoints } from './entities/endpoint.entity';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
   imports: [
     PassportModule,
-    JwtModule.register({
-      secret: process.env.JWT_SECRET || 'defaultSecretKey',
-      signOptions: { expiresIn: '1h' },
-    }),
+    JwtModule.registerAsync({
+          imports: [ConfigModule], // ✅ Import ConfigModule here
+          inject: [ConfigService],
+          useFactory: async (configService: ConfigService) => ({
+            secret: configService.get<string>('JWT_SECRET') || 'admin',
+            signOptions: { expiresIn: '1d' },
+          }),
+        }),
     TypeOrmModule.forFeature([
       User,
       Venue,

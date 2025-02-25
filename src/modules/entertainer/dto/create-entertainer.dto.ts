@@ -54,7 +54,7 @@ export class CreateEntertainerDto {
 
   @ApiProperty({
     example: 'solo',
-    description: ' Role of entertainer (soloist , duo , trio)',
+    description: 'Role of entertainer (soloist , duo , trio)',
   })
   @IsEnum(PerformanceType)
   @IsNotEmpty()
