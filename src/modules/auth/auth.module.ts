@@ -18,13 +18,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
   imports: [
     PassportModule,
     JwtModule.registerAsync({
-          imports: [ConfigModule], // ✅ Import ConfigModule here
-          inject: [ConfigService],
-          useFactory: async (configService: ConfigService) => ({
-            secret: configService.get<string>('JWT_SECRET') || 'admin',
-            signOptions: { expiresIn: '1d' },
-          }),
-        }),
+      imports: [ConfigModule], // ✅ Import ConfigModule here
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') || 'admin',
+        signOptions: { expiresIn: '1d' },
+      }),
+    }),
     TypeOrmModule.forFeature([
       User,
       Venue,

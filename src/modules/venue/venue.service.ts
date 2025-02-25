@@ -40,7 +40,7 @@ export class VenueService {
     const venueExists = await this.venueRepository.findOne({
       where: { user: { id: userId } },
     });
-      console.log("venue exists" , venueExists)
+    console.log('venue exists', venueExists);
     if (venueExists) {
       throw new BadRequestException({
         message: 'Venue already exists for the user',
@@ -73,11 +73,11 @@ export class VenueService {
         'state',
         'zipCode',
         'country',
-        'lat',
-        'long',
-        'amenities',
-        'websiteUrl',
-        'bookingPolicies',
+        // 'lat',
+        // 'long',
+        // 'amenities',
+        // 'websiteUrl',
+        // 'bookingPolicies',
         'parentId',
         'isParent',
       ],
@@ -127,13 +127,13 @@ export class VenueService {
         'state',
         'zipCode',
         'country',
-        'lat',
-        'long',
+        // 'lat',
+        // 'long',
         'parentId',
         'isParent',
-        'amenities',
-        'websiteUrl',
-        'bookingPolicies',
+        // 'amenities',
+        // 'websiteUrl',
+        // 'bookingPolicies',
       ],
     });
 
