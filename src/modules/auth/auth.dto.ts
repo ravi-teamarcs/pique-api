@@ -1,7 +1,9 @@
 import {
   IsEmail,
   IsEnum,
+  IsIn,
   IsNotEmpty,
+  IsOptional,
   IsString,
   MinLength,
 } from 'class-validator';
@@ -62,4 +64,8 @@ export class LoginDto {
   @IsString()
   @IsNotEmpty()
   password: string;
+
+  @IsOptional()
+  @IsString()
+  fcmToken?: string;
 }

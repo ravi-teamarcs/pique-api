@@ -13,16 +13,23 @@ import { Repository } from 'typeorm';
 import { Venue } from '../venue/entities/venue.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { User } from '../users/entities/users.entity';
+import { NotificationService } from '../notification/notification.service';
+import { Device } from 'src/common/types/auth.type';
+import { EmailService } from '../Email/email.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly notificationService: NotificationService,
+    private readonly emailService: EmailService,
     @InjectRepository(Venue)
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(Entertainer)
     private readonly entertainerRepository: Repository<Entertainer>,
+    @InjectRepository(User)
+    private readonly usersRepository: Repository<User>,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -55,6 +62,13 @@ export class AuthService {
       password: hashedPassword,
     });
 
+    // Sending Email to newly registerd User.
+    const payload = {
+      to: newUser.email,
+      subject: 'Registered Successfully on Pique Api',
+      message: `Hello ${newUser.name}, You have successfully registered on Pique Api`,
+    };
+    this.emailService.handleSendEmail(payload);
     return {
       message: 'User registered successfully',
       user: newUser,
@@ -62,8 +76,8 @@ export class AuthService {
     };
   }
 
-  async login(loginDto: LoginDto) {
-    const { email, password } = loginDto;
+  async login(loginDto: LoginDto, userAgent: string) {
+    const { email, password, fcmToken } = loginDto;
 
     const user = await this.usersService.findByEmail(email);
 
@@ -73,11 +87,18 @@ export class AuthService {
         HttpStatus.UNAUTHORIZED,
       );
     }
-    const completed = await this.isProfileCompleted(user);
 
     const payload = { sub: user.id, email: user.email, role: user.role };
     const token = this.jwtService.sign(payload);
+    // Checks for Profile Completion
+    const completed = await this.isProfileCompleted(user);
 
+    // Fcm Token
+    const deviceType = this.detectDevice(userAgent);
+    console.log('Device Type:', deviceType);
+    if (deviceType.toLowerCase() == 'mobile' && fcmToken) {
+      this.notificationService.storeFcmToken(user.id, fcmToken, deviceType);
+    }
     return {
       message: 'Logged in Successfully',
       access_token: token,
@@ -92,8 +113,11 @@ export class AuthService {
       },
       status: true,
     };
+  }
 
-    // Add venueCount dynamically if the user is a venue
+  async logout(fcmToken: string) {
+    await this.notificationService.removeFcmToken(fcmToken);
+    return { message: 'Logged out successfully.', status: true };
   }
 
   private async isProfileCompleted(user: User) {
@@ -112,5 +136,52 @@ export class AuthService {
     }
 
     return false;
+  }
+
+  detectDevice(userAgent: string): Device {
+    if (/mobile|android|iphone|ipad|ipod/i.test(userAgent)) {
+      return 'mobile';
+    }
+    return 'web';
+  }
+
+  async handleForgotPassword(email: string, password: string) {
+    // 1. Check if user exists
+    const existingUser = await this.usersRepository.findOne({
+      where: { email },
+    });
+
+    if (!existingUser) {
+      throw new HttpException(
+        { message: 'Email not found', error: 'Bad Request', status: false },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    try {
+      // 2. Hash the new password
+      const newHashPassword = await bcrypt.hash(password, 10);
+
+      // 3. Update the user's password
+      const updateResult = await this.usersRepository.update(
+        { id: existingUser.id },
+        { password: newHashPassword },
+      );
+
+      // 4. Ensure update was successful
+      if (updateResult.affected === 0) {
+        throw new HttpException(
+          { message: 'Password update failed', status: false },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      return { message: 'Password updated successfully', status: true };
+    } catch (error) {
+      throw new HttpException(
+        { message: 'An error occurred', error: error.message, status: false },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 }

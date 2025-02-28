@@ -5,6 +5,8 @@ import {
   UseGuards,
   Request,
   HttpCode,
+  Req,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -37,8 +39,10 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials.' })
   @Post('login')
   @HttpCode(200)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Req() req) {
+    const userAgent = req.headers['user-agent'] || '';
+
+    return this.authService.login(loginDto, userAgent);
   }
 
   @ApiBearerAuth()
@@ -61,7 +65,7 @@ export class AuthController {
   @Post('logout')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)
-  logout() {
-    return { message: 'Logged out successfully.', data: null, status: true };
+  logout(@Body('token') token: string) {
+    return this.authService.logout(token);
   }
 }

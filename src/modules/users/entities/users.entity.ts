@@ -68,9 +68,6 @@ export class User {
   @OneToMany(() => Invoice, (invoice) => invoice.customer)
   invoices: Invoice[];
 
-  @Column({ nullable: true })
-  fcmToken: string;
-
   @CreateDateColumn({ type: 'timestamp' })
   createdDate: Date;
 

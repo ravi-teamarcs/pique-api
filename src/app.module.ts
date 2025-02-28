@@ -28,6 +28,7 @@ import { AdminModule } from './modules/admin/admin.module';
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
+      
       // ✅ Injects ConfigService
       useFactory: async (configService: ConfigService) => ({
         type: 'mysql',
@@ -39,10 +40,9 @@ import { AdminModule } from './modules/admin/admin.module';
         entities: [join(process.cwd(), 'dist/**/*.entity.js')],
         logging: true,
         logger: 'advanced-console',
-        maxQueryExecutionTime: 1000, // ✅ Good for debugging slow queries
-        synchronize: false, // ❌ Set this to false in production
+        maxQueryExecutionTime: 1000, // Good for debugging slow queries
+        synchronize: true, // Set this to false in production
       }),
-      // ✅ Injects ConfigService dependency
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
