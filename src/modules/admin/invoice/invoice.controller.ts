@@ -1,29 +1,38 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req } from '@nestjs/common';
 import { Invoice, InvoiceStatus, UserType } from './Entity/invoices.entity';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
 import { InvoiceService } from './invoice.service';
 import { ApiTags } from '@nestjs/swagger';
+import { GenerateInvoiceService } from 'src/common/invoice/generateinvoice.service';
 
 @ApiTags('admin')
 @Controller('admin/invoice')
 export class InvoiceController {
-    constructor(private readonly invoiceService: InvoiceService) { }
+    constructor(private readonly invoiceService: InvoiceService,
+        private readonly geninvoiceService: GenerateInvoiceService
+    ) { }
 
     // Create a new invoice
     @Post('create')
-    async create(@Body() createInvoiceDto: CreateInvoiceDto): Promise<Invoice> {
+    async create(@Body() createInvoiceDto: CreateInvoiceDto): Promise<any> {
         return await this.invoiceService.create(createInvoiceDto);
     }
-
+    @Get('generateinvoices')
+    async generateInvoices(): Promise<void> {
+        return await this.geninvoiceService.generateInvoices();
+    }
     // Get all invoices
     @Get('getallinvoice')
-    async findAll(): Promise<Invoice[]> {
-        return await this.invoiceService.findAll();
+    async findAll(@Req() req,
+        @Query('page') page: number = 1,
+        @Query('pageSize') pageSize: number = 10,
+        @Query('search') search: string = '',): Promise<Invoice[]> {
+        return await this.invoiceService.findAll({ page, pageSize, search });
     }
 
     // Get a specific invoice by ID
     @Get('getbyid:id')
-    async findOne(@Param('id') id: number): Promise<Invoice> {
+    async findOne(@Param('id') id: number): Promise<any> {
         return await this.invoiceService.findOne(id);
     }
 
@@ -32,7 +41,7 @@ export class InvoiceController {
     async update(
         @Param('id') id: number,
         @Body() updateInvoiceDto: UpdateInvoiceDto,
-    ): Promise<Invoice> {
+    ): Promise<any> {
         return await this.invoiceService.update(id, updateInvoiceDto);
     }
 
@@ -59,7 +68,7 @@ export class InvoiceController {
     async updateStatus(
         @Param('id') id: number,
         @Body('status') status: InvoiceStatus,
-    ): Promise<Invoice> {
+    ): Promise<any> {
         return await this.invoiceService.updateStatus(id, status);
     }
 }

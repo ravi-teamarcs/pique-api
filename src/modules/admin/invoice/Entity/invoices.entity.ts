@@ -4,19 +4,18 @@ export enum UserType {
   ENTERTAINER = 'entertainer',
   VENUE = 'venue',
 }
-
 export enum InvoiceStatus {
   PENDING = 'pending',
   PAID = 'paid',
-  OVERDUE = 'overdue',
 }
+
 
 @Entity('invoices')
 export class Invoice {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 255, unique: true })
+  @Column({ type: 'varchar', unique: true })
   invoice_number: string;
 
   @Column()
@@ -37,21 +36,21 @@ export class Invoice {
   @Column({ type: 'date' })
   due_date: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({ type: 'decimal'})
   total_amount: number;
 
   @Column({ type: 'decimal', precision: 5, scale: 2 })
   tax_rate: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({ type: 'decimal'})
   tax_amount: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
+  @Column({ type: 'decimal'})
   total_with_tax: number;
 
-
-  @Column({ type: 'enum', enum: InvoiceStatus })
+  @Column({ type: 'enum', enum: ['pending', 'paid'], default: 'pending' })
   status: InvoiceStatus;
+
 
   @Column({ type: 'varchar', length: 255 })
   payment_method: string;
@@ -64,4 +63,7 @@ export class Invoice {
 
   @UpdateDateColumn()
   updated_at: Date;
+
+
+
 }

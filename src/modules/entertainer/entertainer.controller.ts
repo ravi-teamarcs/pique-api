@@ -103,11 +103,12 @@ export class EntertainerController {
     status: 200,
     description: 'Response registered Successfully',
   })
-  @Patch('booking/response')
+  @
+  Patch('booking/response')
   @Roles('findAll')
   entertainerBookingResponse(@Body() resDto: ResponseDto, @Request() req) {
     const { role, userId } = req.user;
-    // entertainerResponseDto['isAcceptedDate'] = new Date();
+
     return this.bookingService.handleBookingResponse(role, resDto, userId);
   }
 

@@ -14,6 +14,9 @@ import { BookingRequest } from './entities/changeReq.entity';
 import { ReqBookingDto } from './dto/request-booking.dto';
 import { ResponseDto } from './dto/booking-response-dto';
 import { BookingLog } from './entities/booking-log.entity';
+import { User } from '../users/entities/users.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { EmailService } from '../Email/email.service';
 
 @Injectable()
 export class BookingService {
@@ -26,11 +29,14 @@ export class BookingService {
     private readonly reqRepository: Repository<BookingRequest>,
     @InjectRepository(BookingLog)
     private readonly logRepository: Repository<BookingLog>,
+    @InjectRepository(Entertainer)
+    private readonly entRepository: Repository<Entertainer>,
+    private readonly emailService: EmailService,
   ) {}
 
   async createBooking(createBookingDto: CreateBookingDto, userId: number) {
     const { entertainerId, ...bookingData } = createBookingDto;
-    console.log('Booking Dto', createBookingDto);
+
     // Create the booking
 
     const newBooking = this.bookingRepository.create({
@@ -38,7 +44,7 @@ export class BookingService {
       venueUser: { id: userId },
       entertainerUser: { id: entertainerId },
     });
-    console.log('New Booking', newBooking);
+
     // Save the booking
     if (!newBooking) {
       throw new Error('Failed to create booking');
@@ -46,31 +52,52 @@ export class BookingService {
 
     // changes must be there
     const savedBooking = await this.bookingRepository.save(newBooking);
-    console.log('Saved Booking', savedBooking);
+
     if (!savedBooking) {
       throw new InternalServerErrorException('Failed to save Booking');
     }
+    const entUserId = savedBooking.entertainerUser.id;
 
-    // const emailPayload = {
-    //   to: newUser.email,
-    //   subject: 'New Booking Request',
+    const user = await this.entRepository
+      .createQueryBuilder('entertainer')
+      .leftJoinAndSelect('entertainer.user', 'user')
+      .select(['entertainer.name AS name', 'user.email AS email'])
+      .where('user.id = :id', { id: entUserId })
+      .getRawOne();
 
-    //   templateName: 'booking-request.html',
-    //   replacements: {
-    //     entertainerName
-    //     bookingDate: newUser.name,
-    //     bookingTime: newUser.email,
-    //     venueLocation:
-    //   },
-    // };
+    const venue = await this.venueRepository.findOne({
+      where: { id: savedBooking.venueId },
+      select: ['name', 'email', 'phone', 'addressLine1', 'addressLine2'],
+    });
+
+    const emailPayload = {
+      to: user.email,
+      subject: 'New Booking Request',
+      templateName: 'booking-request.html',
+
+      replacements: {
+        venueName: venue.name,
+        entertainerName: user.name,
+        bookingDate: savedBooking.showDate,
+        bookingTime: savedBooking.showTime,
+        vname: venue.name,
+        vemail: venue.email,
+        vphone: venue.phone,
+        Address: `${venue.addressLine1}, ${venue.addressLine2}`,
+      },
+    };
+
+    this.emailService.handleSendEmail(emailPayload);
+
     const payload = {
       bookingId: savedBooking.id,
       status: savedBooking.status,
       user: savedBooking.venueUser.id,
       performedBy: 'venue',
     };
-    const log = await this.generateBookingLog(payload);
-    console.log('booking log', log);
+
+    this.generateBookingLog(payload);
+
     return {
       message: 'Booking created successfully',
       booking: bookingData,
@@ -85,9 +112,20 @@ export class BookingService {
   ) {
     const { bookingId, status } = payload;
 
-    const booking = await this.bookingRepository.findOne({
-      where: { id: bookingId },
-    });
+    const booking = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.entertainerUser', 'entertainerUser')
+      .select([
+        'booking.id AS id',
+        'booking.status AS status',
+        'booking.venueId AS vid',
+        'booking.showTime AS showTime',
+        'booking.showDate AS showDate',
+        'entertainerUser.id AS eid ',
+      ])
+      .where('booking.id = :id', { id: bookingId })
+      .getRawOne();
+
     if (!booking) {
       throw new NotFoundException({
         message: 'Booking not found',
@@ -112,6 +150,41 @@ export class BookingService {
         status: false,
       });
     }
+
+    const id = booking.vid;
+    const venueDetails = await this.venueRepository
+      .createQueryBuilder('venue')
+      .leftJoinAndSelect('venue.user', 'user')
+      .select(['venue.name AS vname', 'user.email AS "email"']) // Correct aliasing
+      .where('venue.id = :id', { id })
+      .getRawOne();
+    console.log('Venue Details', venueDetails);
+    const entUserId = booking.eid;
+    const entDetails = await this.entRepository
+      .createQueryBuilder('entertainer')
+      .leftJoinAndSelect('entertainer.user', 'user')
+      .select(['entertainer.name AS ename', 'user.email AS email'])
+      .where('user.id = :id', { id: entUserId })
+      .getRawOne();
+
+    const emailPayload = {
+      to: role === 'entertainer' ? venueDetails.email : entDetails.email,
+      subject: `Booking Request ${status}`,
+      templateName:
+        role === 'entertainer'
+          ? 'request-accepted.html'
+          : 'confirmed-booking.html',
+
+      replacements: {
+        venueName: venueDetails.vname,
+        entertainerName: entDetails.ename,
+        id: booking.id,
+        bookingTime: booking.showTime,
+        bookingDate: booking.showDate,
+      },
+    };
+
+    this.emailService.handleSendEmail(emailPayload);
 
     const log = await this.generateBookingLog({
       bookingId,

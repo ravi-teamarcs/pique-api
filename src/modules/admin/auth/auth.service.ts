@@ -9,63 +9,61 @@ import { Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
 @Injectable()
 export class AuthService {
-  constructor(
-    @InjectRepository(AdminUser)
-    private readonly adminUserRepository: Repository<AdminUser>,
+    constructor(
+        @InjectRepository(AdminUser)
+        private readonly adminUserRepository: Repository<AdminUser>,
 
-    @InjectRepository(Role)
-    private readonly roleRepository: Repository<Role>,
-    private jwtService: JwtService,
-  ) {}
+        @InjectRepository(Role)
+        private readonly roleRepository: Repository<Role>,
+        private jwtService: JwtService,) { }
 
-  async createAdminUser(
-    createAdminUserDto: CreateAdminUserDto,
-  ): Promise<AdminUser> {
-    const { password } = createAdminUserDto;
 
-    // Hash the password before saving
-    const hashedPassword = await bcrypt.hash(password, 10);
+    async createAdminUser(createAdminUserDto: CreateAdminUserDto): Promise<AdminUser> {
+        const { password } = createAdminUserDto;
 
-    // Create the admin user record
-    const adminUser = this.adminUserRepository.create({
-      ...createAdminUserDto,
-      password: hashedPassword,
-    });
+        // Hash the password before saving
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Save to database
-    await this.adminUserRepository.save(adminUser);
+        // Create the admin user record
+        const adminUser = this.adminUserRepository.create({
+            ...createAdminUserDto,
+            password: hashedPassword,
+        });
 
-    return adminUser;
-  }
+        // Save to database
+        await this.adminUserRepository.save(adminUser);
 
-  async adminlogin(adminlogin: LoginDto): Promise<any> {
-    const { email, password } = adminlogin;
-
-    // Find the user by email
-    const user = await this.adminUserRepository.findOne({ where: { email } });
-    if (!user) {
-      throw new BadRequestException('Invalid email or password');
-    }
-    // Compare provided password with stored hashed password
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      throw new BadRequestException('Invalid email or password');
+        return adminUser;
     }
 
-    const userrole = await this.roleRepository.findOne({
-      where: { id: Number(user.role) },
-    });
+    async adminlogin(adminlogin: LoginDto): Promise<any> {
+        const { email, password } = adminlogin;
 
-    const payload = {
-      sub: user.id,
-      email: user.email,
-      role: user.role,
-    };
+        // Find the user by email
+        const user = await this.adminUserRepository.findOne({ where: { email } });
+        if (!user) {
+            throw new BadRequestException('Invalid email or password');
+        }
+        // Compare provided password with stored hashed password
+        const validPassword = await bcrypt.compare(password, user.password);
+        if (!validPassword) {
+            throw new BadRequestException('Invalid email or password');
+        }
 
-    const role = userrole.role_name;
 
-    const token = this.jwtService.sign(payload);
+        const userrole = await this.roleRepository.findOne({ where: { id: Number(user.role) } });
 
-    return { access_token: token, user, role };
-  }
+
+
+        const payload = {
+            sub: user.id, email: user.email,
+            role: user.role
+        };
+
+        const role = userrole.role_name;
+
+        const token = this.jwtService.sign(payload);
+
+        return { access_token: token, user, role };
+    }
 }

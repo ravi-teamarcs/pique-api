@@ -25,5 +25,5 @@ export class EmailDto {
   templateName: string;
 
   @ApiProperty({ description: 'Replacements for the template' })
-  replacements: Record<string, string>;
+  replacements: Record<string, any>;
 }

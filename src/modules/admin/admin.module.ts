@@ -34,10 +34,11 @@ import { InvoiceMod } from './invoice/invoice.module';
 import { EventsModule } from './events/events.module';
 import { Booking } from '../booking/entities/booking.entity';
 import { Event } from './events/Entity/event.entity';
+import { GenerateInvoiceService } from 'src/common/invoice/generateinvoice.service';
 
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Venue, User, AdminUser, Capability, RoleCapability, Role, Entertainer, Media, Countries, Cities, States, Invoice,Event,Booking]),
+  imports: [TypeOrmModule.forFeature([Venue, User, AdminUser, Capability, RoleCapability, Role, Entertainer, Media, Countries, Cities, States, Invoice, Event, Booking]),
     AuthModule,
     VenueModule,
     EntertainerModule,
@@ -49,6 +50,7 @@ import { Event } from './events/Entity/event.entity';
     EventsModule
   ],
   controllers: [AdminController],
-  providers: [AdminService],
+  providers: [AdminService]
+
 })
 export class AdminModule { }
