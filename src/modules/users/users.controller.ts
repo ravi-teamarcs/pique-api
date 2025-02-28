@@ -139,33 +139,4 @@ export class UsersController {
 
     return this.usersService.handleGetUserProfile(userId, role);
   }
-
-  // @Put('update/profile')
-  // @UseGuards(JwtAuthGuard)
-  // @ApiOperation({ summary: 'Update user Profile' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'The user Profile has been Successfully updated .',
-  // })
-  // updateUserprofile(@Body() updateProfileDto: UpdateProfileDto, @Req() req) {
-  //   const { userId, role } = req.user;
-
-  //   return this.usersService.handleUpdateUserProfile(
-  //     updateProfileDto,
-  //     userId,
-  //     role,
-  //   );
-  // }
-
-  @Post('fcm-token')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Stores a  fcm token.' })
-  @ApiResponse({
-    status: 201,
-    description: 'The token is  stored  successfully .',
-  })
-  async updateFCMToken(@Body() body: { fcmToken: string }, @Req() req) {
-    const { userId } = req.user;
-    return this.usersService.updateFCMToken(userId, body.fcmToken);
-  }
 }

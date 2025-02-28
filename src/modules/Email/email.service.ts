@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 import { EmailDto } from './dto/send-email.dto';
 import { ConfigService } from '@nestjs/config';
+import { loadEmailTemplate } from '../../common/email-templates/utils/email.utils';
 
 @Injectable()
 export class EmailService {
@@ -19,14 +20,19 @@ export class EmailService {
     });
   }
   async handleSendEmail(emailDto: EmailDto) {
-    const { to, subject, message } = emailDto;
-
+    const { to, subject, templateName, replacements } = emailDto;
+    // call to get Template
+    console.log('templateName', templateName);
+    console.log('replacements', replacements);
+    const html = loadEmailTemplate(templateName, replacements);
+    console.log('html', html);
+    
     const mailOptions = {
       from: this.configService.get<string>('SMTP_FROM'), // Sender address
       to, // Recipient address
       subject, // Subject line
-      text: message, // Plain text body
-      //   html, // HTML body (optional)
+      // text: message,  Plain text body
+      html,
     };
     try {
       const res = await this.transporter.sendMail(mailOptions);

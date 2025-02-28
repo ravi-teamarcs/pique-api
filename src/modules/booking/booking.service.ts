@@ -50,6 +50,19 @@ export class BookingService {
     if (!savedBooking) {
       throw new InternalServerErrorException('Failed to save Booking');
     }
+
+    // const emailPayload = {
+    //   to: newUser.email,
+    //   subject: 'New Booking Request',
+
+    //   templateName: 'booking-request.html',
+    //   replacements: {
+    //     entertainerName
+    //     bookingDate: newUser.name,
+    //     bookingTime: newUser.email,
+    //     venueLocation:
+    //   },
+    // };
     const payload = {
       bookingId: savedBooking.id,
       status: savedBooking.status,

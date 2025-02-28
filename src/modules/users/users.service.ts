@@ -237,9 +237,4 @@ export class UsersService {
 
   //   return { message: 'User Profile updated successfully' };
   // }
-
-  async updateFCMToken(userId: number, fcmToken: string) {
-    // await this.userRepository.update(userId, { fcmToken });
-    return { message: 'FCM token updated successfully', status: true };
-  }
 }

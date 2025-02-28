@@ -66,8 +66,13 @@ export class AuthService {
     const payload = {
       to: newUser.email,
       subject: 'Registered Successfully on Pique Api',
-      message: `Hello ${newUser.name}, You have successfully registered on Pique Api`,
+      // message: `Hello ${newUser.name}, You have successfully registered on Pique Api`,
+      templateName: 'new-user.html',
+      replacements: {
+        userName: newUser.name,
+      },
     };
+
     this.emailService.handleSendEmail(payload);
     return {
       message: 'User registered successfully',
