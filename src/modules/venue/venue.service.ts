@@ -127,127 +127,13 @@ export class VenueService {
         'state',
         'zipCode',
         'country',
-        // 'lat',
-        // 'long',
         'parentId',
         'isParent',
-        // 'amenities',
-        // 'websiteUrl',
-        // 'bookingPolicies',
       ],
     });
 
-    // if (!venue) {
-    //   throw new NotFoundException({
-    //     message: 'Venue not found',
-    //     error: 'Not Found',
-    //     status: false,
-    //   });
-    // }
-
     return { message: 'Venue fetched successfully', data: venue, status: true };
   }
-  // My code
-
-  // async findAllEntertainers(query: SearchEntertainerDto) {
-  //   const {
-  //     availability = '',
-  //     category = '',
-  //     search = '',
-  //     page = 1,
-  //     pageSize = 10,
-  //   } = query;
-
-  //   // Number of records per page
-  //   const skip = (Number(page) - 1) * Number(pageSize); // Calculate offset
-
-  //   const res = this.entertainerRepository
-  //     .createQueryBuilder('entertainer')
-  //     .leftJoinAndSelect('entertainer.user', 'user')
-  //     .select([
-  //       'entertainer.id AS id',
-  //       'user.id AS eid',
-  //       'entertainer.name AS name',
-  //       'entertainer.category AS category',
-  //       'entertainer.specific_category AS specific_category',
-  //       'entertainer.performanceRole AS performanceRole',
-  //       'entertainer.pricePerEvent AS pricePerEvent',
-  //       'entertainer.vaccinated AS vaccinated',
-  //       'entertainer.availability AS availability',
-  //       'entertainer.status AS status',
-  //       'user.email AS email', // Example: More control over user relation
-  //     ]);
-
-  //   if (availability) {
-  //     res.andWhere('entertainer.availability = :availability', {
-  //       availability,
-  //     });
-  //   }
-
-  //   // Apply `type` filter if provided
-  //   if (category) {
-  //     res.andWhere('entertainer.category = :category', { category });
-  //   }
-
-  //   // Apply search filter if provided (searches across multiple fields)
-  //   if (search.trim() !== '') {
-  //     res.andWhere(
-  //       `(entertainer.name LIKE :search OR
-  //           entertainer.category LIKE :search OR
-  //           entertainer.bio LIKE :search OR
-  //           entertainer.performanceRole LIKE :search OR
-  //           entertainer.phone1 LIKE :search OR
-  //           entertainer.phone2 LIKE :search OR
-  //           entertainer.status LIKE :search OR
-  //           user.email LIKE :search)`, // Example: Searching user email too
-  //       { search: `%${search}%` },
-  //     );
-  //   }
-
-  //   // Get total count before pagination
-  //   const totalCount = await res.getCount();
-
-  //   // // Apply pagination
-  //   const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
-
-  //   const entertainers = await Promise.all(
-  //     results.map(async (item) => {
-  //       const userId = item.eid;
-
-  //       const bookings = await this.bookingRepository.find({
-  //         where: { entertainerUser: { id: item.eid }, status: 'confirmed' },
-  //         select: ['showDate', 'showTime'],
-  //       });
-
-  //       const media = await this.mediaRepository
-  //         .createQueryBuilder('media')
-  //         .select([
-  //           'media.id AS id',
-  //           `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
-  //           'media.type AS type',
-  //           'media.name  AS name',
-  //         ])
-  //         .where('media.userId = :userId', { userId })
-  //         .getRawMany();
-
-  //       return {
-  //         ...item,
-  //         media,
-  //         bookedFor: bookings,
-  //       };
-  //     }),
-  //   );
-
-  //   return {
-  //     message: 'Entertainers fetched Sucessfully',
-  //     totalCount,
-  //     page,
-  //     pageSize, // Records per Page
-  //     totalPages: Math.ceil(totalCount / Number(pageSize)),
-  //     entertainers,
-  //     status: true,
-  //   };
-  // }
 
   // To find Booking related to Venue user
   async findAllEntertainers(query: SearchEntertainerDto) {

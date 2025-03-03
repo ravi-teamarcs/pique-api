@@ -28,7 +28,7 @@ import { AdminModule } from './modules/admin/admin.module';
 
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      
+
       // ✅ Injects ConfigService
       useFactory: async (configService: ConfigService) => ({
         type: 'mysql',

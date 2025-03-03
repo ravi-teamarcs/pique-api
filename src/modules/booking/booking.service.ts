@@ -115,17 +115,29 @@ export class BookingService {
     const booking = await this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoinAndSelect('booking.entertainerUser', 'entertainerUser')
+      .leftJoinAndSelect('booking.venueUser', 'venueUser')
+      .leftJoin('venue', 'venue', 'venue.id = booking.venueId') // Join venue table
       .select([
         'booking.id AS id',
         'booking.status AS status',
         'booking.venueId AS vid',
         'booking.showTime AS showTime',
         'booking.showDate AS showDate',
+
+        'entertainerUser.email AS eEmail',
+        'entertainerUser.name AS ename',
         'entertainerUser.id AS eid ',
+        'entertainerUser.phoneNumber AS ephone',
+
+        'venue.name  As  vname',
+        'venueUser.email As vemail',
+        'venueUser.phoneNumber As vphone',
+        'venueUser.id As vid',
       ])
       .where('booking.id = :id', { id: bookingId })
       .getRawOne();
 
+    console.log('Booking Response', booking);
     if (!booking) {
       throw new NotFoundException({
         message: 'Booking not found',
@@ -151,24 +163,8 @@ export class BookingService {
       });
     }
 
-    const id = booking.vid;
-    const venueDetails = await this.venueRepository
-      .createQueryBuilder('venue')
-      .leftJoinAndSelect('venue.user', 'user')
-      .select(['venue.name AS vname', 'user.email AS "email"']) // Correct aliasing
-      .where('venue.id = :id', { id })
-      .getRawOne();
-    console.log('Venue Details', venueDetails);
-    const entUserId = booking.eid;
-    const entDetails = await this.entRepository
-      .createQueryBuilder('entertainer')
-      .leftJoinAndSelect('entertainer.user', 'user')
-      .select(['entertainer.name AS ename', 'user.email AS email'])
-      .where('user.id = :id', { id: entUserId })
-      .getRawOne();
-
     const emailPayload = {
-      to: role === 'entertainer' ? venueDetails.email : entDetails.email,
+      to: role === 'entertainer' ? booking.vemail : booking.eEmail,
       subject: `Booking Request ${status}`,
       templateName:
         role === 'entertainer'
@@ -176,8 +172,8 @@ export class BookingService {
           : 'confirmed-booking.html',
 
       replacements: {
-        venueName: venueDetails.vname,
-        entertainerName: entDetails.ename,
+        venueName: booking.vname,
+        entertainerName: booking.ename,
         id: booking.id,
         bookingTime: booking.showTime,
         bookingDate: booking.showDate,
@@ -192,8 +188,6 @@ export class BookingService {
       user: userId,
       performedBy: role,
     });
-
-    console.log('booking log', log);
 
     return {
       message: `Request ${status} successfully`,
@@ -253,6 +247,7 @@ export class BookingService {
 
   async approveChange(requestId: number, reqDto: ReqBookingDto) {
     const { approverType, response, approverId } = reqDto;
+
     const request = await this.reqRepository.findOne({
       where: { id: requestId },
     });

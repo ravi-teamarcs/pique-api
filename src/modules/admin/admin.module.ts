@@ -3,7 +3,6 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { User } from '../users/entities/users.entity';
 
-
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AuthModule } from './auth/auth.module';
@@ -36,9 +35,24 @@ import { Booking } from '../booking/entities/booking.entity';
 import { Event } from './events/Entity/event.entity';
 import { GenerateInvoiceService } from 'src/common/invoice/generateinvoice.service';
 
-
 @Module({
-  imports: [TypeOrmModule.forFeature([Venue, User, AdminUser, Capability, RoleCapability, Role, Entertainer, Media, Countries, Cities, States, Invoice, Event, Booking]),
+  imports: [
+    TypeOrmModule.forFeature([
+      Venue,
+      User,
+      AdminUser,
+      Capability,
+      RoleCapability,
+      Role,
+      Entertainer,
+      Media,
+      Countries,
+      Cities,
+      States,
+      Invoice,
+      Event,
+      Booking,
+    ]),
     AuthModule,
     VenueModule,
     EntertainerModule,
@@ -47,10 +61,9 @@ import { GenerateInvoiceService } from 'src/common/invoice/generateinvoice.servi
     MediaModule,
     LocationModule,
     InvoiceMod,
-    EventsModule
+    EventsModule,
   ],
   controllers: [AdminController],
-  providers: [AdminService]
-
+  providers: [AdminService],
 })
-export class AdminModule { }
+export class AdminModule {}
