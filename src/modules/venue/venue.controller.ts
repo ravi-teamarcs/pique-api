@@ -186,6 +186,12 @@ export class VenueController {
   async getSuggestions(@Query('q') query: string) {
     return this.venueService.getSearchSuggestions(query);
   }
+
+  @Get('entertainer/category')
+  @Roles('findAll')
+  async getAllCategory() {
+    return this.venueService.getAllCategories();
+  }
   @Get('search/category/:id')
   @Roles('findAll')
   getEntertainerByCategory(@Param('id') cid: number) {

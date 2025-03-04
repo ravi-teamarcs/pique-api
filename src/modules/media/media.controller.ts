@@ -33,60 +33,31 @@ export class MediaController {
   @ApiOperation({ summary: 'Upload User Multimedia' })
   @ApiResponse({ status: 201, description: 'Media uploaded successfully.' })
   @Post('uploads')
-  @UseInterceptors(
-    AnyFilesInterceptor({
-      fileFilter: (req, file, callback) => {
-        // Check file type from typeMap
-        const fileType = typeMap[file.fieldname];
-
-        if (!fileType) {
-          return callback(
-            new BadRequestException({
-              message: 'Invalid file field name',
-              status: false,
-            }),
-            false,
-          );
-        }
-
-        // Restrict video file size to 500MB
-        if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
-          return callback(
-            new BadRequestException({
-              message: 'Video file size cannot exceed 500 MB',
-              status: false,
-            }),
-            false,
-          );
-        }
-
-        callback(null, true);
-      },
-    }),
-  )
+  @UseInterceptors(AnyFilesInterceptor())
   async uploadMedia(
     @Req() req: any,
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Body() body,
   ) {
     const uploadedFiles: UploadedFile[] = [];
-
-    const { userId } = req.user;
-    const venueId =
-      body.venueId === undefined ? body.venueId : Number(body.venueId);
-    if (files.length > 0) {
-      const uploadedFiles = await Promise.all(
-        files.map(async (file) => {
-          const filePath = await uploadFile(file); // Wait for the upload
-          return {
-            url: filePath,
-            name: file.originalname,
-            type: typeMap[file.fieldname],
-          };
-        }),
-      );
-    }
-    return this.mediaService.handleMediaUpload(userId, uploadedFiles, venueId);
+    console.log('Files', files);
+    console.log('Files', req.files);
+    // const { userId } = req.user;
+    // const venueId =
+    //   body.venueId === undefined ? body.venueId : Number(body.venueId);
+    // if (files.length > 0) {
+    //   const uploadedFiles = await Promise.all(
+    //     files.map(async (file) => {
+    //       const filePath = await uploadFile(file); // Wait for the upload
+    //       return {
+    //         url: filePath,
+    //         name: file.originalname,
+    //         type: typeMap[file.fieldname],
+    //       };
+    //     }),
+    //   );
+    // }
+    // return this.mediaService.handleMediaUpload(userId, uploadedFiles, venueId);
   }
 
   @Get('uploads')
@@ -163,30 +134,5 @@ export class MediaController {
 
     // console.log(uploadedFile);
     // return this.mediaService.updateMedia(Number(mediaId), userId, uploadedFile);
-  }
-
-  @Post('photo/lou')
-  @UseInterceptors(AnyFilesInterceptor())
-  async testingMedia(@UploadedFiles() files: Array<Express.Multer.File>) {
-    console.log(files)
-    // const newUploadedFiles = [];
-    // const typeMap = {
-    //   images: 'image',
-    //   videos: 'video',
-    //   headshot: 'headshot',
-    // };
-    // files.length > 0 &&
-    //   files.map(async (file) => {
-    //     const filePath = await uploadFile(file); // Call the upload function
-    //     const fileObj = {
-    //       url: filePath,
-    //       name: file.originalname,
-    //       type: typeMap[file.fieldname],
-    //     };
-    //     // uploadedFiles.push(fileObj);
-
-    //     newUploadedFiles.push(fileObj);
-    //     console.log(`new Files`, newUploadedFiles);
-    //   });
   }
 }

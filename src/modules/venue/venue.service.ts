@@ -477,4 +477,16 @@ export class VenueService {
       status: true,
     };
   }
+
+  async getAllCategories() {
+    const categories = await this.catRepository.find({
+      where: { parentId: 0 },
+      select: ['id', 'name'],
+    });
+    return {
+      message: 'Categories fetched Successfully',
+      data: categories,
+      status: true,
+    };
+  }
 }
