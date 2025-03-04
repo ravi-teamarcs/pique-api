@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  HttpCode,
   Param,
   Post,
   Request,
@@ -17,7 +18,7 @@ import {
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { ReqBookingDto } from './dto/request-booking.dto';
+import { BookingReqResponse } from './dto/request-booking.dto';
 
 @ApiTags('Booking')
 @ApiBearerAuth()
@@ -31,11 +32,14 @@ export class BookingController {
   })
   @ApiResponse({ status: 200 })
   @Post('approve/:requestId')
+  @HttpCode(200)
   @Roles('findAll')
   approveChange(
     @Param('requestId') requestId: number,
-    @Body() reqDto: ReqBookingDto,
+    @Body() reqDto: BookingReqResponse,
+    @Request() req: any,
   ) {
-    return this.bookingService.approveChange(requestId, reqDto); // Admin id is hardcoded for now
+    const { userId } = req.user;
+    return this.bookingService.approveChange(requestId, reqDto, userId);
   }
 }

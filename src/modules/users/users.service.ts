@@ -87,14 +87,16 @@ export class UsersService {
   // User Profile
 
   async handleGetUserProfile(userId: number, role: string) {
+    console.log('UserId ', userId);
     const response = { message: 'Profile fetched Successfully', status: true };
-
+    console.log('iside method');
     if (role === 'venue') {
+      console.log('iside role');
       const details = await this.venueRepository
         .createQueryBuilder('venue')
         .leftJoinAndSelect('venue.user', 'user')
         .where('venue.user.id = :userId', { userId })
-        .andWhere('venue.isParent = :isParent', { isParent: true })
+        // .andWhere('venue.isParent = :isParent', { isParent: 1})
         .select([
           'user.id AS uid',
           'user.name AS name',
@@ -114,7 +116,9 @@ export class UsersService {
           'venue.country AS vCountry',
         ])
         .getRawOne();
+
       details['vIsParent'] = Boolean(details.isParent);
+
       const location = await this.venueRepository.find({
         where: { user: { id: userId }, isParent: false },
         select: [

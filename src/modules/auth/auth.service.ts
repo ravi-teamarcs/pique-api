@@ -3,6 +3,8 @@ import {
   UnauthorizedException,
   HttpException,
   HttpStatus,
+  NotFoundException,
+  BadRequestException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
@@ -16,10 +18,12 @@ import { User } from '../users/entities/users.entity';
 import { NotificationService } from '../notification/notification.service';
 import { Device } from 'src/common/types/auth.type';
 import { EmailService } from '../Email/email.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AuthService {
   constructor(
+    private readonly configService: ConfigService,
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
     private readonly notificationService: NotificationService,
@@ -66,14 +70,14 @@ export class AuthService {
     const payload = {
       to: newUser.email,
       subject: 'Registered Successfully on Pique Api',
-      // message: `Hello ${newUser.name}, You have successfully registered on Pique Api`,
+
       templateName: 'new-user.html',
       replacements: {
         userName: newUser.name,
       },
     };
 
-    this.emailService.handleSendEmail(payload);
+    // this.emailService.handleSendEmail(payload);
     return {
       message: 'User registered successfully',
       user: newUser,
@@ -150,43 +154,65 @@ export class AuthService {
     return 'web';
   }
 
-  async handleForgotPassword(email: string, password: string) {
-    // 1. Check if user exists
-    const existingUser = await this.usersRepository.findOne({
-      where: { email },
-    });
+  async forgotPassword(email: string) {
+    const user = await this.usersRepository.findOne({ where: { email } });
 
-    if (!existingUser) {
-      throw new HttpException(
-        { message: 'Email not found', error: 'Bad Request', status: false },
-        HttpStatus.NOT_FOUND,
-      );
-    }
+    if (!user)
+      throw new NotFoundException({ message: 'User not found', status: false });
 
+    const resetToken = this.jwtService.sign(
+      { email: user.email },
+      {
+        secret: this.configService.get<string>('PASSWORD_RESET_SECRET'),
+        expiresIn: '10m',
+      },
+    );
+    //  link
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    console.log('Reset Link:', resetToken);
+    const payload = {
+      to: user.email,
+      subject: 'Password Reset',
+      templateName: 'password-reset.html',
+      replacements: {
+        resetLink,
+      },
+    };
+    // Send email
+    await this.emailService.handleSendEmail(payload);
+
+    return {
+      message: 'Password reset link sent to your registered  email',
+      status: true,
+    };
+  }
+
+  async resetPassword(token: string, newPassword: string) {
     try {
-      // 2. Hash the new password
-      const newHashPassword = await bcrypt.hash(password, 10);
+      const decoded = this.jwtService.verify(token, {
+        secret: this.configService.get<string>('PASSWORD_RESET_SECRET'),
+      });
 
-      // 3. Update the user's password
-      const updateResult = await this.usersRepository.update(
-        { id: existingUser.id },
-        { password: newHashPassword },
-      );
+      const user = await this.usersRepository.findOne({
+        where: { email: decoded.email },
+      });
 
-      // 4. Ensure update was successful
-      if (updateResult.affected === 0) {
-        throw new HttpException(
-          { message: 'Password update failed', status: false },
-          HttpStatus.INTERNAL_SERVER_ERROR,
-        );
-      }
+      if (!user)
+        throw new NotFoundException({
+          message: 'User not found',
+          status: false,
+        });
 
-      return { message: 'Password updated successfully', status: true };
+      // Hash new password and update user
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      await this.usersRepository.update(user.id, { password: hashedPassword });
+
+      return { message: 'Password reset successful', status: true };
     } catch (error) {
-      throw new HttpException(
-        { message: 'An error occurred', error: error.message, status: false },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw new BadRequestException({
+        message: 'Invalid or expired token',
+        status: false,
+      });
     }
   }
 }

@@ -105,7 +105,7 @@ export class UsersService {
     }
 
     async updateStatus(updateStatusDto: UpdateStatusDto): Promise<string> {
-        console.log("asdf", updateStatusDto);
+        
         let { ids, status } = updateStatusDto;
 
         // Validate the provided IDs: Check if all IDs exist in the database

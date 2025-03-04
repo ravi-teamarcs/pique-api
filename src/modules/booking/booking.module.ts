@@ -8,7 +8,7 @@ import { Role } from '../auth/entities/role.entity';
 import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Venue } from '../venue/entities/venue.entity';
-import { BookingRequest } from './entities/changeReq.entity';
+import { BookingRequest } from './entities/changeBooking.entity';
 import { BookingLog } from './entities/booking-log.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailModule } from '../Email/email.module';

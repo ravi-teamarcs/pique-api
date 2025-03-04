@@ -165,27 +165,28 @@ export class MediaController {
     // return this.mediaService.updateMedia(Number(mediaId), userId, uploadedFile);
   }
 
-  @Post('photo')
+  @Post('photo/lou')
   @UseInterceptors(AnyFilesInterceptor())
   async testingMedia(@UploadedFiles() files: Array<Express.Multer.File>) {
-    const newUploadedFiles = [];
-    const typeMap = {
-      images: 'image',
-      videos: 'video',
-      headshot: 'headshot',
-    };
-    files.length > 0 &&
-      files.map(async (file) => {
-        const filePath = await uploadFile(file); // Call the upload function
-        const fileObj = {
-          url: filePath,
-          name: file.originalname,
-          type: typeMap[file.fieldname],
-        };
-        // uploadedFiles.push(fileObj);
+    console.log(files)
+    // const newUploadedFiles = [];
+    // const typeMap = {
+    //   images: 'image',
+    //   videos: 'video',
+    //   headshot: 'headshot',
+    // };
+    // files.length > 0 &&
+    //   files.map(async (file) => {
+    //     const filePath = await uploadFile(file); // Call the upload function
+    //     const fileObj = {
+    //       url: filePath,
+    //       name: file.originalname,
+    //       type: typeMap[file.fieldname],
+    //     };
+    //     // uploadedFiles.push(fileObj);
 
-        newUploadedFiles.push(fileObj);
-        console.log(`new Files`, newUploadedFiles);
-      });
+    //     newUploadedFiles.push(fileObj);
+    //     console.log(`new Files`, newUploadedFiles);
+    //   });
   }
 }

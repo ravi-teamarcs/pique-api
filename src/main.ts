@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
+import * as multer from 'multer';
 //import { writeFileSync } from 'fs';
 
 async function bootstrap() {
@@ -14,9 +15,10 @@ async function bootstrap() {
     .setTitle('API Documentation')
     .setDescription('The API description')
     .setVersion('1.0')
+    .addServer(process.env.BASE_URL)
     .addBearerAuth() // Optional: Add Bearer token support
     .build();
-
+    app.use(multer().any()); 
   const document = SwaggerModule.createDocument(app, config);
   // Save Swagger JSON to a file
   //writeFileSync('./swagger.json', JSON.stringify(document, null, 2));

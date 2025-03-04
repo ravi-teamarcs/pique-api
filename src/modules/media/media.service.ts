@@ -20,6 +20,7 @@ export class MediaService {
     uploadedFiles: UploadedFile[],
     venueId: number,
   ) {
+    console.log('Inside Media Service');
     try {
       for (const file of uploadedFiles) {
         if (!file || !file.type) continue; // Safety check

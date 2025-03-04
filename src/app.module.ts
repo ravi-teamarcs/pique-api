@@ -60,7 +60,7 @@ import { AdminModule } from './modules/admin/admin.module';
     LocationModule,
     ChatModule,
     GoogleCalendarModule,
-    AdminModule,
+    // AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],

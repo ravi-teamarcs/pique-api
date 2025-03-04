@@ -17,6 +17,7 @@ import {
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt.guard';
 import { LoginDto, RegisterDto } from './auth.dto';
+import { ResetPassword } from './dto/reset-password.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -67,5 +68,17 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   logout(@Body('token') token: string) {
     return this.authService.logout(token);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  forgotPassword(@Body('email') email: string) {
+    return this.authService.forgotPassword(email);
+  }
+  @Post('reset-password')
+  @HttpCode(200)
+  resetPassword(@Body() resetDto: ResetPassword) {
+    const { token, newPassword } = resetDto;
+    return this.authService.resetPassword(token, newPassword);
   }
 }

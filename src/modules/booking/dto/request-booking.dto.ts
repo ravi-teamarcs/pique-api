@@ -1,23 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
 
-export class ReqBookingDto {
-  @ApiProperty({
-    description: 'The person who is approving the request',
-    enum: ['admin', 'entertainer'], // Fixed typo here
-  })
+export class BookingReqResponse {
+  @ApiProperty({ description: 'Response true or false' })
   @IsString()
   @IsNotEmpty()
-  @IsIn(['admin', 'entertainer']) // Ensures only valid values are allowed
-  approverType: 'admin' | 'entertainer';
-
-  @ApiProperty({ description: 'The approver Id' })
-  @IsNumber()
-  @IsNotEmpty()
-  approverId: number;
-
-  @ApiProperty({ description: 'Response true or false' })
-  @IsNumber()
-  @IsNotEmpty()
-  response: boolean;
+  response: 'pending' | 'approved' | 'rejected';
 }

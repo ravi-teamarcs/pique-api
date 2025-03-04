@@ -32,7 +32,7 @@ import { UpdateVenueDto } from './dto/update-venue.dto';
 import { BookingService } from '../booking/booking.service';
 import { CreateBookingDto } from '../booking/dto/create-booking.dto';
 import { ResponseDto } from '../booking/dto/booking-response-dto';
-import { DateTimeChangeDto } from './dto/change-booking.dto';
+import { ChangeBooking } from './dto/change-booking.dto';
 import { VenueLocationDto } from './dto/add-location.dto';
 
 @ApiTags('venues')
@@ -50,9 +50,9 @@ export class VenueController {
   @ApiOperation({ summary: 'Create a venue' })
   @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async create(@Body() createVenueDto: CreateVenueDto, @Request() req) {
+  async create(@Body() venueDto: CreateVenueDto, @Request() req) {
     const { userId } = req.user;
-    return this.venueService.create(createVenueDto, userId);
+    return this.venueService.create(venueDto, userId);
   }
 
   @Get()
@@ -170,7 +170,7 @@ export class VenueController {
 
   @Post('request-change')
   @Roles('findAll')
-  requestChange(@Body() dateTimeChangeDto: DateTimeChangeDto, @Request() req) {
+  requestChange(@Body() dateTimeChangeDto: ChangeBooking, @Request() req) {
     const userId = req.user.userId;
 
     return this.bookingService.handleChangeRequest(dateTimeChangeDto, userId);

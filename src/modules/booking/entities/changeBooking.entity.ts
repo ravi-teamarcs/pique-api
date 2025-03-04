@@ -6,7 +6,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-@Entity()
+@Entity('booking_change_request')
 export class BookingRequest {
   @PrimaryGeneratedColumn()
   id: number;
@@ -15,9 +15,9 @@ export class BookingRequest {
   bookingId: number;
 
   @Column()
-  venueId: number;
+  euid: number;
   @Column()
-  userId: number;
+  vuid: number;
 
   @Column({ type: 'time' })
   reqShowTime: string;
@@ -31,12 +31,6 @@ export class BookingRequest {
     default: 'pending',
   })
   status: 'pending' | 'approved' | 'rejected';
-
-  @Column({ nullable: true })
-  entertainerApproval: boolean;
-
-  @Column({ nullable: true })
-  adminApproval: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
