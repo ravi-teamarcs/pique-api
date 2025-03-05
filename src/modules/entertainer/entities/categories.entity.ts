@@ -16,4 +16,7 @@ export class Category {
 
   @Column({ type: 'int', nullable: true })
   parentId: number;
+
+  @Column('simple-array', { nullable: true })
+  icons: string[];
 }

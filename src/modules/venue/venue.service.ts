@@ -484,10 +484,10 @@ export class VenueService {
     const { category } = query;
 
     const id = category ? Number(category) : 0;
-    console.log(id);
+
     const categories = await this.catRepository.find({
       where: { parentId: id },
-      select: ['id', 'name'],
+      select: ['id', 'name', 'icons'],
     });
 
     const filterData = {

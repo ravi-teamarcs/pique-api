@@ -18,6 +18,7 @@ import { LocationModule } from './modules/location/location.module';
 import { ChatModule } from './modules/chat/chat.module';
 import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   imports: [
@@ -25,7 +26,7 @@ import { AdminModule } from './modules/admin/admin.module';
       envFilePath: '.env',
       isGlobal: true,
     }),
-
+    MulterModule.register(),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
 
@@ -60,25 +61,8 @@ import { AdminModule } from './modules/admin/admin.module';
     LocationModule,
     ChatModule,
     GoogleCalendarModule,
-    // AdminModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
-
-// entities: [join(process.cwd(), 'dist/**/*.entity.js')],  for automatically fetching all the details
-// TypeOrmModule.forRoot({
-//   type: 'mysql',
-//   host: process.env.DB_Host,
-//   port: Number(process.env.DB_Port),
-//   username: process.env.DB_User,
-//   password: process.env.DB_Password,
-//   database: process.env.DB_Name,
-//   entities: [join(process.cwd(), 'dist/**/*.entity.js')],
-//   logging: true,
-//   logger: 'advanced-console',
-
-//   maxQueryExecutionTime: 1000, // ✅
-//   synchronize: true, //  Precaution : Must be False for Production.
-// }),

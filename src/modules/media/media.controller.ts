@@ -8,6 +8,7 @@ import {
   Put,
   Query,
   Req,
+  Request,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -24,7 +25,7 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { MediaDto } from './dto/update-media.dto';
 import { typeMap } from 'src/common/constants/media.constants';
 import { UploadedFile } from 'src/common/types/media.type';
-import { multerConfig } from './multer.config';
+import { multerConfig, MulterFile } from './multer.config';
 
 @ApiTags('Media')
 @Controller('media')
@@ -34,19 +35,12 @@ export class MediaController {
 
   @ApiOperation({ summary: 'Upload User Multimedia' })
   @ApiResponse({ status: 201, description: 'Media uploaded successfully.' })
-  @Post('uploads')
-  @UseInterceptors(FilesInterceptor('file', 10, multerConfig))
-  async uploadFiles(@UploadedFiles() files) {
-    try {
-      console.log('Files', files);
-      if (!files || files.length === 0) {
-        throw new BadRequestException('No files uploaded');
-      }
-
-      console.log('Files', files);
-    } catch (error) {
-      throw new BadRequestException(error.message);
-    }
+  @Post('upload')
+  @UseInterceptors(AnyFilesInterceptor())
+  uploadFile(@UploadedFiles() files: Express.Multer.File[], @Request() req) {
+    console.log(req.body);
+    console.log(files); // Check if files are received
+    return { message: 'Files uploaded successfully', files };
   }
 
   @Get('uploads')

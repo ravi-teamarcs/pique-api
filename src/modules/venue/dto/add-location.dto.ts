@@ -5,9 +5,6 @@ import {
   IsOptional,
   IsEmail,
   IsNumber,
-  Min,
-  Max,
-  IsBoolean,
 } from 'class-validator';
 
 export class VenueLocationDto {

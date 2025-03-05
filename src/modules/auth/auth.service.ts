@@ -66,6 +66,12 @@ export class AuthService {
       password: hashedPassword,
     });
 
+    const tokenPayload = {
+      sub: newUser.id,
+      email: newUser.email,
+      role: newUser.role,
+    };
+    const token = this.jwtService.sign(tokenPayload);
     // Sending Email to newly registerd User.
     const payload = {
       to: newUser.email,
@@ -80,7 +86,8 @@ export class AuthService {
     // this.emailService.handleSendEmail(payload);
     return {
       message: 'User registered successfully',
-      user: newUser,
+      token,
+      data: newUser,
       status: true,
     };
   }
