@@ -18,6 +18,7 @@ import { Media } from '../media/entities/media.entity';
 import { Category } from '../entertainer/entities/categories.entity';
 import { VenueEvent } from '../event/entities/event.entity';
 import { VenueLocationDto } from './dto/add-location.dto';
+import { Data } from './dto/search-filter.dto';
 
 @Injectable()
 export class VenueService {
@@ -314,7 +315,7 @@ export class VenueService {
       const venue = await this.venueRepository.findOne({
         where: { id: id, user: { id: userId } },
       });
-
+      console.log('venue', venue);
       if (!venue) {
         throw new NotFoundException({
           message: 'Venue not found',
@@ -466,6 +467,7 @@ export class VenueService {
     const venueLoc = this.venueRepository.create({
       ...locDto,
       name: parentVenue.name,
+      user: { id: userId },
       description: parentVenue.description,
       parentId: parentVenue.id,
       isParent: false,
@@ -478,14 +480,26 @@ export class VenueService {
     };
   }
 
-  async getAllCategories() {
+  async getAllCategories(query: Data) {
+    const { category } = query;
+
+    const id = category ? Number(category) : 0;
+    console.log(id);
     const categories = await this.catRepository.find({
-      where: { parentId: 0 },
+      where: { parentId: id },
       select: ['id', 'name'],
     });
+
+    const filterData = {
+      filters: [
+        { type: 'range', label: 'price', max: 13000, min: 10000 },
+        { type: 'select', label: 'location' },
+      ],
+      categories: { type: 'checkbox', label: 'category', data: categories },
+    };
     return {
-      message: 'Categories fetched Successfully',
-      data: categories,
+      message: 'Filters fetched Successfully',
+      data: filterData,
       status: true,
     };
   }

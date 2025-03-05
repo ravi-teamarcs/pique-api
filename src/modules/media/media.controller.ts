@@ -17,12 +17,14 @@ import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   AnyFilesInterceptor,
   FileFieldsInterceptor,
+  FilesInterceptor,
 } from '@nestjs/platform-express';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { MediaDto } from './dto/update-media.dto';
 import { typeMap } from 'src/common/constants/media.constants';
 import { UploadedFile } from 'src/common/types/media.type';
+import { multerConfig } from './multer.config';
 
 @ApiTags('Media')
 @Controller('media')
@@ -33,31 +35,18 @@ export class MediaController {
   @ApiOperation({ summary: 'Upload User Multimedia' })
   @ApiResponse({ status: 201, description: 'Media uploaded successfully.' })
   @Post('uploads')
-  @UseInterceptors(AnyFilesInterceptor())
-  async uploadMedia(
-    @Req() req: any,
-    @UploadedFiles() files: Array<Express.Multer.File>,
-    @Body() body,
-  ) {
-    const uploadedFiles: UploadedFile[] = [];
-    console.log('Files', files);
-    console.log('Files', req.files);
-    // const { userId } = req.user;
-    // const venueId =
-    //   body.venueId === undefined ? body.venueId : Number(body.venueId);
-    // if (files.length > 0) {
-    //   const uploadedFiles = await Promise.all(
-    //     files.map(async (file) => {
-    //       const filePath = await uploadFile(file); // Wait for the upload
-    //       return {
-    //         url: filePath,
-    //         name: file.originalname,
-    //         type: typeMap[file.fieldname],
-    //       };
-    //     }),
-    //   );
-    // }
-    // return this.mediaService.handleMediaUpload(userId, uploadedFiles, venueId);
+  @UseInterceptors(FilesInterceptor('file', 10, multerConfig))
+  async uploadFiles(@UploadedFiles() files) {
+    try {
+      console.log('Files', files);
+      if (!files || files.length === 0) {
+        throw new BadRequestException('No files uploaded');
+      }
+
+      console.log('Files', files);
+    } catch (error) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @Get('uploads')

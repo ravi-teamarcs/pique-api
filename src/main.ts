@@ -18,7 +18,6 @@ async function bootstrap() {
     .addServer(process.env.BASE_URL)
     .addBearerAuth() // Optional: Add Bearer token support
     .build();
-    app.use(multer().any()); 
   const document = SwaggerModule.createDocument(app, config);
   // Save Swagger JSON to a file
   //writeFileSync('./swagger.json', JSON.stringify(document, null, 2));

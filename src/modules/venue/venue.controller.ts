@@ -34,6 +34,7 @@ import { CreateBookingDto } from '../booking/dto/create-booking.dto';
 import { ResponseDto } from '../booking/dto/booking-response-dto';
 import { ChangeBooking } from './dto/change-booking.dto';
 import { VenueLocationDto } from './dto/add-location.dto';
+import { Data } from './dto/search-filter.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -164,7 +165,7 @@ export class VenueController {
   @Delete(':id')
   @Roles('findAll')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.venueService.handleRemoveVenue(Number(id), userId);
   }
 
@@ -187,10 +188,10 @@ export class VenueController {
     return this.venueService.getSearchSuggestions(query);
   }
 
-  @Get('entertainer/category')
+  @Get('search/filters')
   @Roles('findAll')
-  async getAllCategory() {
-    return this.venueService.getAllCategories();
+  async getAllCategory(@Query() query: Data) {
+    return this.venueService.getAllCategories(query);
   }
   @Get('search/category/:id')
   @Roles('findAll')
