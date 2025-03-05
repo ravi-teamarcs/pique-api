@@ -8,9 +8,14 @@ import { Event } from '../events/Entity/event.entity';
 import { Entertainer } from '../entertainer/Entitiy/entertainer.entity';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
 
+
+import { RoleCapability } from '../auth/entities/role-capabilities.entity';
+import { Role } from '../auth/entities/role.entity';
+import { Capability } from '../auth/entities/capability.entity';
+
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Invoice, Event, Entertainer, Booking]),
+    TypeOrmModule.forFeature([Invoice, Event, Entertainer, Booking,RoleCapability, Role, Capability]),
   ],
   providers: [InvoiceService, GenerateInvoiceService],
   controllers: [InvoiceController]

@@ -40,7 +40,10 @@ export class EventService {
             },
             //relations: ['event'], // Include the related `User` entity
             skip, // Pagination: records to skip
-            take: pageSize, // Pagination: number of records per page
+            take: pageSize,
+            order: {
+                id: 'DESC'
+            }
         });
 
 

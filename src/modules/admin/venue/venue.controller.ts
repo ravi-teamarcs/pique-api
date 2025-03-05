@@ -1,8 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { VenueService } from './venue.service';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UpdateVenueDto } from './Dto/update-venue.dto';
 import { CreateVenueDto } from './Dto/create-venue.dto';
+import { Roles } from '../auth/roles.decorator';
+import { JwtAuthGuard } from '../auth/jwt.guard';
+import { RolesGuardAdmin } from '../auth/roles.guard';
+
 
 
 @ApiTags('admin')
@@ -17,7 +21,9 @@ export class VenueController {
         status: 200,
         description: 'Venue Retrival Sucessfully.',
     })
-
+    @Roles('super-admin', 'venue-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
     @Get('all')
     async getAllVenues(
         @Req() req,
@@ -28,16 +34,30 @@ export class VenueController {
         return this.vanueService.getAllVenue({ page, pageSize, search });
     }
 
-    @Get('venuebyId/:userId')  // Using the userId as a parameter
+
+    @Roles('super-admin', 'venue-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Get('venuebyId/:userId') 
     async getVenuesByUserId(@Param('userId') userId: number) {
         return this.vanueService.getVenueByUserId(userId);
     }
 
+
+
+    @Roles('super-admin', 'venue-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
     @Post('create')
     async createVenue(@Body() createVenueDto: CreateVenueDto) {
+        
         return this.vanueService.createVenue(createVenueDto);
     }
 
+
+    @Roles('super-admin', 'venue-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
     @Post('update')
     async updateVenue(
         @Body() updateVenueDto: UpdateVenueDto,
@@ -45,13 +65,21 @@ export class VenueController {
         return this.vanueService.updateVenue(updateVenueDto);
     }
 
+
+    @Roles('super-admin', 'venue-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
     @Delete(':id')
     async deleteVenue(@Param('id') id: number): Promise<void> {
         await this.vanueService.deleteVenue(id);
     }
 
+
+    @Roles('super-admin', 'venue-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
     @Get('search')
     searchEntertainers(@Query('query') query: string) {
-      return this.vanueService.searchEntertainers(query);
+        return this.vanueService.searchEntertainers(query);
     }
 }

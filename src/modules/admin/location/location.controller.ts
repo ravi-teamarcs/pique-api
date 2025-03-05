@@ -1,8 +1,12 @@
-import { Controller, Get, Param, Patch, Query } from '@nestjs/common';
+import { Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { LocationService } from './location.service';
-import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Countries } from './Entitiy/country.entity';
 import { States } from './Entitiy/state.entity';
+
+import { Roles } from '../auth/roles.decorator';
+import { JwtAuthGuard } from '../auth/jwt.guard';
+import { RolesGuardAdmin } from '../auth/roles.guard';
 
 @ApiTags('admin')
 @Controller('admin/location')
@@ -13,16 +17,20 @@ export class LocationController {
     status: 200,
     description: 'Countries Fetched sucessfylly.',
     type: [Countries],
-  })
+  }) 
   @Get('countries')
   getAllCountries() {
     return this.locationService.findAllCountries();
   }
+
+
+ 
   @Get('countries/Search')
   CountriesSearch(@Query('search') search?: string) {
     return this.locationService.CountriesSearch(search);
   }
 
+ 
   @Get('allowed-countries')
   getAllowedCountries() {
     return this.locationService.findAllowedCountries();
@@ -33,6 +41,7 @@ export class LocationController {
     return this.locationService.allowCountry(+id);
   }
 
+ 
   @ApiOperation({ summary: 'Get the list of all the State' })
   @ApiResponse({
     status: 200,
@@ -49,6 +58,7 @@ export class LocationController {
   getAllStates(@Query('countryId') countryId: number) {
     return this.locationService.findAllStates(countryId);
   }
+ 
   @ApiOperation({ summary: 'Get the list of all the Cities' })
   @ApiResponse({
     status: 200,

@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 
 @Entity('categories')
 export class Categories {
@@ -7,6 +13,9 @@ export class Categories {
 
   @Column()
   name: string;
+
+  @Column()
+  catslug: string;
 
   @Column({ nullable: true })
   parentId: number;

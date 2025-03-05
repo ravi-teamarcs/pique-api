@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Venue } from './Entity/venue.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
@@ -10,9 +10,9 @@ import { User } from '../users/Entity/users.entity';
 @Injectable()
 export class VenueService {
 
-    constructor(@InjectRepository(Venue)
-    private readonly venueRepository: Repository<Venue>, @InjectRepository(User)
-        private readonly userRepository: Repository<User>,) { }
+    constructor(
+        @InjectRepository(Venue) private readonly venueRepository: Repository<Venue>,
+        @InjectRepository(User) private readonly userRepository: Repository<User>,) { }
 
     async getAllVenue({
         page,
@@ -28,6 +28,7 @@ export class VenueService {
             where: search ? { name: Like(`%${search}%`) } : {}, // Search by name
             skip,
             take: pageSize,
+            order: { id: 'DESC' },
         });
 
 
@@ -56,20 +57,23 @@ export class VenueService {
 
 
     async createVenue(createVenueDto: CreateVenueDto): Promise<Venue> {
-        const user = await this.userRepository.findOne({
-            where: { id: createVenueDto.userId },
-        });
+        //    const venueExists = await this.venueRepository.findOne({
+        //          where: { parentId: createVenueDto.parentId },
+        //        });
+        //        console.log('venue exists', venueExists);
+        //        if (venueExists) {
+        //          throw new BadRequestException({
+        //            message: 'Venue already exists for the user',
+        //            status: false,
+        //          });
+        //        }
+        const venue = this.venueRepository.create(
+            createVenueDto,
 
-        if (!user) {
-            throw new Error('User not found');
-        }
+        );
+        await this.venueRepository.save(venue);
 
-        const venue = this.venueRepository.create({
-            ...createVenueDto,
-            user,
-        });
-
-        return this.venueRepository.save(venue);
+        return venue;
     }
 
     async updateVenue(updateVenueDto: UpdateVenueDto): Promise<Venue> {

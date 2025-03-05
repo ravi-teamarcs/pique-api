@@ -487,7 +487,7 @@ export class VenueService {
 
     const categories = await this.catRepository.find({
       where: { parentId: id },
-      select: ['id', 'name', 'icons'],
+      select: ['id', 'name', ],
     });
 
     const filterData = {

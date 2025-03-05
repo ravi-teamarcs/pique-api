@@ -77,7 +77,8 @@ export class InvoiceService {
                 "ent.name AS entertainer_name",
                 "ven.*",
                 "eve.title AS event_name",
-            ]);
+
+            ]).orderBy("invoices.id", "DESC");;
 
         const records = await queryBuilder.getRawMany();
         const total = await queryBuilder.getCount();
@@ -100,10 +101,10 @@ export class InvoiceService {
         // if (!invoice) {
         //     throw new Error('Invoice not found');
         // }
-    
+
         // // Merge existing invoice data with updated values
         // const updatedInvoice = { ...invoice, ...updateInvoiceDto };
-    
+
         // // Recalculate totals if tax-related fields are updated
         // if (updateInvoiceDto.total_amount || updateInvoiceDto.tax_rate) {
         //     updatedInvoice.total_amount = updateInvoiceDto.total_amount
@@ -112,21 +113,21 @@ export class InvoiceService {
         //     updatedInvoice.tax_rate = updateInvoiceDto.tax_rate
         //         ? parseFloat(updateInvoiceDto.tax_rate)
         //         : invoice.tax_rate;
-    
+
         //     updatedInvoice.tax_amount = parseFloat(
         //         this.calculateTaxAmount(updatedInvoice.total_amount, updatedInvoice.tax_rate).toFixed(2)
         //     );
         //     updatedInvoice.total_with_tax = parseFloat((updatedInvoice.total_amount + updatedInvoice.tax_amount).toFixed(2));
         // }
-    
+
         // // Ensure `payment_date` is properly formatted if provided
         // if (updateInvoiceDto.payment_date) {
         //     updatedInvoice.payment_date = new Date(updateInvoiceDto.payment_date).toISOString().split('T')[0];
         // }
-    
+
         // return await this.invoiceRepository.save(updatedInvoice);
     }
-    
+
 
     // Delete an invoice
     async remove(id: number): Promise<void> {
