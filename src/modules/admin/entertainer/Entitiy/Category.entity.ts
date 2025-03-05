@@ -15,6 +15,9 @@ export class Categories {
   name: string;
 
   @Column()
+  iconUrl: string;
+
+  @Column()
   catslug: string;
 
   @Column({ nullable: true })

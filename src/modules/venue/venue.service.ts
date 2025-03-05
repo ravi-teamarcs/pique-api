@@ -19,6 +19,7 @@ import { Category } from '../entertainer/entities/categories.entity';
 import { VenueEvent } from '../event/entities/event.entity';
 import { VenueLocationDto } from './dto/add-location.dto';
 import { Data } from './dto/search-filter.dto';
+import { instanceToPlain } from 'class-transformer';
 
 @Injectable()
 export class VenueService {
@@ -487,15 +488,23 @@ export class VenueService {
 
     const categories = await this.catRepository.find({
       where: { parentId: id },
-      select: ['id', 'name', ],
+      select: ['id', 'name', 'iconUrl'],
     });
+    console.log('categories', categories);
+    const plainCat = instanceToPlain(categories);
+
+    const Data = plainCat.map(({ iconUrl, ...rest }) => ({
+      ...rest,
+      activeIcon: iconUrl,
+      inactiveIcon: iconUrl.replace(/(\.\w+)$/, '_grey$1'), // Adds "_gray" before file extension
+    }));
 
     const filterData = {
       filters: [
         { type: 'range', label: 'price', max: 13000, min: 10000 },
         { type: 'select', label: 'location' },
       ],
-      categories: { type: 'checkbox', label: 'category', data: categories },
+      categories: { type: 'checkbox', label: 'category', data: Data },
     };
     return {
       message: 'Filters fetched Successfully',

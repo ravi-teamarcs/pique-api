@@ -24,7 +24,6 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { MediaDto } from './dto/update-media.dto';
 import { typeMap } from 'src/common/constants/media.constants';
 import { UploadedFile } from 'src/common/types/media.type';
-import { multerConfig, MulterFile } from './multer.config';
 
 @ApiTags('Media')
 @Controller('media')
@@ -207,30 +206,24 @@ export class MediaController {
   ) {
     const { userId } = req.user;
 
-    // console.log('Uploading files', files);
-    // const fileTypes = Object.keys(files).filter(
-    //   (key) => files[key]?.length > 0, // Because of multiple images
-    // );
+    if (files.length !== 1) {
+      throw new BadRequestException(
+        'You must upload exactly one media type (image, video, or headshot).',
+      );
+    }
 
-    // console.log('FileTypes', fileTypes);
-    // if (fileTypes.length !== 1) {
-    //   throw new BadRequestException(
-    //     'You must upload exactly one media type (image, video, or headshot).',
-    //   );
-    // }
+     // The provided file type
+    const file = files[0]; // Get the single uploaded file
+    const { fieldname } = file;
+    const filePath = await uploadFile(file); // Call the upload function
 
-    // const fileType = fileTypes[0]; // The provided file type
-    // const file = files[fileType][0]; // Get the single uploaded file
-    // const { fieldname } = file;
-    // const filePath = await uploadFile(file); // Call the upload function
+    const uploadedFile = {
+      url: filePath,
+      name: file.originalname,
+      type: typeMap[fieldname],
+    };
 
-    // const uploadedFile = {
-    //   url: filePath,
-    //   name: file.originalname,
-    //   type: typeMap[fieldname],
-    // };
-
-    // console.log(uploadedFile);
-    //   // return this.mediaService.updateMedia(Number(mediaId), userId, uploadedFile);
+    console.log(uploadedFile);
+    return this.mediaService.updateMedia(Number(mediaId), userId, uploadedFile);
   }
 }

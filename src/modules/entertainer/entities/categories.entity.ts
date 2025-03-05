@@ -17,6 +17,9 @@ export class Category {
   @Column({ type: 'int', nullable: true })
   parentId: number;
 
+  @Column()
+  iconUrl: string;
+
   @Column({ type: 'varchar', length: 100 })
   catslug: string;
 }
