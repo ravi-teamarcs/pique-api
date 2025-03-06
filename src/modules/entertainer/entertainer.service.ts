@@ -144,7 +144,7 @@ export class EntertainerService {
     try {
       const bookings = await this.bookingRepository
         .createQueryBuilder('booking')
-        .leftJoin(Venue, 'venue', 'venue.id = booking.venueId') // Manual join since there's no relation
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId') // Manual join since there's no relation
         .where('booking.entertainerUserId = :userId', { userId })
         .andWhere('booking.status IN (:...statuses)', {
           statuses: ['pending', 'confirmed'],
@@ -158,7 +158,7 @@ export class EntertainerService {
           'booking.specialNotes  As specialNotes',
           'venue.name AS name',
           'venue.phone AS phone',
-          'venue.amenities AS amenities',
+
           'venue.email AS email',
           'venue.description AS description',
           'venue.state AS state',
@@ -173,7 +173,7 @@ export class EntertainerService {
         status: true,
       };
     } catch (error) {
-      throw new InternalServerErrorException('An unexpected error occurred');
+      throw new InternalServerErrorException({ message: error.message });
     }
   }
 

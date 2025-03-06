@@ -87,7 +87,7 @@ export class BookingService {
       },
     };
 
-    this.emailService.handleSendEmail(emailPayload);
+    // this.emailService.handleSendEmail(emailPayload);
 
     const payload = {
       bookingId: savedBooking.id,

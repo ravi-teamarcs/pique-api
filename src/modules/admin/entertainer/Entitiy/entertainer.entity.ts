@@ -9,8 +9,6 @@ import {
 } from 'typeorm';
 import { User } from '../../users/Entity/users.entity';
 
-// import { Booking } from '../../booking/entities/booking.entity';
-
 @Entity('entertainers')
 export class Entertainer {
   @PrimaryGeneratedColumn({ type: 'bigint' })
@@ -28,9 +26,6 @@ export class Entertainer {
   @Column()
   bio: string;
 
-  // @Column()
-  // headshotUrl: string;
-
   @Column({
     type: 'enum',
     enum: ['soloist', 'duo', 'trio', 'ensemble'],
@@ -46,9 +41,6 @@ export class Entertainer {
 
   @Column()
   pricePerEvent: number;
-
-  // @Column()
-  // mediaUrl: string;
 
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
   vaccinated: 'yes' | 'no';

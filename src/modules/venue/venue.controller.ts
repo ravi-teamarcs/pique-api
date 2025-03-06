@@ -35,6 +35,7 @@ import { ResponseDto } from '../booking/dto/booking-response-dto';
 import { ChangeBooking } from './dto/change-booking.dto';
 import { VenueLocationDto } from './dto/add-location.dto';
 import { Data } from './dto/search-filter.dto';
+import { WishlistDto } from './dto/wishlist.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -199,10 +200,23 @@ export class VenueController {
     return this.venueService.getAllEntertainersByCategory(cid);
   }
 
-  @Post('/location/add')
   @Roles('findAll')
+  @Post('/location/add')
   addLocation(@Body() locationDto: VenueLocationDto, @Request() req) {
     const { userId } = req.user;
     return this.venueService.addVenueLocation(userId, locationDto);
+  }
+
+  @Roles('findAll')
+  @Post('/toogle/wishlist')
+  toggleWishList(@Body() wishDto: WishlistDto, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.toggleWishlist(userId, wishDto);
+  }
+  @Roles('findAll')
+  @Get('/entertainers/wishlist')
+  getWishList(@Request() req) {
+    const { userId } = req.user;
+    return this.venueService.getWishlist(userId);
   }
 }

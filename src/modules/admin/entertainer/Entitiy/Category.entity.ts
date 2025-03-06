@@ -3,7 +3,7 @@ import {
   PrimaryGeneratedColumn,
   Column,
   ManyToOne,
-  JoinColumn,
+  OneToMany,
 } from 'typeorm';
 
 @Entity('categories')
@@ -11,15 +11,15 @@ export class Categories {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255, nullable: false })
   name: string;
+
+  @Column({ type: 'int', nullable: true })
+  parentId: number;
 
   @Column()
   iconUrl: string;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255 })
   catslug: string;
-
-  @Column({ nullable: true })
-  parentId: number;
 }

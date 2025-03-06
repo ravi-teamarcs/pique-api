@@ -20,6 +20,8 @@ import { VenueEvent } from '../event/entities/event.entity';
 import { VenueLocationDto } from './dto/add-location.dto';
 import { Data } from './dto/search-filter.dto';
 import { instanceToPlain } from 'class-transformer';
+import { Wishlist } from './entities/wishlist.entity';
+import { WishlistDto } from './dto/wishlist.dto';
 
 @Injectable()
 export class VenueService {
@@ -36,6 +38,8 @@ export class VenueService {
     private readonly mediaRepository: Repository<Media>,
     @InjectRepository(Category)
     private readonly catRepository: Repository<Category>,
+    @InjectRepository(Wishlist)
+    private readonly wishRepository: Repository<Wishlist>,
   ) {}
 
   async create(createVenueDto: CreateVenueDto, userId: number) {
@@ -509,6 +513,42 @@ export class VenueService {
     return {
       message: 'Filters fetched Successfully',
       data: filterData,
+      status: true,
+    };
+  }
+
+  async toggleWishlist(userId: number, wishDto: WishlistDto) {
+    // Check if entertainer is already in wishlist
+    const { entId, ...wish } = wishDto;
+
+    const existingWishlist = await this.wishRepository.findOne({
+      where: { user_id: userId, ent_id: entId },
+    });
+
+    if (existingWishlist) {
+      // Remove from wishlist if already present
+      const res = await this.wishRepository.remove(existingWishlist);
+      console.log('Removed Entertainer', res);
+      return { message: 'Entertainer Removed from wishlist', status: true };
+    }
+    //  Add to wishlist if not present
+    const wishlistItem = this.wishRepository.create({
+      ...wish,
+      ent_id: entId,
+      user_id: userId,
+    });
+    await this.wishRepository.save(wishlistItem);
+    return { message: ' Entertainer Added to wishlist', status: true };
+  }
+
+  async getWishlist(userId: number) {
+    const wishlistItems = await this.wishRepository.find({
+      where: { user_id: userId },
+      select: ['id', 'name', 'url', 'category', 'specific_category'],
+    });
+    return {
+      message: 'Wishlist fetched Successfully',
+      data: wishlistItems,
       status: true,
     };
   }
