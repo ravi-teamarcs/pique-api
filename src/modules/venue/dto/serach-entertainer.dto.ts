@@ -10,7 +10,16 @@ export class SearchEntertainerDto {
 
   @ApiProperty({ description: 'Category of the entertainer', required: false })
   @IsOptional()
-  category: string;
+  @Transform(({ value }) => Number(value))
+  category: number;
+
+  @ApiProperty({
+    description: 'Sub_Category of the entertainer',
+    required: false,
+  })
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  sub_category: number;
 
   @ApiProperty({ description: 'Page Number', required: false })
   @IsOptional()

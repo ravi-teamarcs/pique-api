@@ -62,6 +62,7 @@ export class VenueController {
     async updateVenue(
         @Body() updateVenueDto: UpdateVenueDto,
     ): Promise<any> {
+        console.log('updateVenue', updateVenueDto)
         return this.vanueService.updateVenue(updateVenueDto);
     }
 

@@ -1,11 +1,10 @@
-import { IsOptional, IsNotEmpty, IsObject } from 'class-validator';
+import { IsOptional, IsNotEmpty, IsObject, IsNumber } from 'class-validator';
 
 export class UpdateVenueDto {
-  @IsOptional()
+  @IsNumber()
   @IsNotEmpty()
   id: number;
 
-  @IsOptional()
-  @IsObject()
+  @IsNotEmpty()
   fieldsToUpdate: Record<string, any>;
 }

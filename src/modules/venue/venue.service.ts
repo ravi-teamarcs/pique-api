@@ -140,7 +140,8 @@ export class VenueService {
   async findAllEntertainers(query: SearchEntertainerDto) {
     const {
       availability = '',
-      category = '',
+      category = null,
+      sub_category = null,
       search = '',
       page = 1,
       pageSize = 10,
@@ -181,6 +182,7 @@ export class VenueService {
       .select([
         'entertainer.id AS id',
         'user.id AS eid',
+        'user.name AS user_name',
         'entertainer.name AS name',
         'entertainer.category AS category',
         'entertainer.specific_category AS specific_category',
@@ -201,9 +203,13 @@ export class VenueService {
         availability,
       });
     }
-
     if (category) {
       res.andWhere('entertainer.category = :category', { category });
+    }
+    if (sub_category) {
+      res.andWhere('entertainer.specific_category = :sub_category', {
+        sub_category,
+      });
     }
 
     if (search.trim() !== '') {
@@ -231,6 +237,8 @@ export class VenueService {
     // Parse JSON fields
     const entertainers = results.map((item) => ({
       ...item,
+      location: 'Noida Uttar Pradesh',
+      ratings: 4,
       bookedFor: JSON.parse(item.bookedFor),
       media: JSON.parse(item.media),
     }));
@@ -261,6 +269,7 @@ export class VenueService {
         'booking.venueId AS vid',
         'entertainerUser.id AS eid',
         'entertainerUser.email AS email',
+        'entertainerUser.name AS username',
         'entertainer.name AS name',
         'entertainer.category AS category',
         'entertainer.specific_category AS  specific_category',

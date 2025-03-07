@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty, IsArray, IsOptional, IsNumber, IsBoolean } from 'class-validator';
+import {
+  IsString,
+  IsNotEmpty,
+  IsArray,
+  IsOptional,
+  IsNumber,
+  IsBoolean,
+} from 'class-validator';
 
 export class CreateVenueDto {
   @IsString()
@@ -7,11 +14,11 @@ export class CreateVenueDto {
   name: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   phone: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   email: string;
 
   @IsString()
@@ -23,7 +30,7 @@ export class CreateVenueDto {
   addressLine2?: string;
 
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   description: string;
 
   @IsNumber()
@@ -42,41 +49,10 @@ export class CreateVenueDto {
   @IsNotEmpty()
   zipCode: string;
 
-
-
-  @IsString()
-  @IsNotEmpty()
-  lat: string;
-
-  @IsString()
-  @IsNotEmpty()
-  long: string;
-
-  @IsArray()
-  @IsNotEmpty()
-  amenities?: string[];
-
-  @IsString()
-  @IsNotEmpty()
-  websiteUrl: string;
-
-  @IsString()
-  @IsNotEmpty()
-  timings: string;
-
-  @IsString()
-  @IsNotEmpty()
-  bookingPolicies: string;
-
   @IsNotEmpty()
   userId: number; // Assuming the venue is linked to a user
-
-  @ApiProperty({ example: true, description: 'Is venue Booking Venue' })
-  @IsBoolean()
-  isParent: boolean;
 
   @IsOptional()
   @IsNumber()
   parentId?: number;
-
 }
