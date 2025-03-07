@@ -124,6 +124,8 @@ export class AuthService {
           name: user.name,
           status: user.status,
           role: user.role,
+          phone: user.phoneNumber,
+          email: user.email,
           completed,
         },
       },

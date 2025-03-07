@@ -162,7 +162,7 @@ export class VenueService {
               'JSON_ARRAYAGG(DISTINCT JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookedDates',
             ])
             .from('booking', 'booking')
-            .where('booking.status = :confirmed', { confirmed: 'confirmed' })
+            .where('booking.status = "confirmed"') // Use direct value instead of parameter
             .groupBy('booking.entertainerUserId'),
         'bookings',
         'bookings.entertainerUserId = user.id',
@@ -172,9 +172,10 @@ export class VenueService {
           qb
             .select([
               'media.userId',
-              "JSON_ARRAYAGG(JSON_OBJECT('id', media.id, 'url', CONCAT(:serverUri, media.url), 'type', media.type, 'name', media.name)) AS mediaFiles",
+              "COALESCE(MAX(CONCAT(:serverUri, media.url)), '') AS mediaUrl", // Ensure mediaUrl is never NULL
             ])
             .from('media', 'media')
+            .where('media.type = "headshot"') // Use direct value instead of parameter
             .groupBy('media.userId'),
         'media',
         'media.userId = user.id',
@@ -192,10 +193,10 @@ export class VenueService {
         'entertainer.availability AS availability',
         'entertainer.status AS status',
         'user.email AS email',
-        'COALESCE(bookings.bookedDates, "[]") AS bookedFor', // Default empty array if no bookings
-        'COALESCE(media.mediaFiles, "[]") AS media',
+        'media.mediaUrl As mediaUrl',
+        'COALESCE(bookings.bookedDates, "[]") AS bookedFor', // Default empty array if no , //
       ])
-      .setParameter('serverUri', process.env.SERVER_URI);
+      .setParameter('serverUri', process.env.BASE_URL);
 
     // Filters
     if (availability) {
@@ -227,12 +228,13 @@ export class VenueService {
         { search: `%${search.toLowerCase()}%` },
       );
     }
-
+    console.log('djdkdk', res);
     // Get total count before pagination
     const totalCount = await res.getCount();
 
     // Apply pagination
     const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
+    console.log('Response', results);
 
     // Parse JSON fields
     const entertainers = results.map((item) => ({
@@ -240,7 +242,6 @@ export class VenueService {
       location: 'Noida Uttar Pradesh',
       ratings: 4,
       bookedFor: JSON.parse(item.bookedFor),
-      media: JSON.parse(item.media),
     }));
 
     return {
@@ -512,10 +513,26 @@ export class VenueService {
       inactiveIcon: iconUrl.replace(/(\.\w+)$/, '_grey$1'), // Adds "_gray" before file extension
     }));
 
+    const filter = plainCat.map((item) => ({
+      label: item.name,
+      value: item.id,
+    }));
+
     const filterData = {
       filters: [
-        { type: 'range', label: 'price', max: 13000, min: 10000 },
-        { type: 'select', label: 'location' },
+        {
+          type: 'checkbox',
+          label: 'Price',
+          data: [
+            { label: '500-1000', value: 1 },
+            { lable: '1000-2000', value: 2 },
+            { lable: '2000-3000', value: 3 },
+            { lable: '3000-4000', value: 4 },
+            { lable: '4000-5000', value: 5 },
+          ],
+        },
+        { type: 'checkbox', label: 'Category', data: filter },
+        { type: 'select', label: 'Location' },
       ],
       categories: { type: 'checkbox', label: 'category', data: Data },
     };
