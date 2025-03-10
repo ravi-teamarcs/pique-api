@@ -153,7 +153,14 @@ export class VenueService {
     // Base Query
     const res = this.entertainerRepository
       .createQueryBuilder('entertainer')
-      .leftJoinAndSelect('entertainer.user', 'user') // Join with user table
+      .leftJoinAndSelect('entertainer.user', 'user')
+      .leftJoin('cities', 'city', 'city.id = entertainer.city')
+      .leftJoin('states', 'state', 'state.id = entertainer.state')
+      .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .addSelect('city.name', 'city_name')
+      .addSelect('state.name', 'state_name')
+      .addSelect('country.name', 'country_name')
+
       .leftJoin(
         (qb) =>
           qb
@@ -193,6 +200,9 @@ export class VenueService {
         'entertainer.availability AS availability',
         'entertainer.status AS status',
         'user.email AS email',
+        'city.name AS city',
+        'state.name AS state',
+        'country.name AS country',
         'media.mediaUrl As mediaUrl',
         'COALESCE(bookings.bookedDates, "[]") AS bookedFor', // Default empty array if no , //
       ])
@@ -228,21 +238,23 @@ export class VenueService {
         { search: `%${search.toLowerCase()}%` },
       );
     }
-    console.log('djdkdk', res);
+
     // Get total count before pagination
     const totalCount = await res.getCount();
 
     // Apply pagination
     const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
-    console.log('Response', results);
+
+    const arr = [3, 4, 5, 2, 1];
 
     // Parse JSON fields
-    const entertainers = results.map((item) => ({
-      ...item,
-      location: 'Noida Uttar Pradesh',
-      ratings: 4,
-      bookedFor: JSON.parse(item.bookedFor),
-    }));
+    const entertainers = results.map((item, index) => {
+      return {
+        ...item,
+        ratings: arr[index > arr.length ? index : arr.length - index],
+        bookedFor: JSON.parse(item.bookedFor),
+      };
+    });
 
     return {
       message: 'Entertainers fetched successfully',
@@ -278,6 +290,9 @@ export class VenueService {
         'entertainer.performanceRole AS performanceRole',
         'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
+        'city.name AS city_name',
+        'state.name AS state_name',
+        'country.name AS country_name',
       ])
       .orderBy('booking.createdAt', 'DESC')
       .getRawMany();

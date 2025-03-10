@@ -55,6 +55,10 @@ export class Entertainer {
 
   @Column()
   status: string;
+  @Column()
+  city: number;
+  @Column()
+  state: number;
 
   @Column()
   socialLinks: string;

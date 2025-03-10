@@ -13,6 +13,9 @@ import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Category } from './entities/categories.entity';
 import { Media } from '../media/entities/media.entity';
+import { Rating } from './entities/rating.entity';
+import { RatingsService } from './rating.service';
+import { RatingsController } from './rating.controller';
 // import { VenueService } from '../venue/venue.service';
 
 @Module({
@@ -27,10 +30,11 @@ import { Media } from '../media/entities/media.entity';
       EndPoints,
       Category,
       Media,
+      Rating,
     ]),
     BookingModule,
   ],
-  controllers: [EntertainerController],
-  providers: [EntertainerService],
+  controllers: [EntertainerController, RatingsController],
+  providers: [EntertainerService, RatingsService],
 })
 export class EntertainerModule {}

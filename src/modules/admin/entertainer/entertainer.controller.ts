@@ -111,6 +111,7 @@ export class EntertainerController {
     @UseGuards(JwtAuthGuard, RolesGuardAdmin)
     @Post('updatestatusent')
     async updateStatus(@Body() updateStatusDto: UpdateStatusDto) {
+        console.log(updateStatusDto,"shhhhh")
         return this.EntertainerService.updateStatus(updateStatusDto);
     }
 
