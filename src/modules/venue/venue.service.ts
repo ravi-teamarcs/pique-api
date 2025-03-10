@@ -585,7 +585,7 @@ export class VenueService {
   async getWishlist(userId: number) {
     const wishlistItems = await this.wishRepository.find({
       where: { user_id: userId },
-      select: ['id', 'name', 'url', 'category', 'specific_category'],
+      select: ['id', 'name', 'category', 'specific_category', 'ent_id'],
     });
     return {
       message: 'Wishlist fetched Successfully',
