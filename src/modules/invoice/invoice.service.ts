@@ -31,6 +31,7 @@ export class InvoiceService {
   }
 
   async findAllInvoice(userId: number) {
+    console.log(userId, 'Inside get ');
     const invoices = await this.invoiceRepository.find({
       where: { venue_id: userId },
     });
