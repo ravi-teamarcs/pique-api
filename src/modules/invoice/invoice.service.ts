@@ -4,9 +4,10 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Invoice } from './entities/invoice.entity';
+
 import { Repository } from 'typeorm';
 import { InvoiceDto } from './dto/create-invoice.dto';
+import { Invoice } from '../admin/invoice/Entity/invoices.entity';
 
 @Injectable()
 export class InvoiceService {
@@ -18,28 +19,26 @@ export class InvoiceService {
   async generateInvoice(invoiceDto: InvoiceDto) {
     const { customerId, ...invoiceDtoDetails } = invoiceDto;
     const invoice = this.invoiceRepository.create({
-      customer: { id: customerId },
-      ...invoiceDtoDetails,
+      // customer: { id: customerId },
+      // ...invoiceDtoDetails,
     });
 
     if (!(await this.invoiceRepository.save(invoice))) {
       throw new InternalServerErrorException('An unexpected error occurred');
     }
-    
-
 
     return { message: 'Invoice generated Successfully', invoice: invoice };
   }
 
-  async findAllInvoice(userId: number): Promise<Invoice[]> {
-    const invoice = await this.invoiceRepository.find({
-      where: { customer: { id: userId } },
+  async findAllInvoice(userId: number) {
+    const invoices = await this.invoiceRepository.find({
+      where: { venue_id: userId },
     });
 
-    if (!invoice) {
-      throw new BadRequestException('Invoice Not Found');
-    }
-
-    return invoice;
+    return {
+      message: 'Invoice returned Successfully',
+      status: true,
+      data: invoices,
+    };
   }
 }

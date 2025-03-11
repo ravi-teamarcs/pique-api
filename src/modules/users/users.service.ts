@@ -114,14 +114,19 @@ export class UsersService {
           'venue.state As vState',
           'venue.zipCode AS vZipCode',
           'venue.country AS vCountry',
+          'venue.isParent As isParent',
         ])
         .getRawOne();
-
-      details['vIsParent'] = Boolean(details.isParent);
+      console.log(details);
+      const newDetails = {
+        ...details,
+        isParent: Boolean(details.isParent),
+      };
 
       const location = await this.venueRepository.find({
         where: { user: { id: userId }, isParent: false },
         select: [
+          'id',
           'phone',
           'addressLine1',
           'addressLine2',
@@ -131,11 +136,13 @@ export class UsersService {
           'state',
           'country',
           'zipCode',
+          'parentId',
+          'isParent',
         ],
       });
       const rest = instanceToPlain(location);
-      details['locations'] = rest;
-      response['data'] = details;
+      newDetails['locations'] = rest;
+      response['data'] = newDetails;
       return response;
     }
     const entDetails = await this.entertainerRepository
