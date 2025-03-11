@@ -258,7 +258,7 @@ export class VenueService {
     const entertainers = results.map((item, index) => {
       return {
         ...item,
-        ratings: arr[index > arr.length ? index : arr.length - index],
+        ratings: arr[index % arr.length],
         bookedFor: JSON.parse(item.bookedFor),
       };
     });
