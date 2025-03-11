@@ -153,10 +153,10 @@ export class VenueController {
     status: 200,
     description: 'Venue updated Successfully .',
   })
-  @Put('update')
+  @Put()
   @Roles('findAll')
   updateVenue(@Body() UpdateVenueDto: UpdateVenueDto, @Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.venueService.handleUpdateVenueDetails(UpdateVenueDto, userId);
   }
   @ApiOperation({ summary: 'Remove venue By id. ' })

@@ -138,13 +138,16 @@ export class VenueService {
 
   // To find Booking related to Venue user
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
+    console.log('Inside Service Control');
     const {
       availability = '',
       category = null,
       sub_category = null,
-      search = '',
+      price = {},
+      sort = { sortBy: 'id', order: 'DESC' },
       page = 1,
       pageSize = 10,
+      city = null,
     } = query;
 
     // Pagination
@@ -211,7 +214,7 @@ export class VenueService {
         `CASE 
        WHEN wish.ent_id IS NOT NULL THEN true 
        ELSE false 
-       END AS isWhitelisted`, // Default empty array if no , //
+       END AS isWishlisted`, // Default empty array if no , //
       ])
       .setParameter('serverUri', process.env.BASE_URL);
 
@@ -224,44 +227,61 @@ export class VenueService {
     if (category) {
       res.andWhere('entertainer.category = :category', { category });
     }
+
     if (sub_category) {
       res.andWhere('entertainer.specific_category = :sub_category', {
         sub_category,
       });
     }
 
-    if (search.trim() !== '') {
-      res.andWhere(
-        `(
-          LOWER(entertainer.name) LIKE :search OR
-          LOWER(entertainer.category) LIKE :search OR
-          LOWER(entertainer.bio) LIKE :search OR
-          LOWER(entertainer.performanceRole) LIKE :search OR
-          LOWER(entertainer.phone1) LIKE :search OR
-          LOWER(entertainer.phone2) LIKE :search OR
-          LOWER(entertainer.status) LIKE :search OR
-          LOWER(user.email) LIKE :search
-        )`,
-        { search: `%${search.toLowerCase()}%` },
-      );
+    if (city) {
+      res.andWhere('entertainer.city = :city', { city });
     }
 
-    // Get total count before pagination
-    const totalCount = await res.getCount();
+    // if (search.trim() !== '') {
+    //   res.andWhere(
+    //     `(
+    //       LOWER(entertainer.name) LIKE :search OR
+    //       LOWER(entertainer.category) LIKE :search OR
+    //       LOWER(entertainer.bio) LIKE :search OR
+    //       LOWER(entertainer.performanceRole) LIKE :search OR
+    //       LOWER(entertainer.phone1) LIKE :search OR
+    //       LOWER(entertainer.phone2) LIKE :search OR
+    //       LOWER(entertainer.status) LIKE :search OR
+    //       LOWER(user.email) LIKE :search
+    //     )`,
+    //     { search: `%${search.toLowerCase()}%` },
+    //   );
+    // }
 
-    // Apply pagination
+    // Get total count before pagination
+
+    if (Object.keys(price).length === 2) {
+      res.andWhere('entertainer.pricePerEvent BETWEEN :min AND :max', price);
+    }
+
+    if (sort) {
+      res.orderBy(`entertainer.${sort.sortBy}`, sort.order);
+    }
+
+    // For Counting the returmned record
+    const totalCount = await res.getCount();
     const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
 
     const arr = [3, 4, 5, 2, 1];
 
     // Parse JSON fields
-    const entertainers = results.map((item, index) => {
-      return {
-        ...item,
-        ratings: arr[index % arr.length],
-        bookedFor: JSON.parse(item.bookedFor),
-      };
-    });
+    const entertainers = results.map(
+      ({ id, isWishListed, bookedFor, ...item }, index) => {
+        return {
+          id: Number(id),
+          ...item,
+          isWishlisted: Boolean(isWishListed),
+          ratings: arr[index % arr.length],
+          bookedFor: JSON.parse(bookedFor),
+        };
+      },
+    );
 
     return {
       message: 'Entertainers fetched successfully',

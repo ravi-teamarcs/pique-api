@@ -13,6 +13,9 @@ import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Media } from '../media/entities/media.entity';
 import { Category } from '../entertainer/entities/categories.entity';
 import { Wishlist } from './entities/wishlist.entity';
+import { VenueDetailsController } from './venue.details.controller';
+import { VenueDetailService } from './venue.details.service';
+import { VenueDetails } from './entities/venue.details.entity';
 
 @Module({
   imports: [
@@ -27,10 +30,11 @@ import { Wishlist } from './entities/wishlist.entity';
       Media,
       Category,
       Wishlist,
+      VenueDetails,
     ]),
     BookingModule,
   ],
-  controllers: [VenueController],
-  providers: [VenueService],
+  controllers: [VenueController, VenueDetailsController],
+  providers: [VenueService, VenueDetailService],
 })
 export class VenueModule {}

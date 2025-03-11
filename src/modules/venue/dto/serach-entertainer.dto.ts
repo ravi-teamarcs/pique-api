@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
-import { IsEnum, IsOptional, IsNumber, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsEnum, IsOptional, IsNumber, IsObject } from 'class-validator';
+import { SortField, SortOrder } from 'src/common/types/venue.type';
 
 export class SearchEntertainerDto {
   @ApiProperty({ description: 'Name of the venue', required: false })
@@ -28,16 +29,42 @@ export class SearchEntertainerDto {
   page: number;
 
   @ApiProperty({
-    description: 'Global search across multiple fields',
+    description: 'Price Range',
     required: false,
   })
   @IsOptional()
-  @IsString()
-  search: string;
+  @IsObject()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value); // Convert string to object
+      } catch {
+        return null; // Return null if parsing fails
+      }
+    }
+    return value; // If it's already an object, return as-is
+  })
+  price?: { min: number; max: number };
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    try {
+      return JSON.parse(value); // Convert string to object
+    } catch (error) {
+      return null; // Handle invalid JSON gracefully
+    }
+  })
+  sort?: { sortBy: SortField; order: SortOrder };
 
   @ApiProperty({ description: 'Records per page you want .', required: false })
   @IsOptional()
   @IsNumber()
   @Transform(({ value }) => Number(value))
   pageSize: number;
+
+  @ApiProperty({ description: 'city code', required: false })
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  city: number;
 }

@@ -39,8 +39,8 @@ import { MulterModule } from '@nestjs/platform-express';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
         entities: [join(process.cwd(), 'dist/**/*.entity.js')],
-        logging: true,
-        logger: 'advanced-console',
+        // logging: true,
+        // logger: 'advanced-console',
         maxQueryExecutionTime: 1000, // Good for debugging slow queries
         // synchronize: true, // Set this to false in production
       }),
