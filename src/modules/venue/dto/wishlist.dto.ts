@@ -5,9 +5,18 @@ class WishlistDto {
   @IsNotEmpty()
   name: string;
 
-  // @IsString()
-  // @IsNotEmpty()
-  // url: string;
+  @IsString()
+  @IsNotEmpty()
+  url: string;
+
+  
+  @IsString()
+  @IsNotEmpty()
+  username: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  ratings: number;
 
   @IsNumber()
   @IsNotEmpty()

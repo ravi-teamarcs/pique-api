@@ -16,8 +16,16 @@ export class Wishlist {
 
   @Column()
   url: string;
+
   @Column()
   category: number;
+
+  @Column()
+  username: string;
+
+  @Column()
+  ratings: number;
+
   @Column()
   specific_category: number;
 

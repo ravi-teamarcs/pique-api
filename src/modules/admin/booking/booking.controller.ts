@@ -23,6 +23,7 @@ import { RolesGuardAdmin } from '../auth/roles.guard';
 import { BookingQueryDto } from './dto/booking-query.dto';
 import { AdminBookingDto } from './dto/admin-booking.dto';
 import { AdminBookingResponseDto } from './dto/admin-booking-response.dto';
+import { ModifyBookingDto } from './dto/modify.booking.dto';
 
 @ApiTags('Booking')
 @ApiBearerAuth()
@@ -76,5 +77,12 @@ export class BookingController {
   @Roles('super-admin')
   bookingResponse(@Body() bookingdto: AdminBookingResponseDto) {
     return this.bookingService.bookingResponse(bookingdto);
+  }
+
+  @Patch('details')
+  @HttpCode(200)
+  @Roles('super-admin')
+  modifyBooking(@Body() dto: ModifyBookingDto) {
+    return this.bookingService.modifyBooking(dto);
   }
 }

@@ -137,7 +137,7 @@ export class VenueService {
   }
 
   // To find Booking related to Venue user
-  async findAllEntertainers(query: SearchEntertainerDto) {
+  async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
     const {
       availability = '',
       category = null,
@@ -157,9 +157,12 @@ export class VenueService {
       .leftJoin('cities', 'city', 'city.id = entertainer.city')
       .leftJoin('states', 'state', 'state.id = entertainer.state')
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
-      .addSelect('city.name', 'city_name')
-      .addSelect('state.name', 'state_name')
-      .addSelect('country.name', 'country_name')
+      .leftJoin(
+        'wishlist',
+        'wish',
+        'wish.ent_id = user.id AND wish.user_id = :userId',
+        { userId },
+      )
 
       .leftJoin(
         (qb) =>
@@ -188,7 +191,7 @@ export class VenueService {
         'media.userId = user.id',
       )
       .select([
-        'entertainer.id AS id',
+        'CAST(entertainer.id AS UNSIGNED) AS id',
         'user.id AS eid',
         'user.name AS user_name',
         'entertainer.name AS name',
@@ -204,7 +207,11 @@ export class VenueService {
         'state.name AS state',
         'country.name AS country',
         'media.mediaUrl As mediaUrl',
-        'COALESCE(bookings.bookedDates, "[]") AS bookedFor', // Default empty array if no , //
+        'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
+        `CASE 
+       WHEN wish.ent_id IS NOT NULL THEN true 
+       ELSE false 
+       END AS isWhitelisted`, // Default empty array if no , //
       ])
       .setParameter('serverUri', process.env.BASE_URL);
 
@@ -585,7 +592,16 @@ export class VenueService {
   async getWishlist(userId: number) {
     const wishlistItems = await this.wishRepository.find({
       where: { user_id: userId },
-      select: ['id', 'name', 'category', 'specific_category', 'ent_id'],
+      select: [
+        'id',
+        'name',
+        'category',
+        'specific_category',
+        'ent_id',
+        'username',
+        'url',
+        'ratings',
+      ],
     });
     return {
       message: 'Wishlist fetched Successfully',

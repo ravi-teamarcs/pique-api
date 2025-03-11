@@ -10,6 +10,7 @@ import { Booking } from './entities/booking.entity';
 import { AdminBookingDto } from './dto/admin-booking.dto';
 import { BookingQueryDto } from './dto/booking-query.dto';
 import { AdminBookingResponseDto } from './dto/admin-booking-response.dto';
+import { ModifyBookingDto } from './dto/modify.booking.dto';
 
 @Injectable()
 export class BookingService {
@@ -138,6 +139,31 @@ export class BookingService {
       };
     } catch (error) {
       throw new InternalServerErrorException({ message: error.message });
+    }
+  }
+
+  async modifyBooking(payload: ModifyBookingDto) {
+    const { bookingId, fieldsToUpdate } = payload;
+    const booking = await this.bookingRepository.findOne({
+      where: { id: bookingId },
+    });
+    if (!booking) {
+      throw new NotFoundException({
+        message: 'Booking not found',
+        status: false,
+      });
+    }
+    try {
+      await this.bookingRepository.update({ id: booking.id }, fieldsToUpdate);
+      return {
+        message: 'Booking updated successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: error.status,
+      });
     }
   }
 }

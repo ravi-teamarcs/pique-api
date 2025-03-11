@@ -89,8 +89,9 @@ export class VenueController {
     status: 404,
     description: 'Cannot get entertainers.',
   })
-  search(@Query() query: SearchEntertainerDto) {
-    return this.venueService.findAllEntertainers(query);
+  search(@Query() query: SearchEntertainerDto, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.findAllEntertainers(query, userId);
   }
 
   @Get('entertainer-profile/:id')
