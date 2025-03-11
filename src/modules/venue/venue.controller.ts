@@ -220,4 +220,14 @@ export class VenueController {
     const { userId } = req.user;
     return this.venueService.getWishlist(userId);
   }
+
+  @Roles('findAll')
+  @Get('entertainer/roles')
+  getRoles() {
+    return {
+      message: 'Role returned Successfully',
+      status: true,
+      data: [{ role: 'soloist' }, { role: 'duo' }, { role: 'ensemble' }],
+    };
+  }
 }

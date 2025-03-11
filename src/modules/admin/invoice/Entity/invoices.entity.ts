@@ -7,6 +7,7 @@ export enum UserType {
 export enum InvoiceStatus {
   PENDING = 'pending',
   PAID = 'paid',
+  PAYMENTSENT= 'paymentsent'
 }
 
 
@@ -48,8 +49,8 @@ export class Invoice {
   @Column({ type: 'decimal'})
   total_with_tax: number;
 
-  @Column({ type: 'enum', enum: ['pending', 'paid'], default: 'pending' })
-  status: InvoiceStatus;
+  @Column({ type: 'enum', enum: ['pending', 'paid' ,'paymentsent'], default: 'pending' })
+  status: 'pending' |'paid' |'paymentsent'
 
 
   @Column({ type: 'varchar', length: 255 })

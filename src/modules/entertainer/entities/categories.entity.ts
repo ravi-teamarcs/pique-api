@@ -14,10 +14,10 @@ export class Category {
   @Column({ type: 'varchar', length: 255, nullable: false })
   name: string;
 
-  @Column({ type: 'int', nullable: true })
+  @Column()
   parentId: number;
 
-  @Column()
+  @Column({ type: 'text' })
   iconUrl: string;
 
   @Column({ type: 'varchar', length: 255 })

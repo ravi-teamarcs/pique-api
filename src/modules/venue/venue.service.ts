@@ -205,6 +205,7 @@ export class VenueService {
         'entertainer.vaccinated AS vaccinated',
         'entertainer.availability AS availability',
         'entertainer.status AS status',
+        'entertainer.bio AS bio',
         'user.email AS email',
         'city.name AS city',
         'state.name AS state',
@@ -278,6 +279,13 @@ export class VenueService {
           ...item,
           isWishlisted: Boolean(isWishListed),
           ratings: arr[index % arr.length],
+          whatwillyouget: [
+            { text: 'you will get full service' },
+            { text: 'you will get full Satisfaction' },
+            { text: 'Professional Talent' },
+            { text: 'An feeling of sophistication' },
+            { text: 'Experince of life' },
+          ],
           bookedFor: JSON.parse(bookedFor),
         };
       },
