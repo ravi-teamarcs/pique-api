@@ -160,6 +160,8 @@ export class VenueService {
       .leftJoin('cities', 'city', 'city.id = entertainer.city')
       .leftJoin('states', 'state', 'state.id = entertainer.state')
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .leftJoin('categories', 'category', 'category.id = entertainer.category')
+      .leftJoin('categories', 'subcat', 'specific_category = subcat.id')
       .leftJoin(
         'wishlist',
         'wish',
@@ -194,7 +196,7 @@ export class VenueService {
         'media.userId = user.id',
       )
       .select([
-        'CAST(entertainer.id AS UNSIGNED) AS id',
+        // 'CAST(entertainer.id AS UNSIGNED) AS id',
         'user.id AS eid',
         'user.name AS user_name',
         'entertainer.name AS name',
@@ -207,11 +209,14 @@ export class VenueService {
         'entertainer.status AS status',
         'entertainer.bio AS bio',
         'user.email AS email',
+        'category.name AS category_name',
+        'subcat.name AS specific_category_name',
         'city.name AS city',
         'state.name AS state',
         'country.name AS country',
         'media.mediaUrl As mediaUrl',
         'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
+
         `CASE 
        WHEN wish.ent_id IS NOT NULL THEN true 
        ELSE false 
@@ -273,9 +278,8 @@ export class VenueService {
 
     // Parse JSON fields
     const entertainers = results.map(
-      ({ id, isWishListed, bookedFor, ...item }, index) => {
+      ({ isWishListed, bookedFor, ...item }, index) => {
         return {
-          id: Number(id),
           ...item,
           isWishlisted: Boolean(isWishListed),
           ratings: arr[index % arr.length],
@@ -325,9 +329,6 @@ export class VenueService {
         'entertainer.performanceRole AS performanceRole',
         'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
-        'city.name AS city_name',
-        'state.name AS state_name',
-        'country.name AS country_name',
       ])
       .orderBy('booking.createdAt', 'DESC')
       .getRawMany();

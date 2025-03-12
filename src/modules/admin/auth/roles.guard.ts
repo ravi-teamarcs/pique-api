@@ -27,9 +27,10 @@ export class RolesGuardAdmin implements CanActivate {
     if (!roles) {
       throw new ForbiddenException('role is missing.');
     }
-    console.log('Inside Roles Guard');
+    
     const request = context.switchToHttp().getRequest();
     const user = request.user;
+    console.log('Inside Roles Guard Admin' , user);
 
     if (!user || !user.role) {
       throw new ForbiddenException('User role is missing.');

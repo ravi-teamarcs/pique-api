@@ -10,6 +10,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       secretOrKey: configService.get<string>('JWT_SECRET'),
     });
+    console.log(" Jwt got hit ",ExtractJwt.fromAuthHeaderAsBearerToken())
   }
 
   async validate(payload: any) {

@@ -22,7 +22,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule], // ✅ Import ConfigModule here
       inject: [ConfigService],
       useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET_ADMIN') || 'admin',
+        secret: configService.get<string>('JWT_SECRET_ADMIN'),
         signOptions: { expiresIn: '1d' },
       }),
     }),
