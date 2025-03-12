@@ -24,11 +24,13 @@ export class InvoiceController {
     status: 201,
     description: 'Invoice  created  Successfully.',
   })
-
   // Route to Generate the Invoice for specific  Booking
+  @Roles('findAll')
   @Post()
-  createInvoice(@Body() invoiceDto: InvoiceDto) {
-    return this.invoiceService.generateInvoice(invoiceDto);
+  createInvoice(@Request() req) {
+    const { userId } = req.user;
+    console.log("Inside controller of Invoice")
+    return this.invoiceService.generateInvoice(userId);
   }
 
   @ApiOperation({ summary: 'Get All Invoices' })
@@ -40,7 +42,7 @@ export class InvoiceController {
   @Get()
   getAllInvoices(@Request() req) {
     const { userId } = req.user;
-    console.log(userId)
+    console.log(userId ,"indide get");
     return this.invoiceService.findAllInvoice(userId);
   }
 }
