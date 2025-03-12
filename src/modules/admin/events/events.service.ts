@@ -16,10 +16,11 @@ export class EventService {
   ) {}
 
   // Create a new event
-  async create(createEventDto: CreateEventDto): Promise<Event> {
-    console.log('createEventDto', createEventDto);
+  async create(createEventDto: CreateEventDto) {
     const event = this.eventRepository.create(createEventDto);
-    return await this.eventRepository.save(event);
+    const data = await this.eventRepository.save(event);
+    console.log('Data', data);
+    return { message: 'Event Creates Successfully', data: event, status: true };
   }
 
   // Get all events
