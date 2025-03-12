@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { Brackets, Like, Repository } from 'typeorm';
 import { Venue } from './entities/venue.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
@@ -138,10 +138,9 @@ export class VenueService {
 
   // To find Booking related to Venue user
   // async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
-  //   console.log('Inside Service Control');
   //   const {
   //     availability = '',
-  //     category = null,
+  //     category,
   //     sub_category = null,
   //     price = [],
   //     // sort = { sortBy: 'id', order: 'DESC' },
@@ -150,10 +149,8 @@ export class VenueService {
   //     city = null,
   //   } = query;
 
-  //   // Pagination
-  //   const skip = (Number(page) - 1) * Number(pageSize);
-  //   console.log('Category Inside Search ', category);
-  //   // Base Query
+  //   console.log('Category inside Search', category);
+
   //   // const res = this.entertainerRepository
   //   //   .createQueryBuilder('entertainer')
   //   //   .leftJoinAndSelect('entertainer.user', 'user')
@@ -306,13 +303,11 @@ export class VenueService {
   //   // };
   // }
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
-    console.log('Inside Service Control');
     const {
       availability = '',
-      category = null,
+      category = [],
       sub_category = null,
-      price = {},
-      sort = { sortBy: 'id', order: 'DESC' },
+      price = [],
       page = 1,
       pageSize = 10,
       city = null,
@@ -320,6 +315,21 @@ export class VenueService {
 
     // Pagination
     const skip = (Number(page) - 1) * Number(pageSize);
+
+    const data = [
+      { label: '500-1000', value: 1 },
+      { label: '1000-2000', value: 2 },
+      { label: '2000-3000', value: 3 },
+      { label: '3000-4000', value: 4 },
+      { label: '4000-5000', value: 5 },
+    ];
+
+    const priceRange = data
+      .filter((item) => price.includes(item.value)) // Filter only matching values
+      .map((item) => {
+        const [min, max] = item.label.split('-').map(Number); // Extract min and max from label
+        return { min, max };
+      });
 
     // Base Query
     const res = this.entertainerRepository
@@ -330,6 +340,7 @@ export class VenueService {
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
       .leftJoin('categories', 'category', 'category.id = entertainer.category')
       .leftJoin('categories', 'subcat', 'specific_category = subcat.id')
+
       .leftJoin(
         'wishlist',
         'wish',
@@ -377,17 +388,16 @@ export class VenueService {
         'entertainer.status AS status',
         'entertainer.bio AS bio',
         'user.email AS email',
-        'category.name AS category_name',
-        'subcat.name AS specific_category_name',
         'city.name AS city',
         'state.name AS state',
         'country.name AS country',
+        'category.name AS category_name',
+        'subcat.name AS specific_category_name',
         'media.mediaUrl As mediaUrl',
         'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
-
-        `CASE 
-       WHEN wish.ent_id IS NOT NULL THEN true 
-       ELSE false 
+        `CASE
+       WHEN wish.ent_id IS NOT NULL THEN true
+       ELSE false
        END AS isWishlisted`, // Default empty array if no , //
       ])
       .setParameter('serverUri', process.env.BASE_URL);
@@ -398,14 +408,38 @@ export class VenueService {
         availability,
       });
     }
-    if (category) {
-      res.andWhere('entertainer.category = :category', { category });
+    if (category.length > 0) {
+      res.andWhere('entertainer.category IN (:...category)', { category });
     }
 
     if (sub_category) {
       res.andWhere('entertainer.specific_category = :sub_category', {
         sub_category,
       });
+    }
+
+    if (priceRange.length > 0) {
+      console.log('Price Ranges:', priceRange);
+
+      res.andWhere(
+        new Brackets((qb) => {
+          const conditions: string[] = [];
+          const params: Record<string, number> = {};
+
+          priceRange.forEach((range, index) => {
+            const minKey = `min${index}`;
+            const maxKey = `max${index}`;
+
+            conditions.push(
+              `entertainer.pricePerEvent BETWEEN :${minKey} AND :${maxKey}`,
+            );
+            params[minKey] = range.min;
+            params[maxKey] = range.max;
+          });
+
+          qb.where(conditions.join(' OR '), params);
+        }),
+      );
     }
 
     if (city) {
@@ -430,13 +464,9 @@ export class VenueService {
 
     // Get total count before pagination
 
-    if (Object.keys(price).length === 2) {
-      res.andWhere('entertainer.pricePerEvent BETWEEN :min AND :max', price);
-    }
-
-    if (sort) {
-      res.orderBy(`entertainer.${sort.sortBy}`, sort.order);
-    }
+    // if (Object.keys(price).length === 2) {
+    //   res.andWhere('entertainer.pricePerEvent BETWEEN :min AND :max', price);
+    // }
 
     // For Counting the returmned record
     const totalCount = await res.getCount();

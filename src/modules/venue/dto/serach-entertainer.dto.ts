@@ -1,101 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import {
-  IsEnum,
-  IsOptional,
-  IsNumber,
-  IsObject,
-  IsArray,
-} from 'class-validator';
-import { SortField, SortOrder } from 'src/common/types/venue.type';
-
-// export class SearchEntertainerDto {
-//   @ApiProperty({ description: 'Name of the venue', required: false })
-//   @IsOptional()
-//   @IsEnum(['yes', 'no'])
-//   availability: 'yes' | 'no';
-
-//   // @ApiProperty({ description: 'Category of the entertainer', required: false })
-//   // @IsOptional()
-//   // @Transform(({ value }) => Number(value))
-//   // category: number[];
-
-//   @ApiProperty({
-//     description: 'Sub_Category of the entertainer',
-//     required: false,
-//   })
-//   @IsOptional()
-//   @Transform(({ value }) => Number(value))
-//   sub_category: number;
-
-//   @ApiProperty({ description: 'Page Number', required: false })
-//   @IsOptional()
-//   @IsNumber()
-//   @Transform(({ value }) => Number(value))
-//   page: number;
-
-//   @ApiProperty({
-//     description: 'Price Range',
-//     required: false,
-//   })
-//   @IsOptional()
-//   @Transform(({ value }) => value.split(',').map(Number)) // Convert comma-separated values into an array of numbers
-//   @IsArray()
-//   @IsNumber({}, { each: true }) // Ensure each value in the array is a number
-//   price?: number[];
-
-//   @IsOptional()
-//   @Transform(({ value }) => value.split(',').map(Number)) // Convert comma-separated values into an array of numbers
-//   @IsArray()
-//   @IsNumber({}, { each: true }) // Ensure each value in the array is a number
-//   category?: number[];
-//   // @IsOptional()
-//   // @IsObject()
-//   // @Transform(({ value }) => {
-//   //   if (typeof value === 'string') {
-//   //     try {
-//   //       return JSON.parse(value); // Convert string to object
-//   //     } catch {
-//   //       return null; // Return null if parsing fails
-//   //     }
-//   //   }
-//   //   return value; // If it's already an object, return as-is
-//   // })
-//   // price?: { min: number; max: number };
-
-//   // @IsOptional()
-//   // @Transform(({ value }) => {
-//   //   try {
-//   //     return JSON.parse(value); // Convert string to object
-//   //   } catch (error) {
-//   //     return null; // Handle invalid JSON gracefully
-//   //   }
-//   // })
-//   // sort?: { sortBy: SortField; order: SortOrder };
-
-//   @ApiProperty({ description: 'Records per page you want .', required: false })
-//   @IsOptional()
-//   @IsNumber()
-//   @Transform(({ value }) => Number(value))
-//   pageSize: number;
-
-//   @ApiProperty({ description: 'city code', required: false })
-//   @IsOptional()
-//   @IsNumber()
-//   @Transform(({ value }) => Number(value))
-//   city: number;
-// }
+import { IsEnum, IsOptional, IsNumber, IsArray } from 'class-validator';
 
 export class SearchEntertainerDto {
   @ApiProperty({ description: 'Name of the venue', required: false })
   @IsOptional()
   @IsEnum(['yes', 'no'])
   availability: 'yes' | 'no';
-
-  @ApiProperty({ description: 'Category of the entertainer', required: false })
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  category: number;
 
   @ApiProperty({
     description: 'Sub_Category of the entertainer',
@@ -116,28 +27,39 @@ export class SearchEntertainerDto {
     required: false,
   })
   @IsOptional()
-  @IsObject()
   @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      try {
-        return JSON.parse(value); // Convert string to object
-      } catch {
-        return null; // Return null if parsing fails
-      }
-    }
-    return value; // If it's already an object, return as-is
-  })
-  price?: { min: number; max: number };
+    console.log('Received value:', value, 'Type:', typeof value);
 
-  @IsOptional()
-  @Transform(({ value }) => {
-    try {
-      return JSON.parse(value); // Convert string to object
-    } catch (error) {
-      return null; // Handle invalid JSON gracefully
+    if (typeof value === 'string') {
+      return value.split(',').map((num) => Number(num.trim()));
     }
+
+    if (Array.isArray(value)) {
+      return value.map((num) => Number(num)); // Ensure array elements are numbers
+    }
+
+    return undefined; // Ensures validation still works correctly if value is missing
   })
-  sort?: { sortBy: SortField; order: SortOrder };
+  @IsArray()
+  @IsNumber({}, { each: true }) // Ensure each value in the array is a number
+  price?: number[];
+
+  @Transform(({ value }) => {
+    console.log('Received value:', value, 'Type:', typeof value);
+
+    if (typeof value === 'string') {
+      return value.split(',').map((num) => Number(num.trim()));
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((num) => Number(num)); // Ensure array elements are numbers
+    }
+
+    return undefined; // Ensures validation still works correctly if value is missing
+  })
+  @IsOptional()
+  @IsNumber({}, { each: true }) // Ensure each value in the array is a number
+  category?: number[];
 
   @ApiProperty({ description: 'Records per page you want .', required: false })
   @IsOptional()

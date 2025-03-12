@@ -91,6 +91,7 @@ export class VenueController {
   })
   search(@Query() query: SearchEntertainerDto, @Request() req) {
     const { userId } = req.user;
+
     return this.venueService.findAllEntertainers(query, userId);
   }
 
