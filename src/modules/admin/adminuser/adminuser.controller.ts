@@ -11,6 +11,7 @@ import { CreateRoleCapabilityDto } from './dto/create-role-capability.dto';
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
+import { CreateAdminUserDto } from './dto/createAdminUserDto';
 
 @ApiTags('admin')
 @Controller('admin/adminuser')
@@ -25,11 +26,21 @@ export class AdminuserController {
     async getCapabilities() {
         return this.AdminService.getAllCapabilities();
     }
+
+
     @ApiOperation({ summary: 'Amdin User Created' })
     @ApiResponse({
         status: 200,
         description: 'Amdin User Created Sucessfully.',
     })
+    @Roles('super-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Post('createadminuser')
+    async create(@Body() createAdminUserDto: CreateAdminUserDto): Promise<any> {
+        return await this.AdminService.create(createAdminUserDto);
+    }
+
 
     @Roles('super-admin')
     @ApiBearerAuth()
