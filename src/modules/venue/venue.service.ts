@@ -184,14 +184,14 @@ export class VenueService {
         (qb) =>
           qb
             .select([
-              'booking.entertainerUserId',
+              'booking.userId',
               'JSON_ARRAYAGG(DISTINCT JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookedDates',
             ])
             .from('booking', 'booking')
             .where('booking.status = "confirmed"')
-            .groupBy('booking.entertainerUserId'),
+            .groupBy('booking.userId'),
         'bookings',
-        'bookings.entertainerUserId = user.id',
+        'bookings.userId = user.id',
       )
       .leftJoin(
         (qb) =>
@@ -333,8 +333,8 @@ export class VenueService {
   async findAllBooking(userId: number) {
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoinAndSelect('booking.entertainerUser', 'entertainerUser')
-      .leftJoinAndSelect('entertainerUser.entertainer', 'entertainer')
+      .leftJoinAndSelect('booking.user', 'user')
+      .leftJoinAndSelect('user.entertainer', 'entertainer')
       .where('booking.venueUser.id = :userId', { userId })
       .select([
         'booking.id AS id',
@@ -343,9 +343,9 @@ export class VenueService {
         'booking.isAccepted AS isAccepted',
         'booking.specialNotes AS specialNotes',
         'booking.venueId AS vid',
-        'entertainerUser.id AS eid',
-        'entertainerUser.email AS email',
-        'entertainerUser.name AS username',
+        'user.id AS eid',
+        'user.email AS email',
+        'user.name AS username',
         'entertainer.name AS name',
         'entertainer.category AS category',
         'entertainer.specific_category AS  specific_category',
@@ -427,45 +427,48 @@ export class VenueService {
   }
 
   async findEntertainerDetails(userId: number) {
-    const details = await this.entertainerRepository.findOne({
-      where: { user: { id: Number(userId) } },
-      select: [
-        'id',
-        'name',
-        'category',
-        'specific_category',
-        'bio',
-        'performanceRole',
-        'phone1',
-        'phone2',
-        'pricePerEvent',
-        'vaccinated',
-        'availability',
-        'status',
-        'socialLinks',
-      ],
-    });
-
-    if (!details)
-      throw new NotFoundException({
-        message: 'Entertainer details not found',
-        status: false,
-      });
-
-    const media = await this.mediaRepository
-      .createQueryBuilder('media')
+    const res = await this.entertainerRepository
+      .createQueryBuilder('entertainer')
+      .leftJoinAndSelect('entertainer.user', 'user')
+      .leftJoin('cities', 'city', 'city.id = entertainer.city')
+      .leftJoin('states', 'state', 'state.id = entertainer.state')
+      .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .leftJoin('categories', 'category', 'category.id = entertainer.category')
+      .leftJoin('categories', 'subcat', 'specific_category = subcat.id')
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'booking.entertainerUserId',
+              'JSON_ARRAYAGG(DISTINCT JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookedDates',
+            ])
+            .from('booking', 'booking')
+            .where('booking.status = "confirmed"')
+            .groupBy('booking.entertainerUserId'), // Ensure grouping is on entertainerUserId
+        'bookings',
+        'bookings.entertainerUserId = user.id' // Corrected condition
+      )
+      
       .select([
-        'media.id AS id',
-        `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
-        'media.type AS type',
-        'media.name  AS name',
+        'user.id AS eid',
+        'user.email AS email',
+        'user.name AS username',
+        'entertainer.name AS entertainer_name',
+        'entertainer.category AS category',
+        'entertainer.specific_category AS specific_category',
+        'category.name AS category_name',
+        'subcat.name AS specific_category_name',
+        'entertainer.phone1 AS phone1',
+        'entertainer.performanceRole AS performanceRole',
+        'entertainer.availability AS availability',
+        'entertainer.pricePerEvent AS pricePerEvent',
+        'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
       ])
-      .where('media.userId = :userId', { userId })
-      .getRawMany();
+      .getRawOne();
 
     return {
       message: 'Entertainer Details returned Successfully ',
-      entertainer: { ...details, media: media },
+      data: res,
       status: true,
     };
   }
@@ -490,11 +493,11 @@ export class VenueService {
         (qb) =>
           qb
             .select([
-              'booking.entertainerUserId AS entertainerId',
+              'booking.userId AS entertainerId',
               'JSON_ARRAYAGG(JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookings',
             ])
             .from('booking', 'booking')
-            .groupBy('booking.entertainerUserId'),
+            .groupBy('booking.userId'),
         'bookings',
         'bookings.entertainerId = user.id',
       )

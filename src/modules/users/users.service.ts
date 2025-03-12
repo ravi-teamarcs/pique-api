@@ -95,6 +95,9 @@ export class UsersService {
       const details = await this.venueRepository
         .createQueryBuilder('venue')
         .leftJoinAndSelect('venue.user', 'user')
+        .leftJoin('countries', 'country', 'country.id = venue.country')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('states', 'state', 'state.id = venue.state')
         .where('venue.user.id = :userId', { userId })
         // .andWhere('venue.isParent = :isParent', { isParent: 1})
         .select([
@@ -112,6 +115,9 @@ export class UsersService {
           'venue.description AS vDescription',
           'venue.city As vCity',
           'venue.state As vState',
+          'country.name AS country_name',
+          'city.name AS city_name',
+          'state.name AS state_name',
           'venue.zipCode AS vZipCode',
           'venue.country AS vCountry',
           'venue.isParent As isParent',
