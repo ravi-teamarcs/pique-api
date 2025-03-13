@@ -89,7 +89,7 @@ export class UsersService {
   async handleGetUserProfile(userId: number, role: string) {
     console.log('UserId ', userId);
     const response = { message: 'Profile fetched Successfully', status: true };
-    console.log('iside method');
+   
     if (role === 'venue') {
       console.log('iside role');
       const details = await this.venueRepository

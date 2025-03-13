@@ -30,36 +30,49 @@ export class SearchEntertainerDto {
   @Transform(({ value }) => {
     console.log('Received value:', value, 'Type:', typeof value);
 
-    if (typeof value === 'string') {
-      return value.split(',').map((num) => Number(num.trim()));
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value
+        .split(',')
+        .map((num) => num.trim()) // Trim spaces
+        .filter((num) => !isNaN(Number(num))) // Remove non-numeric values
+        .map(Number); // Convert to numbers
     }
 
     if (Array.isArray(value)) {
-      return value.map((num) => Number(num)); // Ensure array elements are numbers
+      return value
+        .map((num) => Number(num)) // Convert array elements to numbers
+        .filter((num) => !isNaN(num)); // Ensure no NaN values
     }
 
-    return undefined; // Ensures validation still works correctly if value is missing
+    return value === null ? null : undefined; // Keep null as null, and ignore undefined
   })
   @IsArray()
   @IsNumber({}, { each: true }) // Ensure each value in the array is a number
-  price?: number[];
+  price?: number[] | null;
 
   @Transform(({ value }) => {
     console.log('Received value:', value, 'Type:', typeof value);
 
-    if (typeof value === 'string') {
-      return value.split(',').map((num) => Number(num.trim()));
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value
+        .split(',')
+        .map((num) => num.trim()) // Trim spaces
+        .filter((num) => !isNaN(Number(num))) // Remove non-numeric values
+        .map(Number); // Convert to numbers
     }
 
     if (Array.isArray(value)) {
-      return value.map((num) => Number(num)); // Ensure array elements are numbers
+      return value
+        .map((num) => Number(num)) // Convert array elements to numbers
+        .filter((num) => !isNaN(num)); // Ensure no NaN values
     }
 
-    return undefined; // Ensures validation still works correctly if value is missing
+    return value === null ? null : undefined; // Keep null as null, and ignore undefined
   })
   @IsOptional()
-  @IsNumber({}, { each: true }) // Ensure each value in the array is a number
-  category?: number[];
+  @IsArray() // Ensure it's an array
+  @IsNumber({}, { each: true }) // Ensure each element is a number
+  category?: number[] | null;
 
   @ApiProperty({ description: 'Records per page you want .', required: false })
   @IsOptional()

@@ -147,6 +147,8 @@ export class VenueService {
       city = null,
     } = query;
 
+    console.log('category', category, 'price', price);
+
     // Pagination
     const skip = (Number(page) - 1) * Number(pageSize);
     const DEFAULT_MEDIA_URL =
@@ -184,14 +186,19 @@ export class VenueService {
         (qb) =>
           qb
             .select([
-              'booking.userId',
-              'JSON_ARRAYAGG(DISTINCT JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookedDates',
+              'booking.entertainerUserId', // Use the actual foreign key column
+              `JSON_ARRAYAGG(
+                DISTINCT JSON_OBJECT(
+                  "showDate", booking.showDate, 
+                  "showTime", booking.showTime
+                )
+              ) AS bookedDates`,
             ])
             .from('booking', 'booking')
             .where('booking.status = "confirmed"')
-            .groupBy('booking.userId'),
+            .groupBy('booking.entertainerUserId'), // Ensure this matches the foreign key column
         'bookings',
-        'bookings.userId = user.id',
+        'bookings.entertainerUserId = user.id', // Ensure it maps correctly to the User table
       )
       .leftJoin(
         (qb) =>
@@ -427,6 +434,9 @@ export class VenueService {
   }
 
   async findEntertainerDetails(userId: number) {
+    const DEFAULT_MEDIA_URL =
+      'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+
     const res = await this.entertainerRepository
       .createQueryBuilder('entertainer')
       .leftJoinAndSelect('entertainer.user', 'user')
@@ -444,11 +454,33 @@ export class VenueService {
             ])
             .from('booking', 'booking')
             .where('booking.status = "confirmed"')
-            .groupBy('booking.entertainerUserId'), // Ensure grouping is on entertainerUserId
+            .groupBy('booking.entertainerUserId'),
         'bookings',
-        'bookings.entertainerUserId = user.id' // Corrected condition
+        'bookings.entertainerUserId = user.id',
       )
-      
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'media.userId',
+              `COALESCE(
+                (SELECT CONCAT(:serverUri, m1.url) FROM media m1 
+                 WHERE m1.userId = media.userId AND m1.type = 'headshot' 
+                 ORDER BY m1.id LIMIT 1), 
+                :defaultMediaUrl
+              ) AS headshotUrl`,
+              `COALESCE(
+                (SELECT CONCAT(:serverUri, m2.url) FROM media m2 
+                 WHERE m2.userId = media.userId AND m2.type = 'image' 
+                 ORDER BY m2.id LIMIT 1), 
+                :defaultMediaUrl
+              ) AS imageUrl`,
+            ])
+            .from('media', 'media')
+            .groupBy('media.userId'),
+        'media',
+        'media.userId = user.id',
+      )
       .select([
         'user.id AS eid',
         'user.email AS email',
@@ -463,12 +495,16 @@ export class VenueService {
         'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
         'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
+        'COALESCE(media.headshotUrl, :defaultMediaUrl) AS headshotUrl',
+        'COALESCE(media.imageUrl, :defaultMediaUrl) AS imageUrl',
       ])
+      .setParameter('serverUri', process.env.BASE_URL)
+      .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
       .getRawOne();
-
+    const { bookedFor, ...details } = res;
     return {
-      message: 'Entertainer Details returned Successfully ',
-      data: res,
+      message: 'Entertainer Details returned Successfully',
+      data: { ...details, bookedFor: JSON.parse(bookedFor) },
       status: true,
     };
   }
