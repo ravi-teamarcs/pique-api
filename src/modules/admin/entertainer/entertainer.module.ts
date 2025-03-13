@@ -4,10 +4,14 @@ import { EntertainerService } from './entertainer.service';
 import { Entertainer } from './Entitiy/entertainer.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Categories, } from './Entitiy/Category.entity';
+import { RoleCapability } from '../auth/entities/role-capabilities.entity';
+import { Role } from '../auth/entities/role.entity';
+import { Capability } from '../auth/entities/capability.entity';
+
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Entertainer, Categories]),
+    TypeOrmModule.forFeature([Entertainer, Categories,RoleCapability, Role, Capability]),
   ],
   controllers: [EntertainerController],
   providers: [EntertainerService]

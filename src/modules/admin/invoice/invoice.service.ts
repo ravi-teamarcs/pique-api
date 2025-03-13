@@ -1,14 +1,17 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Invoice, InvoiceStatus, UserType } from './Entity/invoices.entity';
-import { Repository } from 'typeorm';
+import { Like, Repository } from 'typeorm';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
+import { Entertainer } from '../entertainer/Entitiy/entertainer.entity';
+import { Venue } from '../venue/Entity/venue.entity';
 
 @Injectable()
 export class InvoiceService {
     constructor(
         @InjectRepository(Invoice)
         private readonly invoiceRepository: Repository<Invoice>,
+
     ) {
 
     }
@@ -17,25 +20,25 @@ export class InvoiceService {
         // Ensure all values are valid decimal numbers
         const totalAmount = parseFloat(createInvoiceDto.total_amount.toString());
         const taxRate = parseFloat(createInvoiceDto.tax_rate.toString());
-        
+
         // Validate totalAmount and taxRate to avoid NaN issues
         if (isNaN(totalAmount) || isNaN(taxRate)) {
             throw new Error("Invalid total_amount or tax_rate");
         }
-    
+
         // Calculate tax
         const recalculatedTaxAmount = this.calculateTaxAmount(totalAmount, taxRate);
         const recalculatedTotalWithTax = totalAmount + recalculatedTaxAmount;
-    
+
         // Use recalculated values if the provided ones are not valid
-        const taxAmount = createInvoiceDto.tax_amount 
-            ? parseFloat(createInvoiceDto.tax_amount.toString()) 
+        const taxAmount = createInvoiceDto.tax_amount
+            ? parseFloat(createInvoiceDto.tax_amount.toString())
             : recalculatedTaxAmount;
-        
-        const totalWithTax = createInvoiceDto.total_with_tax 
-            ? parseFloat(createInvoiceDto.total_with_tax.toString()) 
+
+        const totalWithTax = createInvoiceDto.total_with_tax
+            ? parseFloat(createInvoiceDto.total_with_tax.toString())
             : recalculatedTotalWithTax;
-    
+
         // Create invoice object
         const invoice = this.invoiceRepository.create({
             ...createInvoiceDto,
@@ -44,19 +47,48 @@ export class InvoiceService {
             tax_amount: taxAmount,
             total_with_tax: totalWithTax
         });
-    
+
         return await this.invoiceRepository.save(invoice);
     }
-    
 
 
 
 
 
-    // Get all invoices
-    async findAll(): Promise<Invoice[]> {
-        return await this.invoiceRepository.find();
+
+    async findAll({
+        page,
+        pageSize,
+        search,
+    }: {
+        page: number;
+        pageSize: number;
+        search?: string;
+    }): Promise<any> {
+        const skip = (page - 1) * pageSize; // Calculate records to skip
+
+        const queryBuilder = this.invoiceRepository
+            .createQueryBuilder("invoices")
+            .leftJoinAndSelect("entertainers", "ent", "invoices.entertainer_id = ent.id")
+            .leftJoinAndSelect("venue", "ven", "invoices.venue_id = ven.id")
+            .leftJoinAndSelect("event", "eve", "invoices.event_id = eve.id")
+            .select([
+                "invoices.*",  // Select all fields from `invoices`
+                "ent.name AS entertainer_name",
+                "ven.*",
+                "eve.title AS event_name",
+
+            ]).orderBy("invoices.id", "DESC");;
+
+        const records = await queryBuilder.getRawMany();
+        const total = await queryBuilder.getCount();
+
+        return { records, total };
+
+
     }
+
+
 
     // Get a specific invoice by ID
     async findOne(id: number): Promise<Invoice> {
@@ -64,23 +96,38 @@ export class InvoiceService {
     }
 
     // Update an existing invoice
-    async update(id: number, updateInvoiceDto: UpdateInvoiceDto): Promise<Invoice> {
-        const invoice = await this.findOne(id);
-        if (!invoice) {
-            throw new Error('Invoice not found');
-        }
+    async update(id: number, updateInvoiceDto: UpdateInvoiceDto): Promise<any> {
+        // const invoice = await this.invoiceRepository.findOne({ where: { id } });
+        // if (!invoice) {
+        //     throw new Error('Invoice not found');
+        // }
 
-        const updatedInvoice = { ...invoice, ...updateInvoiceDto };
+        // // Merge existing invoice data with updated values
+        // const updatedInvoice = { ...invoice, ...updateInvoiceDto };
 
-        // Recalculate totals if tax-related fields are updated
-        if (updateInvoiceDto.total_amount || updateInvoiceDto.tax_rate) {
-            const tax_amount = this.calculateTaxAmount(updatedInvoice.total_amount, updatedInvoice.tax_rate);
-            updatedInvoice.tax_amount = tax_amount;
-            updatedInvoice.total_with_tax = updatedInvoice.total_amount + tax_amount;
-        }
+        // // Recalculate totals if tax-related fields are updated
+        // if (updateInvoiceDto.total_amount || updateInvoiceDto.tax_rate) {
+        //     updatedInvoice.total_amount = updateInvoiceDto.total_amount
+        //         ? parseFloat(updateInvoiceDto.total_amount)
+        //         : invoice.total_amount;
+        //     updatedInvoice.tax_rate = updateInvoiceDto.tax_rate
+        //         ? parseFloat(updateInvoiceDto.tax_rate)
+        //         : invoice.tax_rate;
 
-        return await this.invoiceRepository.save(updatedInvoice);
+        //     updatedInvoice.tax_amount = parseFloat(
+        //         this.calculateTaxAmount(updatedInvoice.total_amount, updatedInvoice.tax_rate).toFixed(2)
+        //     );
+        //     updatedInvoice.total_with_tax = parseFloat((updatedInvoice.total_amount + updatedInvoice.tax_amount).toFixed(2));
+        // }
+
+        // // Ensure `payment_date` is properly formatted if provided
+        // if (updateInvoiceDto.payment_date) {
+        //     updatedInvoice.payment_date = new Date(updateInvoiceDto.payment_date).toISOString().split('T')[0];
+        // }
+
+        // return await this.invoiceRepository.save(updatedInvoice);
     }
+
 
     // Delete an invoice
     async remove(id: number): Promise<void> {

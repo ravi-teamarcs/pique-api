@@ -29,11 +29,10 @@ export class Event {
   @Column()
   description: string;
 
-
-  @Column()
+  @Column({ type: 'datetime', nullable: false })
   startTime: Date;
 
-  @Column()
+  @Column({ type: 'datetime', nullable: false })
   endTime: Date;
 
   @Column({
@@ -45,10 +44,10 @@ export class Event {
 
   @Column({
     type: 'enum',
-    enum: ['pending', 'scheduled', 'confirmed', 'cancelled', 'completed'],
-    default: 'pending',
+    enum: ['unpublished', 'scheduled', 'confirmed', 'cancelled', 'completed'],
+    default: 'unpublished',
   })
-  status: 'pending' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'unpublished' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
 
   @Column({ type: 'boolean', default: true })
   isAdmin: boolean;

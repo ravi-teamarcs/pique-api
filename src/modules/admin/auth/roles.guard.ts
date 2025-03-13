@@ -1,4 +1,3 @@
-
 import {
   Injectable,
   CanActivate,
@@ -7,11 +6,10 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { RoleCapability } from './entities/role-capabilities.entity';
 import { Capability } from './entities/capability.entity';
-
 
 @Injectable()
 export class RolesGuardAdmin implements CanActivate {
@@ -22,17 +20,17 @@ export class RolesGuardAdmin implements CanActivate {
     private RoleCapabilityRepository: Repository<RoleCapability>,
     @InjectRepository(Capability)
     private capabilityRepository: Repository<Capability>,
-  ) { }
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const roles = this.reflector.get<string[]>('roles', context.getHandler());
     if (!roles) {
       throw new ForbiddenException('role is missing.');
     }
-
-
+    
     const request = context.switchToHttp().getRequest();
     const user = request.user;
+    console.log('Inside Roles Guard Admin' , user);
 
     if (!user || !user.role) {
       throw new ForbiddenException('User role is missing.');
@@ -46,19 +44,33 @@ export class RolesGuardAdmin implements CanActivate {
       throw new ForbiddenException(`Role "${user.role}" not found.`);
     }
 
-    const endpoint = await this.capabilityRepository.findOne({
-      where: [{ name: roles[0] },
-      { name: 'all' },]
+    const endpoints = await this.capabilityRepository.find({
+      where: roles.map((role) => ({ name: role })).concat([{ name: 'all' }]),
     });
-    if (!endpoint) {
-      throw new ForbiddenException('You do not have access to this API and Endpoint.');
+
+    if (!endpoints) {
+      throw new ForbiddenException(
+        'You do not have access to this API and Endpoint.',
+      );
     }
 
+    const capabilities = await this.capabilityRepository.find({
+      where: { name: In([...roles, 'all']) }, // Check for required roles or 'all'
+    });
 
+    if (!capabilities.length) {
+      throw new ForbiddenException(
+        'You do not have access to this API and Endpoint.',
+      );
+    }
+
+    const capabilityIds = capabilities.map((capability) => capability.id);
+
+    // Check if the user has any of the required capabilities
     const hasAccess = await this.RoleCapabilityRepository.findOne({
       where: {
         role: userRole.id.toString(),
-        capability_id: endpoint.id,
+        capability_id: In(capabilityIds), // Use In() operator
       },
     });
 

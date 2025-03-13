@@ -1,5 +1,6 @@
 // import { Booking } from '../../booking/entities/booking.entity';
 // import { VenueEvent } from '../../event/entities/event.entity';
+import { Transform } from 'class-transformer';
 import { User } from '../../users/Entity/users.entity';
 import {
   Entity,
@@ -19,10 +20,10 @@ export class Venue {
   @Column()
   name: string;
 
-  @Column()
+  @Column({ nullable: true })
   phone: string;
 
-  @Column()
+  @Column({ nullable: true })
   email: string;
 
   @Column()
@@ -46,42 +47,19 @@ export class Venue {
   @Column()
   country: number;
 
-  @Column()
-  lat: string;
-
-  @Column()
-  long: string;
-
-  @Column('simple-array')
-  amenities: string[];
-
-  @Column()
-  websiteUrl: string;
-
-  // @Column()
-  // timings: string;
-
-  @Column()
-  bookingPolicies: string;
-
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 
+  @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
+  user: User;
 
-  @Column({ default: false })
+  @Column({ type: 'boolean', default: false })
+  @Transform(({ value }) => Boolean(value))
   isParent: boolean;
 
   @Column({ nullable: true })
   parentId: number;
-
-  @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
-  user: User;
-
-
-
 }
-
-

@@ -1,15 +1,23 @@
-import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UploadedFiles, UseInterceptors } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { MediaService } from './media.service';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { UploadUrlDto } from './Dto/UploadUrlDto.dto';
+
+import { Roles } from '../auth/roles.decorator';
+import { JwtAuthGuard } from '../auth/jwt.guard';
+import { RolesGuardAdmin } from '../auth/roles.guard';
+
 
 @ApiTags('admin')
 @Controller('admin/media')
 export class MediaController {
     constructor(private readonly mediaService: MediaService) { }
 
+    @Roles('super-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
     @Post('uploads')
     @UseInterceptors(
         FileFieldsInterceptor(
@@ -84,7 +92,9 @@ export class MediaController {
         return this.mediaService.handleMediaUpload(userId, uploadedFiles, venueId);
     }
 
-
+    @Roles('super-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
     @Get('getmedia')
     getAllMedia(@Query('Id') Id?: number) {
         // Ensure at least one of the parameters is provided
@@ -95,7 +105,9 @@ export class MediaController {
         return this.mediaService.findAllMedia(Id);
     }
 
-
+    @Roles('super-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
     @Put('update/:mediaId')
     @UseInterceptors(
         FileFieldsInterceptor(
@@ -168,7 +180,9 @@ export class MediaController {
         return this.mediaService.updateMedia(Number(mediaId), userId, RefId, uploadResults[0]);
     }
 
-
+    @Roles('super-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
     @Delete('deleteMedia')
     async deleteMedia(@Query('Id') Id?: number) {
         // Ensure the Id parameter is provided
@@ -179,7 +193,9 @@ export class MediaController {
         return this.mediaService.deleteMedia(Id);
     }
 
-
+    @Roles('super-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
     @Post('uploadurl')
     async uploadUrl(@Body() uploadUrlDto: UploadUrlDto): Promise<any> {
         return this.mediaService.uploadUrl(uploadUrlDto);

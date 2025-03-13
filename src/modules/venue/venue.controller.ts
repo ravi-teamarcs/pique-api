@@ -32,8 +32,10 @@ import { UpdateVenueDto } from './dto/update-venue.dto';
 import { BookingService } from '../booking/booking.service';
 import { CreateBookingDto } from '../booking/dto/create-booking.dto';
 import { ResponseDto } from '../booking/dto/booking-response-dto';
-import { DateTimeChangeDto } from './dto/change-booking.dto';
+import { ChangeBooking } from './dto/change-booking.dto';
 import { VenueLocationDto } from './dto/add-location.dto';
+import { Data } from './dto/search-filter.dto';
+import { WishlistDto } from './dto/wishlist.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -50,9 +52,9 @@ export class VenueController {
   @ApiOperation({ summary: 'Create a venue' })
   @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async create(@Body() createVenueDto: CreateVenueDto, @Request() req) {
+  async create(@Body() venueDto: CreateVenueDto, @Request() req) {
     const { userId } = req.user;
-    return this.venueService.create(createVenueDto, userId);
+    return this.venueService.create(venueDto, userId);
   }
 
   @Get()
@@ -87,8 +89,10 @@ export class VenueController {
     status: 404,
     description: 'Cannot get entertainers.',
   })
-  search(@Query() query: SearchEntertainerDto) {
-    return this.venueService.findAllEntertainers(query);
+  search(@Query() query: SearchEntertainerDto, @Request() req) {
+    const { userId } = req.user;
+
+    return this.venueService.findAllEntertainers(query, userId);
   }
 
   @Get('entertainer-profile/:id')
@@ -150,10 +154,10 @@ export class VenueController {
     status: 200,
     description: 'Venue updated Successfully .',
   })
-  @Put('update')
+  @Put()
   @Roles('findAll')
   updateVenue(@Body() UpdateVenueDto: UpdateVenueDto, @Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.venueService.handleUpdateVenueDetails(UpdateVenueDto, userId);
   }
   @ApiOperation({ summary: 'Remove venue By id. ' })
@@ -164,13 +168,13 @@ export class VenueController {
   @Delete(':id')
   @Roles('findAll')
   remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.venueService.handleRemoveVenue(Number(id), userId);
   }
 
   @Post('request-change')
   @Roles('findAll')
-  requestChange(@Body() dateTimeChangeDto: DateTimeChangeDto, @Request() req) {
+  requestChange(@Body() dateTimeChangeDto: ChangeBooking, @Request() req) {
     const userId = req.user.userId;
 
     return this.bookingService.handleChangeRequest(dateTimeChangeDto, userId);
@@ -186,16 +190,45 @@ export class VenueController {
   async getSuggestions(@Query('q') query: string) {
     return this.venueService.getSearchSuggestions(query);
   }
+
+  @Get('search/filters')
+  @Roles('findAll')
+  async getAllCategory(@Query() query: Data) {
+    return this.venueService.getAllCategories(query);
+  }
   @Get('search/category/:id')
   @Roles('findAll')
   getEntertainerByCategory(@Param('id') cid: number) {
     return this.venueService.getAllEntertainersByCategory(cid);
   }
 
-  @Post('/location/add')
   @Roles('findAll')
+  @Post('/location/add')
   addLocation(@Body() locationDto: VenueLocationDto, @Request() req) {
     const { userId } = req.user;
     return this.venueService.addVenueLocation(userId, locationDto);
+  }
+
+  @Roles('findAll')
+  @Post('/toogle/wishlist')
+  toggleWishList(@Body() wishDto: WishlistDto, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.toggleWishlist(userId, wishDto);
+  }
+  @Roles('findAll')
+  @Get('/entertainers/wishlist')
+  getWishList(@Request() req) {
+    const { userId } = req.user;
+    return this.venueService.getWishlist(userId);
+  }
+
+  @Roles('findAll')
+  @Get('entertainer/roles')
+  getRoles() {
+    return {
+      message: 'Role returned Successfully',
+      status: true,
+      data: [{ role: 'soloist' }, { role: 'duo' }, { role: 'ensemble' }],
+    };
   }
 }

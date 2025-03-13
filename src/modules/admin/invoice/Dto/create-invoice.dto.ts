@@ -1,11 +1,7 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsString, IsDate, IsOptional, IsDecimal, IsDateString } from 'class-validator';
+import { IsEnum, IsNotEmpty, IsNumber, IsString, IsDateString, IsOptional } from 'class-validator';
 import { InvoiceStatus, UserType } from '../Entity/invoices.entity';
-// Adjust import path accordingly
 
 export class CreateInvoiceDto {
-
-
-
   @IsString()
   @IsNotEmpty()
   invoice_number: string;
@@ -28,25 +24,25 @@ export class CreateInvoiceDto {
 
   @IsDateString()
   @IsNotEmpty()
-  issue_date: string;  // Date string, e.g., "2025-02-11"
+  issue_date: string;
 
   @IsDateString()
   @IsNotEmpty()
-  due_date: string;  // Date string, e.g., "2025-02-20"
+  due_date: string;
 
-  @IsDecimal()
+  @IsString()
   @IsNotEmpty()
   total_amount: string;
 
-  @IsDecimal()
+  @IsString()
   @IsNotEmpty()
   tax_rate: string;
 
-  @IsDecimal()
+  @IsString()
   @IsNotEmpty()
   tax_amount: string;
 
-  @IsDecimal()
+  @IsString()
   @IsNotEmpty()
   total_with_tax: string;
 
@@ -55,12 +51,11 @@ export class CreateInvoiceDto {
   status: InvoiceStatus;
 
   @IsString()
-  @IsNotEmpty()
   payment_method: string;
 
   @IsOptional()
   @IsDateString()
-  payment_date?: string;  // Optional Date string, e.g., "2025-02-15"
+  payment_date?: string;
 }
 
 export class UpdateInvoiceDto {
@@ -68,27 +63,27 @@ export class UpdateInvoiceDto {
   @IsOptional()
   status?: InvoiceStatus;
 
-  @IsDecimal()
+  @IsString()
   @IsOptional()
-  total_amount?: number;
+  total_amount?: string;
 
-  @IsDecimal()
+  @IsString()
   @IsOptional()
-  tax_rate?: number;
+  tax_rate?: string;
 
-  @IsDecimal()
+  @IsString()
   @IsOptional()
-  tax_amount?: number;
+  tax_amount?: string;
 
-  @IsDecimal()
+  @IsString()
   @IsOptional()
-  total_with_tax?: number;
+  total_with_tax?: string;
 
   @IsString()
   @IsOptional()
   payment_method?: string;
 
   @IsOptional()
-  @IsDate()
+  @IsDateString()
   payment_date?: string;
 }

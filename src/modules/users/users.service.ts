@@ -87,14 +87,19 @@ export class UsersService {
   // User Profile
 
   async handleGetUserProfile(userId: number, role: string) {
+    console.log('UserId ', userId);
     const response = { message: 'Profile fetched Successfully', status: true };
-
+   
     if (role === 'venue') {
+      console.log('iside role');
       const details = await this.venueRepository
         .createQueryBuilder('venue')
         .leftJoinAndSelect('venue.user', 'user')
+        .leftJoin('countries', 'country', 'country.id = venue.country')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('states', 'state', 'state.id = venue.state')
         .where('venue.user.id = :userId', { userId })
-        .andWhere('venue.isParent = :isParent', { isParent: true })
+        // .andWhere('venue.isParent = :isParent', { isParent: 1})
         .select([
           'user.id AS uid',
           'user.name AS name',
@@ -110,14 +115,24 @@ export class UsersService {
           'venue.description AS vDescription',
           'venue.city As vCity',
           'venue.state As vState',
+          'country.name AS country_name',
+          'city.name AS city_name',
+          'state.name AS state_name',
           'venue.zipCode AS vZipCode',
           'venue.country AS vCountry',
+          'venue.isParent As isParent',
         ])
         .getRawOne();
-      details['vIsParent'] = Boolean(details.isParent);
+      console.log(details);
+      const newDetails = {
+        ...details,
+        isParent: Boolean(details.isParent),
+      };
+
       const location = await this.venueRepository.find({
         where: { user: { id: userId }, isParent: false },
         select: [
+          'id',
           'phone',
           'addressLine1',
           'addressLine2',
@@ -127,11 +142,13 @@ export class UsersService {
           'state',
           'country',
           'zipCode',
+          'parentId',
+          'isParent',
         ],
       });
       const rest = instanceToPlain(location);
-      details['locations'] = rest;
-      response['data'] = details;
+      newDetails['locations'] = rest;
+      response['data'] = newDetails;
       return response;
     }
     const entDetails = await this.entertainerRepository
@@ -237,9 +254,4 @@ export class UsersService {
 
   //   return { message: 'User Profile updated successfully' };
   // }
-
-  async updateFCMToken(userId: number, fcmToken: string) {
-    // await this.userRepository.update(userId, { fcmToken });
-    return { message: 'FCM token updated successfully', status: true };
-  }
 }

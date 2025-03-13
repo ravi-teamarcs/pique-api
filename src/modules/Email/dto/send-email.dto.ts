@@ -10,9 +10,20 @@ export class EmailDto {
   @IsString()
   @IsNotEmpty()
   subject: string;
-  @ApiProperty({ description: 'Message you want to send to ' })
+
+  // @ApiProperty({ description: 'Message you want to send to ' })
+  // @IsString()
+  // @IsString()
+  // @IsNotEmpty()
+  // message: string;
+
+  @ApiProperty({
+    example: 'template1.html',
+    description: 'Name of the template to use',
+  })
   @IsString()
-  @IsString()
-  @IsNotEmpty()
-  message: string;
+  templateName: string;
+
+  @ApiProperty({ description: 'Replacements for the template' })
+  replacements: Record<string, any>;
 }

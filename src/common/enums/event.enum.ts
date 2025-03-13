@@ -6,10 +6,10 @@ enum Recurring {
 }
 
 enum Status {
-  PENDING = 'pending',
   SCHEDULED = 'scheduled',
   CONFIRMED = 'confirmed',
   CANCELLED = 'cancelled',
   COMPLETED = 'completed',
+  UNPUBLISHED = 'unpublished',
 }
 export { Recurring, Status };

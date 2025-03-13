@@ -1,37 +1,101 @@
 import { Injectable } from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import { sendNotificationDTO } from './dto/send-notification.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { FcmToken } from './entities/fcm-token.entity';
 
 @Injectable()
 export class NotificationService {
-  async sendPush(notification: sendNotificationDTO) {
-    const { deviceId, title, body } = notification;
-    try {
-      const message = {
-        notification: {
-          title: title,
-          body: body,
-        },
-        token: deviceId,
-        data: {}, // You can pass additional data here
-        android: {
-          priority: 'high',
-          notification: {
-            sound: 'default',
-            channelId: 'default',
-          },
-        },
-        apns: {
-          headers: { 'apns-priority': '10' },
-          payload: { aps: { contentAvailable: true, sound: 'default' } },
-        },
-      };
+  constructor(
+    @InjectRepository(FcmToken)
+    private readonly fcmTokenRepo: Repository<FcmToken>,
+  ) {}
+  async sendPush(notification: sendNotificationDTO, userId: number) {
+    const { title, body, data } = notification;
 
-      // const response = await admin.messaging().send(message);
+    const res = await this.getUserTokens(userId);
+
+    let message = {
+      tokens: res.data,
+      notification: {
+        title,
+        body,
+      },
+      data,
+
+      fcmOptions: {
+        analyticsLabel: 'my-label',
+      },
+
+      apns: {
+        payload: {
+          aps: {
+            alert: {
+              titleLocKey: 'key1',
+              locKey: 'key2',
+              locArgs: ['value1'],
+            },
+          },
+          contentAvailable: true,
+        },
+      },
+    };
+
+    try {
+      const { responses } = await admin
+        .messaging()
+        .sendEachForMulticast(message);
+
+      const failedTokens = res.data.filter(
+        (token, index) => !responses[index].success,
+      );
+
+      if (failedTokens.length > 0) {
+        failedTokens.map(
+          async (token) => await this.fcmTokenRepo.delete({ token }),
+        );
+      }
+
       return { message: 'Notification Sent successfully ', status: true };
-      console.log(`Notification sent to ${deviceId}`);
     } catch (error) {
       console.error('Error sending FCM notification:', error);
     }
+  }
+
+  async storeFcmToken(userId: number, token: string, deviceType: string) {
+    const existingToken = await this.fcmTokenRepo.findOne({ where: { token } });
+
+    // If the token exists, no need to save again
+    if (existingToken)
+      return {
+        message: 'Token exists Already',
+        data: existingToken,
+        status: true,
+      };
+
+    const newToken = this.fcmTokenRepo.create({ userId, token, deviceType });
+    this.fcmTokenRepo.save(newToken);
+    return { message: 'Token saved successfully', status: true };
+  }
+
+  async removeFcmToken(token: string) {
+    await this.fcmTokenRepo.delete({ token });
+
+    return { message: 'Token removed successfully', status: true };
+  }
+
+  async getUserTokens(userId: number) {
+    const tokensData = await this.fcmTokenRepo.find({
+      where: { userId },
+      select: ['token'],
+    });
+
+    const tokenList = tokensData.map((t) => t.token);
+    return {
+      message: 'Token fetched Successfully',
+      data: tokenList,
+      status: true,
+    };
   }
 }

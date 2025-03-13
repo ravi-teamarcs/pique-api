@@ -1,5 +1,3 @@
-// import { Booking } from '../../booking/entities/booking.entity';
-// import { VenueEvent } from '../../event/entities/event.entity';
 import { Transform } from 'class-transformer';
 import { User } from '../../users/entities/users.entity';
 import {
@@ -19,10 +17,10 @@ export class Venue {
   @Column()
   name: string;
 
-  @Column()
+  @Column({ nullable: true })
   phone: string;
 
-  @Column()
+  @Column({ nullable: true })
   email: string;
 
   @Column()
@@ -46,21 +44,6 @@ export class Venue {
   @Column()
   country: number;
 
-  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: false })
-  lat: number;
-
-  @Column({ type: 'decimal', precision: 9, scale: 6, nullable: false })
-  long: number;
-
-  @Column('simple-array')
-  amenities: string[];
-
-  @Column()
-  websiteUrl: string;
-
-  @Column()
-  bookingPolicies: string;
-
   @CreateDateColumn()
   createdAt: Date;
 
@@ -76,12 +59,6 @@ export class Venue {
 
   @Column({ nullable: true })
   parentId: number;
-
-  // @OneToMany(() => Booking, (booking) => booking.venue)
-  // bookings: Booking[];
-
-  // @OneToMany(() => VenueEvent, (event) => event.venue)
-  // events: VenueEvent[];
 }
 
 //Note in second callback first Argument Doesn't Matter it the second one that must be property name.

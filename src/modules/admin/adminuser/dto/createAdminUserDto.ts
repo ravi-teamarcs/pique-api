@@ -10,7 +10,6 @@ export class CreateAdminUserDto {
   email: string;
 
   @IsNotEmpty()
-  @IsEmail()
   contact: string;
 
   @IsNotEmpty()

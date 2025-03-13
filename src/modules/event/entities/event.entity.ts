@@ -41,10 +41,10 @@ export class VenueEvent {
 
   @Column({
     type: 'enum',
-    enum: ['pending', 'scheduled', 'confirmed', 'cancelled', 'completed'],
-    default: 'pending',
+    enum: ['unpublished', 'scheduled', 'confirmed', 'cancelled', 'completed'],
+    default: 'unpublished',
   })
-  status: 'pending' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+  status: 'unpublished' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
 
   @Column({ type: 'boolean' })
   isAdmin: boolean;

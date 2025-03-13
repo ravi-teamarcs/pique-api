@@ -1,4 +1,3 @@
-
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsString,
@@ -6,8 +5,8 @@ import {
   IsNotEmpty,
   IsBoolean,
   IsEnum,
+  IsDate,
 } from 'class-validator';
-
 
 export class CreateEventDto {
   @ApiProperty({ example: 1, description: 'Venue for  which event is created' })
@@ -57,15 +56,18 @@ export class CreateEventDto {
   @IsNotEmpty()
   recurring: 'none' | 'daily' | 'weekly' | 'monthly' = 'none';
 
-  @IsEnum(['pending', 'scheduled', 'confirmed', 'cancelled', 'completed'])
+  @IsEnum(['unpublished', 'scheduled', 'confirmed', 'cancelled', 'completed'])
   @IsNotEmpty()
-  status: 'pending' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed' = 'scheduled';
-
+  status:
+    | 'unpublished'
+    | 'scheduled'
+    | 'confirmed'
+    | 'cancelled'
+    | 'completed'
+    | 'scheduled';
 
   @ApiProperty({ example: false, description: 'Is Event creator Admin ?' })
   @IsBoolean()
   @IsNotEmpty()
   isAdmin: boolean;
-
-
 }

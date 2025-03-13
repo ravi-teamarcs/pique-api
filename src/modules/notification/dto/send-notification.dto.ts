@@ -4,8 +4,8 @@ class sendNotificationDTO {
   title: string;
   @ApiProperty()
   body: string;
-  @ApiProperty()
-  deviceId: string;
+  @ApiProperty({ type: Object, required: false }) // ✅ Explicitly define type
+  data?: Record<string, string>;
 }
 
 export { sendNotificationDTO };

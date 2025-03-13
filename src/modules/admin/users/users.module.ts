@@ -9,6 +9,7 @@ import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { Capability } from '../adminuser/entities/capability.entity';
 import { RolesGuardAdmin } from '../auth/roles.guard';
 
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([User, Role, RoleCapability, Capability]),

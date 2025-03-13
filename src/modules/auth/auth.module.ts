@@ -13,18 +13,22 @@ import { Role } from './entities/role.entity';
 import { Access } from './entities/access.entity';
 import { EndPoints } from './entities/endpoint.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { NotificationModule } from '../notification/notification.module';
+import { EmailModule } from '../Email/email.module';
 
 @Module({
   imports: [
     PassportModule,
+    NotificationModule,
+    EmailModule,
     JwtModule.registerAsync({
-          imports: [ConfigModule], // ✅ Import ConfigModule here
-          inject: [ConfigService],
-          useFactory: async (configService: ConfigService) => ({
-            secret: configService.get<string>('JWT_SECRET') || 'admin',
-            signOptions: { expiresIn: '1d' },
-          }),
-        }),
+      imports: [ConfigModule], // ✅ Import ConfigModule here
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET'),
+        signOptions: { expiresIn: '1d' },
+      }),
+    }),
     TypeOrmModule.forFeature([
       User,
       Venue,

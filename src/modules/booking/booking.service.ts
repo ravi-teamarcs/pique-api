@@ -8,12 +8,15 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Booking } from './entities/booking.entity';
-import { DateTimeChangeDto } from '../venue/dto/change-booking.dto';
+import { ChangeBooking } from '../venue/dto/change-booking.dto';
 import { Venue } from '../venue/entities/venue.entity';
-import { BookingRequest } from './entities/changeReq.entity';
-import { ReqBookingDto } from './dto/request-booking.dto';
+import { BookingRequest } from './entities/changeBooking.entity';
+import { BookingReqResponse } from './dto/request-booking.dto';
 import { ResponseDto } from './dto/booking-response-dto';
 import { BookingLog } from './entities/booking-log.entity';
+import { User } from '../users/entities/users.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { EmailService } from '../Email/email.service';
 
 @Injectable()
 export class BookingService {
@@ -26,11 +29,14 @@ export class BookingService {
     private readonly reqRepository: Repository<BookingRequest>,
     @InjectRepository(BookingLog)
     private readonly logRepository: Repository<BookingLog>,
+    @InjectRepository(Entertainer)
+    private readonly entRepository: Repository<Entertainer>,
+    private readonly emailService: EmailService,
   ) {}
 
   async createBooking(createBookingDto: CreateBookingDto, userId: number) {
     const { entertainerId, ...bookingData } = createBookingDto;
-    console.log('Booking Dto', createBookingDto);
+
     // Create the booking
 
     const newBooking = this.bookingRepository.create({
@@ -38,7 +44,7 @@ export class BookingService {
       venueUser: { id: userId },
       entertainerUser: { id: entertainerId },
     });
-    console.log('New Booking', newBooking);
+
     // Save the booking
     if (!newBooking) {
       throw new Error('Failed to create booking');
@@ -46,18 +52,52 @@ export class BookingService {
 
     // changes must be there
     const savedBooking = await this.bookingRepository.save(newBooking);
-    console.log('Saved Booking', savedBooking);
+
     if (!savedBooking) {
       throw new InternalServerErrorException('Failed to save Booking');
     }
+    const entUserId = savedBooking.entertainerUser.id;
+
+    const user = await this.entRepository
+      .createQueryBuilder('entertainer')
+      .leftJoinAndSelect('entertainer.user', 'user')
+      .select(['entertainer.name AS name', 'user.email AS email'])
+      .where('user.id = :id', { id: entUserId })
+      .getRawOne();
+
+    const venue = await this.venueRepository.findOne({
+      where: { id: savedBooking.venueId },
+      select: ['name', 'email', 'phone', 'addressLine1', 'addressLine2'],
+    });
+
+    const emailPayload = {
+      to: user.email,
+      subject: 'New Booking Request',
+      templateName: 'booking-request.html',
+
+      replacements: {
+        venueName: venue.name,
+        entertainerName: user.name,
+        bookingDate: savedBooking.showDate,
+        bookingTime: savedBooking.showTime,
+        vname: venue.name,
+        vemail: venue.email,
+        vphone: venue.phone,
+        Address: `${venue.addressLine1}, ${venue.addressLine2}`,
+      },
+    };
+
+    // this.emailService.handleSendEmail(emailPayload);
+
     const payload = {
       bookingId: savedBooking.id,
       status: savedBooking.status,
       user: savedBooking.venueUser.id,
       performedBy: 'venue',
     };
-    const log = await this.generateBookingLog(payload);
-    console.log('booking log', log);
+
+    this.generateBookingLog(payload);
+
     return {
       message: 'Booking created successfully',
       booking: bookingData,
@@ -72,9 +112,32 @@ export class BookingService {
   ) {
     const { bookingId, status } = payload;
 
-    const booking = await this.bookingRepository.findOne({
-      where: { id: bookingId },
-    });
+    const booking = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.entertainerUser', 'entertainerUser')
+      .leftJoinAndSelect('booking.venueUser', 'venueUser')
+      .leftJoin('venue', 'venue', 'venue.id = booking.venueId') // Join venue table
+      .select([
+        'booking.id AS id',
+        'booking.status AS status',
+        'booking.venueId AS vid',
+        'booking.showTime AS showTime',
+        'booking.showDate AS showDate',
+
+        'entertainerUser.email AS eEmail',
+        'entertainerUser.name AS ename',
+        'entertainerUser.id AS eid ',
+        'entertainerUser.phoneNumber AS ephone',
+
+        'venue.name  As  vname',
+        'venueUser.email As vemail',
+        'venueUser.phoneNumber As vphone',
+        'venueUser.id As vid',
+      ])
+      .where('booking.id = :id', { id: bookingId })
+      .getRawOne();
+
+    console.log('Booking Response', booking);
     if (!booking) {
       throw new NotFoundException({
         message: 'Booking not found',
@@ -100,6 +163,25 @@ export class BookingService {
       });
     }
 
+    const emailPayload = {
+      to: role === 'entertainer' ? booking.vemail : booking.eEmail,
+      subject: `Booking Request ${status}`,
+      templateName:
+        role === 'entertainer'
+          ? 'request-accepted.html'
+          : 'confirmed-booking.html',
+
+      replacements: {
+        venueName: booking.vname,
+        entertainerName: booking.ename,
+        id: booking.id,
+        bookingTime: booking.showTime,
+        bookingDate: booking.showDate,
+      },
+    };
+
+    this.emailService.handleSendEmail(emailPayload);
+
     const log = await this.generateBookingLog({
       bookingId,
       status: status,
@@ -107,110 +189,132 @@ export class BookingService {
       performedBy: role,
     });
 
-    console.log('booking log', log);
-
     return {
       message: `Request ${status} successfully`,
       status: true,
     };
   }
 
-  async handleChangeRequest(
-    dateTimeChangeDto: DateTimeChangeDto,
-    userId: number,
-  ) {
-    const { bookingId, venueId } = dateTimeChangeDto;
+  async handleChangeRequest(bookingdto: ChangeBooking, userId: number) {
+    const { bookingId } = bookingdto;
 
-    const venue = await this.venueRepository.findOne({
-      where: { user: { id: userId }, id: venueId },
-    });
+    const booking = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoinAndSelect('booking.entertainerUser', 'ent')
+      .leftJoinAndSelect('booking.venueUser', 'vuser')
+      .select([
+        'booking.id AS id',
+        'booking.status AS status',
+        'ent.id AS eid',
+        'vuser.id AS vuid',
+      ])
+      .where('booking.id = :id', { id: bookingId })
+      .getRawOne();
 
-    if (!venue) {
-      throw new UnauthorizedException({
-        message: 'You are not Authorized',
-        status: false,
-      });
-    }
+    console.log('Booking', booking);
 
-    const booking = await this.bookingRepository.findOne({
-      where: { id: bookingId },
-    });
-
-    if (!booking || booking.venueId !== venueId) {
+    if (!booking) {
       throw new NotFoundException({
         message: 'Booking not found',
         status: false,
       });
     }
 
-    const req = this.reqRepository.create({ ...dateTimeChangeDto, userId });
+    try {
+      const bookReq = this.reqRepository.create({
+        ...bookingdto,
+        vuid: userId,
+        euid: booking.eid,
+      });
 
-    const savedReq = await this.reqRepository.save(req);
-    if (!savedReq) {
-      throw new Error('Something Went Wrong');
+      await this.reqRepository.save(bookReq);
+
+      await this.bookingRepository.update(
+        { id: booking.id },
+        { status: 'pending' },
+      );
+
+      const payload = {
+        bookingId: booking.id,
+        status: 'pending',
+        user: booking.vuid,
+        performedBy: 'venue',
+      };
+
+      this.generateBookingLog(payload);
+
+      // Notification
+
+      // Booking Request
+      return {
+        message:
+          'Your Request for Time and Date  have registered Successfully.',
+        status: true,
+      };
+    } catch (err) {
+      throw new InternalServerErrorException({
+        message: 'Failed to create request',
+        status: true,
+      });
     }
-
-    await this.bookingRepository.update(
-      { id: bookingId },
-      { status: 'pending' },
-    );
-
-    // Use Firebase to send the Notification.
-
-    return {
-      message: 'Your Request have registered Successfully.',
-      status: true,
-    };
   }
 
   // approve service for both Entertainer and Admin
 
-  async approveChange(requestId: number, reqDto: ReqBookingDto) {
-    const { approverType, response, approverId } = reqDto;
+  async approveChange(
+    requestId: number,
+    reqDto: BookingReqResponse,
+    userId: number,
+  ) {
+    const { response } = reqDto;
     const request = await this.reqRepository.findOne({
-      where: { id: requestId },
+      where: { id: requestId, euid: userId },
     });
-
     if (!request) {
-      throw new NotFoundException('Request not found');
-    }
-
-    if (approverType === 'entertainer') {
-      const authorized = await this.bookingRepository.findOne({
-        where: { id: request.bookingId, entertainerUser: { id: approverId } },
+      throw new NotFoundException({
+        message: 'Request not found',
+        status: false,
       });
-
-      if (!authorized) throw new UnauthorizedException('You are not allowed');
     }
 
-    if (approverType === 'entertainer') {
-      request.entertainerApproval = response;
-    } else if (approverType === 'admin') {
-      request.adminApproval = response;
-    }
+    try {
+      const updatedRequest = await this.reqRepository.update(
+        { id: requestId },
+        { status: response },
+      );
+      if (!updatedRequest.affected) {
+        throw new NotFoundException({
+          message: 'Request not found',
+          status: false,
+        });
+      }
+      const res = response === 'approved' ? 'rescheduled' : 'confirmed';
 
-    // If both approved, update booking
-    if (request.entertainerApproval && request.adminApproval) {
-      request.status = 'approved';
-
-      // Make changes in actual Booking
-
-      const updatedBooking = await this.bookingRepository.update(
+      const booking = await this.bookingRepository.update(
         { id: request.bookingId },
         {
+          status: res,
           showTime: request.reqShowTime,
-          showDate: request.reqShowDate,
-          status: 'confirmed',
+          showDate: request.reqShowTime,
         },
       );
+      const payload = {
+        bookingId: request.bookingId,
+        status: res,
+        user: userId,
+        performedBy: 'entertainer',
+      };
+      this.generateBookingLog(payload);
+      return {
+        message: `Request ${response} successfully`,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Failed to approve request',
+        status: false,
+      });
     }
-
-    // If both Entertainer and Administrator
-    // Codes
-
-    await this.reqRepository.save(request);
-
-    return { message: 'response registered Successfully', status: 'true' };
   }
 
   private async generateBookingLog(payload) {

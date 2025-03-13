@@ -32,7 +32,7 @@ export class ChatGateway implements OnGatewayDisconnect {
     @MessageBody() { userId, receiverId }: JoinDto,
     @ConnectedSocket() client: Socket,
   ) {
-    console.log('inside Join ', userId, receiverId);
+    // console.log('inside Join ', userId, receiverId);
     this.activeUsers.set(client.id, userId);
     console.log(`User ${userId} connected with socket ${client.id}`);
 

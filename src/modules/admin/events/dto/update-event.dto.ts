@@ -1,5 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsEnum, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsBoolean,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class UpdateEventDto {
   @ApiProperty({ example: 3, description: 'Unique identifier of the event' })
@@ -7,7 +14,10 @@ export class UpdateEventDto {
   @IsNumber()
   id: number;
 
-  @ApiProperty({ example: 1, description: 'Venue for which the event is created' })
+  @ApiProperty({
+    example: 1,
+    description: 'Venue for which the event is created',
+  })
   @IsOptional()
   @IsNumber()
   venueId?: number;
@@ -17,17 +27,26 @@ export class UpdateEventDto {
   @IsNumber()
   userId?: number;
 
-  @ApiProperty({ example: 'Singing Concert', description: 'Title of the event' })
+  @ApiProperty({
+    example: 'Singing Concert',
+    description: 'Title of the event',
+  })
   @IsOptional()
   @IsString()
   title?: string;
 
-  @ApiProperty({ example: '2025-02-13T14:30:00Z', description: 'Start dateTime of the event' })
+  @ApiProperty({
+    example: '2025-02-13T14:30:00Z',
+    description: 'Start dateTime of the event',
+  })
   @IsOptional()
   @IsString()
   startTime?: string;
 
-  @ApiProperty({ example: '2025-02-13T16:30:00Z', description: 'End dateTime of the event' })
+  @ApiProperty({
+    example: '2025-02-13T16:30:00Z',
+    description: 'End dateTime of the event',
+  })
   @IsOptional()
   @IsString()
   endTime?: string;
@@ -47,12 +66,23 @@ export class UpdateEventDto {
   @IsEnum(['none', 'daily', 'weekly', 'monthly'])
   recurring?: 'none' | 'daily' | 'weekly' | 'monthly';
 
-  @ApiProperty({ example: 'scheduled', description: 'Current status of the event' })
+  @ApiProperty({
+    example: 'scheduled',
+    description: 'Current status of the event',
+  })
   @IsOptional()
-  @IsEnum(['pending', 'scheduled', 'confirmed', 'cancelled', 'completed'])
-  status?: 'pending' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+  @IsEnum(['unpublished', 'scheduled', 'confirmed', 'cancelled', 'completed'])
+  status?:
+    | 'unpublished'
+    | 'scheduled'
+    | 'confirmed'
+    | 'cancelled'
+    | 'completed';
 
-  @ApiProperty({ example: false, description: 'Is the event creator an admin?' })
+  @ApiProperty({
+    example: false,
+    description: 'Is the event creator an admin?',
+  })
   @IsOptional()
   @IsBoolean()
   isAdmin?: boolean;

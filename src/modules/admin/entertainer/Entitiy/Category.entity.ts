@@ -1,13 +1,25 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+} from 'typeorm';
 
 @Entity('categories')
 export class Categories {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ type: 'varchar', length: 255, nullable: false })
   name: string;
 
-  @Column({ nullable: true })
+  @Column()
   parentId: number;
+
+  @Column({ type: 'text' })
+  iconUrl: string;
+
+  @Column({ type: 'varchar', length: 255 })
+  catslug: string;
 }

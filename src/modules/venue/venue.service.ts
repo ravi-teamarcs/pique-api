@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { Brackets, Like, Repository } from 'typeorm';
 import { Venue } from './entities/venue.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
@@ -18,6 +18,10 @@ import { Media } from '../media/entities/media.entity';
 import { Category } from '../entertainer/entities/categories.entity';
 import { VenueEvent } from '../event/entities/event.entity';
 import { VenueLocationDto } from './dto/add-location.dto';
+import { Data } from './dto/search-filter.dto';
+import { instanceToPlain } from 'class-transformer';
+import { Wishlist } from './entities/wishlist.entity';
+import { WishlistDto } from './dto/wishlist.dto';
 
 @Injectable()
 export class VenueService {
@@ -34,13 +38,15 @@ export class VenueService {
     private readonly mediaRepository: Repository<Media>,
     @InjectRepository(Category)
     private readonly catRepository: Repository<Category>,
+    @InjectRepository(Wishlist)
+    private readonly wishRepository: Repository<Wishlist>,
   ) {}
 
   async create(createVenueDto: CreateVenueDto, userId: number) {
     const venueExists = await this.venueRepository.findOne({
       where: { user: { id: userId } },
     });
-      console.log("venue exists" , venueExists)
+    console.log('venue exists', venueExists);
     if (venueExists) {
       throw new BadRequestException({
         message: 'Venue already exists for the user',
@@ -73,11 +79,6 @@ export class VenueService {
         'state',
         'zipCode',
         'country',
-        'lat',
-        'long',
-        'amenities',
-        'websiteUrl',
-        'bookingPolicies',
         'parentId',
         'isParent',
       ],
@@ -127,173 +128,95 @@ export class VenueService {
         'state',
         'zipCode',
         'country',
-        'lat',
-        'long',
         'parentId',
         'isParent',
-        'amenities',
-        'websiteUrl',
-        'bookingPolicies',
       ],
     });
 
-    // if (!venue) {
-    //   throw new NotFoundException({
-    //     message: 'Venue not found',
-    //     error: 'Not Found',
-    //     status: false,
-    //   });
-    // }
-
     return { message: 'Venue fetched successfully', data: venue, status: true };
   }
-  // My code
 
-  // async findAllEntertainers(query: SearchEntertainerDto) {
-  //   const {
-  //     availability = '',
-  //     category = '',
-  //     search = '',
-  //     page = 1,
-  //     pageSize = 10,
-  //   } = query;
-
-  //   // Number of records per page
-  //   const skip = (Number(page) - 1) * Number(pageSize); // Calculate offset
-
-  //   const res = this.entertainerRepository
-  //     .createQueryBuilder('entertainer')
-  //     .leftJoinAndSelect('entertainer.user', 'user')
-  //     .select([
-  //       'entertainer.id AS id',
-  //       'user.id AS eid',
-  //       'entertainer.name AS name',
-  //       'entertainer.category AS category',
-  //       'entertainer.specific_category AS specific_category',
-  //       'entertainer.performanceRole AS performanceRole',
-  //       'entertainer.pricePerEvent AS pricePerEvent',
-  //       'entertainer.vaccinated AS vaccinated',
-  //       'entertainer.availability AS availability',
-  //       'entertainer.status AS status',
-  //       'user.email AS email', // Example: More control over user relation
-  //     ]);
-
-  //   if (availability) {
-  //     res.andWhere('entertainer.availability = :availability', {
-  //       availability,
-  //     });
-  //   }
-
-  //   // Apply `type` filter if provided
-  //   if (category) {
-  //     res.andWhere('entertainer.category = :category', { category });
-  //   }
-
-  //   // Apply search filter if provided (searches across multiple fields)
-  //   if (search.trim() !== '') {
-  //     res.andWhere(
-  //       `(entertainer.name LIKE :search OR
-  //           entertainer.category LIKE :search OR
-  //           entertainer.bio LIKE :search OR
-  //           entertainer.performanceRole LIKE :search OR
-  //           entertainer.phone1 LIKE :search OR
-  //           entertainer.phone2 LIKE :search OR
-  //           entertainer.status LIKE :search OR
-  //           user.email LIKE :search)`, // Example: Searching user email too
-  //       { search: `%${search}%` },
-  //     );
-  //   }
-
-  //   // Get total count before pagination
-  //   const totalCount = await res.getCount();
-
-  //   // // Apply pagination
-  //   const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
-
-  //   const entertainers = await Promise.all(
-  //     results.map(async (item) => {
-  //       const userId = item.eid;
-
-  //       const bookings = await this.bookingRepository.find({
-  //         where: { entertainerUser: { id: item.eid }, status: 'confirmed' },
-  //         select: ['showDate', 'showTime'],
-  //       });
-
-  //       const media = await this.mediaRepository
-  //         .createQueryBuilder('media')
-  //         .select([
-  //           'media.id AS id',
-  //           `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
-  //           'media.type AS type',
-  //           'media.name  AS name',
-  //         ])
-  //         .where('media.userId = :userId', { userId })
-  //         .getRawMany();
-
-  //       return {
-  //         ...item,
-  //         media,
-  //         bookedFor: bookings,
-  //       };
-  //     }),
-  //   );
-
-  //   return {
-  //     message: 'Entertainers fetched Sucessfully',
-  //     totalCount,
-  //     page,
-  //     pageSize, // Records per Page
-  //     totalPages: Math.ceil(totalCount / Number(pageSize)),
-  //     entertainers,
-  //     status: true,
-  //   };
-  // }
-
-  // To find Booking related to Venue user
-  async findAllEntertainers(query: SearchEntertainerDto) {
+  async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
     const {
       availability = '',
-      category = '',
-      search = '',
+      category = [],
+      sub_category = null,
+      price = [],
       page = 1,
       pageSize = 10,
+      city = null,
     } = query;
+
+    console.log('category', category, 'price', price);
 
     // Pagination
     const skip = (Number(page) - 1) * Number(pageSize);
+    const DEFAULT_MEDIA_URL =
+      'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+    const data = [
+      { label: '500-1000', value: 1 },
+      { label: '1000-2000', value: 2 },
+      { label: '2000-3000', value: 3 },
+      { label: '3000-4000', value: 4 },
+      { label: '4000-5000', value: 5 },
+    ];
 
-    // Base Query
+    const priceRange = data
+      .filter((item) => price.includes(item.value)) // Filter only matching values
+      .map((item) => {
+        const [min, max] = item.label.split('-').map(Number); // Extract min and max from label
+        return { min, max };
+      });
+
     const res = this.entertainerRepository
       .createQueryBuilder('entertainer')
-      .leftJoinAndSelect('entertainer.user', 'user') // Join with user table
+      .leftJoinAndSelect('entertainer.user', 'user')
+      .leftJoin('cities', 'city', 'city.id = entertainer.city')
+      .leftJoin('states', 'state', 'state.id = entertainer.state')
+      .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .leftJoin('categories', 'category', 'category.id = entertainer.category')
+      .leftJoin('categories', 'subcat', 'specific_category = subcat.id')
+      .leftJoin(
+        'wishlist',
+        'wish',
+        'wish.ent_id = user.id AND wish.user_id = :userId',
+        { userId },
+      )
       .leftJoin(
         (qb) =>
           qb
             .select([
-              'booking.entertainerUserId',
-              'JSON_ARRAYAGG(DISTINCT JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookedDates',
+              'booking.entertainerUserId', // Use the actual foreign key column
+              `JSON_ARRAYAGG(
+                DISTINCT JSON_OBJECT(
+                  "showDate", booking.showDate, 
+                  "showTime", booking.showTime
+                )
+              ) AS bookedDates`,
             ])
             .from('booking', 'booking')
-            .where('booking.status = :confirmed', { confirmed: 'confirmed' })
-            .groupBy('booking.entertainerUserId'),
+            .where('booking.status = "confirmed"')
+            .groupBy('booking.entertainerUserId'), // Ensure this matches the foreign key column
         'bookings',
-        'bookings.entertainerUserId = user.id',
+        'bookings.entertainerUserId = user.id', // Ensure it maps correctly to the User table
       )
       .leftJoin(
         (qb) =>
           qb
             .select([
               'media.userId',
-              "JSON_ARRAYAGG(JSON_OBJECT('id', media.id, 'url', CONCAT(:serverUri, media.url), 'type', media.type, 'name', media.name)) AS mediaFiles",
+              `COALESCE(MAX(CONCAT(:serverUri, media.url)), :defaultMediaUrl) AS mediaUrl`,
             ])
+
             .from('media', 'media')
+            .where('media.type = "headshot"')
             .groupBy('media.userId'),
         'media',
         'media.userId = user.id',
       )
       .select([
-        'entertainer.id AS id',
         'user.id AS eid',
+        'user.name AS user_name',
         'entertainer.name AS name',
         'entertainer.category AS category',
         'entertainer.specific_category AS specific_category',
@@ -302,51 +225,106 @@ export class VenueService {
         'entertainer.vaccinated AS vaccinated',
         'entertainer.availability AS availability',
         'entertainer.status AS status',
+        'entertainer.bio AS bio',
         'user.email AS email',
-        'COALESCE(bookings.bookedDates, "[]") AS bookedFor', // Default empty array if no bookings
-        'COALESCE(media.mediaFiles, "[]") AS media',
+        'city.name AS city',
+        'state.name AS state',
+        'country.name AS country',
+        'category.name AS category_name',
+        'subcat.name AS specific_category_name',
+        'media.mediaUrl As mediaUrl',
+        'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
+        `CASE
+     WHEN wish.ent_id IS NOT NULL THEN true
+     ELSE false
+     END AS isWishlisted`,
       ])
-      .setParameter('serverUri', process.env.SERVER_URI);
+      .setParameter('serverUri', process.env.BASE_URL)
+      .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL);
 
-    // Filters
+    // **Availability Filter**
     if (availability) {
       res.andWhere('entertainer.availability = :availability', {
         availability,
       });
     }
 
-    if (category) {
-      res.andWhere('entertainer.category = :category', { category });
+    // **Category Filter (Applies Only If Not Null)**
+    if (category !== null && category.length > 0) {
+      res.andWhere('entertainer.category IN (:...category)', { category });
     }
 
-    if (search.trim() !== '') {
+    // **Sub-Category Filter**
+    if (sub_category) {
+      res.andWhere('entertainer.specific_category = :sub_category', {
+        sub_category,
+      });
+    }
+
+    // **Price Range Filter (Supports Multiple Ranges)**
+    if (priceRange !== null && priceRange.length > 0) {
       res.andWhere(
-        `(
-          LOWER(entertainer.name) LIKE :search OR
-          LOWER(entertainer.category) LIKE :search OR
-          LOWER(entertainer.bio) LIKE :search OR
-          LOWER(entertainer.performanceRole) LIKE :search OR
-          LOWER(entertainer.phone1) LIKE :search OR
-          LOWER(entertainer.phone2) LIKE :search OR
-          LOWER(entertainer.status) LIKE :search OR
-          LOWER(user.email) LIKE :search
-        )`,
-        { search: `%${search.toLowerCase()}%` },
+        new Brackets((qb) => {
+          const conditions: string[] = [];
+          const params: Record<string, number> = {};
+
+          priceRange.forEach((range, index) => {
+            const minKey = `min${index}`;
+            const maxKey = `max${index}`;
+
+            conditions.push(
+              `entertainer.pricePerEvent BETWEEN :${minKey} AND :${maxKey}`,
+            );
+            params[minKey] = range.min;
+            params[maxKey] = range.max;
+          });
+
+          qb.where(conditions.join(' OR '), params);
+        }),
       );
     }
 
-    // Get total count before pagination
-    const totalCount = await res.getCount();
+    // **City Filter**
+    if (city) {
+      res.andWhere('entertainer.city = :city', { city });
+    }
 
-    // Apply pagination
+    // **Search Filter**
+    // (search && search.trim()) {
+    //   res.andWhere(
+    //     `(
+    //       LOWER(entertainer.name) LIKE :search OR
+    //       LOWER(entertainer.bio) LIKE :search OR
+    //       LOWER(user.email) LIKE :search
+    //     )`,
+    //     { search: `%${search.toLowerCase()}%` }
+    //   );
+    // }
+
+    const totalCount = await res.getCount();
     const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
 
+    // Base Query
+    const arr = [3, 4, 5, 2, 1];
+
     // Parse JSON fields
-    const entertainers = results.map((item) => ({
-      ...item,
-      bookedFor: JSON.parse(item.bookedFor),
-      media: JSON.parse(item.media),
-    }));
+    const entertainers = results.map(
+      ({ isWishListed, bookedFor, ...item }, index) => {
+        return {
+          ...item,
+          isWishlisted: Boolean(isWishListed),
+          ratings: arr[index % arr.length],
+          whatwillyouget: [
+            { text: 'you will get full service' },
+            { text: 'you will get full Satisfaction' },
+            { text: 'Professional Talent' },
+            { text: 'An feeling of sophistication' },
+            { text: 'Experince of life' },
+          ],
+          bookedFor: JSON.parse(bookedFor),
+        };
+      },
+    );
 
     return {
       message: 'Entertainers fetched successfully',
@@ -362,8 +340,8 @@ export class VenueService {
   async findAllBooking(userId: number) {
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoinAndSelect('booking.entertainerUser', 'entertainerUser')
-      .leftJoinAndSelect('entertainerUser.entertainer', 'entertainer')
+      .leftJoinAndSelect('booking.user', 'user')
+      .leftJoinAndSelect('user.entertainer', 'entertainer')
       .where('booking.venueUser.id = :userId', { userId })
       .select([
         'booking.id AS id',
@@ -372,8 +350,9 @@ export class VenueService {
         'booking.isAccepted AS isAccepted',
         'booking.specialNotes AS specialNotes',
         'booking.venueId AS vid',
-        'entertainerUser.id AS eid',
-        'entertainerUser.email AS email',
+        'user.id AS eid',
+        'user.email AS email',
+        'user.name AS username',
         'entertainer.name AS name',
         'entertainer.category AS category',
         'entertainer.specific_category AS  specific_category',
@@ -433,7 +412,7 @@ export class VenueService {
       const venue = await this.venueRepository.findOne({
         where: { id: id, user: { id: userId } },
       });
-
+      console.log('venue', venue);
       if (!venue) {
         throw new NotFoundException({
           message: 'Venue not found',
@@ -455,45 +434,77 @@ export class VenueService {
   }
 
   async findEntertainerDetails(userId: number) {
-    const details = await this.entertainerRepository.findOne({
-      where: { user: { id: Number(userId) } },
-      select: [
-        'id',
-        'name',
-        'category',
-        'specific_category',
-        'bio',
-        'performanceRole',
-        'phone1',
-        'phone2',
-        'pricePerEvent',
-        'vaccinated',
-        'availability',
-        'status',
-        'socialLinks',
-      ],
-    });
+    const DEFAULT_MEDIA_URL =
+      'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
 
-    if (!details)
-      throw new NotFoundException({
-        message: 'Entertainer details not found',
-        status: false,
-      });
-
-    const media = await this.mediaRepository
-      .createQueryBuilder('media')
+    const res = await this.entertainerRepository
+      .createQueryBuilder('entertainer')
+      .leftJoinAndSelect('entertainer.user', 'user')
+      .leftJoin('cities', 'city', 'city.id = entertainer.city')
+      .leftJoin('states', 'state', 'state.id = entertainer.state')
+      .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .leftJoin('categories', 'category', 'category.id = entertainer.category')
+      .leftJoin('categories', 'subcat', 'specific_category = subcat.id')
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'booking.entertainerUserId',
+              'JSON_ARRAYAGG(DISTINCT JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookedDates',
+            ])
+            .from('booking', 'booking')
+            .where('booking.status = "confirmed"')
+            .groupBy('booking.entertainerUserId'),
+        'bookings',
+        'bookings.entertainerUserId = user.id',
+      )
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'media.userId',
+              `COALESCE(
+                (SELECT CONCAT(:serverUri, m1.url) FROM media m1 
+                 WHERE m1.userId = media.userId AND m1.type = 'headshot' 
+                 ORDER BY m1.id LIMIT 1), 
+                :defaultMediaUrl
+              ) AS headshotUrl`,
+              `COALESCE(
+                (SELECT CONCAT(:serverUri, m2.url) FROM media m2 
+                 WHERE m2.userId = media.userId AND m2.type = 'image' 
+                 ORDER BY m2.id LIMIT 1), 
+                :defaultMediaUrl
+              ) AS imageUrl`,
+            ])
+            .from('media', 'media')
+            .groupBy('media.userId'),
+        'media',
+        'media.userId = user.id',
+      )
       .select([
-        'media.id AS id',
-        `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
-        'media.type AS type',
-        'media.name  AS name',
+        'user.id AS eid',
+        'user.email AS email',
+        'user.name AS username',
+        'entertainer.name AS entertainer_name',
+        'entertainer.category AS category',
+        'entertainer.specific_category AS specific_category',
+        'category.name AS category_name',
+        'subcat.name AS specific_category_name',
+        'entertainer.phone1 AS phone1',
+        'entertainer.performanceRole AS performanceRole',
+        'entertainer.availability AS availability',
+        'entertainer.pricePerEvent AS pricePerEvent',
+        'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
+        'COALESCE(media.headshotUrl, :defaultMediaUrl) AS headshotUrl',
+        'COALESCE(media.imageUrl, :defaultMediaUrl) AS imageUrl',
       ])
-      .where('media.userId = :userId', { userId })
-      .getRawMany();
-
+      .setParameter('serverUri', process.env.BASE_URL)
+      .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
+      .getRawOne();
+    const { bookedFor, ...details } = res;
     return {
-      message: 'Entertainer Details returned Successfully ',
-      entertainer: { ...details, media: media },
+      message: 'Entertainer Details returned Successfully',
+      data: { ...details, bookedFor: JSON.parse(bookedFor) },
       status: true,
     };
   }
@@ -518,11 +529,11 @@ export class VenueService {
         (qb) =>
           qb
             .select([
-              'booking.entertainerUserId AS entertainerId',
+              'booking.userId AS entertainerId',
               'JSON_ARRAYAGG(JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookings',
             ])
             .from('booking', 'booking')
-            .groupBy('booking.entertainerUserId'),
+            .groupBy('booking.userId'),
         'bookings',
         'bookings.entertainerId = user.id',
       )
@@ -585,6 +596,7 @@ export class VenueService {
     const venueLoc = this.venueRepository.create({
       ...locDto,
       name: parentVenue.name,
+      user: { id: userId },
       description: parentVenue.description,
       parentId: parentVenue.id,
       isParent: false,
@@ -593,6 +605,99 @@ export class VenueService {
     await this.venueRepository.save(venueLoc);
     return {
       message: 'Venue location added successfully',
+      status: true,
+    };
+  }
+
+  async getAllCategories(query: Data) {
+    const { category } = query;
+
+    const id = category ? Number(category) : 0;
+
+    const categories = await this.catRepository.find({
+      where: { parentId: id },
+      select: ['id', 'name', 'iconUrl'],
+    });
+    console.log('categories', categories);
+    const plainCat = instanceToPlain(categories);
+
+    const Data = plainCat.map(({ iconUrl, ...rest }) => ({
+      ...rest,
+      activeIcon: iconUrl,
+      inactiveIcon: iconUrl.replace(/(\.\w+)$/, '_grey$1'), // Adds "_gray" before file extension
+    }));
+
+    const filter = plainCat.map((item) => ({
+      label: item.name,
+      value: item.id,
+    }));
+
+    const filterData = {
+      filters: [
+        {
+          type: 'checkbox',
+          label: 'Price',
+          data: [
+            { label: '500-1000', value: 1 },
+            { label: '1000-2000', value: 2 },
+            { label: '2000-3000', value: 3 },
+            { label: '3000-4000', value: 4 },
+            { label: '4000-5000', value: 5 },
+          ],
+        },
+        { type: 'checkbox', label: 'Category', data: filter },
+        { type: 'select', label: 'Location' },
+      ],
+      categories: { type: 'checkbox', label: 'category', data: Data },
+    };
+    return {
+      message: 'Filters fetched Successfully',
+      data: filterData,
+      status: true,
+    };
+  }
+
+  async toggleWishlist(userId: number, wishDto: WishlistDto) {
+    // Check if entertainer is already in wishlist
+    const { entId, ...wish } = wishDto;
+
+    const existingWishlist = await this.wishRepository.findOne({
+      where: { user_id: userId, ent_id: entId },
+    });
+
+    if (existingWishlist) {
+      // Remove from wishlist if already present
+      const res = await this.wishRepository.remove(existingWishlist);
+      console.log('Removed Entertainer', res);
+      return { message: 'Entertainer Removed from wishlist', status: true };
+    }
+    //  Add to wishlist if not present
+    const wishlistItem = this.wishRepository.create({
+      ...wish,
+      ent_id: entId,
+      user_id: userId,
+    });
+    await this.wishRepository.save(wishlistItem);
+    return { message: ' Entertainer Added to wishlist', status: true };
+  }
+
+  async getWishlist(userId: number) {
+    const wishlistItems = await this.wishRepository.find({
+      where: { user_id: userId },
+      select: [
+        'id',
+        'name',
+        'category',
+        'specific_category',
+        'ent_id',
+        'username',
+        'url',
+        'ratings',
+      ],
+    });
+    return {
+      message: 'Wishlist fetched Successfully',
+      data: wishlistItems,
       status: true,
     };
   }

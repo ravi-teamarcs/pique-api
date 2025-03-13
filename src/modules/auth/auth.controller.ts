@@ -5,6 +5,8 @@ import {
   UseGuards,
   Request,
   HttpCode,
+  Req,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,6 +17,7 @@ import {
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt.guard';
 import { LoginDto, RegisterDto } from './auth.dto';
+import { ResetPassword } from './dto/reset-password.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -37,8 +40,10 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials.' })
   @Post('login')
   @HttpCode(200)
-  async login(@Body() loginDto: LoginDto) {
-    return this.authService.login(loginDto);
+  async login(@Body() loginDto: LoginDto, @Req() req) {
+    const userAgent = req.headers['user-agent'] || '';
+
+    return this.authService.login(loginDto, userAgent);
   }
 
   @ApiBearerAuth()
@@ -61,7 +66,19 @@ export class AuthController {
   @Post('logout')
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)
-  logout() {
-    return { message: 'Logged out successfully.', data: null, status: true };
+  logout(@Body('token') token: string) {
+    return this.authService.logout(token);
+  }
+
+  @Post('forgot-password')
+  @HttpCode(200)
+  forgotPassword(@Body('email') email: string) {
+    return this.authService.forgotPassword(email);
+  }
+  @Post('reset-password')
+  @HttpCode(200)
+  resetPassword(@Body() resetDto: ResetPassword) {
+    const { token, newPassword } = resetDto;
+    return this.authService.resetPassword(token, newPassword);
   }
 }
