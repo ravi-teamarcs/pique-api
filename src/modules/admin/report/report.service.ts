@@ -9,47 +9,67 @@ import { Invoice } from '../invoice/Entity/invoices.entity';
 import { Event } from '../events/Entity/event.entity';
 @Injectable()
 export class ReportService {
-    constructor(
-        @InjectRepository(Event) private eventRepo: Repository<Event>,
-        @InjectRepository(Venue) private venueRepo: Repository<Venue>,
-        @InjectRepository(Booking) private bookingRepo: Repository<Booking>,
-        @InjectRepository(Entertainer) private entertainerRepo: Repository<Entertainer>,
-        @InjectRepository(Invoice) private invoiceRepo: Repository<Invoice>,
-    ) { }
+  constructor(
+    @InjectRepository(Event) private eventRepo: Repository<Event>,
+    @InjectRepository(Venue) private venueRepo: Repository<Venue>,
+    @InjectRepository(Booking) private bookingRepo: Repository<Booking>,
+    @InjectRepository(Entertainer)
+    private entertainerRepo: Repository<Entertainer>,
+    @InjectRepository(Invoice) private invoiceRepo: Repository<Invoice>,
+  ) {}
 
-    async getAllEventData() {
-        const events = await this.eventRepo.find();
-        const eventData = await Promise.all(events.map(async (event) => {
-            const venue = await this.venueRepo.findOne({ where: { id: event.venueId } });
-            const bookings = await this.bookingRepo.find({ where: { eventId: event.id }, order: { id: "DESC" } });
+  async getAllEventData() {
+    const page = 1;
+    const skip = 10;
 
-            const bookingsWithEntertainers = await Promise.all(
-                bookings.map(async (booking) => {
-                    // Fetch the entertainer linked to the booking
-                    const entertainer = await this.entertainerRepo.findOne({
-                        where: { user: { id: booking.entertainerUser?.id } },
-                        relations: ['user'],
-                    });
+    const events = await this.eventRepo.find();
+    const eventData = await Promise.all(
+      events.map(async (event) => {
+        const venue = await this.venueRepo.findOne({
+          where: { id: event.venueId },
+        });
+        const bookings = await this.bookingRepo.find({
+          where: { eventId: event.id },
+          order: { id: 'DESC' },
+        });
 
-                    // Ensure that we only query invoices when an entertainer is found
-                    const invoices = entertainer
-                        ? await this.invoiceRepo.find({ where: { entertainer_id: entertainer.id },order: { id: "DESC" } })
-                        : [];
+        const bookingsWithEntertainers = await Promise.all(
+          bookings.map(async (booking) => {
+            // Fetch the entertainer linked to the booking
+            const entertainer = await this.entertainerRepo.findOne({
+              where: { user: { id: booking.entertainerUser?.id } },
+              relations: ['user'],
+            });
 
-                    return { ...booking, entertainer, invoices };
+            // Ensure that we only query invoices when an entertainer is found
+            const invoices = entertainer
+              ? await this.invoiceRepo.find({
+                  where: { entertainer_id: entertainer.id },
+                  order: { id: 'DESC' },
                 })
-            );
+              : [];
 
-            return {
-                ...event,
-                venue,
-                bookings: bookingsWithEntertainers,
-            };
+            return { ...booking, entertainer, invoices };
+          }),
+        );
 
-        }));
+        return {
+          ...event,
+          venue,
+          bookings: bookingsWithEntertainers,
+        };
+      }),
+    );
 
-        return eventData;
-    }
+    return eventData;
+  }
 
-
+//   async getEventData() {
+//     const eventData = await this.eventRepo
+//       .createQueryBuilder('event')
+//       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+//       .leftJoin('bookings', 'bookings', 'bookings.eventId = event.id')
+//       .leftJoin('entertainers', 'ent', 'ent.id = booking.entertainerUserId');
+//       .leftJoin('invoices', 'invoice', 'invoice.id = ent.id');
+//   }
 }

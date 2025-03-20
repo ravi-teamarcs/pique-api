@@ -65,8 +65,6 @@ export class User {
   media: Media[];
 
   // Invoice
-  @OneToMany(() => Invoice, (invoice) => invoice.customer)
-  invoices: Invoice[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdDate: Date;

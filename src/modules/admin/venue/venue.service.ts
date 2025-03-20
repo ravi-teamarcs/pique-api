@@ -148,4 +148,39 @@ export class VenueService {
       });
     }
   }
+
+  async getVenueLocation(id: number) {
+    const venueExists = await this.venueRepository.find({ where: { id } });
+    if (!venueExists) {
+      throw new NotFoundException({
+        message: 'Venue not Found',
+        status: false,
+      });
+    }
+
+    const location = await this.venueRepository.find({
+      where: { parentId: id },
+      select: [
+        'id',
+        'name',
+        'phone',
+        'email',
+        'addressLine1',
+        'addressLine2',
+        'parentId',
+        'isParent',
+        'description',
+        'city',
+        'state',
+        'zipCode',
+        'country',
+      ],
+    });
+
+    return {
+      message: 'Location returned Successfully',
+      data: location,
+      status: true,
+    };
+  }
 }

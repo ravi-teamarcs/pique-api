@@ -97,4 +97,10 @@ export class VenueController {
   addLocation(@Body() dto: AddLocationDto) {
     return this.vanueService.addVenueLocation(dto);
   }
+
+  @Roles('super-admin', 'venue-admin')
+  @Get('location/:id')
+  getvenueLocation(@Param('id') id: number) {
+    return this.vanueService.getVenueLocation(Number(id));
+  }
 }
