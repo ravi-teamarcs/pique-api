@@ -15,6 +15,7 @@ import { Venue } from '../venue/entities/venue.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { Category } from './entities/categories.entity';
 import { Media } from '../media/entities/media.entity';
+import { DashboardDto } from './dto/dashboard.dto';
 
 @Injectable()
 export class EntertainerService {
@@ -226,5 +227,50 @@ export class EntertainerService {
       data: events,
       status: true,
     };
+  }
+
+  async getDashboardStatistics(userId: number, query: DashboardDto) {
+    const { year, month } = query;
+    try {
+      const now = new Date();
+      const targetYear = year || now.getFullYear();
+      const targetMonth = month !== undefined ? month : now.getMonth() + 1; // JavaScript months are 0-indexed
+
+      // Start & end of selected month
+      const startDate = new Date(targetYear, targetMonth - 1, 1); // First day of month
+      const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59); // Last day of month
+
+      const bookings = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .where('booking.entertainerUserId = :userId', { userId })
+        .andWhere('booking.createdAt BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        })
+        .select([
+          'booking.id',
+          'booking.status',
+          'booking.eventId',
+          'booking.createdAt',
+        ])
+        .getMany();
+
+      const response = {
+        month: startDate.toLocaleString('default', { month: 'long' }),
+        leads: bookings.filter((b) => b.status === 'pending'),
+        // acceptedBookings: bookings.filter((b) => b.status === 'accepted'),
+        completedBookings: bookings.filter((b) => b.status === 'completed'),
+      };
+
+      return {
+        message: 'Entertainer Dashboard returned Successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 }

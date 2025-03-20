@@ -68,9 +68,9 @@ export class EventController {
   @Roles('super-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Delete('deletebyid:id')
-  async remove(@Param('id') id: number): Promise<void> {
-    return this.eventService.remove(id);
+  @Delete('deletebyid/:id')
+  async remove(@Param('id') id: number) {
+    return this.eventService.remove(Number(id));
   }
 
   @Roles('super-admin')

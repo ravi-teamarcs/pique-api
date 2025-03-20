@@ -29,6 +29,7 @@ import { Roles } from '../auth/roles.decorator';
 import { BookingService } from '../booking/booking.service';
 import { ResponseDto } from '../booking/dto/booking-response-dto';
 import { Category } from './entities/categories.entity';
+import { DashboardDto } from './dto/dashboard.dto';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -40,8 +41,8 @@ export class EntertainerController {
     private readonly bookingService: BookingService,
   ) {}
 
-  @Post()
   @Roles('findAll') // Only users with the 'venue' role can access this route
+  @Post()
   @ApiOperation({ summary: 'Create a entertainer' })
   @ApiResponse({
     status: 201,
@@ -53,19 +54,33 @@ export class EntertainerController {
     return this.entertainerService.create(createEntertainerDto, userId);
   }
 
-  @Get()
   @Roles('findAll')
-  @Roles('entertainer')
+  @Get()
   @ApiOperation({ summary: 'Get all entertainers for the logged-in user' })
   findAll(@Request() req) {
-    return this.entertainerService.findAll(req.user.userId);
+    const { userId } = req.user;
+    return this.entertainerService.findAll(userId);
   }
 
-  @Get(':id')
-  @ApiOperation({ summary: 'Get a specific entertainer by ID' })
-  findOne(@Param('id') id: number, @Request() req) {
-    return this.entertainerService.findOne(+id, req.user.userId);
+  @ApiOperation({ summary: 'Get  entertainers dashboard stats' })
+  @ApiResponse({
+    status: 200,
+    description: 'Entertainer Dashboard statistics returned Successfully',
+  })
+  @Roles('findAll')
+  @Get('dashboard')
+  getdashboardStats(@Request() req, @Query() query: DashboardDto) {
+    const { userId } = req.user;
+    console.log(userId);
+    return this.entertainerService.getDashboardStatistics(userId, query);
+    return { message: 'returned Successfully' };
   }
+
+  // @Get(':id')
+  // @ApiOperation({ summary: 'Get a specific entertainer by ID' })
+  // findOne(@Param('id') id: number, @Request() req) {
+  //   return this.entertainerService.findOne(+id, req.user.userId);
+  // }
 
   @Patch(':id')
   @Roles('findAll')
@@ -96,15 +111,14 @@ export class EntertainerController {
     return this.entertainerService.remove(+id, req.user.userId);
   }
 
-  // conflict in Rotes
+  // conflict in Routes
 
   @ApiOperation({ summary: 'Entertainer response to a Booking' })
   @ApiResponse({
     status: 200,
     description: 'Response registered Successfully',
   })
-  @
-  Patch('booking/response')
+  @Patch('booking/response')
   @Roles('findAll')
   entertainerBookingResponse(@Body() resDto: ResponseDto, @Request() req) {
     const { role, userId } = req.user;

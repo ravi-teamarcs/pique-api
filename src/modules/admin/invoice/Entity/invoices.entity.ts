@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 export enum UserType {
   ENTERTAINER = 'entertainer',
@@ -7,9 +13,8 @@ export enum UserType {
 export enum InvoiceStatus {
   PENDING = 'pending',
   PAID = 'paid',
-  PAYMENTSENT= 'paymentsent'
+  PAYMENTSENT = 'paymentsent',
 }
-
 
 @Entity('invoices')
 export class Invoice {
@@ -24,6 +29,8 @@ export class Invoice {
 
   @Column()
   venue_id: number;
+  @Column()
+  user_id: number;
 
   @Column()
   event_id: number;
@@ -37,21 +44,24 @@ export class Invoice {
   @Column({ type: 'date' })
   due_date: string;
 
-  @Column({ type: 'decimal'})
+  @Column({ type: 'decimal' })
   total_amount: number;
 
   @Column({ type: 'decimal', precision: 5, scale: 2 })
   tax_rate: number;
 
-  @Column({ type: 'decimal'})
+  @Column({ type: 'decimal' })
   tax_amount: number;
 
-  @Column({ type: 'decimal'})
+  @Column({ type: 'decimal' })
   total_with_tax: number;
 
-  @Column({ type: 'enum', enum: ['pending', 'paid' ,'paymentsent'], default: 'pending' })
-  status: 'pending' |'paid' |'paymentsent'
-
+  @Column({
+    type: 'enum',
+    enum: ['pending', 'paid', 'paymentsent'],
+    default: 'pending',
+  })
+  status: 'pending' | 'paid' | 'paymentsent';
 
   @Column({ type: 'varchar', length: 255 })
   payment_method: string;
@@ -64,7 +74,4 @@ export class Invoice {
 
   @UpdateDateColumn()
   updated_at: Date;
-
-
-
 }

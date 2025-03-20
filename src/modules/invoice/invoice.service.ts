@@ -81,9 +81,7 @@ export class InvoiceService {
       payment_date: null,
     });
 
-    console.log('Invoice Generated', newInvoice);
-
-    // await this.invoiceRepository.save(newInvoice);
+    await this.invoiceRepository.save(newInvoice);
 
     return { message: 'Invoice generated Successfully', status: true };
   }

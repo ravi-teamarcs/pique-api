@@ -96,9 +96,10 @@ export class EventService {
   }
 
   // Delete an event by id
-  async remove(id: number): Promise<void> {
-    const event = await this.findOne(id);
+  async remove(id: number) {
+    const event = await this.eventRepository.findOne({ where: { id } });
     await this.eventRepository.remove(event);
+    return { message: 'Event deleted Successfully ', status: true };
   }
 
   //get booking using eventId
