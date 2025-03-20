@@ -29,7 +29,7 @@ export class InvoiceController {
   @Post()
   createInvoice(@Request() req) {
     const { userId } = req.user;
-    console.log("Inside controller of Invoice")
+    console.log('Inside controller of Invoice');
     return this.invoiceService.generateInvoice(userId);
   }
 
@@ -42,7 +42,7 @@ export class InvoiceController {
   @Get()
   getAllInvoices(@Request() req) {
     const { userId } = req.user;
-    console.log(userId ,"indide get");
+    console.log(userId, 'indide get');
     return this.invoiceService.findAllInvoice(userId);
   }
 }

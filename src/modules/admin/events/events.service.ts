@@ -57,10 +57,27 @@ export class EventService {
   async findOne(id: number): Promise<Event> {
     const event = await this.eventRepository
       .createQueryBuilder('event')
-      .leftJoinAndSelect('venue', 'venue', 'venue.id = event.venueId') // Correctly join the venue table
+      .leftJoinAndSelect('venue', 'venue', 'venue.id = event.venueId')
+      .leftJoin('users', 'user', 'user.id = event.userId ')
       .select([
-        'event.*', // Select all event fields
-        'venue.*',
+        'user.id AS uid',
+        'user.name AS username',
+        'user.phoneNumber as phoneNumber',
+        'event.id AS eid',
+        'event.title AS ename',
+        'event.location AS location',
+
+        'event.description AS description',
+        'event.startTime AS startTime',
+        'event.endTime AS endTime',
+        'event.recurring AS recurring',
+        'event.status AS status',
+        'event.isAdmin As isAdmin', // Select all event fields
+        'venue.id As vid',
+        'venue.name AS vname',
+        'addressLine1 As addressLine1',
+        'addressLine2 As addressLine2',
+        'zipCode AS zipCode',
       ])
       .where('event.id = :id', { id })
       .getRawOne(); // Use getRawOne() for raw results

@@ -16,7 +16,7 @@ export class InvoiceService {
   constructor(
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
-    @InjectRepository(Invoice)
+    @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
   ) {}
 
@@ -26,15 +26,19 @@ export class InvoiceService {
 
     const booking = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoin('booking.eventId', 'event') // Proper way to join relations in TypeORM
-      .leftJoin('booking.venueUser', 'venueUser') // Joining the venueUser relation
-      .where('booking.id = :bookingId', { bookingId }) // First condition
-      .andWhere('venueUser.id = :userId', { userId })
+      .leftJoin('users', 'user', 'user.id = booking.entertainerUserId')
+      .leftJoin('entertainers', 'ent') // Correct join condition
+      .where('booking.id = :bookingId', { bookingId })
       .andWhere('booking.status = :status', { status: 'completed' })
-      .select(['booking.id AS id']) // Access venueUser's ID correctly
+      .select([
+        'booking.id AS id',
+        'user.id AS uid',
+        'user.name AS uname',
+        'booking.eventId As eventId',
+      ])
       .getRawOne();
 
-    console.log('Booking', booking);
+    const { eventId, unmae, uid, id } = booking;
     // Used Here So That Invoice Number is Unique.
     const lastInvoice = await this.invoiceRepository
       .createQueryBuilder('invoices')
@@ -53,14 +57,14 @@ export class InvoiceService {
     // const newInvoice = this.invoiceRepository.create({
     //   invoice_number: newInvoiceNumber,
     //   user_id: userId,
-    //   event_id: Number(event.id),
-    //   issue_date: new Date(issueDate).toISOString().split('T')[0],
-    //   due_date: new Date(dueDate).toISOString().split('T')[0],
-    //   total_amount: parseFloat(entertainer.pricePerEvent.toFixed(2)),
-    //   tax_rate: parseFloat(taxRate.toFixed(2)),
-    //   tax_amount: parseFloat(taxAmount.toFixed(2)),
-    //   total_with_tax: parseFloat(totalWithTax.toFixed(2)),
-    //   status: InvoiceStatus.PENDING,
+    //   event_id: Number(eventId),
+    //   // issue_date: new Date(issueDate).toISOString().split('T')[0],
+    //   // due_date: new Date(dueDate).toISOString().split('T')[0],
+    //   // total_amount: parseFloat(entertainer.pricePerEvent.toFixed(2)),
+    //   // tax_rate: parseFloat(taxRate.toFixed(2)),
+    //   // tax_amount: parseFloat(taxAmount.toFixed(2)),
+    //   // total_with_tax: parseFloat(totalWithTax.toFixed(2)),
+    //   // status: InvoiceStatus.PENDING,
     //   payment_method: '',
     //   payment_date: null,
     // });

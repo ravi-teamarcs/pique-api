@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { Venue } from './Entity/venue.entity';
@@ -9,6 +10,7 @@ import { Like, Repository } from 'typeorm';
 import { UpdateVenueDto } from './Dto/update-venue.dto';
 import { CreateVenueDto } from './Dto/create-venue.dto';
 import { User } from '../users/Entity/users.entity';
+import { AddLocationDto } from './Dto/add-location.dto';
 
 @Injectable()
 export class VenueService {
@@ -62,7 +64,10 @@ export class VenueService {
     });
 
     if (alreadyExists) {
-      throw new BadRequestException('Venue already exists for the user');
+      throw new BadRequestException({
+        message: 'Venue Already exists for the User',
+        status: false,
+      });
     }
     const venue = this.venueRepository.create({
       ...venueData,
@@ -107,5 +112,40 @@ export class VenueService {
       })
       .limit(10)
       .getMany();
+  }
+
+  async addVenueLocation(locDto: AddLocationDto) {
+    const { userId, ...rest } = locDto;
+    const parentVenue = await this.venueRepository.findOne({
+      where: { user: { id: userId }, isParent: true },
+    });
+
+    if (!parentVenue) {
+      throw new BadRequestException({
+        message: 'Can not Add venue Location',
+        status: false,
+        error: 'Parent venue do not exists',
+      });
+    }
+
+    const venueLoc = this.venueRepository.create({
+      ...rest,
+      name: parentVenue.name,
+      user: { id: userId },
+      description: parentVenue.description,
+      parentId: parentVenue.id,
+      isParent: false,
+    });
+
+    await this.venueRepository.save(venueLoc);
+
+    try {
+      return { message: 'Location Added Successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error Adding Location',
+        status: false,
+      });
+    }
   }
 }
