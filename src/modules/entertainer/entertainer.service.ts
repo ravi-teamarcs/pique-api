@@ -16,6 +16,7 @@ import { Booking } from '../booking/entities/booking.entity';
 import { Category } from './entities/categories.entity';
 import { Media } from '../media/entities/media.entity';
 import { DashboardDto } from './dto/dashboard.dto';
+import { Invoice } from '../invoice/entities/invoice.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -32,6 +33,8 @@ export class EntertainerService {
     private readonly categoryRepository: Repository<Category>,
     @InjectRepository(Media)
     private readonly mediaRepository: Repository<Media>,
+    @InjectRepository(Invoice)
+    private readonly invoiceRepository: Repository<Invoice>,
   ) {}
 
   async create(createEntertainerDto: CreateEntertainerDto, userId: number) {
@@ -240,31 +243,44 @@ export class EntertainerService {
       const startDate = new Date(targetYear, targetMonth - 1, 1); // First day of month
       const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59); // Last day of month
 
-      const bookings = await this.bookingRepository
+      const counts = await this.bookingRepository
         .createQueryBuilder('booking')
+        .select('booking.status', 'status')
+        .addSelect('COUNT(booking.id)', 'count')
         .where('booking.entertainerUserId = :userId', { userId })
         .andWhere('booking.createdAt BETWEEN :startDate AND :endDate', {
           startDate,
           endDate,
         })
-        .select([
-          'booking.id',
-          'booking.status',
-          'booking.eventId',
-          'booking.createdAt',
-        ])
-        .getMany();
+        .groupBy('booking.status')
+        .getRawMany();
 
+      const total = await this.invoiceRepository
+        .createQueryBuilder('invoice')
+        .select('COALESCE(SUM(invoice.total_with_tax), 0)', 'totalRevenue') // Sum all paid invoices
+        .where('invoice.user_id = :userId', { userId })
+        .andWhere('invoice.status = :paid', { paid: 'paid' }) // Only include paid invoices
+        .andWhere('invoice.payment_date BETWEEN :startDate AND :endDate', {
+          startDate,
+          endDate,
+        }) // Filter for current month
+        .getRawOne();
+      const { totalRevenue } = total;
+      // Convert raw results to a structured response
       const response = {
         month: startDate.toLocaleString('default', { month: 'long' }),
-        leads: bookings.filter((b) => b.status === 'pending'),
-        // acceptedBookings: bookings.filter((b) => b.status === 'accepted'),
-        completedBookings: bookings.filter((b) => b.status === 'completed'),
+        leads: Number(counts.find((b) => b.status === 'pending')?.count) || 0,
+        acceptedBookings:
+          Number(counts.find((b) => b.status === 'accepted')?.count) || 0,
+        completedBookings:
+          Number(counts.find((b) => b.status === 'completed')?.count) || 0,
+        revenue: Number(totalRevenue),
       };
 
       return {
         message: 'Entertainer Dashboard returned Successfully',
         status: true,
+        data: response,
       };
     } catch (error) {
       throw new InternalServerErrorException({

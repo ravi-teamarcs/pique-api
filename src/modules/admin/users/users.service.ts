@@ -2,6 +2,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -110,45 +111,27 @@ export class UsersService {
     return this.userRepository.save(newUser);
   }
 
-  async updateStatus(updateStatusDto: UpdateStatusDto): Promise<string> {
-    let { ids, status } = updateStatusDto;
+  async updateStatus(updateStatusDto: UpdateStatusDto) {
+    let { id } = updateStatusDto;
 
     // Validate the provided IDs: Check if all IDs exist in the database
-    const usersToUpdate = await this.userRepository.find({
-      where: { id: In(ids) },
+    const user = await this.userRepository.findOne({
+      where: { id },
     });
 
     // If no users found, throw an error
-    if (usersToUpdate.length === 0) {
-      throw new Error('No valid users found with the provided IDs.');
+    if (!user) {
+      throw new NotFoundException({ message: 'User not Found', status: true });
     }
-
-    // Ensure all IDs are unique and in the database (check for missing ones)
-    const invalidIds = ids.filter(
-      (id) => !usersToUpdate.some((user) => user.id === id),
-    );
-    if (invalidIds.length > 0) {
-      throw new Error(`Invalid user IDs: ${invalidIds.join(', ')}`);
-    }
-    const validStatuses = ['active', 'inactive', 'pending'];
-    if (!validStatuses.includes(status)) {
-      throw new Error('Invalid status value');
-    }
-    // Perform the status update using a transaction for atomic operation
     try {
-      const result = await this.userRepository.update(
-        { id: In(ids) },
-        { status: status },
-      );
+      await this.userRepository.remove(user);
 
-      // If no users were updated, throw an error
-      if (result.affected === 0) {
-        throw new Error('No users found with the given IDs');
-      }
-
-      return `${result.affected} users updated to ${status}`;
+      return { message: 'User removed Successfully', status: true };
     } catch (error) {
-      throw new Error(`Failed to update users: ${error.message}`);
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
     }
   }
 

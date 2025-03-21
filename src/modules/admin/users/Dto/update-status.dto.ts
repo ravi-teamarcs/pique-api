@@ -1,12 +1,7 @@
-import { IsArray, IsEnum, IsInt, IsNotEmpty } from 'class-validator';
+import { IsArray, IsEnum, IsInt, IsNotEmpty, IsNumber } from 'class-validator';
 
 export class UpdateStatusDto {
-  @IsArray()
-  @IsInt({ each: true })
+  @IsNumber()
   @IsNotEmpty()
-  ids: number[];
-
-  @IsEnum(['active', 'inactive', 'pending'], { message: 'Invalid status value' })
-  @IsNotEmpty()
-  status: 'active' | 'inactive' | 'pending';
+  id: number;
 }

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Patch,
   Post,
@@ -59,7 +60,7 @@ export class UsersController {
   @ApiBearerAuth()
   @Roles('super-admin')
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @ Post('create')
+  @Post('create')
   async createUser(
     @Body() createUserDto: CreateUserDto,
     @Request() req,
@@ -71,18 +72,10 @@ export class UsersController {
   @Roles('super-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Patch('updateuserstatus')
+  @Delete()
   //@HttpCode(HttpStatus.OK) // Optional, ensure the response status is 200 OK
-  async updateStatus(
-    @Body() updateStatusDto: UpdateStatusDto,
-  ): Promise<string> {
-    try {
-      // Call the service method to update the status
-      return await this.userService.updateStatus(updateStatusDto);
-    } catch (error) {
-      // Handle any errors that occur during the update
-      throw new Error(`Failed to update status: ${error.message}`);
-    }
+  async updateStatus(@Body() updateStatusDto: UpdateStatusDto) {
+    return await this.userService.updateStatus(updateStatusDto);
   }
 
   @Roles('super-admin')
