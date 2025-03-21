@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -167,38 +168,26 @@ export class EntertainerService {
     return 'Category Deleted';
   }
 
-  async updateStatus(updateStatusDto: UpdateStatusDto): Promise<string> {
-    const { id, status } = updateStatusDto;
-    console.log('inside Service', status);
-    // Validate if the ID exists in the database
-    const userToUpdate = await this.entertainerRepository.findOne({
-      where: { user: { id } },
+  async deleteEntertainer(id: number) {
+    const user = await this.entertainerRepository.findOne({
+      where: { id },
     });
 
-    if (!userToUpdate) {
-      throw new Error('No valid user found with the provided ID.');
+    if (!user) {
+      throw new NotFoundException({
+        message: 'Entertainer Not Found',
+        status: false,
+      });
     }
 
-    // Validate status
-    const validStatuses = ['active', 'inactive', 'pending'];
-    if (!validStatuses.includes(status)) {
-      throw new Error('Invalid status value');
-    }
-
-    // Perform the update
     try {
-      const result = await this.entertainerRepository.update(
-        { user: { id } },
-        { status },
-      );
-      console.log("control is here")
-
-      if (result.affected === 0) {
-        throw new Error('Failed to update user status');
-      }
-      return `User ID ${id} updated to ${status}`;
+      await this.entertainerRepository.remove(user);
+      return { message: 'Entertainer Deleted Successfully', status: true };
     } catch (error) {
-      throw new Error(`Failed to update user: ${error.message}`);
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
     }
   }
 }

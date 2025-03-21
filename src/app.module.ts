@@ -42,7 +42,7 @@ import { MulterModule } from '@nestjs/platform-express';
         // logging: true,
         // logger: 'advanced-console',
         // maxQueryExecutionTime: 1000, // Good for debugging slow queries
-        // synchronize: true, // Set this to false in production
+        synchronize: true, // Set this to false in production
       }),
     }),
     ServeStaticModule.forRoot({

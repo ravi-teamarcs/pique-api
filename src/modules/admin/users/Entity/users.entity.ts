@@ -59,10 +59,12 @@ export class User {
   venue: Venue[];
 
   // Booking
-  @OneToMany(() => Booking, (booking) => booking.venueUser)
+  @OneToMany(() => Booking, (booking) => booking.venueUser, { cascade: true })
   venueBookings: Booking[];
 
-  @OneToMany(() => Booking, (booking) => booking.entertainerUser)
+  @OneToMany(() => Booking, (booking) => booking.entertainerUser, {
+    cascade: true,
+  })
   entertainerBookings: Booking[];
   // Relation with Media
 
