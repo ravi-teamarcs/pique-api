@@ -5,6 +5,7 @@ import {
   HttpStatus,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
@@ -19,6 +20,8 @@ import { NotificationService } from '../notification/notification.service';
 import { Device } from 'src/common/types/auth.type';
 import { EmailService } from '../Email/email.service';
 import { ConfigService } from '@nestjs/config';
+import { Otp } from '../users/entities/otps.entity';
+import { verifyEmail } from './dto/verify-otp.dto';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +37,8 @@ export class AuthService {
     private readonly entertainerRepository: Repository<Entertainer>,
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(Otp)
+    private readonly otpRepository: Repository<Otp>,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -83,13 +88,87 @@ export class AuthService {
       },
     };
 
-    // this.emailService.handleSendEmail(payload);
+    this.emailService.handleSendEmail(payload);
     return {
       message: 'User registered successfully',
       token,
       data: newUser,
       status: true,
     };
+  }
+
+  async generateOtp(email: string) {
+    const emailExists = await this.usersRepository.findOne({
+      where: { email },
+    });
+    if (emailExists) {
+      throw new BadRequestException({
+        message: 'Email Already Taken',
+        error: 'Bad Request',
+        status: false,
+      });
+    }
+    try {
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+      const existingOtp = await this.otpRepository.findOne({
+        where: { email },
+      });
+
+      if (existingOtp) {
+        // Update existing OTP
+        existingOtp.otp = otpCode;
+        existingOtp.expiresAt = new Date(Date.now() + 10 * 60000); // Extend expiry
+        await this.otpRepository.save(existingOtp);
+      } else {
+        // Create new OTP record
+        const newOtp = this.otpRepository.create({
+          email,
+          otp: otpCode,
+          expiresAt: new Date(Date.now() + 10 * 60000),
+        });
+        await this.otpRepository.save(newOtp);
+      }
+      const payload = {
+        to: email,
+        subject: 'Email verification   ',
+        templateName: 'email-verification.html',
+        replacements: {
+          otp: otpCode,
+        },
+      };
+      // send via email
+      await this.emailService.handleSendEmail(payload);
+      return {
+        message: 'Otp Sent Successfully to the entered  email.',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async verifyOtp(dto: verifyEmail) {
+    const { email, otp } = dto;
+    const otpRecord = await this.otpRepository.findOne({ where: { email } });
+
+    if (!otpRecord)
+      throw new BadRequestException({ message: 'OTP expired or not found' });
+    if (otpRecord.otp !== otp)
+      throw new BadRequestException({
+        message: 'Invalid Otp , Please check again and enter.',
+        status: false,
+      });
+
+    if (new Date(otpRecord.expiresAt) < new Date())
+      throw new BadRequestException({ message: 'OTP expired', status: false });
+
+    // ✅ OTP is valid → Delete it after verification
+    await this.otpRepository.delete({ email });
+
+    return { message: 'Email verified Successfully', status: true };
   }
 
   async login(loginDto: LoginDto, userAgent: string) {

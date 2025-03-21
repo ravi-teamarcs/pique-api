@@ -18,6 +18,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt.guard';
 import { LoginDto, RegisterDto } from './auth.dto';
 import { ResetPassword } from './dto/reset-password.dto';
+import { verifyEmail } from './dto/verify-otp.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -30,6 +31,16 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  @Post('send-otp')
+  async sendOtp(@Body('email') email: string) {
+    return this.authService.generateOtp(email);
+  }
+
+  @Post('verify-otp')
+  async verifyOtp(@Body() dto: verifyEmail) {
+    return await this.authService.verifyOtp(dto);
   }
 
   @ApiOperation({ summary: 'Log in and get a JWT token' })
