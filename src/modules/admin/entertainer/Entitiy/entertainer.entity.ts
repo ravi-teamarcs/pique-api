@@ -48,7 +48,7 @@ export class Entertainer {
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
   availability: 'yes' | 'no';
 
-  @OneToOne(() => User, (user) => user.entertainer)
+  @OneToOne(() => User, (user) => user.entertainer , { onDelete: 'CASCADE' })
   @JoinColumn()
   user: User;
 

@@ -235,52 +235,146 @@ export class EntertainerService {
   async getDashboardStatistics(userId: number, query: DashboardDto) {
     const { year, month } = query;
     try {
-      const now = new Date();
-      const targetYear = year || now.getFullYear();
-      const targetMonth = month !== undefined ? month : now.getMonth() + 1; // JavaScript months are 0-indexed
+      const currentDate = new Date();
+      const currentYear = currentDate.getFullYear();
+      const currentMonth = currentDate.getMonth();
 
-      // Start & end of selected month
-      const startDate = new Date(targetYear, targetMonth - 1, 1); // First day of month
-      const endDate = new Date(targetYear, targetMonth, 0, 23, 59, 59); // Last day of month
+      // Date Ranges for Current & Previous Month
+      const startDate = new Date(currentYear, currentMonth, 1, 0, 0, 0);
+      const endDate = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
 
-      const counts = await this.bookingRepository
+      const prevStartDate = new Date(currentYear, currentMonth - 1, 1, 0, 0, 0);
+      const prevEndDate = new Date(currentYear, currentMonth, 0, 23, 59, 59);
+
+      // ✅ Single Query: Fetch Revenue for Current & Previous Month
+      const revenueData = await this.invoiceRepository
+        .createQueryBuilder('invoice')
+        .select([
+          'SUM(CASE WHEN invoice.payment_date BETWEEN :startDate AND :endDate THEN invoice.total_with_tax ELSE 0 END) AS currentRevenue',
+          'SUM(CASE WHEN invoice.payment_date BETWEEN :prevStartDate AND :prevEndDate THEN invoice.total_with_tax ELSE 0 END) AS previousRevenue',
+        ])
+        .where('invoice.user_id = :userId', { userId })
+        .andWhere('invoice.status = :paid', { paid: 'paid' })
+        .setParameters({ startDate, endDate, prevStartDate, prevEndDate })
+        .getRawOne();
+
+      const currentTotalRevenue = Number(revenueData.currentRevenue) || 0;
+      const previousTotalRevenue = Number(revenueData.previousRevenue) || 0;
+
+      // ✅ Single Query: Fetch Booking Counts for Current & Previous Month
+      const bookingData = await this.bookingRepository
         .createQueryBuilder('booking')
         .select('booking.status', 'status')
-        .addSelect('COUNT(booking.id)', 'count')
+        .addSelect(
+          `COUNT(CASE WHEN booking.createdAt BETWEEN :startDate AND :endDate THEN booking.id ELSE NULL END)`,
+          'currentCount',
+        )
+        .addSelect(
+          `COUNT(CASE WHEN booking.createdAt BETWEEN :prevStartDate AND :prevEndDate THEN booking.id ELSE NULL END)`,
+          'previousCount',
+        )
         .where('booking.entertainerUserId = :userId', { userId })
-        .andWhere('booking.createdAt BETWEEN :startDate AND :endDate', {
+        .groupBy('booking.status')
+        .setParameters({
           startDate,
           endDate,
+          prevStartDate,
+          prevEndDate,
         })
-        .groupBy('booking.status')
         .getRawMany();
 
-      const total = await this.invoiceRepository
-        .createQueryBuilder('invoice')
-        .select('COALESCE(SUM(invoice.total_with_tax), 0)', 'totalRevenue') // Sum all paid invoices
-        .where('invoice.user_id = :userId', { userId })
-        .andWhere('invoice.status = :paid', { paid: 'paid' }) // Only include paid invoices
-        .andWhere('invoice.payment_date BETWEEN :startDate AND :endDate', {
-          startDate,
-          endDate,
-        }) // Filter for current month
-        .getRawOne();
-      const { totalRevenue } = total;
-      // Convert raw results to a structured response
-      const response = {
-        month: startDate.toLocaleString('default', { month: 'long' }),
-        leads: Number(counts.find((b) => b.status === 'pending')?.count) || 0,
-        acceptedBookings:
-          Number(counts.find((b) => b.status === 'accepted')?.count) || 0,
-        completedBookings:
-          Number(counts.find((b) => b.status === 'completed')?.count) || 0,
-        revenue: Number(totalRevenue),
+      // Convert bookings to a structured format
+      const bookingStats = {
+        pending: { current: 0, previous: 0 },
+        accepted: { current: 0, previous: 0 },
+        completed: { current: 0, previous: 0 },
+      };
+
+      bookingData.forEach((item) => {
+        const status = item.status;
+        bookingStats[status] = {
+          current: Number(item.currentCount) || 0,
+          previous: Number(item.previousCount) || 0,
+        };
+      });
+
+      // ✅ Calculate Percentage Change (Handles Edge Cases)
+      function calculateChange(current, previous) {
+        if (previous === 0) return current > 0 ? 100 : 0;
+        return ((current - previous) / previous) * 100;
+      }
+
+      const revenueChange = calculateChange(
+        currentTotalRevenue,
+        previousTotalRevenue,
+      );
+      const pendingChange = calculateChange(
+        bookingStats.pending.current,
+        bookingStats.pending.previous,
+      );
+      const acceptedChange = calculateChange(
+        bookingStats.accepted.current,
+        bookingStats.accepted.previous,
+      );
+      const completedChange = calculateChange(
+        bookingStats.completed.current,
+        bookingStats.completed.previous,
+      );
+
+      // ✅ Final API Response
+      const res = {
+        revenue: {
+          current: currentTotalRevenue,
+          previous: previousTotalRevenue,
+          change: revenueChange,
+          status:
+            revenueChange > 0
+              ? 'increase'
+              : revenueChange < 0
+                ? 'decrease'
+                : 'same',
+        },
+        bookings: {
+          pending: {
+            current: bookingStats.pending.current,
+            previous: bookingStats.pending.previous,
+            change: pendingChange,
+            status:
+              pendingChange > 0
+                ? 'increase'
+                : pendingChange < 0
+                  ? 'decrease'
+                  : 'same',
+          },
+          accepted: {
+            current: bookingStats.accepted.current,
+            previous: bookingStats.accepted.previous,
+            change: acceptedChange,
+            status:
+              acceptedChange > 0
+                ? 'increase'
+                : acceptedChange < 0
+                  ? 'decrease'
+                  : 'same',
+          },
+          completed: {
+            current: bookingStats.completed.current,
+            previous: bookingStats.completed.previous,
+            change: completedChange,
+            status:
+              completedChange > 0
+                ? 'increase'
+                : completedChange < 0
+                  ? 'decrease'
+                  : 'same',
+          },
+        },
       };
 
       return {
         message: 'Entertainer Dashboard returned Successfully',
         status: true,
-        data: response,
+        data: res,
       };
     } catch (error) {
       throw new InternalServerErrorException({
