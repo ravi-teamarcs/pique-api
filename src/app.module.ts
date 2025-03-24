@@ -41,7 +41,6 @@ import { MulterModule } from '@nestjs/platform-express';
         entities: [join(process.cwd(), 'dist/**/*.entity.js')],
         // logging: true,
         // logger: 'advanced-console',
-        // maxQueryExecutionTime: 1000, // Good for debugging slow queries
         synchronize: true, // Set this to false in production
       }),
     }),

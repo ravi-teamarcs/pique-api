@@ -210,18 +210,20 @@ export class EntertainerService {
   async getEventDetails(userId: number) {
     const events = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoin('event', 'event', 'event.id = booking.eventId')
+      .leftJoin('event', 'event', 'event.id = booking.eventId') // Explicitly join using eventId
       .where('booking.entertainerUserId = :userId', { userId })
-      // .andWhere('booking.status = :status', { status: 'completed' })
+      .andWhere('booking.status = :status', { status: 'confirmed' })
       .select([
         'booking.id AS bookingId',
-        'event.id AS eid',
+        'event.id AS id',
         'event.title AS title',
         'event.location AS location',
-        'event.status AS  status',
+        'event.status AS status',
         'event.description AS description',
         'event.startTime AS startTime',
         'event.endTime AS endTime',
+        'event.status AS status',
+        'event.recurring AS recurring',
       ])
       .getRawMany();
 
@@ -232,12 +234,168 @@ export class EntertainerService {
     };
   }
 
+  // async getDashboardStatistics(userId: number, query: DashboardDto) {
+  //   const { year, month } = query;
+  //   try {
+  //     const currentDate = new Date();
+
+  //     const currentYear = currentDate.getFullYear();
+  //     const currentMonth = currentDate.getMonth();
+
+  //     // Date Ranges for Current & Previous Month
+  //     const startDate = new Date(currentYear, currentMonth, 1, 0, 0, 0);
+  //     const endDate = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59);
+
+  //     const prevStartDate = new Date(currentYear, currentMonth - 1, 1, 0, 0, 0);
+  //     const prevEndDate = new Date(currentYear, currentMonth, 0, 23, 59, 59);
+
+  //     // ✅ Single Query: Fetch Revenue for Current & Previous Month
+  //     const revenueData = await this.invoiceRepository
+  //       .createQueryBuilder('invoice')
+  //       .select([
+  //         'SUM(CASE WHEN invoice.payment_date BETWEEN :startDate AND :endDate THEN invoice.total_with_tax ELSE 0 END) AS currentRevenue',
+  //         'SUM(CASE WHEN invoice.payment_date BETWEEN :prevStartDate AND :prevEndDate THEN invoice.total_with_tax ELSE 0 END) AS previousRevenue',
+  //       ])
+  //       .where('invoice.user_id = :userId', { userId })
+  //       .andWhere('invoice.status = :paid', { paid: 'paid' })
+  //       .setParameters({ startDate, endDate, prevStartDate, prevEndDate })
+  //       .getRawOne();
+
+  //     const currentTotalRevenue = Number(revenueData.currentRevenue) || 0;
+  //     const previousTotalRevenue = Number(revenueData.previousRevenue) || 0;
+
+  //     // ✅ Single Query: Fetch Booking Counts for Current & Previous Month
+  //     const bookingData = await this.bookingRepository
+  //       .createQueryBuilder('booking')
+  //       .select('booking.status', 'status')
+  //       .addSelect(
+  //         `COUNT(CASE WHEN booking.createdAt BETWEEN :startDate AND :endDate THEN booking.id ELSE NULL END)`,
+  //         'currentCount',
+  //       )
+  //       .addSelect(
+  //         `COUNT(CASE WHEN booking.createdAt BETWEEN :prevStartDate AND :prevEndDate THEN booking.id ELSE NULL END)`,
+  //         'previousCount',
+  //       )
+
+  //       .where('booking.entertainerUserId = :userId', { userId })
+  //       .groupBy('booking.status')
+  //       .setParameters({
+  //         startDate,
+  //         endDate,
+  //         prevStartDate,
+  //         prevEndDate,
+  //       })
+  //       .getRawMany();
+  //     console.log('Booking Data is Here', bookingData);
+
+  //     // Convert bookings to a structured format
+  //     const bookingStats = {
+  //       pending: { current: 0, previous: 0 },
+  //       accepted: { current: 0, previous: 0 },
+  //       completed: { current: 0, previous: 0 },
+  //     };
+
+  //     bookingData.forEach((item) => {
+  //       const status = item.status;
+  //       bookingStats[status] = {
+  //         current: Number(item.currentCount) || 0,
+  //         previous: Number(item.previousCount) || 0,
+  //       };
+  //     });
+
+  //     // Calculate Percentage Change (Handles Edge Cases)
+  //     function calculateChange(current: number, previous: number) {
+  //       if (previous === 0) return current > 0 ? 100 : 0;
+  //       return ((current - previous) / previous) * 100;
+  //     }
+
+  //     const revenueChange = calculateChange(
+  //       currentTotalRevenue,
+  //       previousTotalRevenue,
+  //     );
+  //     const pendingChange = calculateChange(
+  //       bookingStats.pending.current,
+  //       bookingStats.pending.previous,
+  //     );
+  //     const acceptedChange = calculateChange(
+  //       bookingStats.accepted.current,
+  //       bookingStats.accepted.previous,
+  //     );
+  //     const completedChange = calculateChange(
+  //       bookingStats.completed.current,
+  //       bookingStats.completed.previous,
+  //     );
+
+  //     // ✅ Final API Response
+  //     const res = {
+  //       revenue: {
+  //         currentMonthRevenue: currentTotalRevenue,
+  //         previousMonthRevenue: previousTotalRevenue,
+  //         revenueChangePercentage: revenueChange,
+  //         revenueTrend:
+  //           revenueChange > 0
+  //             ? 'increase'
+  //             : revenueChange < 0
+  //               ? 'decrease'
+  //               : 'same',
+  //       },
+  //       bookings: {
+  //         pending: {
+  //           currentMonthBookings: bookingStats.pending.current,
+  //           previousMonthBookings: bookingStats.pending.previous,
+  //           bookingChangePercentage: pendingChange,
+  //           bookingTrend:
+  //             pendingChange > 0
+  //               ? 'increase'
+  //               : pendingChange < 0
+  //                 ? 'decrease'
+  //                 : 'same',
+  //         },
+  //         accepted: {
+  //           currentMonthBookings: bookingStats.accepted.current,
+  //           previousMonthBookings: bookingStats.accepted.previous,
+  //           bookingChangePercentage: acceptedChange,
+  //           bookingTrend:
+  //             acceptedChange > 0
+  //               ? 'increase'
+  //               : acceptedChange < 0
+  //                 ? 'decrease'
+  //                 : 'same',
+  //         },
+  //         completed: {
+  //           currentMonthBookings: bookingStats.completed.current,
+  //           previousMonthBookings: bookingStats.completed.previous,
+  //           bookingChangePercentage: completedChange,
+  //           bookingTrend:
+  //             completedChange > 0
+  //               ? 'increase'
+  //               : completedChange < 0
+  //                 ? 'decrease'
+  //                 : 'same',
+  //         },
+  //       },
+  //     };
+
+  //     return {
+  //       message: 'Entertainer Dashboard returned Successfully',
+  //       status: true,
+  //       data: res,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
   async getDashboardStatistics(userId: number, query: DashboardDto) {
-    const { year, month } = query;
+    const { year = null, month = null } = query;
     try {
       const currentDate = new Date();
-      const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth();
+
+      const currentYear = year ?? currentDate.getFullYear();
+      const currentMonth = month ?? currentDate.getMonth();
 
       // Date Ranges for Current & Previous Month
       const startDate = new Date(currentYear, currentMonth, 1, 0, 0, 0);
@@ -246,7 +404,7 @@ export class EntertainerService {
       const prevStartDate = new Date(currentYear, currentMonth - 1, 1, 0, 0, 0);
       const prevEndDate = new Date(currentYear, currentMonth, 0, 23, 59, 59);
 
-      // ✅ Single Query: Fetch Revenue for Current & Previous Month
+      // ✅ Fetch Revenue Data
       const revenueData = await this.invoiceRepository
         .createQueryBuilder('invoice')
         .select([
@@ -261,7 +419,7 @@ export class EntertainerService {
       const currentTotalRevenue = Number(revenueData.currentRevenue) || 0;
       const previousTotalRevenue = Number(revenueData.previousRevenue) || 0;
 
-      // ✅ Single Query: Fetch Booking Counts for Current & Previous Month
+      // ✅ Fetch Booking Stats (By Status & Total Count)
       const bookingData = await this.bookingRepository
         .createQueryBuilder('booking')
         .select('booking.status', 'status')
@@ -275,15 +433,26 @@ export class EntertainerService {
         )
         .where('booking.entertainerUserId = :userId', { userId })
         .groupBy('booking.status')
-        .setParameters({
-          startDate,
-          endDate,
-          prevStartDate,
-          prevEndDate,
-        })
+        .setParameters({ startDate, endDate, prevStartDate, prevEndDate })
         .getRawMany();
 
-      // Convert bookings to a structured format
+      // ✅ Fetch Total Bookings
+      const totalBookingsData = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .select([
+          `COUNT(CASE WHEN booking.createdAt BETWEEN :startDate AND :endDate THEN booking.id ELSE NULL END) AS currentTotalBookings`,
+          `COUNT(CASE WHEN booking.createdAt BETWEEN :prevStartDate AND :prevEndDate THEN booking.id ELSE NULL END) AS previousTotalBookings`,
+        ])
+        .where('booking.entertainerUserId = :userId', { userId })
+        .setParameters({ startDate, endDate, prevStartDate, prevEndDate })
+        .getRawOne();
+
+      const currentTotalBookings =
+        Number(totalBookingsData.currentTotalBookings) || 0;
+      const previousTotalBookings =
+        Number(totalBookingsData.previousTotalBookings) || 0;
+
+      // Convert bookings to structured format
       const bookingStats = {
         pending: { current: 0, previous: 0 },
         accepted: { current: 0, previous: 0 },
@@ -298,8 +467,8 @@ export class EntertainerService {
         };
       });
 
-      // ✅ Calculate Percentage Change (Handles Edge Cases)
-      function calculateChange(current, previous) {
+      // Calculate Percentage Change (Handles Edge Cases)
+      function calculateChange(current: number, previous: number) {
         if (previous === 0) return current > 0 ? 100 : 0;
         return ((current - previous) / previous) * 100;
       }
@@ -307,6 +476,10 @@ export class EntertainerService {
       const revenueChange = calculateChange(
         currentTotalRevenue,
         previousTotalRevenue,
+      );
+      const totalBookingsChange = calculateChange(
+        currentTotalBookings,
+        previousTotalBookings,
       );
       const pendingChange = calculateChange(
         bookingStats.pending.current,
@@ -324,10 +497,10 @@ export class EntertainerService {
       // ✅ Final API Response
       const res = {
         revenue: {
-          current: currentTotalRevenue,
-          previous: previousTotalRevenue,
-          change: revenueChange,
-          status:
+          currentMonthRevenue: currentTotalRevenue,
+          previousMonthRevenue: previousTotalRevenue,
+          revenueChangePercentage: revenueChange,
+          revenueTrend:
             revenueChange > 0
               ? 'increase'
               : revenueChange < 0
@@ -335,11 +508,22 @@ export class EntertainerService {
                 : 'same',
         },
         bookings: {
+          total: {
+            currentMonthBookings: currentTotalBookings,
+            previousMonthBookings: previousTotalBookings,
+            bookingChangePercentage: totalBookingsChange,
+            bookingTrend:
+              totalBookingsChange > 0
+                ? 'increase'
+                : totalBookingsChange < 0
+                  ? 'decrease'
+                  : 'same',
+          },
           pending: {
-            current: bookingStats.pending.current,
-            previous: bookingStats.pending.previous,
-            change: pendingChange,
-            status:
+            currentMonthBookings: bookingStats.pending.current,
+            previousMonthBookings: bookingStats.pending.previous,
+            bookingChangePercentage: pendingChange,
+            bookingTrend:
               pendingChange > 0
                 ? 'increase'
                 : pendingChange < 0
@@ -347,10 +531,10 @@ export class EntertainerService {
                   : 'same',
           },
           accepted: {
-            current: bookingStats.accepted.current,
-            previous: bookingStats.accepted.previous,
-            change: acceptedChange,
-            status:
+            currentMonthBookings: bookingStats.accepted.current,
+            previousMonthBookings: bookingStats.accepted.previous,
+            bookingChangePercentage: acceptedChange,
+            bookingTrend:
               acceptedChange > 0
                 ? 'increase'
                 : acceptedChange < 0
@@ -358,10 +542,10 @@ export class EntertainerService {
                   : 'same',
           },
           completed: {
-            current: bookingStats.completed.current,
-            previous: bookingStats.completed.previous,
-            change: completedChange,
-            status:
+            currentMonthBookings: bookingStats.completed.current,
+            previousMonthBookings: bookingStats.completed.previous,
+            bookingChangePercentage: completedChange,
+            bookingTrend:
               completedChange > 0
                 ? 'increase'
                 : completedChange < 0

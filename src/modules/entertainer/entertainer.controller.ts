@@ -71,16 +71,8 @@ export class EntertainerController {
   @Get('dashboard')
   getdashboardStats(@Request() req, @Query() query: DashboardDto) {
     const { userId } = req.user;
-    console.log(userId);
     return this.entertainerService.getDashboardStatistics(userId, query);
-    return { message: 'returned Successfully' };
   }
-
-  // @Get(':id')
-  // @ApiOperation({ summary: 'Get a specific entertainer by ID' })
-  // findOne(@Param('id') id: number, @Request() req) {
-  //   return this.entertainerService.findOne(+id, req.user.userId);
-  // }
 
   @Patch(':id')
   @Roles('findAll')
@@ -163,7 +155,7 @@ export class EntertainerController {
     status: 200,
     description: 'Events  fetched Successfully.',
   })
-  @Get('event/all/details')
+  @Get('events')
   @Roles('findAll')
   getEventDetails(@Req() req) {
     const { userId } = req.user;

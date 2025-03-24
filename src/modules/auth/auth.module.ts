@@ -16,6 +16,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationModule } from '../notification/notification.module';
 import { EmailModule } from '../Email/email.module';
 import { Otp } from '../users/entities/otps.entity';
+import { Media } from '../media/entities/media.entity';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { Otp } from '../users/entities/otps.entity';
       Access,
       EndPoints,
       Otp,
+      Media,
     ]),
   ],
   controllers: [AuthController],

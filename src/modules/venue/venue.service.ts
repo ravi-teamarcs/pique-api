@@ -701,4 +701,8 @@ export class VenueService {
       status: true,
     };
   }
+
+  async getUpcomingEvents() {
+    const events = await this;
+  }
 }
