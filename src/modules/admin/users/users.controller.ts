@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Param,
   Patch,
   Post,
   Put,
@@ -26,7 +27,6 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CreateUserDto } from './Dto/create-user.dto';
-import { REQUEST } from '@nestjs/core';
 
 @ApiTags('admin')
 @Controller('admin/users')
@@ -72,10 +72,9 @@ export class UsersController {
   @Roles('super-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Delete()
-  //@HttpCode(HttpStatus.OK) // Optional, ensure the response status is 200 OK
-  async updateStatus(@Body() updateStatusDto: UpdateStatusDto) {
-    return await this.userService.updateStatus(updateStatusDto);
+  @Delete(':id')
+  async remove(@Param('id') id: number) {
+    return await this.userService.remove(Number(id));
   }
 
   @Roles('super-admin')
@@ -84,5 +83,12 @@ export class UsersController {
   @Put('updateuser')
   async updateUser(@Body() updateUserDto: UpdateUserDto) {
     return this.userService.updateUser(updateUserDto);
+  }
+  @Roles('super-admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Patch()
+  async updateStatus(@Body() dto: UpdateStatusDto) {
+    return this.userService.updateUserStatus(dto);
   }
 }

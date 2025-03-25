@@ -73,7 +73,6 @@ export class VenueController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
     const { userId } = req.user;
-
     return this.venueService.findVenueLocation(id, userId);
   }
 
@@ -91,7 +90,6 @@ export class VenueController {
   })
   search(@Query() query: SearchEntertainerDto, @Request() req) {
     const { userId } = req.user;
-
     return this.venueService.findAllEntertainers(query, userId);
   }
 
@@ -105,9 +103,9 @@ export class VenueController {
   })
   @ApiResponse({
     status: 404,
-    description: 'Cannot get entertainers.',
+    description: 'Entertainer not found.',
   })
-  GetEntertainerDetails(@Param('id', ParseIntPipe) userId: number) {
+  getEntertainerDetails(@Param('id', ParseIntPipe) userId: number) {
     return this.venueService.findEntertainerDetails(Number(userId));
   }
 
@@ -132,20 +130,18 @@ export class VenueController {
   @Get('booking/request')
   @Roles('findAll')
   getAllBooking(@Request() req) {
-    const userId = req.user.userId;
-
+    const { userId } = req.user;
     return this.venueService.findAllBooking(userId);
   }
-  @ApiOperation({ summary: 'Get list of all Booking' })
+  @ApiOperation({ summary: 'Respond to a Booking' })
   @ApiResponse({
     status: 200,
-    description: 'Booking list fetched Successfully .',
+    description: 'Successfully responded to booking .',
   })
   @Patch('booking/response')
   @Roles('findAll')
   bookingResponse(@Body() resDto: ResponseDto, @Request() req) {
     const { role, userId } = req.user;
-    // venueResponseDto['statusDate'] = new Date();
     return this.bookingService.handleBookingResponse(role, resDto, userId);
   }
 
@@ -176,7 +172,6 @@ export class VenueController {
   @Roles('findAll')
   requestChange(@Body() dateTimeChangeDto: ChangeBooking, @Request() req) {
     const userId = req.user.userId;
-
     return this.bookingService.handleChangeRequest(dateTimeChangeDto, userId);
   }
 
@@ -191,6 +186,11 @@ export class VenueController {
     return this.venueService.getSearchSuggestions(query);
   }
 
+  @ApiOperation({ summary: 'Get search Filters.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Filters Fetched Successfully.',
+  })
   @Get('search/filters')
   @Roles('findAll')
   async getAllCategory(@Query() query: Data) {
@@ -202,6 +202,11 @@ export class VenueController {
     return this.venueService.getAllEntertainersByCategory(cid);
   }
 
+  @ApiOperation({ summary: 'Add Venue Location' })
+  @ApiResponse({
+    status: 201,
+    description: 'Venue Location added Successfully',
+  })
   @Roles('findAll')
   @Post('/location/add')
   addLocation(@Body() locationDto: VenueLocationDto, @Request() req) {
@@ -209,12 +214,22 @@ export class VenueController {
     return this.venueService.addVenueLocation(userId, locationDto);
   }
 
+  @ApiOperation({ summary: 'Add Entertainer to the whishlist' })
+  @ApiResponse({
+    status: 201,
+    description: 'Entertainer added to wishlist.',
+  })
   @Roles('findAll')
   @Post('/toogle/wishlist')
   toggleWishList(@Body() wishDto: WishlistDto, @Request() req) {
     const { userId } = req.user;
     return this.venueService.toggleWishlist(userId, wishDto);
   }
+  @ApiOperation({ summary: 'Get Whishlist' })
+  @ApiResponse({
+    status: 200,
+    description: 'WishList fetched Successfully',
+  })
   @Roles('findAll')
   @Get('/entertainers/wishlist')
   getWishList(@Request() req) {
@@ -222,6 +237,11 @@ export class VenueController {
     return this.venueService.getWishlist(userId);
   }
 
+  @ApiOperation({ summary: 'Get enytertainer roles.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Entertainer roles fetched Successfully.',
+  })
   @Roles('findAll')
   @Get('entertainer/roles')
   getRoles() {

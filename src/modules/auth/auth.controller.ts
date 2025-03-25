@@ -33,11 +33,18 @@ export class AuthController {
     return this.authService.register(registerDto);
   }
 
+  @ApiOperation({ summary: 'Send the OTP to the mail.' })
+  @ApiResponse({ status: 200, description: 'Otp  sent Successfully.' })
+  @HttpCode(200)
   @Post('send-otp')
   async sendOtp(@Body('email') email: string) {
     return this.authService.generateOtp(email);
   }
 
+
+  @ApiOperation({ summary: 'Send the OTP to the mail.' })
+  @ApiResponse({ status: 200, description: 'Otp  sent Successfully.' })
+  @HttpCode(200)
   @Post('verify-otp')
   async verifyOtp(@Body() dto: verifyEmail) {
     return await this.authService.verifyOtp(dto);

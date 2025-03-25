@@ -64,12 +64,12 @@ export class ReportService {
     return eventData;
   }
 
-//   async getEventData() {
-//     const eventData = await this.eventRepo
-//       .createQueryBuilder('event')
-//       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
-//       .leftJoin('bookings', 'bookings', 'bookings.eventId = event.id')
-//       .leftJoin('entertainers', 'ent', 'ent.id = booking.entertainerUserId');
-//       .leftJoin('invoices', 'invoice', 'invoice.id = ent.id');
-//   }
+  //   async getEventData() {
+  //     const eventData = await this.eventRepo
+  //       .createQueryBuilder('event')
+  //       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+  //       .leftJoin('bookings', 'bookings', 'bookings.eventId = event.id')
+  //       .leftJoin('entertainers', 'ent', 'ent.id = booking.entertainerUserId');
+  //       .leftJoin('invoices', 'invoice', 'invoice.id = ent.id');
+  //   }
 }

@@ -19,34 +19,6 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
   ) {}
 
-  // async getAllUser({
-  //     page,
-  //     pageSize,
-  //     search,
-  //     role
-  // }: {
-  //     page: number;
-  //     pageSize: number;
-  //     search: string;
-  //     role:string;
-  // }) {
-  //     const skip = (page - 1) * pageSize; // Calculate records to skip
-  //     const [records, total] = await this.userRepository.findAndCount({
-  //         //where: search ? { name: Like(`%${search}%`) } : {},
-  //         where: {
-  //             ...(search ? { name: Like(`%${search}%`) } : {}),
-  //             status: Not("inactive"),
-
-  //         },
-  //         skip,
-  //         take: pageSize,
-  //     });
-
-  //     return {
-  //         records,
-  //         total,
-  //     };
-  // }
   async getAllUser({
     page,
     pageSize,
@@ -111,9 +83,7 @@ export class UsersService {
     return this.userRepository.save(newUser);
   }
 
-  async updateStatus(updateStatusDto: UpdateStatusDto) {
-    let { id } = updateStatusDto;
-
+  async remove(id: number) {
     // Validate the provided IDs: Check if all IDs exist in the database
     const user = await this.userRepository.findOne({
       where: { id },
@@ -151,5 +121,29 @@ export class UsersService {
     await this.userRepository.update(id, fieldsToUpdate);
 
     return `User with ID ${id} updated successfully.`;
+  }
+
+  async updateUserStatus(dto: UpdateStatusDto) {
+    const { userId, status } = dto;
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException({
+        message: `User with ID ${userId} not found.`,
+        status: false,
+      });
+    }
+
+    try {
+      await this.userRepository.update({ id: userId }, { status });
+
+      return { message: 'User status Updated', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error in updating user status',
+        error: error.message,
+        status: false,
+      });
+    }
   }
 }

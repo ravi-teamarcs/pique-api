@@ -9,22 +9,27 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { JoinDto } from './dto/chat-join.dto';
+import { ConfigService } from '@nestjs/config';
+import { NotFoundException } from '@nestjs/common';
 
 @WebSocketGateway({
-  path: '/piqueapi/', // This sets the WebSocket server path to /piqueapi
+  namespace: '/chat', // 👈 This sets the namespace to /chat
   cors: {
-    origin: 'https://dev.teamarcs.com', // Allowing your frontend domain
+    origin: '*', // Allow any origin (for testing)
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true,
   },
-  transports: ['websocket'],
+  transports: ['websocket'], // Ensure it's using WebSocket transport
 })
 export class ChatGateway implements OnGatewayDisconnect {
   @WebSocketServer() server: Server;
   private activeUsers = new Map<string, string>(); // socketId -> userId mapping
 
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private configService: ConfigService,
+  ) {}
 
   // When a user connects, send them their unread messages
   @SubscribeMessage('join')

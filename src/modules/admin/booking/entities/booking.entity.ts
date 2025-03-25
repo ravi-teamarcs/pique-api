@@ -54,21 +54,8 @@ export class Booking {
   @Column({ type: 'date' })
   showDate: Date;
 
-  @Column({
-    type: 'enum',
-    enum: ['accepted', 'rejected', 'pending'],
-    default: 'pending',
-  })
-  isAccepted: 'accepted' | 'rejected' | 'pending';
-
   @Column()
   specialNotes: string;
-
-  @Column({ type: 'timestamp', nullable: true })
-  statusDate: Date;
-
-  @Column({ type: 'timestamp', nullable: true })
-  isAcceptedDate: Date;
 
   @CreateDateColumn()
   createdAt: Date;

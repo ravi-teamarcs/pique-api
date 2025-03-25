@@ -22,6 +22,7 @@ import { Data } from './dto/search-filter.dto';
 import { instanceToPlain } from 'class-transformer';
 import { Wishlist } from './entities/wishlist.entity';
 import { WishlistDto } from './dto/wishlist.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class VenueService {
@@ -40,6 +41,7 @@ export class VenueService {
     private readonly catRepository: Repository<Category>,
     @InjectRepository(Wishlist)
     private readonly wishRepository: Repository<Wishlist>,
+    private readonly config: ConfigService,
   ) {}
 
   async create(createVenueDto: CreateVenueDto, userId: number) {
@@ -91,7 +93,7 @@ export class VenueService {
           .createQueryBuilder('media')
           .select([
             'media.id AS id',
-            `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+            `CONCAT('${this.config.get<string>('BASE_URl')}', media.url) AS url`,
             'media.type AS type',
             'media.name  AS name',
           ])
@@ -149,10 +151,10 @@ export class VenueService {
 
     console.log('category', category, 'price', price);
 
-    // Pagination
     const skip = (Number(page) - 1) * Number(pageSize);
-    const DEFAULT_MEDIA_URL =
-      'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+
+    const DEFAULT_MEDIA_URL = this.config.get<string>('MEDIA_URL');
+
     const data = [
       { label: '500-1000', value: 1 },
       { label: '1000-2000', value: 2 },
@@ -364,10 +366,6 @@ export class VenueService {
       .orderBy('booking.createdAt', 'DESC')
       .getRawMany();
 
-    if (!bookings) {
-      throw new Error('No bookings found');
-    }
-
     return {
       message: 'Bookings returned successfully',
       count: bookings.length,
@@ -392,50 +390,43 @@ export class VenueService {
         status: 'false',
       });
     }
-
-    const updateVenue = await this.venueRepository.update(
-      { id: venue.id },
-      details,
-    );
-    if (updateVenue.affected) {
+    try {
+      await this.venueRepository.update({ id: venue.id }, details);
       return { message: 'Venue updated successfully', status: true };
-    } else {
+    } catch (error) {
       throw new InternalServerErrorException({
-        message: 'something went wrong ',
+        message: error.message,
         status: false,
       });
     }
   }
 
   async handleRemoveVenue(id: number, userId: number) {
-    try {
-      const venue = await this.venueRepository.findOne({
-        where: { id: id, user: { id: userId } },
+    const venue = await this.venueRepository.findOne({
+      where: { id: id, user: { id: userId } },
+    });
+
+    if (!venue) {
+      throw new NotFoundException({
+        message: 'Venue not found',
+        status: false,
       });
-      console.log('venue', venue);
-      if (!venue) {
-        throw new NotFoundException({
-          message: 'Venue not found',
-          status: false,
-        });
-      }
+    }
 
-      const res = await this.venueRepository.delete({ id: venue.id });
+    try {
+      await this.venueRepository.delete({ id: venue.id });
 
-      if (res.affected && res.affected > 0) {
-        return { message: 'Venue deleted successfully', status: true };
-      }
+      return { message: 'Venue deleted successfully', status: true };
     } catch (error) {
       throw new InternalServerErrorException({
-        message: 'something went wrong',
+        message: error.message,
         status: false,
       });
     }
   }
 
   async findEntertainerDetails(userId: number) {
-    const DEFAULT_MEDIA_URL =
-      'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+    const DEFAULT_MEDIA_URL = this.config.get<string>('MEDIA_URL');
 
     const res = await this.entertainerRepository
       .createQueryBuilder('entertainer')
@@ -498,7 +489,7 @@ export class VenueService {
         'COALESCE(media.headshotUrl, :defaultMediaUrl) AS headshotUrl',
         'COALESCE(media.imageUrl, :defaultMediaUrl) AS imageUrl',
       ])
-      .setParameter('serverUri', process.env.BASE_URL)
+      .setParameter('serverUri', this.config.get<string>('BASE_URL'))
       .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
       .getRawOne();
     const { bookedFor, ...details } = res;
@@ -593,20 +584,28 @@ export class VenueService {
       });
     }
 
-    const venueLoc = this.venueRepository.create({
-      ...locDto,
-      name: parentVenue.name,
-      user: { id: userId },
-      description: parentVenue.description,
-      parentId: parentVenue.id,
-      isParent: false,
-    });
+    try {
+      const venueLoc = this.venueRepository.create({
+        ...locDto,
+        name: parentVenue.name,
+        user: { id: userId },
+        description: parentVenue.description,
+        parentId: parentVenue.id,
+        isParent: false,
+      });
 
-    await this.venueRepository.save(venueLoc);
-    return {
-      message: 'Venue location added successfully',
-      status: true,
-    };
+      await this.venueRepository.save(venueLoc);
+      return {
+        message: 'Venue location added successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error adding venue location',
+        status: false,
+        error: error.message,
+      });
+    }
   }
 
   async getAllCategories(query: Data) {
@@ -672,13 +671,21 @@ export class VenueService {
       return { message: 'Entertainer Removed from wishlist', status: true };
     }
     //  Add to wishlist if not present
-    const wishlistItem = this.wishRepository.create({
-      ...wish,
-      ent_id: entId,
-      user_id: userId,
-    });
-    await this.wishRepository.save(wishlistItem);
-    return { message: ' Entertainer Added to wishlist', status: true };
+    try {
+      const wishlistItem = this.wishRepository.create({
+        ...wish,
+        ent_id: entId,
+        user_id: userId,
+      });
+      await this.wishRepository.save(wishlistItem);
+      return { message: 'Entertainer Added to wishlist', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error adding entertainer to wishlist',
+        error: error.message,
+        status: false,
+      });
+    }
   }
 
   async getWishlist(userId: number) {
@@ -700,9 +707,5 @@ export class VenueService {
       data: wishlistItems,
       status: true,
     };
-  }
-
-  async getUpcomingEvents() {
-    const events = await this;
   }
 }

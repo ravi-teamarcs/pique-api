@@ -50,7 +50,7 @@ export class EntertainerController {
   })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   create(@Body() createEntertainerDto: CreateEntertainerDto, @Req() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.entertainerService.create(createEntertainerDto, userId);
   }
 
@@ -86,11 +86,8 @@ export class EntertainerController {
     @Body() updateEntertainerDto: UpdateEntertainerDto,
     @Request() req,
   ) {
-    return this.entertainerService.update(
-      +id,
-      updateEntertainerDto,
-      req.user.userId,
-    );
+    const { userId } = req.user;
+    return this.entertainerService.update(+id, updateEntertainerDto, userId);
   }
 
   @Delete(':id')
@@ -100,7 +97,8 @@ export class EntertainerController {
     description: 'Entertainer removed sucessfully.',
   })
   remove(@Param('id') id: number, @Request() req) {
-    return this.entertainerService.remove(+id, req.user.userId);
+    const { userId } = req.user;
+    return this.entertainerService.remove(+id, userId);
   }
 
   // conflict in Routes
@@ -114,7 +112,6 @@ export class EntertainerController {
   @Roles('findAll')
   entertainerBookingResponse(@Body() resDto: ResponseDto, @Request() req) {
     const { role, userId } = req.user;
-
     return this.bookingService.handleBookingResponse(role, resDto, userId);
   }
 
@@ -127,7 +124,7 @@ export class EntertainerController {
   })
   getBooking(@Request() req) {
     const { userId } = req.user;
-    console.log('userId', userId);
+
     return this.entertainerService.findAllBooking(userId);
   }
   @ApiOperation({

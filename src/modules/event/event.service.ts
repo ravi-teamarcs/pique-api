@@ -36,19 +36,26 @@ export class EventService {
     const event = await this.eventRepository.findOne({
       where: { id: eventId, userId: userId },
     });
+
     if (!event) {
       throw new BadRequestException('Event not found');
     }
 
-    const updatedEvent = await this.eventRepository.update(
-      { id: eventId },
-      {
-        ...details,
-      },
-    );
+    try {
+      await this.eventRepository.update(
+        { id: eventId },
+        {
+          ...details,
+        },
+      );
 
-    if (updatedEvent.affected) {
       return { message: 'Event updated successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error updating event',
+        error: error.message,
+        status: error.status,
+      });
     }
   }
 
@@ -81,5 +88,27 @@ export class EventService {
       data: events,
       status: true,
     };
+  }
+
+  async deleteEvent(userId: number, eventId: number) {
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId, userId: userId },
+    });
+    if (!event) {
+      throw new BadRequestException({
+        message: 'Event not found',
+        status: false,
+      });
+    }
+    try {
+      await this.eventRepository.remove(event);
+      return { message: 'Event deleted successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error deleting event',
+        error: error.message,
+        status: false,
+      });
+    }
   }
 }
