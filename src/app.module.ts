@@ -19,6 +19,8 @@ import { ChatModule } from './modules/chat/chat.module';
 import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { MulterModule } from '@nestjs/platform-express';
+import { ToursModule } from './modules/tours/tours.module';
+import { SeriesModule } from './modules/series/series.module';
 
 @Module({
   imports: [
@@ -61,6 +63,8 @@ import { MulterModule } from '@nestjs/platform-express';
     ChatModule,
     GoogleCalendarModule,
     AdminModule,
+    ToursModule,
+    SeriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

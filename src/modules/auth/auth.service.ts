@@ -256,7 +256,7 @@ export class AuthService {
       },
     );
     //  link
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+    const resetLink = `${this.configService.get<string>('FRONTEND_URL')}/reset-password?token=${resetToken}`;
     console.log('Reset Link:', resetToken);
     const payload = {
       to: user.email,
@@ -299,6 +299,25 @@ export class AuthService {
     } catch (error) {
       throw new BadRequestException({
         message: 'Invalid or expired token',
+        status: false,
+      });
+    }
+  }
+
+  async isUserVerified(dto: verifyEmail) {
+    try {
+      const { email, otp } = dto;
+      await this.verifyOtp(dto);
+      const user = this.usersRepository.findOne({ where: { email } });
+      await this.usersRepository.update(
+        { email },
+        { status: 'active', isVerified: true },
+      );
+      return { message: 'Email verified Successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error while verifying user',
+        error: error.message,
         status: false,
       });
     }

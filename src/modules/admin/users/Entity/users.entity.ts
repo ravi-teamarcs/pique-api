@@ -75,6 +75,8 @@ export class User {
   // Invoice
   // @OneToMany(() => Invoice, (invoice) => invoice.customer)
   // invoices: Invoice[];
+  @Column()
+  isVerified: boolean;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdDate: Date;

@@ -41,7 +41,6 @@ export class AuthController {
     return this.authService.generateOtp(email);
   }
 
-
   @ApiOperation({ summary: 'Send the OTP to the mail.' })
   @ApiResponse({ status: 200, description: 'Otp  sent Successfully.' })
   @HttpCode(200)
@@ -98,5 +97,13 @@ export class AuthController {
   resetPassword(@Body() resetDto: ResetPassword) {
     const { token, newPassword } = resetDto;
     return this.authService.resetPassword(token, newPassword);
+  }
+
+  @ApiOperation({ summary: 'Send the OTP to the mail.' })
+  @ApiResponse({ status: 200, description: 'Email verified Successfully.' })
+  @HttpCode(200)
+  @Post('verify-email')
+  async verifyEmail(@Body() dto: verifyEmail) {
+    return await this.authService.isUserVerified(dto);
   }
 }
