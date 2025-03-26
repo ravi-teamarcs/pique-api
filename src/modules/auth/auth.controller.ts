@@ -106,4 +106,12 @@ export class AuthController {
   async verifyEmail(@Body() dto: verifyEmail) {
     return await this.authService.isUserVerified(dto);
   }
+
+  @ApiOperation({ summary: 'Send the OTP to the mail.' })
+  @ApiResponse({ status: 200, description: 'Email sent Successfully.' })
+  @HttpCode(200)
+  @Post('user-verification')
+  async sendVerificationMail(@Body('email') email: string) {
+    return await this.authService.sendVerificationEmail(email);
+  }
 }

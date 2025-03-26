@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { UploadedFile } from 'src/common/types/media.type';
-import { Media } from './Entity/media.entity';
+import { Media } from './entities/media.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UploadUrlDto } from './Dto/UploadUrlDto.dto';
+import { UploadUrlDto } from './dto/UploadUrlDto.dto';
 
 @Injectable()
 export class MediaService {

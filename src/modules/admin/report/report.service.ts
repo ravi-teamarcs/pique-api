@@ -2,11 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Repository } from 'typeorm';
-import { Venue } from '../venue/Entity/venue.entity';
+import { Venue } from '../venue/entities/venue.entity';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
-import { Entertainer } from '../entertainer/Entitiy/entertainer.entity';
-import { Invoice } from '../invoice/Entity/invoices.entity';
-import { Event } from '../events/Entity/event.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { Invoice } from '../invoice/entities/invoices.entity';
+import { Event } from '../events/entities/event.entity';
 @Injectable()
 export class ReportService {
   constructor(

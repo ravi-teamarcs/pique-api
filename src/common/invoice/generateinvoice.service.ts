@@ -2,13 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { log } from 'console';
-import { Entertainer } from 'src/modules/admin/entertainer/Entitiy/entertainer.entity';
-import { Event } from 'src/modules/admin/events/Entity/event.entity';
+import { Entertainer } from 'src/modules/admin/entertainer/entities/entertainer.entity';
+import { Event } from 'src/modules/admin/events/entities/event.entity';
 import {
   Invoice,
   InvoiceStatus,
   UserType,
-} from 'src/modules/admin/invoice/Entity/invoices.entity';
+} from 'src/modules/admin/invoice/entities/invoices.entity';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
 import { Repository, Between } from 'typeorm';
 

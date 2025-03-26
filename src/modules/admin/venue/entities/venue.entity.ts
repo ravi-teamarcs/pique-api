@@ -1,7 +1,7 @@
 // import { Booking } from '../../booking/entities/booking.entity';
 // import { VenueEvent } from '../../event/entities/event.entity';
 import { Transform } from 'class-transformer';
-import { User } from '../../users/Entity/users.entity';
+import { User } from '../../users/entities/users.entity';
 import {
   Entity,
   Column,
@@ -11,6 +11,7 @@ import {
   UpdateDateColumn,
   OneToMany,
 } from 'typeorm';
+import { Gig } from '../../tours/entities/gig.entity';
 
 @Entity('venue')
 export class Venue {
@@ -55,6 +56,9 @@ export class Venue {
 
   @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
   user: User;
+
+  @OneToMany(() => Gig, (gigs) => gigs.venue)
+  gigs: Gig[];
 
   @Column({ type: 'boolean', default: false })
   @Transform(({ value }) => Boolean(value))

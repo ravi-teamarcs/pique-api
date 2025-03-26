@@ -4,13 +4,13 @@ import {
   InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { Venue } from './Entity/venue.entity';
+import { Venue } from './entities/venue.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
-import { UpdateVenueDto } from './Dto/update-venue.dto';
-import { CreateVenueDto } from './Dto/create-venue.dto';
-import { User } from '../users/Entity/users.entity';
-import { AddLocationDto } from './Dto/add-location.dto';
+import { UpdateVenueDto } from './dto/update-venue.dto';
+import { CreateVenueDto } from './dto/create-venue.dto';
+import { User } from '../users/entities/users.entity';
+import { AddLocationDto } from './dto/add-location.dto';
 
 @Injectable()
 export class VenueService {

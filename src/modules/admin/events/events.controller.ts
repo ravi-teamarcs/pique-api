@@ -13,7 +13,7 @@ import {
 } from '@nestjs/common';
 import { EventService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
-import { Event } from './Entity/event.entity';
+import { Event } from './entities/event.entity';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
 import { Roles } from '../auth/roles.decorator';

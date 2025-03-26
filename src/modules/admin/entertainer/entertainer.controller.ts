@@ -12,12 +12,12 @@ import {
 } from '@nestjs/common';
 import { EntertainerService } from './entertainer.service';
 
-import { CreateCategoryDto } from './Dto/create-category.dto';
+import { CreateCategoryDto } from './dto/create-category.dto';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { UpdateCategoryDto } from './Dto/update-category.dto';
-import { CreateEntertainerDto } from './Dto/create-entertainer.dto';
-import { UpdateStatusDto } from './Dto/update-status.dto';
-import { UpdateEntertainerDto } from './Dto/update-entertainer.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CreateEntertainerDto } from './dto/create-entertainer.dto';
+import { UpdateStatusDto } from './dto/update-status.dto';
+import { UpdateEntertainerDto } from './dto/update-entertainer.dto';
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';

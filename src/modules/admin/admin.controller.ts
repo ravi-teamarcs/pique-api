@@ -13,8 +13,8 @@ import { AdminService } from './admin.service';
 
 
 import { CreateRoleCapabilityDto } from './auth/dto/create-role-capability.dto';
-import { UpdateStatusDto } from './users/Dto/update-status.dto';
-import { UpdateUserDto } from './users/Dto/update-user.dto';
+import { UpdateStatusDto } from './users/dto/update-status.dto';
+import { UpdateUserDto } from './users/dto/update-user.dto';
 
 @Controller()
 export class AdminController {

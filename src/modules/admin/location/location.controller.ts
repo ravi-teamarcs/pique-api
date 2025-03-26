@@ -1,8 +1,8 @@
 import { Controller, Get, Param, Patch, Query, UseGuards } from '@nestjs/common';
 import { LocationService } from './location.service';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { Countries } from './Entitiy/country.entity';
-import { States } from './Entitiy/state.entity';
+import { Countries } from './entities/country.entity';
+import { States } from './entities/state.entity';
 
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';

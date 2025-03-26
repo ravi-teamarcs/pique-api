@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../users/Entity/users.entity';
+import { User } from '../users/entities/users.entity';
 import { Repository } from 'typeorm';
 import { Booking } from '../booking/entities/booking.entity';
 

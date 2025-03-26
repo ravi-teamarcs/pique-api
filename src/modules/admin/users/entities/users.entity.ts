@@ -1,5 +1,5 @@
-import { Venue } from '../../venue/Entity/venue.entity';
-import { Entertainer } from '../../entertainer/Entitiy/entertainer.entity';
+import { Venue } from '../../venue/entities/venue.entity';
+import { Entertainer } from '../../entertainer/entities/entertainer.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,

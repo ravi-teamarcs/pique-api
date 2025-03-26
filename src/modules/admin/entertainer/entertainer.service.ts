@@ -5,14 +5,14 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Entertainer } from './Entitiy/entertainer.entity';
+import { Entertainer } from './entities/entertainer.entity';
 import { In, Like, Not, Repository } from 'typeorm';
-import { Categories } from './Entitiy/Category.entity';
-import { CreateCategoryDto } from './Dto/create-category.dto';
-import { UpdateCategoryDto } from './Dto/update-category.dto';
-import { CreateEntertainerDto } from './Dto/create-entertainer.dto';
-import { UpdateStatusDto } from './Dto/update-status.dto';
-import { UpdateEntertainerDto } from './Dto/update-entertainer.dto';
+import { Categories } from './entities/Category.entity';
+import { CreateCategoryDto } from './dto/create-category.dto';
+import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CreateEntertainerDto } from './dto/create-entertainer.dto';
+import { UpdateStatusDto } from './dto/update-status.dto';
+import { UpdateEntertainerDto } from './dto/update-entertainer.dto';
 import slugify from 'slugify';
 
 @Injectable()

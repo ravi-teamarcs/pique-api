@@ -427,7 +427,6 @@ export class VenueService {
 
   async findEntertainerDetails(userId: number) {
     const DEFAULT_MEDIA_URL = this.config.get<string>('MEDIA_URL');
-
     const res = await this.entertainerRepository
       .createQueryBuilder('entertainer')
       .leftJoinAndSelect('entertainer.user', 'user')
@@ -435,7 +434,11 @@ export class VenueService {
       .leftJoin('states', 'state', 'state.id = entertainer.state')
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
       .leftJoin('categories', 'category', 'category.id = entertainer.category')
-      .leftJoin('categories', 'subcat', 'specific_category = subcat.id')
+      .leftJoin(
+        'categories',
+        'subcat',
+        'subcat.id = entertainer.specific_category',
+      )
       .leftJoin(
         (qb) =>
           qb
@@ -489,6 +492,7 @@ export class VenueService {
         'COALESCE(media.headshotUrl, :defaultMediaUrl) AS headshotUrl',
         'COALESCE(media.imageUrl, :defaultMediaUrl) AS imageUrl',
       ])
+      .where('entertainer.userId = :userId', { userId })
       .setParameter('serverUri', this.config.get<string>('BASE_URL'))
       .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
       .getRawOne();

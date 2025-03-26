@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { EventController } from './events.controller';
 import { EventService } from './events.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Event } from './Entity/event.entity';
+import { Event } from './entities/event.entity';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
 
 import { RoleCapability } from '../auth/entities/role-capabilities.entity';

@@ -6,8 +6,11 @@ import {
   UpdateDateColumn,
   OneToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
-import { User } from '../../users/Entity/users.entity';
+import { User } from '../../users/entities/users.entity';
+import { Gig } from '../../tours/entities/gig.entity';
+import { Tour } from '../../tours/entities/tour.entity';
 
 @Entity('entertainers')
 export class Entertainer {
@@ -48,13 +51,17 @@ export class Entertainer {
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
   availability: 'yes' | 'no';
 
-  @OneToOne(() => User, (user) => user.entertainer , { onDelete: 'CASCADE' })
+  @OneToOne(() => User, (user) => user.entertainer, { onDelete: 'CASCADE' })
   @JoinColumn()
   user: User;
+  @OneToMany(() => Tour, (tour) => tour.entertainer)
+  tours: Tour[];
+
+  @OneToMany(() => Gig, (gig) => gig.entertainer)
+  gigs: Gig[];
 
   @Column()
   status: string;
-
   @Column()
   city: number;
 

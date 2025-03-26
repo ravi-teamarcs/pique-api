@@ -16,12 +16,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { UpdateVenueDto } from './Dto/update-venue.dto';
-import { CreateVenueDto } from './Dto/create-venue.dto';
+import { UpdateVenueDto } from './dto/update-venue.dto';
+import { CreateVenueDto } from './dto/create-venue.dto';
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
-import { AddLocationDto } from './Dto/add-location.dto';
+import { AddLocationDto } from './dto/add-location.dto';
 
 @ApiTags('admin')
 @Controller('admin/venue')

@@ -322,4 +322,51 @@ export class AuthService {
       });
     }
   }
+
+  async sendVerificationEmail(email: string) {
+    const user = await this.usersRepository.findOne({ where: { email } });
+    if (!user)
+      throw new NotFoundException({ message: 'User not found', status: false });
+
+    try {
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+      const existingOtp = await this.otpRepository.findOne({
+        where: { email },
+      });
+
+      if (existingOtp) {
+        // Update existing OTP
+        existingOtp.otp = otpCode;
+        existingOtp.expiresAt = new Date(Date.now() + 10 * 60000); // Extend expiry
+        await this.otpRepository.save(existingOtp);
+      } else {
+        // Create new OTP record
+        const newOtp = this.otpRepository.create({
+          email,
+          otp: otpCode,
+          expiresAt: new Date(Date.now() + 10 * 60000),
+        });
+        await this.otpRepository.save(newOtp);
+      }
+      const payload = {
+        to: email,
+        subject: 'Email verification   ',
+        templateName: 'email-verification.html',
+        replacements: {
+          otp: otpCode,
+        },
+      };
+      // send via email
+      await this.emailService.handleSendEmail(payload);
+      return {
+        message: 'Otp Sent Successfully to the entered  email.',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 }

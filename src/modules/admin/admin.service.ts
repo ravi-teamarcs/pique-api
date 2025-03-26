@@ -8,8 +8,8 @@ import { RoleCapability } from './auth/entities/role-capabilities.entity';
 
 import { Role } from './auth/entities/role.entity';
 
-import { UpdateStatusDto } from './users/Dto/update-status.dto';
-import { UpdateUserDto } from './users/Dto/update-user.dto';
+import { UpdateStatusDto } from './users/dto/update-status.dto';
+import { UpdateUserDto } from './users/dto/update-user.dto';
 
 
 @Injectable()

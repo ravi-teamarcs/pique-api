@@ -1,5 +1,5 @@
 import { IsEnum, IsNotEmpty, IsNumber, IsString, IsDateString, IsOptional } from 'class-validator';
-import { InvoiceStatus, UserType } from '../Entity/invoices.entity';
+import { InvoiceStatus, UserType } from '../entities/invoices.entity';
 
 export class CreateInvoiceDto {
   @IsString()

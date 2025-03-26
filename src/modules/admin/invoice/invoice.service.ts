@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Invoice, InvoiceStatus, UserType } from './Entity/invoices.entity';
+import { Invoice, InvoiceStatus, UserType } from './entities/invoices.entity';
 import { Like, Repository } from 'typeorm';
-import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
-import { Entertainer } from '../entertainer/Entitiy/entertainer.entity';
-import { Venue } from '../venue/Entity/venue.entity';
+import { CreateInvoiceDto, UpdateInvoiceDto } from './dto/create-invoice.dto';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { Venue } from '../venue/entities/venue.entity';
 
 @Injectable()
 export class InvoiceService {
