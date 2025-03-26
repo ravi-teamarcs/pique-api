@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Media } from './entities/media.entity';
 import { Repository } from 'typeorm';
 import { UploadedFile } from 'src/common/types/media.type';
+import { UploadMedia } from './dto/upload-media.dto';
 
 @Injectable()
 export class MediaService {
@@ -18,10 +19,11 @@ export class MediaService {
   async handleMediaUpload(
     userId: number,
     uploadedFiles: UploadedFile[],
-    venueId: number,
+    dto: UploadMedia,
   ) {
     console.log('Inside Media Service');
     console.log(uploadedFiles);
+    const { venueId = null, eventId = null } = dto;
     try {
       for (const file of uploadedFiles) {
         if (!file || !file.type) continue; // Safety check
@@ -41,7 +43,8 @@ export class MediaService {
             const newHeadshot = this.mediaRepository.create({
               ...file,
               user: { id: userId },
-              refId: venueId ?? null,
+              refId: venueId,
+              eventId,
             });
             await this.mediaRepository.save(newHeadshot);
           }
@@ -52,7 +55,8 @@ export class MediaService {
         const media = this.mediaRepository.create({
           ...file,
           user: { id: userId },
-          refId: venueId ?? null,
+          refId: venueId,
+          eventId,
         });
         await this.mediaRepository.save(media);
       }

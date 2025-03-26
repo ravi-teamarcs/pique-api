@@ -212,6 +212,7 @@ export class EntertainerService {
     const events = await this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('event', 'event', 'event.id = booking.eventId') // Explicitly join using eventId
+      .leftJoin('media', 'media', 'event.id = booking.eventId') // Explicitly join using eventId
       .where('booking.entertainerUserId = :userId', { userId })
       .andWhere('booking.status = :status', { status: 'confirmed' })
       .select([
