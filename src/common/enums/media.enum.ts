@@ -4,3 +4,5 @@ enum Type {
   HEADSHOT = 'headshot',
   EVENT_HEADSHOT = 'event_headshot',
 }
+
+export { Type };

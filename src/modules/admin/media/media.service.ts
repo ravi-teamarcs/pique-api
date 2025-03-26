@@ -4,13 +4,14 @@ import { Media } from './entities/media.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UploadUrlDto } from './dto/UploadUrlDto.dto';
+import { Type } from 'src/common/enums/media.enum';
 
 @Injectable()
 export class MediaService {
   constructor(
     @InjectRepository(Media)
     private readonly mediaRepository: Repository<Media>,
-  ) { }
+  ) {}
 
   async handleMediaUpload(
     userId: number,
@@ -59,9 +60,6 @@ export class MediaService {
     }
   }
 
-
-
-
   async findAllMedia(Id: number) {
     if (!Id) {
       throw new BadRequestException('Id is required.');
@@ -89,13 +87,11 @@ export class MediaService {
     return { message: 'Multimedia returned successfully', media };
   }
 
-
-
   async updateMedia(
     mediaId: number,
     userId: any,
     RefId: any,
-    uploadedFile: any
+    uploadedFile: any,
   ) {
     // Initialize where clause to dynamically build the query
     const whereClause: any = {};
@@ -122,12 +118,11 @@ export class MediaService {
       await this.mediaRepository.update(media.id, {
         ...uploadedFile, // Update with new file details
       });
-      return { message: "Media updated successfully.", status: true };
+      return { message: 'Media updated successfully.', status: true };
     } else {
-      return { message: "Media Not Found.", status: false };
+      return { message: 'Media Not Found.', status: false };
     }
   }
-
 
   async deleteMedia(Id: number) {
     if (!Id) {
@@ -149,8 +144,6 @@ export class MediaService {
     return { message: 'Media deleted successfully' };
   }
 
-
-
   async uploadUrl(uploadUrlDto: UploadUrlDto): Promise<Media> {
     const { url, userId, refId, type } = uploadUrlDto;
 
@@ -168,14 +161,10 @@ export class MediaService {
       url,
       name,
       type: mediaType,
-      user: userId ? { id: userId } as any : null, // Associate user
+      user: userId ? ({ id: userId } as any) : null, // Associate user
       refId,
     });
 
     return await this.mediaRepository.save(media);
   }
-
-
-
-
 }
