@@ -17,6 +17,7 @@ import { Category } from './entities/categories.entity';
 import { Media } from '../media/entities/media.entity';
 import { DashboardDto } from './dto/dashboard.dto';
 import { Invoice } from '../invoice/entities/invoice.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EntertainerService {
@@ -35,6 +36,7 @@ export class EntertainerService {
     private readonly mediaRepository: Repository<Media>,
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
+    private readonly config: ConfigService,
   ) {}
 
   async create(createEntertainerDto: CreateEntertainerDto, userId: number) {
@@ -209,10 +211,12 @@ export class EntertainerService {
   }
 
   async getEventDetails(userId: number) {
+    const URL = `https://digidemo.in/api/uploads/2025/031741334326736-839589383.png`;
+
     const events = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoin('event', 'event', 'event.id = booking.eventId') // Explicitly join using eventId
-      .leftJoin('media', 'media', 'event.id = booking.eventId') // Explicitly join using eventId
+      .leftJoin('event', 'event', 'event.id = booking.eventId')
+      .leftJoin('media', 'media', 'media.eventId = booking.eventId')
       .where('booking.entertainerUserId = :userId', { userId })
       .andWhere('booking.status = :status', { status: 'confirmed' })
       .select([
@@ -226,7 +230,10 @@ export class EntertainerService {
         'event.endTime AS endTime',
         'event.status AS status',
         'event.recurring AS recurring',
+        `COALESCE(CONCAT(:baseUrl, media.url), :defaultMediaUrl) AS image_url`,
       ])
+      .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
+      .setParameter('defaultMediaUrl', URL)
       .getRawMany();
 
     return {

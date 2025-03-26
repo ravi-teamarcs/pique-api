@@ -1,10 +1,13 @@
+import { Transform } from 'class-transformer';
 import { IsNumber, IsOptional } from 'class-validator';
 
 export class UploadMedia {
   @IsNumber()
   @IsOptional()
-  venueId: number;
+  @Transform(({ value }) => (value ? Number(value) : undefined)) // Avoid NaN issues
+  venueId?: number;
   @IsNumber()
   @IsOptional()
-  eventId: number;
+  @Transform(({ value }) => (value ? Number(value) : undefined)) // Avoid NaN issues
+  eventId?: number;
 }

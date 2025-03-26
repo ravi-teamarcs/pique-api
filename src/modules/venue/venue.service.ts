@@ -426,7 +426,6 @@ export class VenueService {
   }
 
   async findEntertainerDetails(userId: number) {
-    const DEFAULT_MEDIA_URL = this.config.get<string>('MEDIA_URL');
     const res = await this.entertainerRepository
       .createQueryBuilder('entertainer')
       .leftJoinAndSelect('entertainer.user', 'user')
@@ -457,18 +456,12 @@ export class VenueService {
           qb
             .select([
               'media.userId',
-              `COALESCE(
-                (SELECT CONCAT(:serverUri, m1.url) FROM media m1 
-                 WHERE m1.userId = media.userId AND m1.type = 'headshot' 
-                 ORDER BY m1.id LIMIT 1), 
-                :defaultMediaUrl
-              ) AS headshotUrl`,
-              `COALESCE(
-                (SELECT CONCAT(:serverUri, m2.url) FROM media m2 
-                 WHERE m2.userId = media.userId AND m2.type = 'image' 
-                 ORDER BY m2.id LIMIT 1), 
-                :defaultMediaUrl
-              ) AS imageUrl`,
+              `JSON_ARRAYAGG(
+            JSON_OBJECT(
+              "url", CONCAT(:serverUri, media.url),
+              "type", media.type
+            )
+          ) AS mediaDetails`,
             ])
             .from('media', 'media')
             .groupBy('media.userId'),
@@ -488,18 +481,24 @@ export class VenueService {
         'entertainer.performanceRole AS performanceRole',
         'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
+        'entertainer.bio AS bio',
+        'entertainer.vaccinated AS vaccinated',
         'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
-        'COALESCE(media.headshotUrl, :defaultMediaUrl) AS headshotUrl',
-        'COALESCE(media.imageUrl, :defaultMediaUrl) AS imageUrl',
+        'COALESCE(media.mediaDetails, "[]") AS media',
       ])
       .where('entertainer.userId = :userId', { userId })
-      .setParameter('serverUri', this.config.get<string>('BASE_URL'))
-      .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
+      .setParameter('serverUri', this.config.get<string>('MEDIA_URL'))
       .getRawOne();
-    const { bookedFor, ...details } = res;
+
+    // Parse JSON fields
+    const { bookedFor, media, ...details } = res;
     return {
       message: 'Entertainer Details returned Successfully',
-      data: { ...details, bookedFor: JSON.parse(bookedFor) },
+      data: {
+        ...details,
+        bookedFor: JSON.parse(bookedFor),
+        media: JSON.parse(media),
+      },
       status: true,
     };
   }
