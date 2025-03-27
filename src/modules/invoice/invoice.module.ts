@@ -5,11 +5,11 @@ import { InvoiceController } from './invoice.controller';
 import { InvoiceService } from './invoice.service';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Venue } from '../venue/entities/venue.entity';
-import { Invoice } from '../admin/invoice/entities/invoices.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Booking } from '../booking/entities/booking.entity';
+import { Invoice } from './entities/invoice.entity';
 
 @Module({
   imports: [

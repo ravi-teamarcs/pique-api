@@ -18,10 +18,7 @@ export class InvoiceService {
     private readonly bookingRepository: Repository<Booking>,
   ) {}
 
-  async generateInvoice(userId: number) {
-    console.log('Inside generate invoice');
-    const bookingId = 2;
-
+  async generateInvoice(userId: number, bookingId: number) {
     const booking = await this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('users', 'user', 'user.id = booking.entertainerUserId')
@@ -29,7 +26,7 @@ export class InvoiceService {
         'entertainers',
         'ent',
         'ent.userId = booking.entertainerUserId ',
-      ) // Correct join condition
+      )
       .where('booking.id = :bookingId', { bookingId })
       .andWhere('booking.status = :status', { status: 'completed' })
       .select([
@@ -41,9 +38,18 @@ export class InvoiceService {
       ])
       .getRawOne();
 
-    console.log('Booking', booking);
-
     const { eventId, uname, uid, id, pricePerEvent } = booking;
+
+    const alreadyGenerated = await this.invoiceRepository.findOne({
+      where: { user_id: userId, event_id: eventId },
+    });
+
+    if (alreadyGenerated) {
+      throw new BadRequestException({
+        message: 'Invoice for Booking is already generated.',
+        status: false,
+      });
+    }
 
     // Used Here So That Invoice Number is Unique.
     const lastInvoice = await this.invoiceRepository
@@ -70,6 +76,8 @@ export class InvoiceService {
       invoice_number: newInvoiceNumber,
       user_id: userId,
       event_id: Number(eventId),
+      entertainer_id: 1,
+      venue_id: 1,
       issue_date: issueDate.toISOString().split('T')[0],
       due_date: new Date(dueDate).toISOString().split('T')[0],
       total_amount: parseFloat(pricePerEvent.toFixed(2)),

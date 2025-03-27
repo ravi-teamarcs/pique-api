@@ -8,12 +8,14 @@ import { Media } from './entities/media.entity';
 import { Repository } from 'typeorm';
 import { UploadedFile } from 'src/common/types/media.type';
 import { UploadMedia } from './dto/upload-media.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MediaService {
   constructor(
     @InjectRepository(Media)
     private readonly mediaRepository: Repository<Media>,
+    private readonly config: ConfigService,
   ) {}
 
   async handleMediaUpload(
@@ -77,7 +79,7 @@ export class MediaService {
         .createQueryBuilder('media')
         .select([
           'media.id AS id',
-          `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+          `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
           'media.type AS type',
           'media.refId AS venueId',
           'media.name AS name',
@@ -97,7 +99,7 @@ export class MediaService {
       .createQueryBuilder('media')
       .select([
         'media.id AS id',
-        `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+        `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
         'media.type AS type',
         'media.name  AS name',
       ])

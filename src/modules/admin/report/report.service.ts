@@ -67,21 +67,16 @@ export class ReportService {
 
   async getEventData(query: Report) {
     const { page = 1, limit = 10, from, to } = query;
-    console.log('Query Given', query);
+
     try {
-      // Get current date
       const currentDate = new Date();
 
       let fromDate: Date, toDate: Date;
 
       if (from) {
-        // Convert "YYYY-MM" to first second of that month (00:00:00)
         const [fromYear, fromMonth] = from.split('-').map(Number);
         fromDate = new Date(fromYear, fromMonth - 1, 1, 0, 0, 0);
-
-        console.log('fromDate tranformed', fromDate);
       } else {
-        // Default: Start of last month if `from` is missing
         fromDate = new Date(
           currentDate.getFullYear(),
           currentDate.getMonth() - 1,
@@ -93,31 +88,16 @@ export class ReportService {
       }
 
       if (to) {
-        // Convert "YYYY-MM" to last second of that month (23:59:59)
         const [toYear, toMonth] = to.split('-').map(Number);
         toDate = new Date(toYear, toMonth, 0, 23, 59, 59); // Last day of `to` month
-        console.log('toDate transformed', toDate);
       } else {
-        // Default: Current timestamp if `to` is missing
         toDate = new Date();
       }
 
       // Apply pagination
-      const offset = (page - 1) * limit;
+      const take = (page - 1) * limit;
 
-      console.log('Offset', offset);
-      console.log('If not provided', fromDate, toDate);
-      // Fetch the total count (for frontend pagination UI)
-      const totalCount = await this.eventRepo
-        .createQueryBuilder('event')
-        .where('event.createdAt BETWEEN :from AND :to', {
-          from: fromDate,
-          to: toDate,
-        })
-        .getCount();
-
-      // Fetch events with linked data
-      const eventsWithDetails = await this.eventRepo
+      const res = this.eventRepo
         .createQueryBuilder('event')
         .select([
           // Event Table
@@ -141,8 +121,7 @@ export class ReportService {
           // Booking Table
           'booking.id AS booking_id',
           'booking.status AS booking_status',
-
-          'booking.entertainerUserId AS booking_entertainerUserId',
+          'booking.entertainerUserId AS booking_eid',
 
           // Entertainer Table
           'entertainer.id AS entertainer_id',
@@ -152,10 +131,15 @@ export class ReportService {
           // User Table
 
           // Invoice Table
-          'invoice.id AS invoice_id',
-          'invoice.total_with_tax AS total_amount',
-          'invoice.status AS invoice_status',
-          'invoice.invoice_number AS invoice_number',
+          'invoice.id AS ent_invoice_id',
+          'invoice.total_with_tax AS ent_total_amount',
+          'invoice.status AS ent_invoice_status',
+          'invoice.invoice_number AS ent_invoice_number',
+
+          'inv.id AS venue_invoice_id',
+          'inv.total_with_tax AS venue_total_amount',
+          'inv.status AS venue_invoice_status',
+          'inv.invoice_number AS venue_invoice_number',
         ])
         .where('event.createdAt BETWEEN :from AND :to', {
           from: fromDate,
@@ -173,15 +157,17 @@ export class ReportService {
         .leftJoin(
           'invoices',
           'invoice',
-          'invoice.entertainer_id = entertainer.id',
+          'invoice.user_id = booking.entertainerUserId',
         )
+        .leftJoin('invoices', 'inv', 'inv.user_id = booking.venueUserId');
+      const eventDetails = await res
         .orderBy('event.createdAt', 'DESC')
         .limit(limit)
-        .offset(offset)
+        .take(take)
         .getRawMany();
-
+      const totalCount = await res.getCount();
       return {
-        data: eventsWithDetails,
+        data: eventDetails,
         pagination: {
           totalItems: totalCount,
           totalPages: Math.ceil(totalCount / limit),

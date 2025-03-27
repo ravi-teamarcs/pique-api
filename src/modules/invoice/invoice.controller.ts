@@ -27,9 +27,9 @@ export class InvoiceController {
   // Route to Generate the Invoice for specific  Booking
   @Roles('findAll')
   @Post()
-  createInvoice(@Request() req) {
+  createInvoice(@Request() req, @Body('bookingId') bookingId: number) {
     const { userId } = req.user;
-    return this.invoiceService.generateInvoice(userId);
+    return this.invoiceService.generateInvoice(userId, bookingId);
   }
 
   @ApiOperation({ summary: 'Get All Invoices' })
