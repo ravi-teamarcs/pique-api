@@ -14,8 +14,8 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { UpdateStatusDto } from './dto/update-status.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateStatusDto } from './Dto/update-status.dto';
+import { UpdateUserDto } from './Dto/update-user.dto';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -26,7 +26,7 @@ import { User } from './entities/users.entity';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto } from './Dto/create-user.dto';
 
 @ApiTags('admin')
 @Controller('admin/users')

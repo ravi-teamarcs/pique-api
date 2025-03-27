@@ -3,7 +3,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { MediaService } from './media.service';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
-import { UploadUrlDto } from './dto/UploadUrlDto.dto';
+import { UploadUrlDto } from './Dto/UploadUrlDto.dto';
 
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';

@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Invoice, InvoiceStatus, UserType } from './entities/invoices.entity';
 import { Like, Repository } from 'typeorm';
-import { CreateInvoiceDto, UpdateInvoiceDto } from './dto/create-invoice.dto';
+import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Venue } from '../venue/entities/venue.entity';
 
