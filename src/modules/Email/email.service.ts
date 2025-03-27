@@ -36,7 +36,7 @@ export class EmailService {
       return { message: 'Email sent successfully', res };
     } catch (error) {
       throw new InternalServerErrorException({
-        message: 'Error While Sending Email',
+        message: 'Error While Sending the Email',
         error: error.message,
         status: false,
       });
