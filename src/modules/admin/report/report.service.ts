@@ -135,11 +135,15 @@ export class ReportService {
           'invoice.total_with_tax AS ent_total_amount',
           'invoice.status AS ent_invoice_status',
           'invoice.invoice_number AS ent_invoice_number',
+          'invoice.payment_method AS ent_payment_method',
+          'invoice.payment_date AS ent_payment_date',
 
           'inv.id AS venue_invoice_id',
           'inv.total_with_tax AS venue_total_amount',
           'inv.status AS venue_invoice_status',
           'inv.invoice_number AS venue_invoice_number',
+          'inv.payment_method AS venue_payment_method',
+          'inv.payment_date AS venue_payment_date',
         ])
         .where('event.createdAt BETWEEN :from AND :to', {
           from: fromDate,
