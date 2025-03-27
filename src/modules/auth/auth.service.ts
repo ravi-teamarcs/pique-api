@@ -144,7 +144,8 @@ export class AuthService {
       };
     } catch (error) {
       throw new InternalServerErrorException({
-        message: error.message,
+        message: 'Error in send otp',
+        error: error.message,
         status: false,
       });
     }
