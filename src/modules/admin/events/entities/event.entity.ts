@@ -29,6 +29,9 @@ export class Event {
   @Column()
   description: string;
 
+  // @Column()
+  // duration: number;
+
   @Column({ type: 'datetime', nullable: false })
   startTime: Date;
 

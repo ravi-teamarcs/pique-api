@@ -7,10 +7,11 @@ import { User } from '../users/entities/users.entity';
 import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../adminuser/entities/capability.entity';
+import { Event } from '../events/entities/event.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, User, RoleCapability, Role, Capability]),
+    TypeOrmModule.forFeature([Booking, User, RoleCapability, Role, Capability,Event]),
   ],
   providers: [DashboardService],
   controllers: [DashboardController],

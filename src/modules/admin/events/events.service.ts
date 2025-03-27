@@ -32,24 +32,48 @@ export class EventService {
     page: number;
     pageSize: number;
     search: string;
-  }): Promise<{ records: Event[]; total: number }> {
+  }): Promise<{
+    message: string;
+    records: Event[];
+    total: number;
+    status: boolean;
+  }> {
     const skip = (page - 1) * pageSize; // Calculate records to skip
 
-    const [records, total] = await this.eventRepository.findAndCount({
-      where: {
-        ...(search ? { title: Like(`%${search}%`) } : {}),
-      },
-      //relations: ['event'], // Include the related `User` entity
-      skip, // Pagination: records to skip
-      take: pageSize,
-      order: {
-        id: 'DESC',
-      },
-    });
+    const res = this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoin('venue', 'venue', 'venue.id = event.venueId') // Explicit join on venue
+      .select([
+        'event.id AS id',
+        'event.title  AS title',
+        'event.location  AS location',
+        'event.startTime AS startTime',
+        'event.endTime AS endTime',
+        'event.status AS status',
+        'event.recurring  AS recurring',
+        'event.venueId AS venueId',
+        'event.userId AS userId',
+        'event.isAdmin AS isAdmin',
+        'venue.name AS venueName',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+      ])
+      .where(search ? 'event.title LIKE :search' : '1=1', {
+        search: `%${search}%`,
+      });
+
+    const totalCount = await res.getCount();
+    const records = await res
+      .orderBy('event.id', 'DESC')
+      .skip(skip)
+      .take(pageSize)
+      .getRawMany();
 
     return {
-      records, // Paginated entertainers
-      total, // Total count of entertainers
+      message: 'Events fetched successfully',
+      records,
+      total: totalCount, // Paginated entertainers
+      status: true,
     };
   }
 

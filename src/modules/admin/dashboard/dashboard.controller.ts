@@ -19,4 +19,14 @@ export class DashboardController {
   getDashboardStats() {
     return this.dashboardService.getDashboardStats();
   }
+  @ApiOperation({ summary: 'Fetch upcoming events.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Events Fetched Successfully.',
+  })
+  @Roles('super-admin')
+  @Get('upcoming-events')
+  upcomingEvents() {
+    return this.dashboardService.upcomingEvents();
+  }
 }

@@ -98,10 +98,15 @@ export class VenueService {
     const venue = await this.venueRepository.findOne({ where: { id } });
 
     if (!venue) {
-      throw new NotFoundException(`Venue with ID ${id} not found`);
+      throw new NotFoundException({
+        message: `Venue with ID ${id} not found`,
+        status: false,
+      });
     }
 
     await this.venueRepository.remove(venue); // Removes the venue from the repository
+
+    return { message: 'Venue deleted successfully', status: true };
   }
 
   async searchEntertainers(query: string) {

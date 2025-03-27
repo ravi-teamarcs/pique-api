@@ -1,8 +1,10 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '../users/entities/users.entity';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { Booking } from '../booking/entities/booking.entity';
+import { Event } from '../events/entities/event.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class DashboardService {
@@ -11,6 +13,9 @@ export class DashboardService {
     private readonly userRepo: Repository<User>,
     @InjectRepository(Booking)
     private readonly bookingRepo: Repository<Booking>,
+    @InjectRepository(Event)
+    private readonly eventRepo: Repository<Event>,
+    private readonly configService: ConfigService,
   ) {}
 
   async getDashboardStats() {
@@ -57,6 +62,64 @@ export class DashboardService {
       };
     } catch (error) {
       throw new InternalServerErrorException({ Message: error.message });
+    }
+  }
+
+  async upcomingEvents() {
+    try {
+      const currentDate = new Date();
+      const baseUrl = this.configService.get<string>('BASE_URL'); // Base URL for images
+      const fallbackUrl =
+        'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+
+      const upcomingEvent = await this.eventRepo
+        .createQueryBuilder('event')
+        .leftJoin(
+          'media',
+          'media',
+          'media.eventId = event.id AND media.type = :mediaType',
+        )
+        .where('event.status = :status', { status: 'confirmed' })
+        .andWhere('event.startTime > :currentDate', { currentDate })
+        .orderBy('event.startTime', 'ASC')
+        .select([
+          'event.id AS id',
+          'event.title AS title',
+          'event.location AS location',
+          'event.userId AS userId',
+          'event.venueId AS venueId',
+          'event.description AS description',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'event.recurring AS recurring',
+          'event.status AS status',
+
+          `COALESCE(
+            CASE 
+              WHEN media.url IS NOT NULL THEN CONCAT(:baseUrl, media.url) 
+              ELSE :fallbackUrl 
+            END, :fallbackUrl
+          ) AS image_url`,
+        ])
+        .setParameters({
+          mediaType: 'event_headshot',
+          baseUrl,
+          fallbackUrl,
+          status: 'confirmed',
+          currentDate,
+        })
+        .getRawMany();
+
+      return {
+        message: 'Events returned Successfully',
+        data: upcomingEvent,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
     }
   }
 }
