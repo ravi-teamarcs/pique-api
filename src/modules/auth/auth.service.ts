@@ -190,7 +190,7 @@ export class AuthService {
 
     // Fcm Token
     const deviceType = this.detectDevice(userAgent);
-    console.log('Device Type:', deviceType);
+
     if (deviceType.toLowerCase() == 'mobile' && fcmToken) {
       this.notificationService.storeFcmToken(user.id, fcmToken, deviceType);
     }
@@ -205,6 +205,7 @@ export class AuthService {
           role: user.role,
           phone: user.phoneNumber,
           email: user.email,
+          isVerified: user.isVerified,
           completed,
         },
       },
