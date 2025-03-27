@@ -13,10 +13,10 @@ export class AddLocationDto {
   @IsNotEmpty()
   phone: string;
 
-  @ApiProperty({ example: '7807446069', description: 'Phone of the Venue' })
+  @ApiProperty({ example: 1, description: 'Venue Id' })
   @IsNumber()
   @IsNotEmpty()
-  userId: number;
+  venueId: number;
 
   @ApiProperty({
     example: 'radissonblu@gmail.com',

@@ -120,10 +120,13 @@ export class VenueService {
   }
 
   async addVenueLocation(locDto: AddLocationDto) {
-    const { userId, ...rest } = locDto;
+    const { venueId, ...rest } = locDto;
     const parentVenue = await this.venueRepository.findOne({
-      where: { user: { id: userId }, isParent: true },
+      where: { id: venueId, isParent: true },
+      relations: ['user'],
     });
+
+    console.log('Parent Venue', parentVenue);
 
     if (!parentVenue) {
       throw new BadRequestException({
@@ -136,7 +139,7 @@ export class VenueService {
     const venueLoc = this.venueRepository.create({
       ...rest,
       name: parentVenue.name,
-      user: { id: userId },
+      user: { id: parentVenue.user.id },
       description: parentVenue.description,
       parentId: parentVenue.id,
       isParent: false,

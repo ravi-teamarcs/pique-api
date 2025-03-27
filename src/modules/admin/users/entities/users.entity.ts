@@ -72,9 +72,6 @@ export class User {
   @OneToMany(() => Media, (media) => media.user, { cascade: true })
   media: Media[];
 
-  // Invoice
-  // @OneToMany(() => Invoice, (invoice) => invoice.customer)
-  // invoices: Invoice[];
   @Column()
   isVerified: boolean;
 

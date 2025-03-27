@@ -15,7 +15,7 @@ export class ReportController {
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Get('all')
   async getAllEvents(@Query() query: Report) {
-    // return this.reportService.getEventData();
-    return this.reportService.getEventData(query);
+    return this.reportService.getAllEventData();
+    // return this.reportService.getEventData(query);
   }
 }
