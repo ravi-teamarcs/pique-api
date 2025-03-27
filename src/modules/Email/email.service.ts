@@ -35,6 +35,7 @@ export class EmailService {
       console.log('EMAIL SENT SUCCESSFULLY', res);
       return { message: 'Email sent successfully', res };
     } catch (error) {
+      console.log('ERROR In Email Service', error);
       throw new InternalServerErrorException({
         message: 'Error While Sending the Email',
         error: error.message,
