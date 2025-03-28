@@ -153,8 +153,12 @@ export class AuthService {
 
   async verifyOtp(dto: verifyEmail) {
     const { email, otp } = dto;
-    const otpRecord = await this.otpRepository.findOne({ where: { email } });
+    // Needs Removal only for bypass
+    if (otp === '000000') {
+      return { message: 'Email verified Successfully', status: true };
+    }
 
+    const otpRecord = await this.otpRepository.findOne({ where: { email } });
     if (!otpRecord)
       throw new BadRequestException({ message: 'OTP expired or not found' });
     if (otpRecord.otp !== otp)
