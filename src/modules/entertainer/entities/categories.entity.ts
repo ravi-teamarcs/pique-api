@@ -17,7 +17,7 @@ export class Category {
   @Column()
   parentId: number;
 
-  @Column({ type: 'text', default: null })
+  @Column({ type: 'text', default: null, nullable: true })
   iconUrl: string;
 
   @Column({ type: 'varchar', length: 255 })

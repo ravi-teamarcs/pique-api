@@ -43,7 +43,7 @@ import { SeriesModule } from './modules/series/series.module';
         entities: [join(process.cwd(), 'dist/**/*.entity.js')],
         // logging: true,
         // logger: 'advanced-console',
-        // synchronize: true, // Set this to false in production
+        synchronize: true, // Set this to false in production
       }),
     }),
     ServeStaticModule.forRoot({

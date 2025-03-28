@@ -58,7 +58,7 @@ export class GenerateInvoiceService {
       ? today
       : new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
     const dueDate = new Date(issueDate);
-    dueDate.setDate(dueDate.getDate() + 30);  // Default 30-day due date
+    dueDate.setDate(dueDate.getDate() + 30); // Default 30-day due date
 
     const bookings = await this.bookingRepo
       .createQueryBuilder('booking')
@@ -103,6 +103,7 @@ export class GenerateInvoiceService {
         status: InvoiceStatus.PENDING,
         payment_method: '',
         payment_date: null,
+        user_id: 12,
       });
 
       await this.invoiceRepo.save(newInvoice);

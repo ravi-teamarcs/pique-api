@@ -66,7 +66,7 @@ export class User {
 
   // Invoice
 
-  @Column()
+  @Column({ default: false })
   isVerified: boolean;
 
   @CreateDateColumn({ type: 'timestamp' })

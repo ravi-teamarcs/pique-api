@@ -72,7 +72,7 @@ export class User {
   @OneToMany(() => Media, (media) => media.user, { cascade: true })
   media: Media[];
 
-  @Column()
+  @Column({ default: false })
   isVerified: boolean;
 
   @CreateDateColumn({ type: 'timestamp' })

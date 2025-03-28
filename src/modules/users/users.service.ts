@@ -42,7 +42,11 @@ export class UsersService {
       throw new HttpException('Email already in use', HttpStatus.CONFLICT);
     }
 
-    const newUser = this.userRepository.create(createUserDto);
+    const newUser = this.userRepository.create({
+      ...createUserDto,
+      status: 'active',
+      isVerified: true,
+    });
     return this.userRepository.save(newUser);
   }
 

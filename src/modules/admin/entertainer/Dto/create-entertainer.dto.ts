@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsNumber,
+} from 'class-validator';
 
 export class CreateEntertainerDto {
   @ApiProperty({ description: 'Name of the entertainer' })
@@ -59,6 +65,18 @@ export class CreateEntertainerDto {
   @ApiProperty({ description: 'Status of Entertainer' })
   @IsString()
   status: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  city: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  state: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  country: number;
 
   @IsNumber()
   @IsNotEmpty()

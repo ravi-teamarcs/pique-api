@@ -70,7 +70,7 @@ export class ReportService {
 
     try {
       const currentDate = new Date();
-
+    
       let fromDate: Date, toDate: Date;
 
       if (from) {
@@ -128,8 +128,6 @@ export class ReportService {
           'entertainer.name AS entertainer_name',
           'entertainer.bio AS entertainer_bio',
 
-          // User Table
-
           // Invoice Table
           'invoice.id AS ent_invoice_id',
           'invoice.total_with_tax AS ent_total_amount',
@@ -144,6 +142,10 @@ export class ReportService {
           'inv.invoice_number AS venue_invoice_number',
           'inv.payment_method AS venue_payment_method',
           'inv.payment_date AS venue_payment_date',
+
+          // Extracting Venue and Entertainer Confirmation Dates
+          'log.venue_confirmation_date',
+          'log.entertainer_confirmation_date',
         ])
         .where('event.createdAt BETWEEN :from AND :to', {
           from: fromDate,
@@ -163,13 +165,35 @@ export class ReportService {
           'invoice',
           'invoice.user_id = booking.entertainerUserId',
         )
-        .leftJoin('invoices', 'inv', 'inv.user_id = booking.venueUserId');
+        .leftJoin('invoices', 'inv', 'inv.user_id = booking.venueUserId')
+
+        // Fix: Single LEFT JOIN with Conditional Aggregation for Booking Log
+        .leftJoin(
+          (qb) =>
+            qb
+              .select('booking_log.bookingId', 'bookingId')
+              .addSelect(
+                "MAX(CASE WHEN booking_log.performedBy = 'venue' AND booking_log.status = 'confirmed' THEN booking_log.createdAt ELSE NULL END)",
+                'venue_confirmation_date',
+              )
+              .addSelect(
+                "MAX(CASE WHEN booking_log.performedBy = 'entertainer' AND booking_log.status = 'accepted' THEN booking_log.createdAt ELSE NULL END)",
+                'entertainer_confirmation_date',
+              )
+              .from('booking_log', 'booking_log')
+              .groupBy('booking_log.bookingId'),
+          'log',
+          'log.bookingId = booking.id',
+        );
+
       const eventDetails = await res
         .orderBy('event.createdAt', 'DESC')
         .limit(limit)
         .take(take)
         .getRawMany();
+
       const totalCount = await res.getCount();
+
       return {
         data: eventDetails,
         pagination: {
