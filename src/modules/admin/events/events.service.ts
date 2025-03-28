@@ -28,10 +28,17 @@ export class EventService {
     page,
     pageSize,
     search,
+    status,
   }: {
     page: number;
     pageSize: number;
     search: string;
+    status:
+    | 'unpublished'
+    | 'scheduled'
+    | 'confirmed'
+    | 'cancelled'
+    | 'completed'
   }): Promise<{
     message: string;
     records: Event[];
@@ -40,7 +47,7 @@ export class EventService {
   }> {
     const skip = (page - 1) * pageSize; // Calculate records to skip
 
-    const res = this.eventRepository
+    const query = this.eventRepository
       .createQueryBuilder('event')
       .leftJoin('venue', 'venue', 'venue.id = event.venueId') // Explicit join on venue
       .select([
@@ -62,8 +69,13 @@ export class EventService {
         search: `%${search}%`,
       });
 
-    const totalCount = await res.getCount();
-    const records = await res
+    // ✅ Corrected status condition
+    if (status !== undefined && status !== null) {
+      query.andWhere('event.status = :status', { status });
+    }
+
+    const totalCount = await query.getCount();
+    const records = await query
       .orderBy('event.id', 'DESC')
       .skip(skip)
       .take(pageSize)

@@ -70,16 +70,38 @@ export class ReportService {
 
     try {
       const currentDate = new Date();
-    
+
       let fromDate: Date, toDate: Date;
+
+      // if (from) {
+      //   const [fromYear, fromMonth] = from.split('-').map(Number);
+      //   fromDate = new Date(fromYear, fromMonth - 1, 1, 0, 0, 0);
+      // } else {
+      //   fromDate = new Date(
+      //     currentDate.getFullYear(),
+      //     currentDate.getMonth() - 1,
+      //     1,
+      //     0,
+      //     0,
+      //     0,
+      //   );
+      // }
+
+      // if (to) {
+      //   const [toYear, toMonth] = to.split('-').map(Number);
+      //   toDate = new Date(toYear, toMonth, 0, 23, 59, 59); // Last day of `to` month
+      // } else {
+      //   toDate = new Date();
+      // }
 
       if (from) {
         const [fromYear, fromMonth] = from.split('-').map(Number);
         fromDate = new Date(fromYear, fromMonth - 1, 1, 0, 0, 0);
       } else {
+        // Default: First day of the current month
         fromDate = new Date(
           currentDate.getFullYear(),
-          currentDate.getMonth() - 1,
+          currentDate.getMonth(),
           1,
           0,
           0,
@@ -89,10 +111,37 @@ export class ReportService {
 
       if (to) {
         const [toYear, toMonth] = to.split('-').map(Number);
-        toDate = new Date(toYear, toMonth, 0, 23, 59, 59); // Last day of `to` month
+
+        if (
+          toYear === currentDate.getFullYear() &&
+          toMonth === currentDate.getMonth() + 1
+        ) {
+          // If the `to` month is the current month, return data only until today
+          toDate = new Date(
+            currentDate.getFullYear(),
+            currentDate.getMonth(),
+            currentDate.getDate(),
+            23,
+            59,
+            59,
+          );
+        } else {
+          // Otherwise, return the last day of the selected `to` month
+          toDate = new Date(toYear, toMonth, 0, 23, 59, 59);
+        }
       } else {
-        toDate = new Date();
+        // Default: Current date (today)
+        toDate = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth(),
+          currentDate.getDate(),
+          23,
+          59,
+          59,
+        );
       }
+
+      console.log({ fromDate, toDate });
 
       // Apply pagination
       const take = (page - 1) * limit;

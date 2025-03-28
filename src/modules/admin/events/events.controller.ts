@@ -42,8 +42,15 @@ export class EventController {
     @Query('page') page: number = 1,
     @Query('pageSize') pageSize: number = 10,
     @Query('search') search: string = '',
+    @Query('status')
+    status:
+      | 'unpublished'
+      | 'scheduled'
+      | 'confirmed'
+      | 'cancelled'
+      | 'completed',
   ) {
-    return this.eventService.findAll({ page, pageSize, search });
+    return this.eventService.findAll({ page, pageSize, search, status });
   }
 
   @Roles('super-admin')
