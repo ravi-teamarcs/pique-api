@@ -48,7 +48,8 @@ export class EventController {
       | 'scheduled'
       | 'confirmed'
       | 'cancelled'
-      | 'completed',
+      | 'completed'
+      | '',
   ) {
     return this.eventService.findAll({ page, pageSize, search, status });
   }

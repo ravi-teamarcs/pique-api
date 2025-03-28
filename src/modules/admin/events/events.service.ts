@@ -34,11 +34,12 @@ export class EventService {
     pageSize: number;
     search: string;
     status:
-    | 'unpublished'
-    | 'scheduled'
-    | 'confirmed'
-    | 'cancelled'
-    | 'completed'
+      | 'unpublished'
+      | 'scheduled'
+      | 'confirmed'
+      | 'cancelled'
+      | 'completed'
+      | '';
   }): Promise<{
     message: string;
     records: Event[];
@@ -46,6 +47,8 @@ export class EventService {
     status: boolean;
   }> {
     const skip = (page - 1) * pageSize; // Calculate records to skip
+
+    console.log('Status:', status);
 
     const query = this.eventRepository
       .createQueryBuilder('event')
@@ -69,8 +72,8 @@ export class EventService {
         search: `%${search}%`,
       });
 
-    // ✅ Corrected status condition
-    if (status !== undefined && status !== null) {
+    // ✅ Apply status filter only if it's a valid value
+    if (status) {
       query.andWhere('event.status = :status', { status });
     }
 
@@ -79,12 +82,12 @@ export class EventService {
       .orderBy('event.id', 'DESC')
       .skip(skip)
       .take(pageSize)
-      .getRawMany();
+      .getRawMany(); // ✅ Correct way to fetch raw selected fields
 
     return {
       message: 'Events fetched successfully',
       records,
-      total: totalCount, // Paginated entertainers
+      total: totalCount, // Paginated results
       status: true,
     };
   }
