@@ -16,6 +16,7 @@ import { Wishlist } from './entities/wishlist.entity';
 import { VenueDetailsController } from './venue.details.controller';
 import { VenueDetailService } from './venue.details.service';
 import { VenueDetails } from './entities/venue.details.entity';
+import { MediaModule } from '../media/media.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { VenueDetails } from './entities/venue.details.entity';
       VenueDetails,
     ]),
     BookingModule,
+    MediaModule,
   ],
   controllers: [VenueController, VenueDetailsController],
   providers: [VenueService, VenueDetailService],

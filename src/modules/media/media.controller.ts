@@ -9,15 +9,17 @@ import {
   Query,
   Req,
   Request,
+  // UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { MediaService } from './media.service';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   AnyFilesInterceptor,
   FileFieldsInterceptor,
+  FileInterceptor,
 } from '@nestjs/platform-express';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -74,7 +76,7 @@ export class MediaController {
     let uploadedFiles: UploadedFile[] = [];
 
     const { userId } = req.user;
-
+    console.log('Files Inside ', files);
     if (files.length > 0) {
       uploadedFiles = await Promise.all(
         files.map(async (file) => {
@@ -88,12 +90,52 @@ export class MediaController {
       );
     }
 
-    return this.mediaService.handleMediaUpload(
-      userId,
-      uploadedFiles,
-      uploaddto,
-    );
+    // return this.mediaService.handleMediaUpload(
+    //   userId,
+    //   uploadedFiles,
+    //   uploaddto,
+    // );
   }
+
+  // @Post('uploads')
+  // @ApiOperation({
+  //   summary: 'Upload User Multimedia',
+  // })
+  // @ApiResponse({ status: 201, description: 'Media uploaded successfully.' })
+  // @ApiConsumes('multipart/form-data')
+  // @UseInterceptors(FileInterceptor('file'))
+  // @ApiBearerAuth()
+  // async uploadMedia(
+  //   @Req() req: Request,
+  //   @UploadedFile() file: Express.Multer.File,
+  //   @Body() uploaddto: UploadMedia,
+  // ) {
+  //   if(!file){
+  //     throw new BadRequestException('No files uploaded');
+  //   }
+  //   // const { userId } = req.user;
+  //   // console.log('Files Inside ', file);
+  //   // if (file.length > 0) {
+  //   //   uploadedFiles = await Promise.all(
+  //   //     files.map(async (file) => {
+  //   //       const filePath = await uploadFile(file); // Wait for the upload
+  //   //       return {
+  //   //         url: filePath,
+  //   //         name: file.originalname,
+  //   //         type: typeMap[file.fieldname],
+  //   //       };
+  //   //     }),
+  //   //   );
+  //   // }
+
+  //   // return this.mediaService.handleMediaUpload(
+  //   //   userId,
+  //   //   uploadedFiles,
+  //   //   uploaddto,
+  //   // );
+
+  // }
+
 
   @Get('uploads')
   @ApiOperation({

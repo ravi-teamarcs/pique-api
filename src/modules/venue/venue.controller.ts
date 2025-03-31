@@ -13,6 +13,9 @@ import {
   ParseIntPipe,
   ValidationPipe,
   UsePipes,
+  BadRequestException,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { VenueService } from './venue.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
@@ -36,6 +39,10 @@ import { ChangeBooking } from './dto/change-booking.dto';
 import { VenueLocationDto } from './dto/add-location.dto';
 import { Data } from './dto/search-filter.dto';
 import { WishlistDto } from './dto/wishlist.dto';
+import { typeMap } from 'src/common/constants/media.constants';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { UploadedFile } from 'src/common/types/media.type';
+import { uploadFile } from 'src/common/middlewares/multer.middleware';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -46,15 +53,72 @@ export class VenueController {
     private readonly venueService: VenueService,
     private readonly bookingService: BookingService,
   ) {}
-
+  @Roles('findAll')
   @Post()
-  @Roles('findAll') // Only users with the 'venue' role can access this route
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      fileFilter: (req, file, callback) => {
+        // Check file type from typeMap
+        const fileType = typeMap[file.fieldname];
+
+        if (!fileType) {
+          return callback(
+            new BadRequestException({
+              message: 'Invalid file field name',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        // Restrict video file size to 500MB
+        if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
+          return callback(
+            new BadRequestException({
+              message: 'Video file size cannot exceed 500 MB',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        callback(null, true);
+      },
+    }),
+  )
+
+  // Only users with the 'venue' role can access this route
   @ApiOperation({ summary: 'Create a venue' })
   @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async create(@Body() venueDto: CreateVenueDto, @Request() req) {
+  async create(
+    @Body() venueDto: CreateVenueDto,
+    @Request() req,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
     const { userId } = req.user;
-    return this.venueService.create(venueDto, userId);
+
+    let uploadedFiles: UploadedFile[] = [];
+
+    console.log('Files Inside ', files);
+    if (files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: typeMap[file.fieldname],
+          };
+        }),
+      );
+    }
+    console.log('VEnue Dto', venueDto);
+    return this.venueService.createVenueWithMedia(
+      venueDto,
+      userId,
+      uploadedFiles,
+    );
   }
 
   @Get()

@@ -21,6 +21,15 @@ async function bootstrap() {
   //writeFileSync('./swagger.json', JSON.stringify(document, null, 2));
   // Setup Swagger module
 
+  // Middleware  Process Total Request Time  (Middleware + Controller execution Time + DB Query execution Time + Response sent to Client.)
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      console.log(`${req.method} ${req.url} - ${duration}ms`);
+    });
+    next();
+  });
   SwaggerModule.setup('api-docs', app, document);
   const res = await app.listen(process.env.PORT ?? 3000);
   console.log(`Server is running on ${res.address().port}`);

@@ -51,7 +51,7 @@ export class EntertainerController {
   create(@Body() createEntertainerDto: CreateEntertainerDto): Promise<any> {
     return this.EntertainerService.create(createEntertainerDto);
   }
-
+  // This need to be  changed
   @Roles('super-admin', 'entertainer-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)

@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Like, Repository } from 'typeorm';
+import { Brackets, DataSource, Like, Repository } from 'typeorm';
 import { Venue } from './entities/venue.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
@@ -23,6 +23,8 @@ import { instanceToPlain } from 'class-transformer';
 import { Wishlist } from './entities/wishlist.entity';
 import { WishlistDto } from './dto/wishlist.dto';
 import { ConfigService } from '@nestjs/config';
+import { UploadedFile } from 'src/common/types/media.type';
+import { MediaService } from '../media/media.service';
 
 @Injectable()
 export class VenueService {
@@ -42,28 +44,99 @@ export class VenueService {
     @InjectRepository(Wishlist)
     private readonly wishRepository: Repository<Wishlist>,
     private readonly config: ConfigService,
+    private readonly mediaService: MediaService,
+    private readonly dataSource: DataSource,
   ) {}
 
-  async create(createVenueDto: CreateVenueDto, userId: number) {
+  // async create(
+  //   createVenueDto: CreateVenueDto,
+  //   userId: number,
+  //   uploadedFiles: UploadedFile[],
+  // ) {
+  //   const venueExists = await this.venueRepository.findOne({
+  //     where: { user: { id: userId } },
+  //   });
+
+  //   if (venueExists) {
+  //     throw new BadRequestException({
+  //       message: 'Venue already exists for the user',
+  //       status: false,
+  //     });
+  //   }
+  //   const venue = this.venueRepository.create({
+  //     ...createVenueDto,
+  //     user: { id: userId },
+  //     parentId: null,
+  //     isParent: true,
+  //   });
+  //   const saved = await this.venueRepository.save(venue);
+
+  //   await this.mediaService.handleMediaUpload(userId, uploadedFiles, {
+  //     venueId: saved.id,
+  //   });
+
+  //   return { message: 'Venue created successfully', venue, status: true };
+  // }
+
+  // New Method to create Venue with Media
+  async createVenueWithMedia(
+    dto: CreateVenueDto,
+    userId: number,
+    uploadedFiles: UploadedFile[],
+  ) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+
+    await queryRunner.startTransaction();
+
     const venueExists = await this.venueRepository.findOne({
       where: { user: { id: userId } },
     });
-    console.log('venue exists', venueExists);
+
     if (venueExists) {
       throw new BadRequestException({
         message: 'Venue already exists for the user',
         status: false,
       });
     }
-    const venue = this.venueRepository.create({
-      ...createVenueDto,
-      user: { id: userId },
-      parentId: null,
-      isParent: true,
-    });
-    await this.venueRepository.save(venue);
 
-    return { message: 'Venue created successfully', venue, status: true };
+    try {
+      const venue = this.venueRepository.create({
+        ...dto,
+        user: { id: userId },
+        parentId: null,
+        isParent: true,
+      });
+
+      const savedVenue = await queryRunner.manager.save(venue);
+
+      // Step 2: Upload media (calls external service)
+      const mediaUploadResult = await this.mediaService.handleMediaUpload(
+        userId,
+        uploadedFiles,
+        {
+          venueId: savedVenue.id,
+        },
+      );
+
+      // Step 3: Commit transaction if everything is successful
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Venue is Successfully creates with media',
+        data: dto,
+        status: true,
+      };
+    } catch (error) {
+      // Step 4: Rollback transaction if anything fails
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException({
+        error: error.message,
+        status: false,
+      });
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async findAllByUser(userId: number) {
