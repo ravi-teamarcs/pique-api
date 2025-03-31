@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import { CreateEntertainerDto } from './dto/create-entertainer.dto';
 import { UpdateEntertainerDto } from './dto/update-entertainer.dto';
 import { Entertainer } from './entities/entertainer.entity';
@@ -18,6 +18,8 @@ import { Media } from '../media/entities/media.entity';
 import { DashboardDto } from './dto/dashboard.dto';
 import { Invoice } from '../invoice/entities/invoice.entity';
 import { ConfigService } from '@nestjs/config';
+import { MediaService } from '../media/media.service';
+import { UploadedFile } from 'src/common/types/media.type';
 
 @Injectable()
 export class EntertainerService {
@@ -37,8 +39,11 @@ export class EntertainerService {
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
     private readonly config: ConfigService,
+    private readonly dataSource: DataSource,
+    private readonly mediaService: MediaService,
   ) {}
 
+  // Old Method
   async create(createEntertainerDto: CreateEntertainerDto, userId: number) {
     const existingEntertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
@@ -63,6 +68,61 @@ export class EntertainerService {
       status: true,
       entertainer,
     };
+  }
+
+  // New Method for  Create Entertainer
+  async createEntertainerWithMedia(
+    dto: CreateEntertainerDto,
+    userId: number,
+    uploadedFiles: UploadedFile[],
+  ) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    const existingEntertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    if (existingEntertainer) {
+      throw new BadRequestException({
+        message: 'Entertainer already exists for the user',
+        status: false,
+      });
+    }
+
+    try {
+      const entertainer = this.entertainerRepository.create({
+        ...dto,
+        user: { id: userId },
+      });
+
+      await this.entertainerRepository.save(entertainer);
+
+      // Step 2: Upload media (calls external service)
+      const mediaUploadResult = await this.mediaService.handleMediaUpload(
+        userId,
+        uploadedFiles,
+      );
+
+      // Step 3: Commit transaction if everything is successful
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Entertainer saved Successfully',
+        status: true,
+        entertainer,
+      };
+    } catch (error) {
+      // Step 4: Rollback transaction if anything fails
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException({
+        error: error.message,
+        status: false,
+      });
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async findAll(userId: number) {

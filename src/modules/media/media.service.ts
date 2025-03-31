@@ -21,10 +21,8 @@ export class MediaService {
   async handleMediaUpload(
     userId: number,
     uploadedFiles: UploadedFile[],
-    dto: UploadMedia,
+    dto?: UploadMedia,
   ) {
-    console.log('Inside Media Service');
-    console.log(uploadedFiles);
     const { venueId = null, eventId = null } = dto;
     try {
       for (const file of uploadedFiles) {

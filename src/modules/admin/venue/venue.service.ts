@@ -31,7 +31,10 @@ export class VenueService {
   }) {
     const skip = (page - 1) * pageSize; // Calculate records to skip
     const [records, total] = await this.venueRepository.findAndCount({
-      where: search ? { name: Like(`%${search}%`) } : {}, // Search by name
+      where: {
+        isParent: true,
+        ...(search ? { name: Like(`%${search}%`) } : {}), // Search by name if provided
+      },
       skip,
       take: pageSize,
       order: { id: 'DESC' },

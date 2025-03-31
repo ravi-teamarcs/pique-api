@@ -11,6 +11,9 @@ import {
   Put,
   Req,
   Query,
+  BadRequestException,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -30,6 +33,10 @@ import { BookingService } from '../booking/booking.service';
 import { ResponseDto } from '../booking/dto/booking-response-dto';
 import { Category } from './entities/categories.entity';
 import { DashboardDto } from './dto/dashboard.dto';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { typeMap } from 'src/common/constants/media.constants';
+import { UploadedFile } from 'src/common/types/media.type';
+import { uploadFile } from 'src/common/middlewares/multer.middleware';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -43,15 +50,70 @@ export class EntertainerController {
 
   @Roles('findAll') // Only users with the 'venue' role can access this route
   @Post()
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      fileFilter: (req, file, callback) => {
+        // Check file type from typeMap
+        const fileType = typeMap[file.fieldname];
+
+        if (!fileType) {
+          return callback(
+            new BadRequestException({
+              message: 'Invalid file field name',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        // Restrict video file size to 500MB
+        if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
+          return callback(
+            new BadRequestException({
+              message: 'Video file size cannot exceed 500 MB',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        callback(null, true);
+      },
+    }),
+  )
   @ApiOperation({ summary: 'Create a entertainer' })
   @ApiResponse({
     status: 201,
     description: 'entertainer created.',
   })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  create(@Body() createEntertainerDto: CreateEntertainerDto, @Req() req) {
+  async create(
+    @Body() dto: CreateEntertainerDto,
+    @Req() req,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
     const { userId } = req.user;
-    return this.entertainerService.create(createEntertainerDto, userId);
+    console.log('Inside Entertainer', files);
+    let uploadedFiles: UploadedFile[] = [];
+
+    console.log('Files Inside ', files);
+    if (files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: typeMap[file.fieldname],
+          };
+        }),
+      );
+    }
+    return this.entertainerService.createEntertainerWithMedia(
+      dto,
+      userId,
+      uploadedFiles,
+    );
   }
 
   @Roles('findAll')

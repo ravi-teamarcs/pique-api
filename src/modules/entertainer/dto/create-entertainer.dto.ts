@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsNotEmpty, IsString, IsNumber, IsEnum } from 'class-validator';
 import {
   Availability,
@@ -18,6 +19,7 @@ export class CreateEntertainerDto {
   @ApiProperty({ example: 1, description: 'Category  of the entertainer' })
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   category: number;
 
   @ApiProperty({
@@ -26,6 +28,7 @@ export class CreateEntertainerDto {
   })
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   specific_category: number;
 
   @ApiProperty({
@@ -73,6 +76,7 @@ export class CreateEntertainerDto {
     description: 'Price per Event Entertainer Charges',
   })
   @IsNumber()
+  @Transform(({ value }) => Number(value))
   pricePerEvent: number;
 
   @ApiProperty({

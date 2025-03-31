@@ -17,6 +17,7 @@ import { Rating } from './entities/rating.entity';
 import { RatingsService } from './rating.service';
 import { RatingsController } from './rating.controller';
 import { Invoice } from '../invoice/entities/invoice.entity';
+import { MediaModule } from '../media/media.module';
 // import { VenueService } from '../venue/venue.service';
 
 @Module({
@@ -35,6 +36,7 @@ import { Invoice } from '../invoice/entities/invoice.entity';
       Invoice,
     ]),
     BookingModule,
+    MediaModule,
   ],
   controllers: [EntertainerController, RatingsController],
   providers: [EntertainerService, RatingsService],
