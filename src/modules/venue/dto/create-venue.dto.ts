@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, IsNumber } from 'class-validator';
+import { IsNotEmpty, IsString, IsNumber, IsOptional } from 'class-validator';
 
 export class CreateVenueDto {
   @ApiProperty({ example: 'Radisson Blu', description: 'Name of the Venue' })
@@ -30,6 +30,7 @@ export class CreateVenueDto {
   })
   @IsString()
   @IsNotEmpty()
+  @IsOptional()
   description: string;
 
   @ApiProperty({ example: 23, description: 'Venue City' })

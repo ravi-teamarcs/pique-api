@@ -33,7 +33,7 @@ export class Venue {
   @Column()
   addressLine2: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   description: string;
 
   @Column()

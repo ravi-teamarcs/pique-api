@@ -103,6 +103,7 @@ export class VenueService {
     try {
       const venue = this.venueRepository.create({
         ...dto,
+        description: 'New Venue',
         user: { id: userId },
         parentId: null,
         isParent: true,
