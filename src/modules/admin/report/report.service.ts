@@ -70,7 +70,7 @@ export class ReportService {
   }
 
   async getEventData(query: Report) {
-    const { page = 1, limit = 10, from, to } = query;
+    const { page = 1, limit = 10, from, to, search = '' } = query;
 
     try {
       const currentDate = new Date();
@@ -206,6 +206,12 @@ export class ReportService {
           'log',
           'log.bookingId = booking.id',
         );
+
+      if (search) {
+        res.andWhere('LOWER(event.title) LIKE LOWER(:search)', {
+          search: `%${search}%`,
+        });
+      }
 
       // Fetch paginated results
       const eventDetails = await res

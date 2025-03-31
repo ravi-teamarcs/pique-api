@@ -97,7 +97,7 @@ export class VenueController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     const { userId } = req.user;
-
+     console.log("Venue Data" , venueDto , "Files" ,files);
     let uploadedFiles: UploadedFile[] = [];
 
     console.log('Files Inside ', files);

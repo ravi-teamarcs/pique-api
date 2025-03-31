@@ -24,4 +24,9 @@ export class Report {
   @IsOptional()
   @IsString()
   to: string;
+
+  @ApiProperty({ description: 'Search on the name of event.', required: false })
+  @IsOptional()
+  @IsString()
+  search: string;
 }
