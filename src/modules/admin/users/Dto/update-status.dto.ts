@@ -1,11 +1,31 @@
-import { IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsIn,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+} from 'class-validator';
 
 export class UpdateStatusDto {
-  @IsNumber()
+  // @IsNumber()
+  // @IsNotEmpty()
+  // userId: number;
+
+  //   @IsIn(['active', 'pending', 'inactive'])
+  //   @IsString()
+  //   @IsNotEmpty()
+  //   status: 'active' | 'pending' | 'inactive';
+
+  @IsArray()
+  @IsInt({ each: true })
   @IsNotEmpty()
-  userId: number;
-  @IsIn(['active', 'pending', 'inactive'])
-  @IsString()
+  ids: number[];
+
+  @IsEnum(['active', 'inactive', 'pending'], {
+    message: 'Invalid status value',
+  })
   @IsNotEmpty()
-  status: 'active' | 'pending' | 'inactive';
+  status: 'active' | 'inactive' | 'pending';
 }

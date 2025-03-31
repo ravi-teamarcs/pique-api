@@ -89,6 +89,7 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Patch()
   async updateStatus(@Body() dto: UpdateStatusDto) {
-    return this.userService.updateUserStatus(dto);
+    // return this.userService.updateUserStatus(dto);
+    return this.userService.updateStatus(dto);
   }
 }

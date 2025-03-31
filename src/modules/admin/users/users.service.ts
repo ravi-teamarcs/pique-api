@@ -6,7 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Not, Repository } from 'typeorm';
+import { In, Like, Not, Repository } from 'typeorm';
 import { User } from './entities/users.entity';
 import { UpdateStatusDto } from './Dto/update-status.dto';
 import { UpdateUserDto } from './Dto/update-user.dto';
@@ -123,27 +123,68 @@ export class UsersService {
     return `User with ID ${id} updated successfully.`;
   }
 
-  async updateUserStatus(dto: UpdateStatusDto) {
-    const { userId, status } = dto;
+  // async updateUserStatus(dto: UpdateStatusDto) {
+  //   const { userId, status } = dto;
 
-    const user = await this.userRepository.findOne({ where: { id: userId } });
-    if (!user) {
-      throw new NotFoundException({
-        message: `User with ID ${userId} not found.`,
-        status: false,
-      });
+  //   const user = await this.userRepository.findOne({ where: { id: userId } });
+  //   if (!user) {
+  //     throw new NotFoundException({
+  //       message: `User with ID ${userId} not found.`,
+  //       status: false,
+  //     });
+  //   }
+
+  //   try {
+  //     await this.userRepository.update({ id: userId }, { status });
+
+  //     return { message: 'User status Updated', status: true };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: 'Error in updating user status',
+  //       error: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+  async updateStatus(updateStatusDto: UpdateStatusDto): Promise<string> {
+    let { ids, status } = updateStatusDto;
+
+    // Validate the provided IDs: Check if all IDs exist in the database
+    const usersToUpdate = await this.userRepository.find({
+      where: { id: In(ids) },
+    });
+
+    // If no users found, throw an error
+    if (usersToUpdate.length === 0) {
+      throw new Error('No valid users found with the provided IDs.');
     }
 
+    // Ensure all IDs are unique and in the database (check for missing ones)
+    const invalidIds = ids.filter(
+      (id) => !usersToUpdate.some((user) => user.id === id),
+    );
+    if (invalidIds.length > 0) {
+      throw new Error(`Invalid user IDs: ${invalidIds.join(', ')}`);
+    }
+    const validStatuses = ['active', 'inactive', 'pending'];
+    if (!validStatuses.includes(status)) {
+      throw new Error('Invalid status value');
+    }
+    // Perform the status update using a transaction for atomic operation
     try {
-      await this.userRepository.update({ id: userId }, { status });
+      const result = await this.userRepository.update(
+        { id: In(ids) },
+        { status: status },
+      );
 
-      return { message: 'User status Updated', status: true };
+      // If no users were updated, throw an error
+      if (result.affected === 0) {
+        throw new Error('No users found with the given IDs');
+      }
+
+      return `${result.affected} users updated to ${status}`;
     } catch (error) {
-      throw new InternalServerErrorException({
-        message: 'Error in updating user status',
-        error: error.message,
-        status: false,
-      });
+      throw new Error(`Failed to update users: ${error.message}`);
     }
   }
 }
