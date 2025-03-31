@@ -76,6 +76,14 @@ export class InvoiceService {
         'eve.title AS event_name',
       ])
       .orderBy('invoices.id', 'DESC');
+    if (search) {
+      queryBuilder.andWhere(
+        'LOWER(invoices.invoice_number) LIKE LOWER(:search)',
+        {
+          search: `%${search}%`,
+        },
+      );
+    }
 
     const records = await queryBuilder.getRawMany();
     const total = await queryBuilder.getCount();
