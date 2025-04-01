@@ -593,6 +593,7 @@ export class ReportService {
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     );
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
 
     // Stream the file to the response
     readStream.pipe(res);

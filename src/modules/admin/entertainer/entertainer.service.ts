@@ -36,8 +36,8 @@ export class EntertainerService {
 
     const [records, total] = await this.entertainerRepository.findAndCount({
       where: {
-        ...(search ? { name: Like(`%${search}%`) } : {}), // Filter by name if search is provided
-        status: In(['active', 'available']),
+        ...(search ? { name: Like(`%${search}%`) } : {}), // Filter by name if
+        status: In(['pending']),
       },
       relations: ['user'], // Include the related `User` entity
       skip, // Pagination: records to skip
