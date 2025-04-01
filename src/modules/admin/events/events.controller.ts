@@ -90,4 +90,11 @@ export class EventController {
   ): Promise<Booking[]> {
     return this.eventService.findBooking(eventId);
   }
+  // @Roles('super-admin')
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  // @Get('upcoming')
+  // async getUpcomingEvent({
+  //   return this.eventService.findBooking(eventId);
+  // }
 }

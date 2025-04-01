@@ -73,6 +73,7 @@ export class EventService {
         'venue.name AS venueName',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
+        'venue.phone AS phone',
       ])
       .where(search ? 'event.title LIKE :search' : '1=1', {
         search: `%${search}%`,
@@ -120,6 +121,7 @@ export class EventService {
         'event.isAdmin As isAdmin', // Select all event fields
         'venue.id As vid',
         'venue.name AS vname',
+        'venue.phone AS phone',
         'addressLine1 As addressLine1',
         'addressLine2 As addressLine2',
         'zipCode AS zipCode',
@@ -188,4 +190,36 @@ export class EventService {
 
     return bookings;
   }
+
+  // async getUpcomingEvent() {
+  //   try {
+  //     const events = await this.eventRepository
+  //       .createQueryBuilder('booking')
+  //       .leftJoin('event', 'event', 'event.id = booking.eventId')
+  //       .leftJoin('media', 'media', 'media.eventId = booking.eventId')
+  //       .where('booking.entertainerUserId = :userId', { userId })
+  //       .andWhere('booking.status = :status', { status: 'confirmed' })
+  //       .select([
+  //         'booking.id AS bookingId',
+  //         'event.id AS id',
+  //         'event.title AS title',
+  //         'event.location AS location',
+  //         'event.status AS status',
+  //         'event.description AS description',
+  //         'event.startTime AS startTime',
+  //         'event.endTime AS endTime',
+  //         'event.status AS status',
+  //         'event.recurring AS recurring',
+  //         `COALESCE(CONCAT(:baseUrl, media.url), :defaultMediaUrl) AS image_url`,
+  //       ])
+  //       .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
+  //       .setParameter('defaultMediaUrl', URL)
+  //       .getRawMany();
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: true,
+  //     });
+  //   }
+  // }
 }
