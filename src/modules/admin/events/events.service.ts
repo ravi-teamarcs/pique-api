@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
 
@@ -128,10 +133,24 @@ export class EventService {
   }
 
   // Update an event by id
-  async update(id: number, createEventDto: CreateEventDto): Promise<Event> {
-    const event = await this.findOne(id);
-    Object.assign(event, createEventDto);
-    return this.eventRepository.save(event);
+  async update(id: number, dto: CreateEventDto) {
+    const event = await this.eventRepository.findOne({ where: { id } });
+    if (!event) {
+      throw new BadRequestException({
+        message: 'Event not found',
+        status: false,
+      });
+    }
+
+    try {
+      await this.eventRepository.update({ id: event.id }, dto); // Update event with provided data
+      return { message: 'Event updated successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 
   // Delete an event by id

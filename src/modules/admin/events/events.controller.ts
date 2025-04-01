@@ -69,8 +69,8 @@ export class EventController {
   async update(
     @Param('id') id: number,
     @Body() createEventDto: CreateEventDto,
-  ): Promise<Event> {
-    return this.eventService.update(id, createEventDto);
+  ) {
+    return this.eventService.update(Number(id), createEventDto);
   }
 
   @Roles('super-admin')
