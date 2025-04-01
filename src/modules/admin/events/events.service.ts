@@ -10,6 +10,8 @@ import { Like, Repository } from 'typeorm';
 import { CreateEventDto } from './dto/create-event.dto';
 import { Event } from './entities/event.entity';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
+import { GetEventDto } from './dto/get-event.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EventService {
@@ -18,6 +20,7 @@ export class EventService {
     private readonly eventRepository: Repository<Event>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    private readonly config: ConfigService,
   ) {}
 
   // Create a new event
@@ -191,18 +194,51 @@ export class EventService {
     return bookings;
   }
 
-  async getUpcomingEvent() {
-    const date = Date.now();
+  async getUpcomingEvent(query: GetEventDto) {
+    const { page = 1, pageSize = 10 } = query;
+
+    const skip = (Number(page) - 1) * Number(pageSize);
     try {
-      const events = await this.eventRepository
+      const URL =
+        'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+      const events = this.eventRepository
         .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'event.venueId = venue.id')
+        .leftJoin('media', 'media', 'event.id = media.eventId')
         .where('event.startTime > :now', { now: new Date() })
-        .orderBy('event.startTime', 'ASC')
-        .getMany();
+        .select([
+          'event.id AS event_id',
+          'event.title AS title',
+          'event.location AS location',
+          'event.userId AS userId',
+          'event.description AS description',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'event.recurring AS recurring',
+          'event.status AS status',
+          'event.isAdmin AS isAdmin',
+          'venue.id AS venue_id',
+          'venue.name AS venue_name',
+          `COALESCE(CONCAT(:baseUrl, media.url), :defaultMediaUrl) AS image_url`,
+        ])
+        .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', URL)
+        .orderBy('event.startTime', 'ASC');
+
+      const totalCount = await events.getCount();
+
+      const results = await events
+        .skip(Number(skip))
+        .take(Number(pageSize))
+        .getRawMany();
 
       return {
         message: 'Events returned successfully',
-        data: events,
+        data: results,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
         status: true,
       };
     } catch (error) {

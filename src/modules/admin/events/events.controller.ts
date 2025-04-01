@@ -19,6 +19,7 @@ import { Booking } from 'src/modules/booking/entities/booking.entity';
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
+import { GetEventDto } from './dto/get-event.dto';
 
 @ApiTags('admin')
 @Controller('admin/events')
@@ -94,7 +95,7 @@ export class EventController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Get('upcoming')
-  async getUpcomingEvent() {
-    return this.eventService.getUpcomingEvent();
+  async getUpcomingEvent(@Query() query: GetEventDto) {
+    return this.eventService.getUpcomingEvent(query);
   }
 }
