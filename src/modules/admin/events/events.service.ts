@@ -191,35 +191,25 @@ export class EventService {
     return bookings;
   }
 
-  // async getUpcomingEvent() {
-  //   try {
-  //     const events = await this.eventRepository
-  //       .createQueryBuilder('booking')
-  //       .leftJoin('event', 'event', 'event.id = booking.eventId')
-  //       .leftJoin('media', 'media', 'media.eventId = booking.eventId')
-  //       .where('booking.entertainerUserId = :userId', { userId })
-  //       .andWhere('booking.status = :status', { status: 'confirmed' })
-  //       .select([
-  //         'booking.id AS bookingId',
-  //         'event.id AS id',
-  //         'event.title AS title',
-  //         'event.location AS location',
-  //         'event.status AS status',
-  //         'event.description AS description',
-  //         'event.startTime AS startTime',
-  //         'event.endTime AS endTime',
-  //         'event.status AS status',
-  //         'event.recurring AS recurring',
-  //         `COALESCE(CONCAT(:baseUrl, media.url), :defaultMediaUrl) AS image_url`,
-  //       ])
-  //       .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
-  //       .setParameter('defaultMediaUrl', URL)
-  //       .getRawMany();
-  //   } catch (error) {
-  //     throw new InternalServerErrorException({
-  //       message: error.message,
-  //       status: true,
-  //     });
-  //   }
-  // }
+  async getUpcomingEvent() {
+    const date = Date.now();
+    try {
+      const events = await this.eventRepository
+        .createQueryBuilder('event')
+        .where('event.startTime > :now', { now: new Date() })
+        .orderBy('event.startTime', 'ASC')
+        .getMany();
+
+      return {
+        message: 'Events returned successfully',
+        data: events,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: true,
+      });
+    }
+  }
 }
