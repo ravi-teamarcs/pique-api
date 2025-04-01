@@ -444,41 +444,41 @@ export class ReportService {
       groupedData[month].push(event);
     });
 
+    // Determine filename based on event date range
+    const months = Object.keys(groupedData);
+    const firstMonth = months[0]?.split(' ')[0] || 'Jan';
+    const lastMonth = months.slice(-1)[0]?.split(' ')[0] || 'Dec';
+    const yearShort = new Date().getFullYear().toString().slice(-2); // Get last 2 digits of the year
+    const fileName = `Event Report ${firstMonth}${yearShort}-${lastMonth}${yearShort}.xlsx`;
+    console.log('Download Name of File', fileName);
     const excelData: any[][] = [];
 
-    // Add empty rows for spacing
-    excelData.push([], [], []);
-
-    // Add Annual Report heading
-    excelData.push(['Annual Report']);
-    excelData.push([]); // Empty row for spacing
+    // Add Column Headers
+    excelData.push([
+      'SNo',
+      'Date',
+      'Time',
+      'Event',
+      'Location',
+      'Entertainer',
+      'Location Confirmation',
+      'Entertainer Confirmation',
+      'Venue Inv No',
+      'Amount',
+      'Payment Status',
+      'Payment Date',
+      'Payment Method',
+      'Cheque/DD No',
+      'Ent Invoice',
+      'Ent Payment',
+      'Ent Payment Status',
+      'Ent Payment Date',
+      'Ent Payment Method',
+      'Ent Cheque/DD No',
+    ]);
 
     // Iterate through grouped data
     Object.keys(groupedData).forEach((month) => {
-      excelData.push([month]); // Month Header
-      excelData.push([
-        'SrNo',
-        'Date',
-        'Time',
-        'Event',
-        'Location',
-        'Entertainer',
-        'Location Confirmation',
-        'Entertainer Confirmation',
-        'Venue Inv No',
-        'Amount',
-        'Payment Status',
-        'Payment Date', // ✅ No extra spaces
-        'Payment Method',
-        'Cheque/DD NO',
-        'Ent Invoice',
-        'Ent Payment',
-        'Ent Payment Status',
-        'Ent Payment Date', // ✅ No extra spaces
-        'Ent Payment Method',
-        'Ent Cheque/No.',
-      ]); // Column Headers
-
       groupedData[month].forEach((event, index) => {
         excelData.push([
           index + 1,
@@ -499,19 +499,27 @@ export class ReportService {
                 hour12: true,
               })
             : '',
-          event.event_title || '',
-          event.venue_name || '',
-          event.entertainer_name || '',
+          event.event_title?.trim() || '',
+          event.venue_name?.trim() || '',
+          event.entertainer_name?.trim() || '',
           event.venue_confirmation_date
             ? new Date(event.venue_confirmation_date).toLocaleDateString(
                 'en-GB',
-                { day: '2-digit', month: 'short', year: 'numeric' },
+                {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                },
               )
             : '',
           event.entertainer_confirmation_date
             ? new Date(event.entertainer_confirmation_date).toLocaleDateString(
                 'en-GB',
-                { day: '2-digit', month: 'short', year: 'numeric' },
+                {
+                  day: '2-digit',
+                  month: 'short',
+                  year: 'numeric',
+                },
               )
             : '',
           event.venue_invoice_number || '',
@@ -519,22 +527,21 @@ export class ReportService {
           event.venue_invoice_status || '',
           event.venue_payment_date || '',
           event.venue_payment_method || '',
-          '', // Cheque/DD NO - keeping it blank
+          '', // Cheque/DD NO
           event.ent_invoice_number || '',
           event.ent_total_amount || '',
           event.ent_payment_status || '',
           event.ent_payment_date || '',
           event.ent_payment_method || '',
-          'SBI89', // Static Cheque/No. (if applicable)
+          '', // Cheque/DD NO
         ]);
       });
-
-      excelData.push([]); // Add an empty row after each month section
     });
 
     // Create worksheet and workbook
     const worksheet = XLSX.utils.aoa_to_sheet(excelData);
 
+    // Set column widths for better formatting
     worksheet['!cols'] = [
       { wch: 5 }, // SrNo
       { wch: 12 }, // Date
@@ -547,19 +554,31 @@ export class ReportService {
       { wch: 15 }, // Venue Inv No
       { wch: 10 }, // Amount
       { wch: 15 }, // Payment Status
-      { wch: 15 }, // Payment Date ✅ Corrected spacing
+      { wch: 15 }, // Payment Date
       { wch: 20 }, // Payment Method
       { wch: 15 }, // Cheque/DD NO
       { wch: 15 }, // Ent Invoice
       { wch: 15 }, // Ent Payment
       { wch: 20 }, // Ent Payment Status
-      { wch: 15 }, // Ent Payment Date ✅ Corrected spacing
+      { wch: 15 }, // Ent Payment Date
       { wch: 20 }, // Ent Payment Method
       { wch: 15 }, // Ent Cheque/No.
     ];
 
+    // Apply bold formatting to header row
+    for (let col = 0; col <= 19; col++) {
+      const cellAddress = XLSX.utils.encode_cell({ r: 0, c: col });
+      if (worksheet[cellAddress]) {
+        worksheet[cellAddress].s = {
+          font: { bold: true, sz: 12 },
+          alignment: { horizontal: 'center', vertical: 'center' },
+          fill: { fgColor: { rgb: 'CCCCCC' } }, // Light gray background
+        };
+      }
+    }
+
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Annual Report');
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Event Report');
 
     // Generate buffer instead of saving to disk
     const buffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
@@ -569,7 +588,7 @@ export class ReportService {
     readStream.end(buffer);
 
     // Set response headers for file download
-    res.setHeader('Content-Disposition', 'attachment; filename="Report.xlsx"');
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
