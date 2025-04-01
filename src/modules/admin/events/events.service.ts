@@ -66,6 +66,7 @@ export class EventService {
         'event.endTime AS endTime',
         'event.status AS status',
         'event.recurring  AS recurring',
+        'event.description  AS description',
         'event.venueId AS venueId',
         'event.userId AS userId',
         'event.isAdmin AS isAdmin',

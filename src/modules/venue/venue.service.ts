@@ -416,14 +416,14 @@ export class VenueService {
   async findAllBooking(userId: number) {
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoinAndSelect('booking.user', 'user')
-      .leftJoinAndSelect('user.entertainer', 'entertainer')
+      .leftJoin('users', 'user', 'user.id = booking.entertainerUserId')
+      .leftJoin('entertainers', 'entertainer', 'entertainer.userId = user.id')
+
       .where('booking.venueUser.id = :userId', { userId })
       .select([
         'booking.id AS id',
         'booking.status AS status',
         'booking.showDate AS showDate',
-        'booking.isAccepted AS isAccepted',
         'booking.specialNotes AS specialNotes',
         'booking.venueId AS vid',
         'user.id AS eid',
