@@ -103,7 +103,7 @@ export class EventService {
     const event = await this.eventRepository
       .createQueryBuilder('event')
       .leftJoinAndSelect('venue', 'venue', 'venue.id = event.venueId')
-      .leftJoin('users', 'user', 'user.id = event.userId ')
+      .leftJoin('users', 'user', 'user.id = venue.userId ')
       .select([
         'user.id AS uid',
         'user.name AS username',
