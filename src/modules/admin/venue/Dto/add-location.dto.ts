@@ -10,7 +10,7 @@ import {
 export class AddLocationDto {
   @ApiProperty({ example: '7807446069', description: 'Phone of the Venue' })
   @IsString()
-  @IsNotEmpty()
+  @IsOptional()
   phone: string;
 
   @ApiProperty({ example: 1, description: 'Venue Id' })
@@ -23,7 +23,7 @@ export class AddLocationDto {
     description: 'Email of the Venue',
   })
   @IsEmail()
-  @IsNotEmpty()
+  @IsOptional()
   email: string;
 
   @ApiProperty({
