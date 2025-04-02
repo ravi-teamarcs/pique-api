@@ -97,11 +97,12 @@ export class AuthService {
     };
   }
 
+  // Needs Testing
   async generateOtp(email: string) {
-    const emailExists = await this.usersRepository.findOne({
+    const user = await this.usersRepository.findOne({
       where: { email },
     });
-    if (emailExists) {
+    if (user && !user.createdByAdmin) {
       throw new BadRequestException({
         message: 'Email Already Taken',
         error: 'Bad Request',
@@ -151,8 +152,10 @@ export class AuthService {
     }
   }
 
+  // Modified(Working)
   async verifyOtp(dto: verifyEmail) {
     const { email, otp } = dto;
+
     // Needs Removal only for bypass
     if (otp === '000000') {
       return { message: 'Email verified Successfully', status: true };
@@ -170,9 +173,16 @@ export class AuthService {
     if (new Date(otpRecord.expiresAt) < new Date())
       throw new BadRequestException({ message: 'OTP expired', status: false });
 
-    // ✅ OTP is valid → Delete it after verification
+    const user = await this.usersRepository.findOne({
+      where: { email, createdByAdmin: true },
+    });
+    if (user) {
+      await this.usersRepository.update(
+        { id: user.id },
+        { isVerified: true, status: 'active' },
+      );
+    }
     await this.otpRepository.delete({ email });
-
     return { message: 'Email verified Successfully', status: true };
   }
 

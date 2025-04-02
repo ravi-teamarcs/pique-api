@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { DataSource, Like, Repository } from 'typeorm';
 
 import { CreateEventDto } from './dto/create-event.dto';
 import { Event } from './entities/event.entity';
@@ -21,6 +21,7 @@ export class EventService {
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
     private readonly config: ConfigService,
+    private readonly dataSource: DataSource,
   ) {}
 
   // Create a new event
@@ -29,6 +30,40 @@ export class EventService {
     const data = await this.eventRepository.save(event);
     console.log('Data', data);
     return { message: 'Event Creates Successfully', data: event, status: true };
+  }
+
+  // New code of Venue Creation with Media
+  async createEventWithMedia(dto: CreateEventDto) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+
+    await queryRunner.startTransaction();
+
+    try {
+      const event = this.eventRepository.create(dto);
+      const savedVenue = await queryRunner.manager.save(event);
+
+      // Step 2: Upload media (calls external service Need some changes in Admin Api)
+      // const mediaUploadResult = await this.mediaService.handleMediaUpload()
+
+      // Step 3: Commit transaction if everything is successful
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Event is Successfully created with media',
+        data: event,
+        status: true,
+      };
+    } catch (error) {
+      // Step 4: Rollback transaction if anything fails
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException({
+        error: error.message,
+        status: false,
+      });
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   // Get all events

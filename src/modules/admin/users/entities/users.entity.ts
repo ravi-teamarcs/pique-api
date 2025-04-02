@@ -75,6 +75,9 @@ export class User {
   @Column({ default: false })
   isVerified: boolean;
 
+  @Column({ default: false })
+  createdByAdmin: boolean;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdDate: Date;
 

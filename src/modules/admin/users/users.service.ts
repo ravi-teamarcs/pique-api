@@ -32,8 +32,9 @@ export class UsersService {
   }) {
     const skip = (page - 1) * pageSize; // Calculate records to skip
 
+    // Unnecessary condition  all user must be fetched irrespective of their status.
     const whereCondition: any = {
-      status: Not('inactive'), // Ensure only active users are fetched
+      // status: Not('inactive'), // Ensure only active users are fetched
     };
 
     if (search.trim()) {
@@ -54,6 +55,8 @@ export class UsersService {
     return {
       records,
       total,
+      page,
+      pageSize,
     };
   }
 
@@ -75,9 +78,10 @@ export class UsersService {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await this.userRepository.create({
+    const newUser = this.userRepository.create({
       ...createUserDto,
       password: hashedPassword,
+      createdByAdmin: true,
     });
 
     return this.userRepository.save(newUser);
@@ -123,6 +127,7 @@ export class UsersService {
     return `User with ID ${id} updated successfully.`;
   }
 
+  // update single user status
   // async updateUserStatus(dto: UpdateStatusDto) {
   //   const { userId, status } = dto;
 
@@ -146,6 +151,7 @@ export class UsersService {
   //     });
   //   }
   // }
+  // Multiple user  status change
   async updateStatus(updateStatusDto: UpdateStatusDto): Promise<string> {
     let { ids, status } = updateStatusDto;
 

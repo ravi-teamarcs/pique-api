@@ -23,6 +23,37 @@ export class EntertainerService {
     @InjectRepository(Categories)
     private readonly CategoryRepository: Repository<Categories>,
   ) {}
+
+  // * Vimal Sharma Version
+  // async getAllEntertainers({
+  //   page,
+  //   pageSize,
+  //   search,
+  // }: {
+  //   page: number;
+  //   pageSize: number;
+  //   search: string;
+  // }): Promise<{ records: Entertainer[]; total: number }> {
+  //   const skip = (page - 1) * pageSize; // Calculate records to skip
+
+  //   const [records, total] = await this.entertainerRepository.findAndCount({
+  //     where: {
+  //       ...(search ? { name: Like(`%${search}%`) } : {}), // Filter by name if
+  //       status: In(['pending']),
+  //     },
+  //     relations: ['user'], // Include the related `User` entity
+  //     skip, // Pagination: records to skip
+  //     take: pageSize,
+  //     order: { id: 'DESC' },
+  //   });
+
+  //   return {
+  //     records, // Paginated entertainers
+  //     total, // Total count of entertainers
+  //   };
+  // }
+
+  // * Bhawani Thakur version  (Successfull 100 % Passed)
   async getAllEntertainers({
     page,
     pageSize,
@@ -31,27 +62,37 @@ export class EntertainerService {
     page: number;
     pageSize: number;
     search: string;
-  }): Promise<{ records: Entertainer[]; total: number }> {
+  }) {
     const skip = (page - 1) * pageSize; // Calculate records to skip
 
-    const [records, total] = await this.entertainerRepository.findAndCount({
-      where: {
-        ...(search ? { name: Like(`%${search}%`) } : {}), // Filter by name if
-        status: In(['pending']),
-      },
-      relations: ['user'], // Include the related `User` entity
-      skip, // Pagination: records to skip
-      take: pageSize,
-      order: { id: 'DESC' },
-    });
+    const query = this.entertainerRepository
+      .createQueryBuilder('entertainer')
+      .leftJoin('entertainer.user', 'user') // Join without selecting all fields
+      .addSelect([
+        'user.id',
+        'user.name',
+        'user.email',
+        'user.phoneNumber',
+        'user.status',
+        'user.isverified',
+      ]);
+
+    if (search) {
+      query.where('entertainer.name LIKE :search', { search: `%${search}%` });
+    }
+    const total = await query.getCount();
+    const records = await query.skip(skip).take(pageSize).getMany();
 
     return {
+      message: 'Entertainers fetched Sucessfully.',
       records, // Paginated entertainers
-      total, // Total count of entertainers
+      total,
+      pageSize,
+      currentPage: page, // Total count of entertainers
     };
   }
 
-  async getEntertainerByUserId(userId) {
+  async getEntertainerByUserId(userId: number) {
     const records = await this.entertainerRepository.find({
       where: {
         user: { id: userId },
