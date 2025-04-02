@@ -48,35 +48,33 @@ export class VenueService {
     private readonly dataSource: DataSource,
   ) {}
 
-  // async create(
-  //   createVenueDto: CreateVenueDto,
-  //   userId: number,
-  //   uploadedFiles: UploadedFile[],
-  // ) {
-  //   const venueExists = await this.venueRepository.findOne({
-  //     where: { user: { id: userId } },
-  //   });
+  async create(createVenueDto: CreateVenueDto, userId: number) {
+    const venueExists = await this.venueRepository.findOne({
+      where: { user: { id: userId } },
+    });
 
-  //   if (venueExists) {
-  //     throw new BadRequestException({
-  //       message: 'Venue already exists for the user',
-  //       status: false,
-  //     });
-  //   }
-  //   const venue = this.venueRepository.create({
-  //     ...createVenueDto,
-  //     user: { id: userId },
-  //     parentId: null,
-  //     isParent: true,
-  //   });
-  //   const saved = await this.venueRepository.save(venue);
-
-  //   await this.mediaService.handleMediaUpload(userId, uploadedFiles, {
-  //     venueId: saved.id,
-  //   });
-
-  //   return { message: 'Venue created successfully', venue, status: true };
-  // }
+    if (venueExists) {
+      throw new BadRequestException({
+        message: 'Venue already exists for the user',
+        status: false,
+      });
+    }
+    try {
+      const venue = this.venueRepository.create({
+        ...createVenueDto,
+        user: { id: userId },
+        parentId: null,
+        isParent: true,
+      });
+      const saved = await this.venueRepository.save(venue);
+      return { message: 'Venue created successfully', venue, status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 
   // New Method to create Venue with Media
   async createVenueWithMedia(
