@@ -36,7 +36,7 @@ export class VenueController {
   @Roles('super-admin', 'venue-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get()
+  @Get('all')
   async getAllVenues(
     @Req() req,
     @Query('page') page: number = 1,
@@ -45,13 +45,13 @@ export class VenueController {
   ) {
     return this.vanueService.getAllVenue({ page, pageSize, search });
   }
-  @Roles('super-admin', 'venue-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get('all')
-  async getAllVenuesDropdown() {
-    return this.vanueService.getAllVenuesDropdown();
-  }
+  // @Roles('super-admin', 'venue-admin')
+  // @ApiBearerAuth()
+  // @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  // @Get('all')
+  // async getAllVenuesDropdown() {
+  //   return this.vanueService.getAllVenuesDropdown();
+  // }
 
   @Roles('super-admin', 'venue-admin')
   @ApiBearerAuth()

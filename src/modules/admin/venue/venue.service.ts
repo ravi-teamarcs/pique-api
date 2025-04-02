@@ -124,13 +124,9 @@ export class VenueService {
   }
 
   async searchEntertainers(query: string) {
-    return this.venueRepository
-      .createQueryBuilder('venue')
-      .where('LOWER(venue.name) LIKE :query', {
-        query: `%${query.toLowerCase()}%`,
-      })
-      .limit(10)
-      .getMany();
+    return await this.venueRepository.find({
+      where: { isParent: true },
+    });
   }
 
   async addVenueLocation(locDto: AddLocationDto) {
