@@ -46,6 +46,17 @@ export class VenueService {
     };
   }
 
+  async getAllVenuesDropdown() {
+    const venues = await this.venueRepository.find({
+      where: { isParent: true },
+    });
+    return {
+      message: 'venues returned Successfully',
+      records: venues,
+      status: true,
+    };
+  }
+
   async getVenueByUserId(userId) {
     const records = await this.venueRepository.find({
       where: {
