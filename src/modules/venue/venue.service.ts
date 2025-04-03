@@ -211,6 +211,7 @@ export class VenueService {
   }
 
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
+    console.log('UserId inside data', userId);
     const {
       availability = '',
       category = [],
@@ -221,12 +222,12 @@ export class VenueService {
       city = null,
     } = query;
 
-    console.log('category', category, 'price', price);
+    // console.log('category', category, 'price', price);
 
+    // Pagination
     const skip = (Number(page) - 1) * Number(pageSize);
-
-    const DEFAULT_MEDIA_URL = this.config.get<string>('MEDIA_URL');
-
+    const DEFAULT_MEDIA_URL =
+      'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
     const data = [
       { label: '500-1000', value: 1 },
       { label: '1000-2000', value: 2 },
@@ -254,8 +255,8 @@ export class VenueService {
         'wishlist',
         'wish',
         'wish.ent_id = user.id AND wish.user_id = :userId',
-        { userId },
       )
+
       .leftJoin(
         (qb) =>
           qb
@@ -263,7 +264,7 @@ export class VenueService {
               'booking.entertainerUserId', // Use the actual foreign key column
               `JSON_ARRAYAGG(
                 DISTINCT JSON_OBJECT(
-                  "showDate", booking.showDate, 
+                  "showDate", booking.showDate,
                   "showTime", booking.showTime
                 )
               ) AS bookedDates`,
@@ -309,12 +310,16 @@ export class VenueService {
         'media.mediaUrl As mediaUrl',
         'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
         `CASE
-     WHEN wish.ent_id IS NOT NULL THEN true
-     ELSE false
+     WHEN wish.ent_id IS NOT NULL THEN 1
+     ELSE 0
      END AS isWishlisted`,
+        'wish.name AS  record',
       ])
-      .setParameter('serverUri', process.env.BASE_URL)
-      .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL);
+      .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+      .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
+      .setParameter('userId', userId);
+
+    // Use getRawMany() to retrieve raw data
 
     // **Availability Filter**
     if (availability) {
@@ -377,16 +382,16 @@ export class VenueService {
 
     const totalCount = await res.getCount();
     const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
-
+    console.log('Results ', results);
     // Base Query
     const arr = [3, 4, 5, 2, 1];
 
     // Parse JSON fields
     const entertainers = results.map(
-      ({ isWishListed, bookedFor, ...item }, index) => {
+      ({ isWishlisted, bookedFor, ...item }, index) => {
         return {
           ...item,
-          isWishlisted: Boolean(isWishListed),
+          isWishlisted: Boolean(isWishlisted),
           ratings: arr[index % arr.length],
           whatwillyouget: [
             { text: 'you will get full service' },
@@ -422,6 +427,7 @@ export class VenueService {
         'booking.id AS id',
         'booking.status AS status',
         'booking.showDate AS showDate',
+        'booking.showTime AS showTime',
         'booking.specialNotes AS specialNotes',
         'booking.venueId AS vid',
         'user.id AS eid',
