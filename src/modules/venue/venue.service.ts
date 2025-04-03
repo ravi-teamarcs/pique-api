@@ -165,7 +165,7 @@ export class VenueService {
           .createQueryBuilder('media')
           .select([
             'media.id AS id',
-            `CONCAT('${this.config.get<string>('BASE_URl')}', media.url) AS url`,
+            `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
             'media.type AS type',
             'media.name  AS name',
           ])
@@ -220,9 +220,8 @@ export class VenueService {
       page = 1,
       pageSize = 10,
       city = null,
+      country = null,
     } = query;
-
-    // console.log('category', category, 'price', price);
 
     // Pagination
     const skip = (Number(page) - 1) * Number(pageSize);
@@ -366,6 +365,9 @@ export class VenueService {
     // **City Filter**
     if (city) {
       res.andWhere('entertainer.city = :city', { city });
+    }
+    if (country) {
+      res.andWhere('entertainer.country = :country', { country });
     }
 
     // **Search Filter**
@@ -565,7 +567,7 @@ export class VenueService {
         'COALESCE(media.mediaDetails, "[]") AS media',
       ])
       .where('entertainer.userId = :userId', { userId })
-      .setParameter('serverUri', this.config.get<string>('MEDIA_URL'))
+      .setParameter('serverUri', this.config.get<string>('BASE_URL'))
       .getRawOne();
 
     // Parse JSON fields

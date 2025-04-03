@@ -85,4 +85,9 @@ export class SearchEntertainerDto {
   @IsNumber()
   @Transform(({ value }) => Number(value))
   city: number;
+  @ApiProperty({ description: 'Country Id', required: false })
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  country: number;
 }

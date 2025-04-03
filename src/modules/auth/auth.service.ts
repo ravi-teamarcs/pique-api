@@ -193,7 +193,11 @@ export class AuthService {
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new HttpException(
-        { message: 'Validation failed', error: 'Bad Request', status: false },
+        {
+          message: 'either email or password is incorrect. Please check',
+          error: 'Bad Request',
+          status: false,
+        },
         HttpStatus.UNAUTHORIZED,
       );
     }
