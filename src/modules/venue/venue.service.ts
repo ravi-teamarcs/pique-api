@@ -423,6 +423,7 @@ export class VenueService {
       .createQueryBuilder('booking')
       .leftJoin('users', 'user', 'user.id = booking.entertainerUserId')
       .leftJoin('entertainers', 'entertainer', 'entertainer.userId = user.id')
+      .leftJoin('event', 'event', 'booking.eventId = event.id')
 
       .where('booking.venueUser.id = :userId', { userId })
       .select([
@@ -442,6 +443,13 @@ export class VenueService {
         'entertainer.performanceRole AS performanceRole',
         'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
+        'event.id AS event_id',
+        'event.title AS event_title',
+        'event.status AS event_status',
+        'event.recurring AS event_recurring',
+        'event.startTime AS event_start_time',
+        'event.endTime AS event_end_time',
+        'event.description AS event_description',
       ])
       .orderBy('booking.createdAt', 'DESC')
       .getRawMany();
