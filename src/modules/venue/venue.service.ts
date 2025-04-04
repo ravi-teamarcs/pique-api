@@ -211,7 +211,6 @@ export class VenueService {
   }
 
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
-    console.log('UserId inside data', userId);
     const {
       availability = '',
       category = [],
@@ -221,6 +220,7 @@ export class VenueService {
       pageSize = 10,
       city = null,
       country = null,
+      date = '',
     } = query;
 
     // Pagination
@@ -260,24 +260,6 @@ export class VenueService {
         (qb) =>
           qb
             .select([
-              'booking.entertainerUserId', // Use the actual foreign key column
-              `JSON_ARRAYAGG(
-                DISTINCT JSON_OBJECT(
-                  "showDate", booking.showDate,
-                  "showTime", booking.showTime
-                )
-              ) AS bookedDates`,
-            ])
-            .from('booking', 'booking')
-            .where('booking.status = "confirmed"')
-            .groupBy('booking.entertainerUserId'), // Ensure this matches the foreign key column
-        'bookings',
-        'bookings.entertainerUserId = user.id', // Ensure it maps correctly to the User table
-      )
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
               'media.userId',
               `COALESCE(MAX(CONCAT(:serverUri, media.url)), :defaultMediaUrl) AS mediaUrl`,
             ])
@@ -307,7 +289,7 @@ export class VenueService {
         'category.name AS category_name',
         'subcat.name AS specific_category_name',
         'media.mediaUrl As mediaUrl',
-        'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
+
         `CASE
      WHEN wish.ent_id IS NOT NULL THEN 1
      ELSE 0
@@ -369,6 +351,17 @@ export class VenueService {
     if (country) {
       res.andWhere('entertainer.country = :country', { country });
     }
+    if (date) {
+      res.andWhere(
+        (qb) => {
+          return `NOT EXISTS (
+            SELECT 1 FROM booking b
+            WHERE b.entertainerUserId = user.id AND b.showDate = :blockedDate
+          )`;
+        },
+        { blockedDate: date },
+      );
+    }
 
     // **Search Filter**
     // (search && search.trim()) {
@@ -389,23 +382,20 @@ export class VenueService {
     const arr = [3, 4, 5, 2, 1];
 
     // Parse JSON fields
-    const entertainers = results.map(
-      ({ isWishlisted, bookedFor, ...item }, index) => {
-        return {
-          ...item,
-          isWishlisted: Boolean(isWishlisted),
-          ratings: arr[index % arr.length],
-          whatwillyouget: [
-            { text: 'you will get full service' },
-            { text: 'you will get full Satisfaction' },
-            { text: 'Professional Talent' },
-            { text: 'An feeling of sophistication' },
-            { text: 'Experince of life' },
-          ],
-          bookedFor: JSON.parse(bookedFor),
-        };
-      },
-    );
+    const entertainers = results.map(({ isWishlisted, ...item }, index) => {
+      return {
+        ...item,
+        isWishlisted: Boolean(isWishlisted),
+        ratings: arr[index % arr.length],
+        whatwillyouget: [
+          { text: 'you will get full service' },
+          { text: 'you will get full Satisfaction' },
+          { text: 'Professional Talent' },
+          { text: 'An feeling of sophistication' },
+          { text: 'Experince of life' },
+        ],
+      };
+    });
 
     return {
       message: 'Entertainers fetched successfully',
@@ -531,6 +521,7 @@ export class VenueService {
         'subcat',
         'subcat.id = entertainer.specific_category',
       )
+
       .leftJoin(
         (qb) =>
           qb
