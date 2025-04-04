@@ -513,7 +513,7 @@ export class VenueService {
     }
   }
 
-  async findEntertainerDetails(userId: number) {
+  async findEntertainerDetails(id: number, userId: number) {
     const res = await this.entertainerRepository
       .createQueryBuilder('entertainer')
       .leftJoinAndSelect('entertainer.user', 'user')
@@ -521,6 +521,11 @@ export class VenueService {
       .leftJoin('states', 'state', 'state.id = entertainer.state')
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
       .leftJoin('categories', 'category', 'category.id = entertainer.category')
+      .leftJoin(
+        'wishlist',
+        'wish',
+        'wish.ent_id = user.id AND wish.user_id = :userId',
+      )
       .leftJoin(
         'categories',
         'subcat',
@@ -573,17 +578,23 @@ export class VenueService {
         'entertainer.vaccinated AS vaccinated',
         'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
         'COALESCE(media.mediaDetails, "[]") AS media',
+        `CASE
+        WHEN wish.ent_id IS NOT NULL THEN 1
+        ELSE 0
+        END AS isWishlisted`,
       ])
-      .where('entertainer.userId = :userId', { userId })
+      .where('entertainer.userId = :id', { id })
       .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+      .setParameter('userId', userId)
       .getRawOne();
 
     // Parse JSON fields
-    const { bookedFor, media, ...details } = res;
+    const { bookedFor, media, isWishlisted, ...details } = res;
     return {
       message: 'Entertainer Details returned Successfully',
       data: {
         ...details,
+        isWishlisted: Boolean(isWishlisted),
         bookedFor: JSON.parse(bookedFor),
         media: JSON.parse(media),
       },
@@ -782,6 +793,16 @@ export class VenueService {
   async getWishlist(userId: number) {
     const wishlistItems = await this.wishRepository
       .createQueryBuilder('wish')
+      .leftJoin(
+        'categories',
+        'cat',
+        'cat.id = wish.category AND cat.parentId = 0',
+      )
+      .leftJoin(
+        'categories',
+        'subcat',
+        'subcat.id = wish.specific_category AND subcat.parentId = wish.category ',
+      )
       .select([
         'wish.id',
         'wish.name AS name',
@@ -791,6 +812,8 @@ export class VenueService {
         'wish.username AS user_name',
         'wish.url AS mediaUrl',
         'wish.ratings AS ratings',
+        'cat.name AS category_name',
+        'subcat.name AS specific_category_name',
       ])
       .where('wish.user_id = :userId', { userId })
       .getRawMany();
@@ -800,5 +823,21 @@ export class VenueService {
       data: wishlistItems,
       status: true,
     };
+  }
+
+  async removeFromWishlist(id: number, userId: number) {
+    const wishlistItem = await this.wishRepository.findOne({
+      where: { ent_id: id, user_id: userId },
+    });
+
+    if (!wishlistItem) {
+      throw new NotFoundException({
+        message: 'Wishlist item not found',
+        status: false,
+      });
+    }
+
+    await this.wishRepository.remove(wishlistItem);
+    return { message: 'Wishlist item removed successfully', status: true };
   }
 }

@@ -296,6 +296,7 @@ export class BookingService {
           status: res,
           showTime: request.reqShowTime,
           showDate: request.reqShowTime,
+          eventId: request.reqEventId,
         },
       );
       const payload = {

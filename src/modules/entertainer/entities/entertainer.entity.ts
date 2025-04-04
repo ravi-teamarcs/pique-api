@@ -74,6 +74,20 @@ export class Entertainer {
   @Column()
   socialLinks: string;
 
+  // New changes Introduced  (Latest Changes Both )  Can be Changed
+
+  // @Column()
+  // dob: Date;
+
+  // @Column()
+  // Address: string;
+
+  // @Column()
+  // zipCode: string;
+
+  // @Column('simple-array)
+  // services: string[];
+
   @CreateDateColumn()
   createdAt: Date;
 

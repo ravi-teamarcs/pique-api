@@ -14,4 +14,8 @@ export class ChangeBooking {
   @ApiProperty({ description: 'Requested Date' })
   @IsString()
   reqShowDate: string;
+
+  @ApiProperty({ description: 'Requested Event' })
+  @IsNumber()
+  reqEventId: number;
 }

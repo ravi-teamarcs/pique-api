@@ -179,8 +179,9 @@ export class VenueController {
     status: 404,
     description: 'Entertainer not found.',
   })
-  getEntertainerDetails(@Param('id', ParseIntPipe) userId: number) {
-    return this.venueService.findEntertainerDetails(Number(userId));
+  getEntertainerDetails(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.findEntertainerDetails(Number(id), userId);
   }
 
   // Booking Request   and create a new requet
@@ -245,7 +246,7 @@ export class VenueController {
   @Post('request-change')
   @Roles('findAll')
   requestChange(@Body() dateTimeChangeDto: ChangeBooking, @Request() req) {
-    const userId = req.user.userId;
+    const { userId } = req.user;
     return this.bookingService.handleChangeRequest(dateTimeChangeDto, userId);
   }
 
@@ -324,5 +325,11 @@ export class VenueController {
       status: true,
       data: [{ role: 'soloist' }, { role: 'duo' }, { role: 'ensemble' }],
     };
+  }
+  @Roles('findAll')
+  @Delete('entertainer/wishlist/:id')
+  removeFromWishlist(@Request() req, @Param('id') id: number) {
+    const { userId } = req.user;
+    return this.venueService.removeFromWishlist(Number(id), userId);
   }
 }
