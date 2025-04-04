@@ -118,14 +118,14 @@ export class AuthService {
       if (existingOtp) {
         // Update existing OTP
         existingOtp.otp = otpCode;
-        existingOtp.expiresAt = new Date(Date.now() + 10 * 60000); // Extend expiry
+        existingOtp.expiresAt = new Date(Date.now() + 2 * 60000); // Extend expiry
         await this.otpRepository.save(existingOtp);
       } else {
         // Create new OTP record
         const newOtp = this.otpRepository.create({
           email,
           otp: otpCode,
-          expiresAt: new Date(Date.now() + 10 * 60000),
+          expiresAt: new Date(Date.now() + 2 * 60000),
         });
         await this.otpRepository.save(newOtp);
       }
@@ -194,7 +194,7 @@ export class AuthService {
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new HttpException(
         {
-          message: 'either email or password is incorrect. Please check',
+          message: 'Incorrect Email or Password',
           error: 'Bad Request',
           status: false,
         },

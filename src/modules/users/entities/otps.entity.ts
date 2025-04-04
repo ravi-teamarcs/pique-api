@@ -23,7 +23,7 @@ export class Otp {
 
   @Column({
     type: 'timestamp',
-    default: () => 'CURRENT_TIMESTAMP + INTERVAL 10 MINUTE',
+    default: () => 'CURRENT_TIMESTAMP + INTERVAL 2 MINUTE',
   })
   expiresAt: Date;
 }

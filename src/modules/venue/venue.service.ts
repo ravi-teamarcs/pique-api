@@ -772,19 +772,21 @@ export class VenueService {
   }
 
   async getWishlist(userId: number) {
-    const wishlistItems = await this.wishRepository.find({
-      where: { user_id: userId },
-      select: [
-        'id',
-        'name',
-        'category',
-        'specific_category',
-        'ent_id',
-        'username',
-        'url',
-        'ratings',
-      ],
-    });
+    const wishlistItems = await this.wishRepository
+      .createQueryBuilder('wish')
+      .select([
+        'wish.id',
+        'wish.name AS name',
+        'wish.category AS category',
+        'wish.specific_category AS specific_category',
+        'wish.ent_id AS eid',
+        'wish.username AS user_name',
+        'wish.url AS mediaUrl',
+        'wish.ratings AS ratings',
+      ])
+      .where('wish.user_id = :userId', { userId })
+      .getRawMany();
+
     return {
       message: 'Wishlist fetched Successfully',
       data: wishlistItems,
