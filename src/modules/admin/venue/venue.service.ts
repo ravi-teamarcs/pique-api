@@ -96,7 +96,6 @@ export class VenueService {
   async updateVenue(updateVenueDto: UpdateVenueDto) {
     const { id, fieldsToUpdate } = updateVenueDto;
 
-    console.log('field To Update', fieldsToUpdate, 'id', id);
     const venue = await this.venueRepository.findOne({ where: { id } });
 
     if (!venue) {
@@ -135,8 +134,6 @@ export class VenueService {
       where: { id: venueId, isParent: true },
       relations: ['user'],
     });
-
-    console.log('Parent Venue', parentVenue);
 
     if (!parentVenue) {
       throw new BadRequestException({

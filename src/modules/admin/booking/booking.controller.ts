@@ -51,7 +51,6 @@ export class BookingController {
   @HttpCode(200)
   @Roles('super-admin')
   getAllBooking(@Query() query: BookingQueryDto, @Param('id') userId) {
-    console.log('inside controller');
     return this.bookingService.getAllBookingById(query, Number(userId));
   }
   @ApiOperation({

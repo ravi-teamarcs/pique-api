@@ -66,7 +66,7 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @Request() req,
   ): Promise<any> {
-    console.log('Req', req.user);
+   
     return this.userService.createUser(createUserDto);
   }
 

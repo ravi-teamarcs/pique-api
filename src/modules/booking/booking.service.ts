@@ -137,7 +137,6 @@ export class BookingService {
       .where('booking.id = :id', { id: bookingId })
       .getRawOne();
 
-    console.log('Booking Response', booking);
     if (!booking) {
       throw new NotFoundException({
         message: 'Booking not found',

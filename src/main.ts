@@ -5,7 +5,10 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger:
+      process.env.NODE_ENV === 'production' ? false : ['log', 'error', 'warn'],
+  });
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.use(compression());

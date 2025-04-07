@@ -97,10 +97,8 @@ export class VenueController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     const { userId } = req.user;
-    console.log('Venue Data', venueDto, 'Files', files);
     let uploadedFiles: UploadedFile[] = [];
 
-    console.log('Files Inside ', files);
     if (files.length > 0) {
       uploadedFiles = await Promise.all(
         files.map(async (file) => {
@@ -113,7 +111,6 @@ export class VenueController {
         }),
       );
     }
-    console.log('VEnue Dto', venueDto);
     return this.venueService.createVenueWithMedia(
       venueDto,
       userId,

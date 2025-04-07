@@ -424,7 +424,7 @@ export class ReportService {
 
   async generateReport(dto: DownloadReport, res: Response): Promise<void> {
     const { data } = await this.fetchReportFromDB(dto);
-
+    const { from, to } = dto;
     // Sort events by date
     data.sort(
       (a, b) =>
@@ -443,7 +443,7 @@ export class ReportService {
       if (!groupedData[month]) groupedData[month] = [];
       groupedData[month].push(event);
     });
-
+   
     // Determine filename based on event date range
     const months = Object.keys(groupedData);
     const firstMonth = months[0]?.split(' ')[0] || 'Jan';
@@ -586,7 +586,7 @@ export class ReportService {
     // Create a readable stream from the buffer
     const readStream = new stream.PassThrough();
     readStream.end(buffer);
-
+    console.log('Grouped Data', groupedData);
     // Set response headers for file download
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader(

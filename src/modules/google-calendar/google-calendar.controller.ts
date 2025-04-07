@@ -44,7 +44,7 @@ export class GoogleCalendarController {
     const userState = JSON.parse(state); // Extract user ID
     const userId = userState.id;
 
-    console.log(`Callback By google: ${userId} and typeof ${typeof userId}`);
+    // console.log(`Callback By google: ${userId} and typeof ${typeof userId}`);
     const response = await this.googleCalendarService.getAccessToken(code);
     // Store Token in DB (linked to user)
 

@@ -33,6 +33,7 @@ export class EventController {
   async create(@Body() createEventDto: CreateEventDto) {
     return this.eventService.create(createEventDto);
   }
+  
 
   @Roles('super-admin')
   @ApiBearerAuth()

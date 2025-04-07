@@ -164,7 +164,6 @@ export class EntertainerService {
   }
   async categorybyId(id: number) {
     try {
-      console.log(id);
       // Find the category by its ID
       const category = await this.CategoryRepository.findOne({
         where: { id: id },

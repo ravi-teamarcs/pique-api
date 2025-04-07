@@ -377,7 +377,6 @@ export class VenueService {
 
     const totalCount = await res.getCount();
     const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
-    console.log('Results ', results);
     // Base Query
     const arr = [3, 4, 5, 2, 1];
 
@@ -710,7 +709,6 @@ export class VenueService {
       where: { parentId: id },
       select: ['id', 'name', 'iconUrl'],
     });
-    console.log('categories', categories);
     const plainCat = instanceToPlain(categories);
 
     const Data = plainCat.map(({ iconUrl, ...rest }) => ({
@@ -760,7 +758,6 @@ export class VenueService {
     if (existingWishlist) {
       // Remove from wishlist if already present
       const res = await this.wishRepository.remove(existingWishlist);
-      console.log('Removed Entertainer', res);
       return { message: 'Entertainer Removed from wishlist', status: true };
     }
     //  Add to wishlist if not present

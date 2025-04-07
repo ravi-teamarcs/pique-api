@@ -277,7 +277,7 @@ export class AuthService {
     );
     //  link
     const resetLink = `${this.configService.get<string>('FRONTEND_URL')}/reset-password?token=${resetToken}`;
-    console.log('Reset Link:', resetToken);
+
     const payload = {
       to: user.email,
       subject: 'Password Reset',

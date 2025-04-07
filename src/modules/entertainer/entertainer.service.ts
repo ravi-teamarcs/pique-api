@@ -6,7 +6,15 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, IsNull, Repository } from 'typeorm';
+import {
+  DataSource,
+  IsNull,
+  LessThan,
+  LessThanOrEqual,
+  MoreThan,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { CreateEntertainerDto } from './dto/create-entertainer.dto';
 import { UpdateEntertainerDto } from './dto/update-entertainer.dto';
 import { Entertainer } from './entities/entertainer.entity';
@@ -481,4 +489,128 @@ export class EntertainerService {
       });
     }
   }
+
+  // async addAvailability(
+  //   entertainerId: number,
+  //   date: string,
+  //   startTime: string,
+  //   endTime: string,
+  // ) {
+  //   try {
+  //     const overlaps = await this.availabilityRepo.find({
+  //       where: {
+  //         entertainer_id: entertainerId,
+  //         date,
+  //         start_time: LessThan(endTime),
+  //         end_time: MoreThan(startTime),
+  //       },
+  //     });
+
+  //     if (overlaps.length > 0) {
+  //       throw new BadRequestException(
+  //         'Time slot overlaps with existing availability',
+  //       );
+  //     }
+
+  //     const availability = this.availabilityRepo.create({
+  //       entertainer_id: entertainerId,
+  //       date,
+  //       start_time: startTime,
+  //       end_time: endTime,
+  //     });
+
+  //     await this.availabilityRepo.save(availability);
+
+  //     return { message: 'Availability Added successfully', status: true };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: 'Error while adding availability',
+  //       error: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
+  // Calendar  so that  it can be displayed on ui
+  // async getCalendar(entertainerId: number) {
+  //   try {
+  //     const availabilities = await this.availabilityRepo.find({
+  //       where: { entertainer_id: entertainerId },
+  //     });
+
+  //     const bookings = await this.bookingRepo.find({
+  //       where: { entertainer_id: entertainerId, status: 'confirmed' },
+  //     });
+
+  //     const calendarData = {
+  //       availability: availabilities,
+  //       bookings: bookings,
+  //     };
+  //     return {
+  //       message: 'Calendar Data fetched successfully',
+  //       data: calendarData,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: 'Error while fetching calendar',
+  //       error: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
+  // async bookSlot(venueId, entertainerId, date, startTime, endTime) {
+  //   // Check if the requested time is fully inside one available slot
+  //   try {
+  //     const slot = await this.availabilityRepo.findOne({
+  //       where: {
+  //         entertainer_id: entertainerId,
+  //         date,
+  //         start_time: LessThanOrEqual(startTime),
+  //         end_time: MoreThanOrEqual(endTime),
+  //       },
+  //     });
+
+  //     if (!slot)
+  //       throw new BadRequestException({
+  //         message: 'Requested time is not available',
+  //         status: false,
+  //       });
+
+  //     // Check for overlap with other bookings
+  //     const overlap = await this.bookingRepo.findOne({
+  //       where: {
+  //         entertainer_id: entertainerId,
+  //         date,
+  //         status: 'confirmed',
+  //         start_time: LessThan(endTime),
+  //         end_time: MoreThan(startTime),
+  //       },
+  //     });
+
+  //     if (overlap)
+  //       throw new BadRequestException({
+  //         message: 'Entertainer already booked at this time',
+  //         status: false,
+  //       });
+
+  //     const booking = this.bookingRepo.create({
+  //       venue_id: venueId,
+  //       entertainer_id: entertainerId,
+  //       date,
+  //       start_time: startTime,
+  //       end_time: endTime,
+  //       status: 'confirmed',
+  //     });
+
+  //     return await this.bookingRepo.save(booking);
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: 'Error while booking slot',
+  //       error: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
 }

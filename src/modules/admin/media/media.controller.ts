@@ -167,7 +167,6 @@ export class MediaController {
     },
   ) {
     const { userId, RefId } = body;
-    console.log(userId, files);
 
     // Validate only one type of media is uploaded
     const fileTypes = Object.keys(files).filter(

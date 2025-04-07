@@ -27,7 +27,6 @@ export class DashboardService {
         where: { role: 'entertainer' },
       });
 
-      console.log('entcount', entertainerCount);
       const venueCount = await this.userRepo.count({
         where: { role: 'venue' },
       });
