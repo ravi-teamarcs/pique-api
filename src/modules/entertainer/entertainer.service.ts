@@ -229,6 +229,7 @@ export class EntertainerService {
           'booking.showDate As showDate',
           'booking.showTime As showTime',
           'booking.specialNotes  As specialNotes',
+          'booking.performanceRole AS performanceRole',
           'venue.name AS name',
           'venue.phone AS phone',
           'venue.email AS email',
@@ -624,14 +625,14 @@ export class EntertainerService {
         'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
       const events = this.bookingRepository
         .createQueryBuilder('booking')
+        .leftJoin('event', 'event', 'event.id = booking.eventId') // simple join
         .leftJoin(
-          'event',
-          'event',
-          'event.id = booking.eventId AND event.startTime > :now',
+          'venue',
+          'venue',
+          'venue.id = booking.venueId AND event.startTime > :now',
           { now: new Date() },
         )
-        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
-        .leftJoin('media', 'media', 'event.id = media.eventId')
+        .leftJoin('media', 'media', 'media.eventId = event.id')
         .where('booking.entertainerUserId = :userId', { userId })
         .andWhere('booking.status = :status', { status: 'confirmed' })
 
@@ -650,7 +651,7 @@ export class EntertainerService {
           'venue.name AS venue_name',
           'venue.addressLine1 AS venue_addressLine1',
           'venue.addressLine2 AS venue_addressLine2',
-          `COALESCE(CONCAT(:baseUrl, media.url), :defaultMediaUrl) AS image_url`,
+          `CASE WHEN media.url IS NOT NULL THEN CONCAT(:baseUrl, media.url) ELSE :defaultMediaUrl END AS image_url`,
         ])
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
