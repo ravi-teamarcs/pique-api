@@ -37,6 +37,7 @@ import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { typeMap } from 'src/common/constants/media.constants';
 import { UploadedFile } from 'src/common/types/media.type';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
+import { UpcomingEventDto } from './dto/upcoming-event.dto';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -224,5 +225,11 @@ export class EntertainerController {
   getEventDetails(@Req() req) {
     const { userId } = req.user;
     return this.entertainerService.getEventDetails(userId);
+  }
+  @Get('events/upcoming')
+  @Roles('findAll')
+  upcomingEvent(@Req() req, @Query() query: UpcomingEventDto) {
+    const { userId } = req.user;
+    return this.entertainerService.getUpcomingEvent(userId, query);
   }
 }

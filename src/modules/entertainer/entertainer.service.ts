@@ -28,6 +28,7 @@ import { Invoice } from '../invoice/entities/invoice.entity';
 import { ConfigService } from '@nestjs/config';
 import { MediaService } from '../media/media.service';
 import { UploadedFile } from 'src/common/types/media.type';
+import { UpcomingEventDto } from './dto/upcoming-event.dto';
 
 @Injectable()
 export class EntertainerService {
@@ -613,4 +614,69 @@ export class EntertainerService {
   //     });
   //   }
   // }
+
+  async getUpcomingEvent(userId: number, query: UpcomingEventDto) {
+    const { page = 1, pageSize = 10 } = query;
+
+    const skip = (Number(page) - 1) * Number(pageSize);
+    try {
+      const URL =
+        'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+      const events = this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin(
+          'event',
+          'event',
+          'event.id = booking.eventId AND event.startTime > :now',
+          { now: new Date() },
+        )
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+        .leftJoin('media', 'media', 'event.id = media.eventId')
+        .where('booking.entertainerUserId = :userId', { userId })
+        .andWhere('booking.status = :status', { status: 'confirmed' })
+
+        .select([
+          'event.id AS event_id',
+          'event.title AS title',
+          'event.location AS location',
+          'event.userId AS userId',
+          'event.description AS description',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'event.recurring AS recurring',
+          'event.status AS status',
+          'event.isAdmin AS isAdmin',
+          'venue.id AS venue_id',
+          'venue.name AS venue_name',
+          'venue.addressLine1 AS venue_addressLine1',
+          'venue.addressLine2 AS venue_addressLine2',
+          `COALESCE(CONCAT(:baseUrl, media.url), :defaultMediaUrl) AS image_url`,
+        ])
+        .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', URL)
+        .orderBy('event.startTime', 'ASC');
+
+      const totalCount = await events.getCount();
+
+      const results = await events
+        .skip(Number(skip))
+        .take(Number(pageSize))
+        .getRawMany();
+
+      return {
+        message: 'Events returned successfully',
+        data: results,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: true,
+      });
+    }
+  }
 }
