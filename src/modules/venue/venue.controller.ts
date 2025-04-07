@@ -329,4 +329,10 @@ export class VenueController {
     const { userId } = req.user;
     return this.venueService.removeFromWishlist(Number(id), userId);
   }
+  @Roles('findAll')
+  @Get('events')
+  getEvents(@Request() req, @Param('id') id: number) {
+    const { userId } = req.user;
+    return this.venueService.removeFromWishlist(Number(id), userId);
+  }
 }

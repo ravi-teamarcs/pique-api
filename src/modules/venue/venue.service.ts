@@ -828,4 +828,14 @@ export class VenueService {
     await this.wishRepository.remove(wishlistItem);
     return { message: 'Wishlist item removed successfully', status: true };
   }
+
+  async getEventDetails() {
+    try {
+    } catch (error) {
+      throw new InternalServerErrorException({
+        status: false,
+        error: error.message,
+      });
+    }
+  }
 }

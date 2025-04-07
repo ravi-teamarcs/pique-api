@@ -134,7 +134,7 @@ export class EntertainerService {
     }
   }
 
-  async findAll(userId: number) {
+  async findEntertainer(userId: number) {
     const entertainers = await this.entertainerRepository.find({
       where: { user: { id: userId } },
       select: [
@@ -218,7 +218,11 @@ export class EntertainerService {
     try {
       const bookings = await this.bookingRepository
         .createQueryBuilder('booking')
-        .leftJoin('venue', 'venue', 'venue.id = booking.venueId') // Manual join since there's no relation
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId') // Manual join since there's no
+        .leftJoin('event', 'event', 'event.id = booking.eventId') // Manual join since there's no
+        .leftJoin('cities', 'city', 'city.id = venue.city') // Manual join since there's no
+        .leftJoin('states', 'state', 'state.id = venue.state') // Manual join since there's no
+        .leftJoin('countries', 'country', 'country.id = venue.country') // Manual join since there's no
         .where('booking.entertainerUserId = :userId', { userId })
         .andWhere('booking.status IN (:...statuses)', {
           statuses: ['pending', 'confirmed'],
@@ -233,9 +237,18 @@ export class EntertainerService {
           'venue.name AS name',
           'venue.phone AS phone',
           'venue.email AS email',
+          'event.id AS event_id',
+          'event.title AS event_title',
+          'event.location AS event_location',
+          'event.description AS event_description',
+          'event.startTime AS event_startTime',
+          'event.endTime AS event_endTime',
           'venue.description AS description',
           'venue.state AS state',
           'venue.city AS city',
+          'city.name AS city_name',
+          'country.name AS country_name',
+          'state.name AS state_name',
         ])
         .orderBy('booking.createdAt', 'DESC') // Corrected sorting
         .getRawMany(); // Use getRawMany() since we are manually selecting fields
@@ -247,7 +260,6 @@ export class EntertainerService {
       };
     } catch (error) {
       throw new InternalServerErrorException({
-        message: 'Error while creating Booking',
         error: error.message,
         status: false,
       });

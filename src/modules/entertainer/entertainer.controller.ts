@@ -127,7 +127,7 @@ export class EntertainerController {
   @ApiOperation({ summary: 'Get all entertainers for the logged-in user' })
   findAll(@Request() req) {
     const { userId } = req.user;
-    return this.entertainerService.findAll(userId);
+    return this.entertainerService.findEntertainer(userId);
   }
 
   @ApiOperation({ summary: 'Get  entertainers dashboard stats' })

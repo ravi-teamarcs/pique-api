@@ -67,7 +67,8 @@ export class EventService {
           `(SELECT venue.id FROM venue WHERE venue.userId = :userId)`,
         { userId },
       )
-      .orderBy('event.createdAt', 'DESC')
+      .andWhere('event.startTime > :now', { now: new Date() })
+      .orderBy('event.startTime', 'ASC')
       .select([
         'event.id',
         'event.title',
