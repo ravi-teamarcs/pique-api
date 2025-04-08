@@ -136,52 +136,58 @@ export class EntertainerService {
   }
 
   async findEntertainer(userId: number) {
+    console.log('userId', userId);
     const URL = this.config.get<string>('DEFAULT_MEDIA');
 
-    const entertainer = await this.entertainerRepository
-      .createQueryBuilder('entertainer')
-      .leftJoin('users', 'user', 'entertainer.userId = user.id')
-      .leftJoin('countries', 'country', 'country.id = entertainer.country')
-      .leftJoin('states', 'state', 'state.id = entertainer.state')
-      .leftJoin('cities', 'city', 'city.id = entertainer.city')
-      .leftJoin('categories', 'cat', 'cat.id = entertainer.category ')
-      .leftJoin(
-        'categories',
-        'subcat',
-        'subcat.id = entertainer.specific_category ',
-      )
-      .where('entertainer.userId = :userId', { userId })
-      .select([
-        'user.id AS uid',
-        'entertainer.name AS stageName',
-        'user.name AS name',
-        'user.email AS email',
-        'user.phoneNumber AS phoneNumber',
-        'user.role AS role',
-        'city.name AS city',
-        'country.name AS country',
-        'state.name AS state',
-        'cat.name AS category',
-        'subcat.name AS specific_category',
-        'entertainer.bio AS bio',
-        'entertainer.pricePerEvent AS pricePerEvent',
-        'entertainer.availability AS availability',
-        'entertainer.vaccinated AS vaccinated',
-      ])
-      .addSelect(
-        `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM media m WHERE m.userId = user.id AND m.type = 'headshot' LIMIT 1)`,
-        'headshotUrl',
-      )
-      .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
-      .setParameter('defaultMediaUrl', URL)
-      .getRawOne();
-
-    console.log(entertainer, 'entertainer');
-    return {
-      message: 'Entertainer Fetched Successfully',
-      data: entertainer,
-      status: true,
-    };
+    try {
+      const entertainer = await this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('users', 'user', 'user.id = entertainer.userId')
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin('categories', 'cat', 'cat.id = entertainer.category ')
+        .leftJoin(
+          'categories',
+          'subcat',
+          'subcat.id = entertainer.specific_category ',
+        )
+        .where('entertainer.userId = :userId', { userId })
+        .select([
+          'user.id AS uid',
+          'entertainer.name AS stageName',
+          'user.name AS name',
+          'user.email AS email',
+          'user.phoneNumber AS phoneNumber',
+          'user.role AS role',
+          'city.name AS city',
+          'country.name AS country',
+          'state.name AS state',
+          'cat.name AS category',
+          'subcat.name AS specific_category',
+          'entertainer.bio AS bio',
+          'entertainer.pricePerEvent AS pricePerEvent',
+          'entertainer.availability AS availability',
+          'entertainer.vaccinated AS vaccinated',
+        ])
+        .addSelect(
+          `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM media m WHERE m.userId = user.id AND m.type = 'headshot' LIMIT 1)`,
+          'headshotUrl',
+        )
+        .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', URL)
+        .getRawOne();
+      return {
+        message: 'Entertainer Fetched Successfully',
+        data: entertainer,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 
   async findOne(id: number, userId: number) {
