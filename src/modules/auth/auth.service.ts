@@ -210,9 +210,8 @@ export class AuthService {
     // Fcm Token
     const deviceType = this.detectDevice(userAgent);
 
-    if (deviceType.toLowerCase() == 'mobile' && fcmToken) {
-      this.notificationService.storeFcmToken(user.id, fcmToken, deviceType);
-    }
+    this.notificationService.storeFcmToken(user.id, fcmToken, deviceType);
+
     return {
       message: 'Logged in Successfully',
       access_token: token,

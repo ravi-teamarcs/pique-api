@@ -136,7 +136,6 @@ export class EntertainerService {
   }
 
   async findEntertainer(userId: number) {
-    console.log('userId', userId);
     const URL = this.config.get<string>('DEFAULT_MEDIA');
 
     try {

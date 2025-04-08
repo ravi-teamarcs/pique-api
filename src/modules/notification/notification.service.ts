@@ -27,7 +27,7 @@ export class NotificationService {
       fcmOptions: {
         analyticsLabel: 'my-label',
       },
-
+      android:{ttl: 3600 * 1000,},
       apns: {
         payload: {
           aps: {
