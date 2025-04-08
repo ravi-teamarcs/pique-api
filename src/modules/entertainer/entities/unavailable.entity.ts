@@ -2,12 +2,11 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
-@Entity()
+@Entity('unavailability')
 export class UnavailableDate {
   @PrimaryGeneratedColumn()
   id: number;

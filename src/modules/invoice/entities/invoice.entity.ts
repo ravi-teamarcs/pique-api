@@ -59,10 +59,21 @@ export class Invoice {
 
   @Column({
     type: 'enum',
-    enum: ['pending', 'paid', 'paymentsent'],
+    enum: [
+      'pending',
+      'paid',
+      'paymentsent',
+      'invoice to be send',
+      'awaiting payment',
+    ],
     default: 'pending',
   })
-  status: 'pending' | 'paid' | 'paymentsent';
+  status:
+    | 'pending'
+    | 'paid'
+    | 'paymentsent'
+    | 'invoice to be send'
+    | 'awaiting payment';
 
   @Column({ type: 'varchar', length: 255 })
   payment_method: string;

@@ -21,6 +21,8 @@ import { AdminModule } from './modules/admin/admin.module';
 import { MulterModule } from '@nestjs/platform-express';
 import { ToursModule } from './modules/tours/tours.module';
 import { SeriesModule } from './modules/series/series.module';
+import { InvoiceCronModule } from './modules/cron/invoice/invoice-cron.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -43,9 +45,11 @@ import { SeriesModule } from './modules/series/series.module';
         entities: [join(process.cwd(), 'dist/**/*.entity.js')],
         // logging: true,
         // logger: 'advanced-console',
-        // synchronize: true, // Set this to false in production
+        synchronize: true, // Set this to false in production
       }),
     }),
+
+    ScheduleModule.forRoot(), // For Nest Js Schedule Cron Job
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',
@@ -65,6 +69,7 @@ import { SeriesModule } from './modules/series/series.module';
     AdminModule,
     ToursModule,
     SeriesModule,
+    InvoiceCronModule,
   ],
   controllers: [AppController],
   providers: [AppService],

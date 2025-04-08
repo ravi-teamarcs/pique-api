@@ -94,25 +94,31 @@ export class InvoiceService {
   }
   // Fetch All Invoices for Entertainer
   async findAllInvoice(userId: number) {
-    const invoices = await this.invoiceRepository.find({
-      where: { user_id: userId },
-      select: [
-        'id',
-        'invoice_number',
-        'user_id',
-        'event_id',
-        'user_type',
-        'issue_date',
-        'due_date',
-        'total_amount',
-        'tax_rate',
-        'tax_amount',
-        'total_with_tax',
-        'status',
-        'payment_method',
-        'payment_date',
-      ],
-    });
+    const invoices = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .leftJoin('event', 'event', 'invoices.event_id = event.id')
+      .where('invoices.user_id = :userId', { userId })
+      .select([
+        'invoices.id AS id ',
+        'invoices.invoice_number AS invoice_number',
+        'invoices.user_id AS user_id',
+        'invoices.event_id AS event_id',
+        'invoices.user_type AS user_type',
+        'invoices.issue_date AS issue_date',
+        'invoices.due_date AS due_date',
+        'invoices.total_amount AS total_amount',
+
+        'invoices.tax_rate AS tax_rate',
+        'invoices.tax_amount AS tax_amount',
+        'invoices.total_with_tax AS total_with_tax',
+        'invoices.status AS status',
+        'invoices.payment_method AS payment_method',
+        'invoices.payment_date AS payment_date',
+        'event.id',
+        'event.title',
+        'event.location',
+      ])
+      .getRawMany(); // Use getRawMany if you're not using relations
 
     return {
       message: 'Invoice returned Successfully',

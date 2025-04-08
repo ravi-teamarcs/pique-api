@@ -26,6 +26,6 @@ import { Invoice } from './entities/invoice.entity';
   ],
   providers: [InvoiceService],
   controllers: [InvoiceController],
-  exports: [],
+  exports: [InvoiceService],
 })
 export class InvoiceModule {}

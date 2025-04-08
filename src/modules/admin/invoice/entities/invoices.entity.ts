@@ -14,6 +14,8 @@ export enum InvoiceStatus {
   PENDING = 'pending',
   PAID = 'paid',
   PAYMENTSENT = 'paymentsent',
+  INVOICE_TO_BE_SENT = 'invoice to be send',
+  AWAITING_PAYMENT = 'awaiting payment',
 }
 
 @Entity('invoices')
@@ -58,10 +60,21 @@ export class Invoice {
 
   @Column({
     type: 'enum',
-    enum: ['pending', 'paid', 'paymentsent'],
+    enum: [
+      'pending',
+      'paid',
+      'paymentsent',
+      'invoice to be send',
+      'awaiting payment',
+    ],
     default: 'pending',
   })
-  status: 'pending' | 'paid' | 'paymentsent';
+  status:
+    | 'pending'
+    | 'paid'
+    | 'paymentsent'
+    | 'invoice to be send'
+    | 'awaiting payment';
 
   @Column({ type: 'varchar', length: 255 })
   payment_method: string;
