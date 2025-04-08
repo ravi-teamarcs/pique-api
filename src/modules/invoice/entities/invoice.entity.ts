@@ -70,6 +70,9 @@ export class Invoice {
   @Column({ type: 'date', nullable: true })
   payment_date: string;
 
+  @Column({ nullable: false })
+  booking_id: number;
+
   @CreateDateColumn()
   created_at: Date;
 

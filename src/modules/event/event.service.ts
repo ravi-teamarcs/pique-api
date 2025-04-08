@@ -58,7 +58,7 @@ export class EventService {
       });
     }
   }
-
+  // Created for venues
   async getAllEvents(userId: number) {
     const [events, totalCount] = await this.eventRepository
       .createQueryBuilder('event')

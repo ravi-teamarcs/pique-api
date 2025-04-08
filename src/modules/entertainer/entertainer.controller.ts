@@ -38,6 +38,7 @@ import { typeMap } from 'src/common/constants/media.constants';
 import { UploadedFile } from 'src/common/types/media.type';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { UpcomingEventDto } from './dto/upcoming-event.dto';
+import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -231,5 +232,12 @@ export class EntertainerController {
   upcomingEvent(@Req() req, @Query() query: UpcomingEventDto) {
     const { userId } = req.user;
     return this.entertainerService.getUpcomingEvent(userId, query);
+  }
+
+  @Roles('findAll')
+  @Get('calendar/events')
+  async getUpcomingEvents(@Request() req, @Query() query: EventsByMonthDto) {
+    const { userId } = req.user;
+    return this.entertainerService.getEventDetailsByMonth(userId, query);
   }
 }

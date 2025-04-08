@@ -157,36 +157,53 @@ export class UsersService {
         response['data'] = newDetails;
         return response;
       }
-      const baseUrl = this.config.get<string>('BASE_URL');
-      const defaultHeadshotPath = this.config.get<string>('DEFAULT_MEDIA');
-      const entDetails = await this.entertainerRepository
-        .createQueryBuilder('ent')
-        .leftJoinAndSelect('ent.user', 'user')
+      const URL = this.config.get<string>('DEFAULT_MEDIA');
+      const entertainer = await this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('entertainer.user', 'user')
         .leftJoin(
           'media',
           'media',
           'media.userId = user.id AND media.type = :type',
           { type: 'headshot' },
-        ) // Join with media
-        .where('ent.user.id = :userId', { userId })
+        )
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin(
+          'categories',
+          'cat',
+          'cat.id = entertainer.category AND cat.parentId = 0',
+        )
+        .leftJoin(
+          'categories',
+          'subcat',
+          'subcat.id = entertainer.specific_category AND subcat.parentId != 0',
+        )
+        .where('entertainer.user.id = :userId', { userId })
         .select([
           'user.id AS uid',
-          'ent.name AS stageName',
+          'entertainer.name AS stageName',
           'user.name AS name',
           'user.email AS email',
           'user.phoneNumber AS phoneNumber',
           'user.role AS role',
-          'ent.category AS category',
-          'ent.bio AS bio',
-          'ent.pricePerEvent AS pricePerEvent',
-          'ent.availability AS availability',
-          'ent.vaccinated AS vaccinated',
-          `COALESCE(CONCAT(:baseUrl, media.url), CONCAT(:baseUrl, :defaultPath)) AS headshotUrl`, // Handle media fallback
+          'city.name AS city',
+          'country.name AS country',
+          'state.name AS state',
+          'cat.name AS category',
+          'subcat.name AS specific_category',
+          'entertainer.bio AS bio',
+          'entertainer.pricePerEvent AS pricePerEvent',
+          'entertainer.availability AS availability',
+          'entertainer.vaccinated AS vaccinated',
+          `COALESCE(CONCAT(:baseUrl, media.url), :defaultMediaUrl) AS headshotUrl`,
         ])
-        .setParameters({ baseUrl, defaultPath: defaultHeadshotPath })
+        .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', URL)
         .getRawOne();
 
-      response['data'] = entDetails;
+      response['data'] = entertainer;
       return response;
     } catch (error) {
       throw new InternalServerErrorException({

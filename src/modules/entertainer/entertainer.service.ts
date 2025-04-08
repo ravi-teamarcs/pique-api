@@ -29,6 +29,7 @@ import { ConfigService } from '@nestjs/config';
 import { MediaService } from '../media/media.service';
 import { UploadedFile } from 'src/common/types/media.type';
 import { UpcomingEventDto } from './dto/upcoming-event.dto';
+import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
 
 @Injectable()
 export class EntertainerService {
@@ -135,28 +136,50 @@ export class EntertainerService {
   }
 
   async findEntertainer(userId: number) {
-    const entertainers = await this.entertainerRepository.find({
-      where: { user: { id: userId } },
-      select: [
-        'id',
-        'name',
-        'category',
-        'specific_category',
-        'bio',
-        'performanceRole',
-        'phone1',
-        'phone2',
-        'pricePerEvent',
-        'vaccinated',
-        'availability',
-        'status',
-        'socialLinks',
-      ],
-    });
+    const URL = this.config.get<string>('DEFAULT_MEDIA');
 
+    const entertainer = await this.entertainerRepository
+      .createQueryBuilder('entertainer')
+      .leftJoin('users', 'user', 'entertainer.userId = user.id')
+      .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .leftJoin('states', 'state', 'state.id = entertainer.state')
+      .leftJoin('cities', 'city', 'city.id = entertainer.city')
+      .leftJoin('categories', 'cat', 'cat.id = entertainer.category ')
+      .leftJoin(
+        'categories',
+        'subcat',
+        'subcat.id = entertainer.specific_category ',
+      )
+      .where('entertainer.userId = :userId', { userId })
+      .select([
+        'user.id AS uid',
+        'entertainer.name AS stageName',
+        'user.name AS name',
+        'user.email AS email',
+        'user.phoneNumber AS phoneNumber',
+        'user.role AS role',
+        'city.name AS city',
+        'country.name AS country',
+        'state.name AS state',
+        'cat.name AS category',
+        'subcat.name AS specific_category',
+        'entertainer.bio AS bio',
+        'entertainer.pricePerEvent AS pricePerEvent',
+        'entertainer.availability AS availability',
+        'entertainer.vaccinated AS vaccinated',
+      ])
+      .addSelect(
+        `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM media m WHERE m.userId = user.id AND m.type = 'headshot' LIMIT 1)`,
+        'headshotUrl',
+      )
+      .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
+      .setParameter('defaultMediaUrl', URL)
+      .getRawOne();
+
+    console.log(entertainer, 'entertainer');
     return {
       message: 'Entertainer Fetched Successfully',
-      entertainers,
+      data: entertainer,
       status: true,
     };
   }
@@ -689,6 +712,61 @@ export class EntertainerService {
       throw new InternalServerErrorException({
         message: error.message,
         status: true,
+      });
+    }
+  }
+
+  async getEventDetailsByMonth(userId: number, query: EventsByMonthDto) {
+    const {
+      date = '', // e.g., '2025-04'
+      page = 1,
+      pageSize = 10,
+    } = query;
+
+    // If date is not provided, use current year and month
+    const current = new Date();
+    const year = date ? Number(date.split('-')[0]) : current.getFullYear();
+    const month = date ? Number(date.split('-')[1]) : current.getMonth() + 1;
+
+    const skip = (page - 1) * pageSize;
+
+    try {
+      const qb = this.bookingRepository
+        .createQueryBuilder('booking')
+        .innerJoin('event', 'event', 'event.id = booking.eventId')
+        .where('booking.entertainerUserId = :userId', { userId })
+        .andWhere('YEAR(event.startTime) = :year', { year })
+        .andWhere('MONTH(event.startTime) = :month', { month })
+        .select([
+          'event.id AS event_id',
+          'event.title AS title',
+          'event.location AS location',
+          'event.userId AS userId',
+          'event.description AS description',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'event.recurring AS recurring',
+          'event.status AS status',
+          'event.isAdmin AS isAdmin',
+        ])
+        .orderBy('event.startTime', 'ASC');
+
+      const totalCount = await qb.getCount();
+      const results = await qb.skip(skip).take(pageSize).getRawMany();
+
+      return {
+        message: 'Events returned successfully',
+        data: results,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / pageSize),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
       });
     }
   }

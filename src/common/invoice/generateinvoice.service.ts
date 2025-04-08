@@ -104,6 +104,7 @@ export class GenerateInvoiceService {
         payment_method: '',
         payment_date: null,
         user_id: 12,
+        booking_id: Number(booking.id),
       });
 
       await this.invoiceRepo.save(newInvoice);
