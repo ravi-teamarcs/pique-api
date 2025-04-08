@@ -84,7 +84,7 @@ export class CreateEntertainerDto {
     description: 'Social Media Link of Entertainer',
   })
   @IsString()
-  socialLinks: string;
+  socialLinks?: string;
 
   @ApiProperty({ example: 'yes', description: 'Vaccinated or Not' })
   @IsEnum(Vaccinated)
