@@ -177,9 +177,10 @@ export class EntertainerService {
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
+      console.log('entertainer', entertainer);
       return {
         message: 'Entertainer Fetched Successfully',
-        data: entertainer,
+        data: entertainer ? entertainer : {},
         status: true,
       };
     } catch (error) {
