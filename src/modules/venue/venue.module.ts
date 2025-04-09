@@ -17,6 +17,8 @@ import { VenueDetailsController } from './venue.details.controller';
 import { VenueDetailService } from './venue.details.service';
 import { VenueDetails } from './entities/venue.details.entity';
 import { MediaModule } from '../media/media.module';
+import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.entity';
+import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { MediaModule } from '../media/media.module';
       Category,
       Wishlist,
       VenueDetails,
+      WeeklyAvailability,
+      UnavailableDate,
     ]),
     BookingModule,
     MediaModule,

@@ -183,7 +183,7 @@ export class UsersService {
         .where('entertainer.user.id = :userId', { userId })
         .select([
           'user.id AS uid',
-          'entertainer.name AS stageName',
+
           'user.name AS name',
           'user.email AS email',
           'user.phoneNumber AS phoneNumber',
@@ -191,12 +191,26 @@ export class UsersService {
           'city.name AS city',
           'country.name AS country',
           'state.name AS state',
-          'cat.name AS category',
-          'subcat.name AS specific_category',
+          'cat.name AS category_name',
+          'subcat.name AS specific_category-name',
+          'entertainer.name AS stageName',
           'entertainer.bio AS bio',
+          'entertainer.city AS city',
+          'entertainer.state AS state',
+          'entertainer.country AS country',
           'entertainer.pricePerEvent AS pricePerEvent',
-          'entertainer.availability AS availability',
+          'entertainer.zipCode AS zipCode',
+          'entertainer.address AS address',
+          'entertainer.services AS services',
+          'entertainer.dob AS dob',
+          'entertainer.category AS category',
+          'entertainer.specific_category AS specific_category',
           'entertainer.vaccinated AS vaccinated',
+          'entertainer.socialLinks AS socialLinks',
+          'entertainer.contact_person AS contactPerson',
+          'entertainer.contact_number AS contactNumber',
+          'entertainer.performanceRole AS performanceRole',
+
           `COALESCE(CONCAT(:baseUrl, media.url), :defaultMediaUrl) AS headshotUrl`,
         ])
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))

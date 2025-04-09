@@ -39,6 +39,7 @@ import { UploadedFile } from 'src/common/types/media.type';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { UpcomingEventDto } from './dto/upcoming-event.dto';
 import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
+import { BookingQueryDto } from './dto/booking-query-dto';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -50,78 +51,78 @@ export class EntertainerController {
     private readonly bookingService: BookingService,
   ) {}
 
-  // @Roles('findAll') // Only users with the 'venue' role can access this route
-  // @Post()
-  // @UseInterceptors(
-  //   AnyFilesInterceptor({
-  //     fileFilter: (req, file, callback) => {
-  //       // Check file type from typeMap
-  //       const fileType = typeMap[file.fieldname];
-
-  //       if (!fileType) {
-  //         return callback(
-  //           new BadRequestException({
-  //             message: 'Invalid file field name',
-  //             status: false,
-  //           }),
-  //           false,
-  //         );
-  //       }
-
-  //       // Restrict video file size to 500MB
-  //       if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
-  //         return callback(
-  //           new BadRequestException({
-  //             message: 'Video file size cannot exceed 500 MB',
-  //             status: false,
-  //           }),
-  //           false,
-  //         );
-  //       }
-
-  //       callback(null, true);
-  //     },
-  //   }),
-  // )
-  // @ApiOperation({ summary: 'Create a entertainer' })
-  // @ApiResponse({
-  //   status: 201,
-  //   description: 'entertainer created.',
-  // })
-  // @ApiResponse({ status: 403, description: 'Forbidden.' })
-  // async create(
-  //   @Body() dto: CreateEntertainerDto,
-  //   @Req() req,
-  //   @UploadedFiles() files: Array<Express.Multer.File>,
-  // ) {
-  //   const { userId } = req.user;
-  //   let uploadedFiles: UploadedFile[] = [];
-
-  //   if (files.length > 0) {
-  //     uploadedFiles = await Promise.all(
-  //       files.map(async (file) => {
-  //         const filePath = await uploadFile(file); // Wait for the upload
-  //         return {
-  //           url: filePath,
-  //           name: file.originalname,
-  //           type: typeMap[file.fieldname],
-  //         };
-  //       }),
-  //     );
-  //   }
-  //   return this.entertainerService.createEntertainerWithMedia(
-  //     dto,
-  //     userId,
-  //     uploadedFiles,
-  //   );
-  // }
-
-  @Roles('findAll')
+  @Roles('findAll') // Only users with the 'venue' role can access this route
   @Post()
-  async create(@Body() dto: CreateEntertainerDto, @Req() req) {
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      fileFilter: (req, file, callback) => {
+        // Check file type from typeMap
+        const fileType = typeMap[file.fieldname];
+
+        if (!fileType) {
+          return callback(
+            new BadRequestException({
+              message: 'Invalid file field name',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        // Restrict video file size to 500MB
+        if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
+          return callback(
+            new BadRequestException({
+              message: 'Video file size cannot exceed 500 MB',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        callback(null, true);
+      },
+    }),
+  )
+  @ApiOperation({ summary: 'Create a entertainer' })
+  @ApiResponse({
+    status: 201,
+    description: 'entertainer created.',
+  })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async create(
+    @Body() dto: CreateEntertainerDto,
+    @Req() req,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
     const { userId } = req.user;
-    return this.entertainerService.create(dto, userId);
+    let uploadedFiles: UploadedFile[] = [];
+
+    if (files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: typeMap[file.fieldname],
+          };
+        }),
+      );
+    }
+    return this.entertainerService.createEntertainerWithMedia(
+      dto,
+      userId,
+      uploadedFiles,
+    );
   }
+
+  // @Roles('findAll')
+  // @Post()
+  // async create(@Body() dto: CreateEntertainerDto, @Req() req) {
+  //   const { userId } = req.user;
+  //   return this.entertainerService.create(dto, userId);
+  // }
 
   @Roles('findAll')
   @Get()
@@ -191,10 +192,10 @@ export class EntertainerController {
     status: 200,
     description: 'Booking fetched Successfully.',
   })
-  getBooking(@Request() req) {
+  getBooking(@Request() req, @Query() query: BookingQueryDto) {
     const { userId } = req.user;
 
-    return this.entertainerService.findAllBooking(userId);
+    return this.entertainerService.findAllBooking(userId, query);
   }
   @ApiOperation({
     summary: 'Get  entertainers  categories and sub categories. ',

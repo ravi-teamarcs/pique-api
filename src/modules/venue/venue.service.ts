@@ -6,7 +6,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, DataSource, Like, Repository } from 'typeorm';
+import {
+  Brackets,
+  DataSource,
+  LessThan,
+  LessThanOrEqual,
+  Like,
+  MoreThan,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { Venue } from './entities/venue.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
@@ -25,6 +34,8 @@ import { WishlistDto } from './dto/wishlist.dto';
 import { ConfigService } from '@nestjs/config';
 import { UploadedFile } from 'src/common/types/media.type';
 import { MediaService } from '../media/media.service';
+import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
+import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.entity';
 
 @Injectable()
 export class VenueService {
@@ -43,6 +54,10 @@ export class VenueService {
     private readonly catRepository: Repository<Category>,
     @InjectRepository(Wishlist)
     private readonly wishRepository: Repository<Wishlist>,
+    @InjectRepository(UnavailableDate)
+    private readonly unavailabilityRepo: Repository<UnavailableDate>,
+    @InjectRepository(WeeklyAvailability)
+    private readonly availabilityRepo: Repository<WeeklyAvailability>,
     private readonly config: ConfigService,
     private readonly mediaService: MediaService,
     private readonly dataSource: DataSource,
@@ -835,6 +850,65 @@ export class VenueService {
       throw new InternalServerErrorException({
         status: false,
         error: error.message,
+      });
+    }
+  }
+
+  async isBookingAllowed(
+    userId: number,
+    bookingDate,
+    startTime: string,
+    endTime: string,
+  ) {
+    const dayOfWeek = new Date(bookingDate).toLocaleString('en-US', {
+      weekday: 'long',
+    });
+
+    console.log('Day of Week ', dayOfWeek);
+
+    // Check if date lies is unavailability.
+    const isUnavailable = await this.unavailabilityRepo.findOne({
+      where: { user: userId, date: bookingDate },
+    });
+    if (isUnavailable) {
+      throw new BadRequestException({
+        message: 'The entertainer is unavailable on this date.',
+        status: false,
+      });
+    }
+
+    // Check if time slot is within availability
+    const availableSlot = await this.availabilityRepo.findOne({
+      where: {
+        user: userId,
+        dayOfWeek,
+        startTime: LessThanOrEqual(startTime),
+        endTime: MoreThanOrEqual(endTime),
+      },
+    });
+    if (!availableSlot) {
+      throw new BadRequestException({
+        message: "Requested time is outside of entertainer'\s availability.",
+        status: false,
+      });
+    }
+
+    // Check for booking overlap (assuming you have a Booking entity) (And for Slot )
+
+    const overlap = await this.bookingRepository.findOne({
+      where: {
+        entertainerUser: { id: userId },
+        showDate: bookingDate,
+        // startTime: LessThan(endTime),
+        // endTime: MoreThan(startTime),
+      },
+    });
+
+    if (overlap) {
+      throw new BadRequestException({
+        message:
+          'The entertainer already has a booking that overlaps with the requested time.',
+        status: false,
       });
     }
   }

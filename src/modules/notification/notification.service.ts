@@ -15,19 +15,18 @@ export class NotificationService {
     const { title, body, data } = notification;
 
     const res = await this.getUserTokens(userId);
-
     let message = {
       tokens: res.data,
       notification: {
         title,
         body,
       },
-      data,
+      data: { title, body },
 
       fcmOptions: {
         analyticsLabel: 'my-label',
       },
-      android:{ttl: 3600 * 1000,},
+      android: { ttl: 3600 * 1000 },
       apns: {
         payload: {
           aps: {
@@ -64,7 +63,9 @@ export class NotificationService {
   }
 
   async storeFcmToken(userId: number, token: string, deviceType: string) {
-    const existingToken = await this.fcmTokenRepo.findOne({ where: { token } });
+    const existingToken = await this.fcmTokenRepo.findOne({
+      where: { userId, deviceType, token },
+    });
 
     // If the token exists, no need to save again
     if (existingToken)
@@ -75,13 +76,12 @@ export class NotificationService {
       };
 
     const newToken = this.fcmTokenRepo.create({ userId, token, deviceType });
-    this.fcmTokenRepo.save(newToken);
+    await this.fcmTokenRepo.save(newToken);
     return { message: 'Token saved successfully', status: true };
   }
 
   async removeFcmToken(token: string) {
     await this.fcmTokenRepo.delete({ token });
-
     return { message: 'Token removed successfully', status: true };
   }
 

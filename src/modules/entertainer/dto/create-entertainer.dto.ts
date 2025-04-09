@@ -1,11 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, IsNumber, IsEnum } from 'class-validator';
 import {
-  Availability,
-  PerformanceType,
-  Vaccinated,
-} from 'src/common/enums/entertainer.enum';
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsDateString,
+  IsOptional,
+} from 'class-validator';
+import { PerformanceType, Vaccinated } from 'src/common/enums/entertainer.enum';
 
 export class CreateEntertainerDto {
   @ApiProperty({
@@ -40,36 +43,12 @@ export class CreateEntertainerDto {
   bio: string;
 
   @ApiProperty({
-    example: '9876543210',
-    description: 'Enter the Phone Number of Entertainer',
-  })
-  @IsString()
-  @IsNotEmpty()
-  phone1: string;
-
-  @ApiProperty({
-    example: '6230846541',
-    description: 'Enter the alternative Phone number of Entertainer',
-  })
-  @IsString()
-  @IsNotEmpty()
-  phone2: string;
-
-  @ApiProperty({
     example: 'solo',
     description: 'Role of entertainer (soloist , duo , trio)',
   })
   @IsEnum(PerformanceType)
   @IsNotEmpty()
   performanceRole: PerformanceType;
-
-  @ApiProperty({
-    example: 'yes',
-    description: 'Availability schedule of the entertainer',
-  })
-  @IsEnum(Availability)
-  @IsNotEmpty()
-  availability: Availability;
 
   @ApiProperty({
     example: 3000,
@@ -90,7 +69,42 @@ export class CreateEntertainerDto {
   @IsEnum(Vaccinated)
   vaccinated: Vaccinated;
 
-  @ApiProperty({ example: 'active', description: 'Status of Entertainer' })
+  @IsNumber()
+  @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
+  city: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
+  state: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
+  country: number;
+
   @IsString()
-  status: string;
+  @IsNotEmpty()
+  zipCode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  address: string;
+
+  @IsOptional()
+  @IsNotEmpty()
+  services?: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  contactPerson: string;
+
+  @IsString()
+  @IsNotEmpty()
+  contactNumber: string;
+
+  @IsDateString()
+  @IsNotEmpty()
+  dob: string; // Accepts only date in ISO format, e.g. "2025-04-09"
 }

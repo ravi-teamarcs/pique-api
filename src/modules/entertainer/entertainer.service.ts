@@ -30,6 +30,7 @@ import { MediaService } from '../media/media.service';
 import { UploadedFile } from 'src/common/types/media.type';
 import { UpcomingEventDto } from './dto/upcoming-event.dto';
 import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
+import { BookingQueryDto } from './dto/booking-query-dto';
 
 @Injectable()
 export class EntertainerService {
@@ -71,7 +72,7 @@ export class EntertainerService {
       user: { id: userId },
     });
 
-    await this.entertainerRepository.save(entertainer);
+    // await this.entertainerRepository.save(entertainer);
 
     return {
       message: 'Entertainer saved Successfully',
@@ -86,6 +87,7 @@ export class EntertainerService {
     userId: number,
     uploadedFiles: UploadedFile[],
   ) {
+    const { contactPerson, contactNumber, ...rest } = dto;
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -103,8 +105,11 @@ export class EntertainerService {
 
     try {
       const entertainer = this.entertainerRepository.create({
-        ...dto,
+        ...rest,
         user: { id: userId },
+        services: ['rapper'],
+        contact_number: contactNumber,
+        contact_person: contactPerson,
       });
 
       await this.entertainerRepository.save(entertainer);
@@ -113,6 +118,7 @@ export class EntertainerService {
       const mediaUploadResult = await this.mediaService.handleMediaUpload(
         userId,
         uploadedFiles,
+        { venueId: null, eventId: null },
       );
 
       // Step 3: Commit transaction if everything is successful
@@ -166,11 +172,18 @@ export class EntertainerService {
           'subcat.name AS specific_category_name',
           'entertainer.bio AS bio',
           'entertainer.pricePerEvent AS pricePerEvent',
-          'entertainer.availability AS availability',
           'entertainer.performanceRole AS performanceRole',
           'entertainer.city AS city',
           'entertainer.state AS state',
           'entertainer.country AS country',
+          'entertainer.zipCode AS zipCode',
+          'entertainer.address AS address',
+          'entertainer.services AS services',
+          'entertainer.dob AS dob',
+          'entertainer.vaccinated AS vaccinated',
+          'entertainer.socialLinks AS socialLinks',
+          'entertainer.contact_person AS contactPerson',
+          'entertainer.contact_number AS contactNumber',
           'entertainer.category AS category',
           'entertainer.specific_category AS specific_category',
         ])
@@ -181,7 +194,7 @@ export class EntertainerService {
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
-      console.log('entertainer', entertainer);
+
       return {
         message: 'Entertainer Fetched Successfully',
         data: entertainer ? entertainer : {},
@@ -248,9 +261,12 @@ export class EntertainerService {
     return { message: 'Entertainer removed Sucessfully', status: true };
   }
 
-  async findAllBooking(userId: number) {
+  async findAllBooking(userId: number, query: BookingQueryDto) {
+    const { page = 1, pageSize = 10, search = '', status = null } = query;
+
+    const skip = (Number(page) - 1) * Number(pageSize);
     try {
-      const bookings = await this.bookingRepository
+      const bookings = this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin('venue', 'venue', 'venue.id = booking.venueId') // Manual join since there's no
         .leftJoin('event', 'event', 'event.id = booking.eventId') // Manual join since there's no
@@ -259,7 +275,7 @@ export class EntertainerService {
         .leftJoin('countries', 'country', 'country.id = venue.country') // Manual join since there's no
         .where('booking.entertainerUserId = :userId', { userId })
         .andWhere('booking.status IN (:...statuses)', {
-          statuses: ['pending', 'confirmed'],
+          statuses: ['pending', 'confirmed', 'cancelled', 'completed'],
         })
         .select([
           'booking.id AS id',
@@ -284,12 +300,37 @@ export class EntertainerService {
           'country.name AS country_name',
           'state.name AS state_name',
         ])
-        .orderBy('booking.createdAt', 'DESC') // Corrected sorting
-        .getRawMany(); // Use getRawMany() since we are manually selecting fields
+        .orderBy('booking.createdAt', 'DESC'); // Corrected sorting
+
+      if (search && search.trim()) {
+        bookings.andWhere(
+          'LOWER(event.title) LIKE :search OR  LOWER(venue.name) LIKE :search',
+          {
+            search: `%${search.toLowerCase()}%`,
+          },
+        );
+      }
+
+      if (status) {
+        bookings.andWhere('booking.status = :eventStatus', {
+          eventStatus: status,
+        });
+      }
+
+      const totalCount = await bookings.getCount();
+
+      const results = await bookings
+        .skip(Number(skip))
+        .take(Number(pageSize))
+        .getRawMany();
 
       return {
         message: 'Booking created Suceessfully',
-        bookings,
+        bookings: results,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
         status: true,
       };
     } catch (error) {
@@ -538,133 +579,9 @@ export class EntertainerService {
     }
   }
 
-  // async addAvailability(
-  //   entertainerId: number,
-  //   date: string,
-  //   startTime: string,
-  //   endTime: string,
-  // ) {
-  //   try {
-  //     const overlaps = await this.availabilityRepo.find({
-  //       where: {
-  //         entertainer_id: entertainerId,
-  //         date,
-  //         start_time: LessThan(endTime),
-  //         end_time: MoreThan(startTime),
-  //       },
-  //     });
-
-  //     if (overlaps.length > 0) {
-  //       throw new BadRequestException(
-  //         'Time slot overlaps with existing availability',
-  //       );
-  //     }
-
-  //     const availability = this.availabilityRepo.create({
-  //       entertainer_id: entertainerId,
-  //       date,
-  //       start_time: startTime,
-  //       end_time: endTime,
-  //     });
-
-  //     await this.availabilityRepo.save(availability);
-
-  //     return { message: 'Availability Added successfully', status: true };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException({
-  //       message: 'Error while adding availability',
-  //       error: error.message,
-  //       status: false,
-  //     });
-  //   }
-  // }
-
-  // Calendar  so that  it can be displayed on ui
-  // async getCalendar(entertainerId: number) {
-  //   try {
-  //     const availabilities = await this.availabilityRepo.find({
-  //       where: { entertainer_id: entertainerId },
-  //     });
-
-  //     const bookings = await this.bookingRepo.find({
-  //       where: { entertainer_id: entertainerId, status: 'confirmed' },
-  //     });
-
-  //     const calendarData = {
-  //       availability: availabilities,
-  //       bookings: bookings,
-  //     };
-  //     return {
-  //       message: 'Calendar Data fetched successfully',
-  //       data: calendarData,
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException({
-  //       message: 'Error while fetching calendar',
-  //       error: error.message,
-  //       status: false,
-  //     });
-  //   }
-  // }
-
-  // async bookSlot(venueId, entertainerId, date, startTime, endTime) {
-  //   // Check if the requested time is fully inside one available slot
-  //   try {
-  //     const slot = await this.availabilityRepo.findOne({
-  //       where: {
-  //         entertainer_id: entertainerId,
-  //         date,
-  //         start_time: LessThanOrEqual(startTime),
-  //         end_time: MoreThanOrEqual(endTime),
-  //       },
-  //     });
-
-  //     if (!slot)
-  //       throw new BadRequestException({
-  //         message: 'Requested time is not available',
-  //         status: false,
-  //       });
-
-  //     // Check for overlap with other bookings
-  //     const overlap = await this.bookingRepo.findOne({
-  //       where: {
-  //         entertainer_id: entertainerId,
-  //         date,
-  //         status: 'confirmed',
-  //         start_time: LessThan(endTime),
-  //         end_time: MoreThan(startTime),
-  //       },
-  //     });
-
-  //     if (overlap)
-  //       throw new BadRequestException({
-  //         message: 'Entertainer already booked at this time',
-  //         status: false,
-  //       });
-
-  //     const booking = this.bookingRepo.create({
-  //       venue_id: venueId,
-  //       entertainer_id: entertainerId,
-  //       date,
-  //       start_time: startTime,
-  //       end_time: endTime,
-  //       status: 'confirmed',
-  //     });
-
-  //     return await this.bookingRepo.save(booking);
-  //   } catch (error) {
-  //     throw new InternalServerErrorException({
-  //       message: 'Error while booking slot',
-  //       error: error.message,
-  //       status: false,
-  //     });
-  //   }
-  // }
-
   async getUpcomingEvent(userId: number, query: UpcomingEventDto) {
-    const { page = 1, pageSize = 10 } = query;
-
+    const { page = 1, pageSize = 10, status = null, search = '' } = query;
+    console.log('Status', status, 'Search', search);
     const skip = (Number(page) - 1) * Number(pageSize);
     try {
       const URL =
@@ -702,6 +619,16 @@ export class EntertainerService {
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
         .orderBy('event.startTime', 'ASC');
+
+      if (search && search.trim()) {
+        events.andWhere('LOWER(event.title) LIKE :search', {
+          search: `%${search.toLowerCase()}%`,
+        });
+      }
+
+      if (status) {
+        events.andWhere('event.status = :eventStatus', { eventStatus: status });
+      }
 
       const totalCount = await events.getCount();
 

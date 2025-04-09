@@ -28,7 +28,6 @@ export class EventService {
   async create(createEventDto: CreateEventDto) {
     const event = this.eventRepository.create(createEventDto);
     const data = await this.eventRepository.save(event);
-    console.log('Data', data);
     return { message: 'Event Creates Successfully', data: event, status: true };
   }
 
@@ -91,7 +90,7 @@ export class EventService {
   }> {
     const skip = (page - 1) * pageSize; // Calculate records to skip
 
-    console.log('Status:', status);
+   
 
     const query = this.eventRepository
       .createQueryBuilder('event')

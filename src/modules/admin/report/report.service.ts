@@ -450,7 +450,7 @@ export class ReportService {
     const lastMonth = months.slice(-1)[0]?.split(' ')[0] || 'Dec';
     const yearShort = new Date().getFullYear().toString().slice(-2); // Get last 2 digits of the year
     const fileName = `Event Report ${firstMonth}${yearShort}-${lastMonth}${yearShort}.xlsx`;
-    console.log('Download Name of File', fileName);
+    
     const excelData: any[][] = [];
 
     // Add Column Headers

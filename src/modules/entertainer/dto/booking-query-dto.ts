@@ -2,7 +2,7 @@ import { Transform } from 'class-transformer';
 import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
 import { Status } from 'src/common/enums/event.enum';
 
-class UpcomingEventDto {
+class BookingQueryDto {
   @IsNumber()
   @IsOptional()
   @Transform(({ value }) => Number(value))
@@ -13,13 +13,12 @@ class UpcomingEventDto {
   @IsOptional()
   pageSize: number;
 
-  @IsEnum(Status)
   @IsOptional()
-  status: Status;
+  status: 'pending' | 'accepted' | 'completed' | 'confirmed' | 'cancelled';
 
   @IsString()
   @IsOptional()
   search: string;
 }
 
-export { UpcomingEventDto };
+export { BookingQueryDto };

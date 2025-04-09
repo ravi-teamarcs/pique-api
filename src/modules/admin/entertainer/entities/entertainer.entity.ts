@@ -74,6 +74,26 @@ export class Entertainer {
   @Column()
   socialLinks: string;
 
+  // New changes Introduced  (Latest Changes Both )  Can be Changed
+
+  @Column({ type: 'date' }) // Only stores YYYY-MM-DD, no time
+  dob: Date;
+
+  @Column()
+  address: string;
+
+  @Column()
+  zipCode: string;
+
+  @Column('simple-array')
+  services: string[];
+
+  @Column()
+  contact_person: string;
+
+  @Column()
+  contact_number: string;
+
   @CreateDateColumn()
   createdAt: Date;
 

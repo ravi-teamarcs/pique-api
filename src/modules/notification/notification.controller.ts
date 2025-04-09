@@ -1,4 +1,11 @@
-import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { NotificationService } from './notification.service';
 import { NotificationDto } from './dto/create-notification.dto';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -14,9 +21,10 @@ export class NotificationController {
     description: 'Notification sent successfully.',
   })
   @Post()
+  @HttpCode(200)
   @UseGuards(JwtAuthGuard)
   sendNotification(@Body() pushNotification: sendNotificationDTO, @Req() req) {
     const { userId } = req.user;
-    this.notificationService.sendPush(pushNotification, userId);
+    return this.notificationService.sendPush(pushNotification, userId);
   }
 }
