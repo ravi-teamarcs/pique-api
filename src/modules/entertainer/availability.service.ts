@@ -63,4 +63,22 @@ export class AvailabilityService {
       });
     }
   }
+
+  async getAvailabilityAndUnavailability(userId: number) {
+    const [availability, unavailability] = await Promise.all([
+      this.availabilityRepo.find({ where: { user: userId } }),
+      this.unavailabilityRepo.find({ where: { user: userId } }),
+    ]);
+
+    return {
+      message: 'Availability and unavailability returned Successfully',
+      availability: availability.map((slot) => ({
+        dayOfWeek: slot.dayOfWeek,
+        startTime: slot.startTime,
+        endTime: slot.endTime,
+      })),
+      unavailability: unavailability.map((date) => date.date),
+      status: true,
+    };
+  }
 }

@@ -241,4 +241,6 @@ export class EntertainerController {
     const { userId } = req.user;
     return this.entertainerService.getEventDetailsByMonth(userId, query);
   }
+
+  
 }

@@ -38,4 +38,11 @@ export class AvailabilityController {
       unavailabilityDto,
     );
   }
+
+  @Roles('findAll')
+  @Get()
+  async getAvailabilityAndUnavailability(@Req() req) {
+    const { userId } = req.user;
+    return this.availabilityService.getAvailabilityAndUnavailability(userId);
+  }
 }
