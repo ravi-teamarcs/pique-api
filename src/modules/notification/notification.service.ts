@@ -15,6 +15,7 @@ export class NotificationService {
     const { title, body, data } = notification;
 
     const res = await this.getUserTokens(userId);
+    console.log(res.data, 'Array of Token');
     let message = {
       tokens: res.data,
       notification: {
@@ -90,7 +91,7 @@ export class NotificationService {
       where: { userId },
       select: ['token'],
     });
-
+    console.log(tokensData, 'Token Data');
     const tokenList = tokensData.map((t) => t.token);
     return {
       message: 'Token fetched Successfully',
