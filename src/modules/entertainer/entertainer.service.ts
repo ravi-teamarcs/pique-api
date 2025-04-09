@@ -107,7 +107,6 @@ export class EntertainerService {
       const entertainer = this.entertainerRepository.create({
         ...rest,
         user: { id: userId },
-        services: ['rapper'],
         contact_number: contactNumber,
         contact_person: contactPerson,
       });
