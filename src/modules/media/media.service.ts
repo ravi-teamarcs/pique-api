@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Media } from './entities/media.entity';
@@ -129,5 +130,28 @@ export class MediaService {
     await this.mediaRepository.update({ id: media.id }, uploadedFile);
 
     return { message: 'Media updated Successfully', status: true };
+  }
+
+  async removeMedia(id: number, userId: number) {
+    const media = await this.mediaRepository.findOne({
+      where: { id, user: { id: userId } },
+    });
+
+    if (!media) {
+      throw new NotFoundException({
+        message: 'media not found',
+        status: false,
+      });
+    }
+
+    try {
+      await this.mediaRepository.remove(media);
+      return { message: 'media deleted successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 }

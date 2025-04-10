@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -33,6 +34,8 @@ import { MediaDto } from './dto/update-media.dto';
 import { typeMap } from 'src/common/constants/media.constants';
 import { UploadedFile } from 'src/common/types/media.type';
 import { UploadMedia } from './dto/upload-media.dto';
+import { DeleteResult } from 'typeorm';
+import { Roles } from '../auth/roles.decorator';
 
 @ApiTags('Media')
 @Controller('media')
@@ -111,7 +114,7 @@ export class MediaController {
     const { userId } = req.user;
     return this.mediaService.findAllMedia(userId, venueId);
   }
-
+  @Roles('findAll')
   @Put(':mediaId')
   @UseInterceptors(
     AnyFilesInterceptor({
@@ -169,5 +172,12 @@ export class MediaController {
     };
 
     return this.mediaService.updateMedia(Number(mediaId), userId, uploadedFile);
+  }
+
+  @Roles('findAll')
+  @Delete(':id')
+  removeMedia(@Param('id') id: number, @Req() req) {
+    const { userId } = req.user;
+    return this.mediaService.removeMedia(Number(id), userId);
   }
 }

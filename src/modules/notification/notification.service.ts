@@ -47,13 +47,7 @@ export class NotificationService {
     const message = {
       tokens: res.data, // Array of device tokens
 
-      data: {
-        type: 'booking_request', // Custom type for frontend handling
-        bookingId: '12345',
-        title,
-        body,
-        timestamp: new Date().toISOString(),
-      },
+      
 
       notification: {
         title,

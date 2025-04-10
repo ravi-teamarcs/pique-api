@@ -145,7 +145,7 @@ export class EntertainerController {
   }
 
   @Roles('findAll')
-  @Patch(':id')
+  @Patch()
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
