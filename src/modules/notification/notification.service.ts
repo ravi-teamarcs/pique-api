@@ -4,41 +4,104 @@ import { sendNotificationDTO } from './dto/send-notification.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FcmToken } from './entities/fcm-token.entity';
+import { Notification } from './entities/notification.entity';
 
 @Injectable()
 export class NotificationService {
   constructor(
     @InjectRepository(FcmToken)
     private readonly fcmTokenRepo: Repository<FcmToken>,
+    @InjectRepository(Notification)
+    private readonly notificationRepo: Repository<Notification>,
   ) {}
   async sendPush(notification: sendNotificationDTO, userId: number) {
     const { title, body, data } = notification;
 
     const res = await this.getUserTokens(userId);
-    console.log(res.data, 'Array of Token');
-    let message = {
-      tokens: res.data,
+
+    // let message = {
+    //   tokens: res.data,
+    //   notification: {
+    //     title,
+    //     body,
+    //   },
+
+    //   fcmOptions: {
+    //     analyticsLabel: 'my-label',
+    //   },
+    //   android: { ttl: 3600 * 1000 },
+    //   apns: {
+    //     payload: {
+    //       aps: {
+    //         alert: {
+    //           titleLocKey: 'key1',
+    //           locKey: 'key2',
+    //           locArgs: ['value1'],
+    //         },
+    //       },
+    //       contentAvailable: true,
+    //     },
+    //   },
+    // };
+
+    const message = {
+      tokens: res.data, // Array of device tokens
+
+      data: {
+        type: 'booking_request', // Custom type for frontend handling
+        bookingId: '12345',
+        title,
+        body,
+        timestamp: new Date().toISOString(),
+      },
+
       notification: {
         title,
         body,
       },
-      data: { title, body },
 
-      fcmOptions: {
-        analyticsLabel: 'my-label',
+      android: {
+        ttl: 3600 * 1000,
+        notification: {
+          icon: 'ic_launcher', // must be present in app resources
+          color: '#f45342',
+          sound: 'default',
+          clickAction: 'FLUTTER_NOTIFICATION_CLICK', // Optional for Android
+        },
       },
-      android: { ttl: 3600 * 1000 },
+
       apns: {
         payload: {
           aps: {
             alert: {
-              titleLocKey: 'key1',
-              locKey: 'key2',
-              locArgs: ['value1'],
+              title,
+              body,
             },
+            sound: 'default',
+            contentAvailable: true,
           },
-          contentAvailable: true,
         },
+        headers: {
+          'apns-priority': '10',
+        },
+      },
+
+      webpush: {
+        notification: {
+          title,
+          body,
+          icon: 'https://your-site.com/icon.png',
+          click_action: 'https://your-site.com/notifications',
+          vibrate: [100, 50, 100],
+          badge: 'https://your-site.com/badge.png',
+        },
+        fcmOptions: {
+          link: 'https://your-site.com/notifications',
+        },
+      },
+
+      fcmOptions: {
+        analyticsLabel: 'my-unified-push',
       },
     };
 
@@ -47,15 +110,17 @@ export class NotificationService {
         .messaging()
         .sendEachForMulticast(message);
 
-      const failedTokens = res.data.filter(
-        (token, index) => !responses[index].success,
-      );
+      console.log(responses);
 
-      if (failedTokens.length > 0) {
-        failedTokens.map(
-          async (token) => await this.fcmTokenRepo.delete({ token }),
-        );
-      }
+      // const failedTokens = res.data.filter(
+      //   (token, index) => !responses[index].success,
+      // );
+
+      // if (failedTokens.length > 0) {
+      //   failedTokens.map(
+      //     async (token) => await this.fcmTokenRepo.delete({ token }),
+      //   );
+      // }
 
       return { message: 'Notification Sent successfully ', status: true };
     } catch (error) {
@@ -97,6 +162,30 @@ export class NotificationService {
       message: 'Token fetched Successfully',
       data: tokenList,
       status: true,
+    };
+  }
+
+  async getNotifications(
+    userId: number,
+    onlyUnread = false,
+    page = 1,
+    limit = 20,
+  ) {
+    const where: any = { userId };
+    if (onlyUnread) where.isRead = false;
+
+    const [data, total] = await this.notificationRepo.findAndCount({
+      where,
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return {
+      total,
+      page,
+      limit,
+      data,
     };
   }
 }

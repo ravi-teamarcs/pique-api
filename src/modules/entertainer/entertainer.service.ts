@@ -243,13 +243,58 @@ export class EntertainerService {
     id: number,
     updateEntertainerDto: UpdateEntertainerDto,
     userId: number,
+    uploadedFiles: UploadedFile[],
   ) {
-    const entertainer = await this.entertainerRepository.findOne({
-      where: { id, user: { id: userId } },
+    const { contactNumber, contactPerson, ...rest } = updateEntertainerDto;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    const existingEntertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
     });
-    Object.assign(entertainer, updateEntertainerDto);
-    await this.entertainerRepository.save(entertainer);
-    return { message: 'Entertainer updated Successfully', status: true };
+
+    if (!existingEntertainer) {
+      throw new BadRequestException({
+        message: 'Entertainer not Found',
+        status: false,
+      });
+    }
+
+    try {
+      const entertainer = this.entertainerRepository.update(
+        { user: { id: userId } },
+        {
+          ...rest,
+          contact_number: contactNumber,
+          contact_person: contactPerson,
+        },
+      );
+
+      // Step 2: Upload media (calls external service)
+      const mediaUploadResult = await this.mediaService.handleMediaUpload(
+        userId,
+        uploadedFiles,
+        { venueId: null, eventId: null },
+      );
+
+      // Step 3: Commit transaction if everything is successful
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Entertainer updated  Successfully',
+        status: true,
+      };
+    } catch (error) {
+      // Step 4: Rollback transaction if anything fails
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException({
+        error: error.message,
+        status: false,
+      });
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async remove(id: number, userId: number) {
