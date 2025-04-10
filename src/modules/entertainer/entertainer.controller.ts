@@ -145,7 +145,7 @@ export class EntertainerController {
   }
 
   @Roles('findAll')
-  @Patch(':id')
+  @Patch()
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
@@ -183,7 +183,6 @@ export class EntertainerController {
     description: 'Entertainer updated sucessfully.',
   })
   async update(
-    @Param('id') id: number,
     @Body() updateEntertainerDto: UpdateEntertainerDto,
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
@@ -205,7 +204,6 @@ export class EntertainerController {
     }
 
     return this.entertainerService.update(
-      +id,
       updateEntertainerDto,
       userId,
       uploadedFiles,
@@ -289,7 +287,7 @@ export class EntertainerController {
 
   @Get('events/details/:id')
   @Roles('findAll')
-  getEventDetail(@Req() req, @Param('id')id: number) {
+  getEventDetail(@Req() req, @Param('id') id: number) {
     const { userId } = req.user;
     return this.entertainerService.getEventDetailsById(userId, Number(id));
   }

@@ -243,7 +243,6 @@ export class EntertainerService {
   }
 
   async update(
-    id: number,
     updateEntertainerDto: UpdateEntertainerDto,
     userId: number,
     uploadedFiles: UploadedFile[],
