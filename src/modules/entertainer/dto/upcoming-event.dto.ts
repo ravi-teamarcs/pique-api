@@ -1,5 +1,11 @@
 import { Transform } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { Status } from 'src/common/enums/event.enum';
 
 class UpcomingEventDto {
@@ -13,9 +19,13 @@ class UpcomingEventDto {
   @IsOptional()
   pageSize: number;
 
-  @IsEnum(Status)
   @IsOptional()
-  status: Status;
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
+  @IsArray()
+  @IsEnum(Status, { each: true })
+  status?: Status[];
 
   @IsString()
   @IsOptional()

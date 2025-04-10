@@ -1,10 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import { sendNotificationDTO } from './dto/send-notification.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FcmToken } from './entities/fcm-token.entity';
 import { Notification } from './entities/notification.entity';
+import { NotificationQueryDto } from './dto/notification-query-dto';
 
 @Injectable()
 export class NotificationService {
@@ -14,8 +19,14 @@ export class NotificationService {
     @InjectRepository(Notification)
     private readonly notificationRepo: Repository<Notification>,
   ) {}
+
   async sendPush(notification: sendNotificationDTO, userId: number) {
-    const { title, body, data } = notification;
+    const { title, body, type, data } = notification;
+
+    // First Store the notification in db.
+
+    const notify = this.notificationRepo.create({ userId, title, body, type });
+    await this.notificationRepo.save(notify);
 
     const res = await this.getUserTokens(userId);
 
@@ -46,8 +57,6 @@ export class NotificationService {
 
     const message = {
       tokens: res.data, // Array of device tokens
-
-      
 
       notification: {
         title,
@@ -106,15 +115,15 @@ export class NotificationService {
 
       console.log(responses);
 
-      // const failedTokens = res.data.filter(
-      //   (token, index) => !responses[index].success,
-      // );
+      const failedTokens = res.data.filter(
+        (token, index) => !responses[index].success,
+      );
 
-      // if (failedTokens.length > 0) {
-      //   failedTokens.map(
-      //     async (token) => await this.fcmTokenRepo.delete({ token }),
-      //   );
-      // }
+      if (failedTokens.length > 0) {
+        failedTokens.map(
+          async (token) => await this.fcmTokenRepo.delete({ token }),
+        );
+      }
 
       return { message: 'Notification Sent successfully ', status: true };
     } catch (error) {
@@ -159,27 +168,62 @@ export class NotificationService {
     };
   }
 
-  async getNotifications(
-    userId: number,
-    onlyUnread = false,
-    page = 1,
-    limit = 20,
-  ) {
-    const where: any = { userId };
-    if (onlyUnread) where.isRead = false;
+  async getNotifications(userId: number, query: NotificationQueryDto) {
+    const { unread, page = 1, pageSize = 20 } = query;
 
-    const [data, total] = await this.notificationRepo.findAndCount({
-      where,
-      order: { createdAt: 'DESC' },
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    try {
+      const onlyUnread = unread;
 
-    return {
-      total,
-      page,
-      limit,
-      data,
-    };
+      const where: any = { userId };
+      if (onlyUnread) where.isRead = false;
+      console.log('Where Query', where);
+      const [data, total] = await this.notificationRepo.findAndCount({
+        where,
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      });
+
+      return {
+        message: 'notification fetched sucessfully',
+        total,
+        page,
+        pageSize,
+        data,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        messge: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async markAsRead(id: number) {
+    const notification = await this.notificationRepo.findOne({ where: { id } });
+
+    if (!notification) {
+      throw new NotFoundException({
+        message: 'Notification not found',
+        status: false,
+      });
+    }
+
+    if (!notification.isRead) {
+      notification.isRead = true;
+      notification.readAt = new Date();
+      await this.notificationRepo.save(notification);
+    }
+
+    return { message: 'Notification marked as read', status: true };
+  }
+
+  async markAllAsRead(userId: number) {
+    await this.notificationRepo.update(
+      { userId, isRead: false },
+      { isRead: true, readAt: new Date() },
+    );
+
+    return { message: 'All notifications marked as read', status: true };
   }
 }

@@ -31,6 +31,7 @@ import { UploadedFile } from 'src/common/types/media.type';
 import { UpcomingEventDto } from './dto/upcoming-event.dto';
 import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
 import { BookingQueryDto } from './dto/booking-query-dto';
+import { VenueEvent } from '../event/entities/event.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -47,6 +48,8 @@ export class EntertainerService {
     private readonly categoryRepository: Repository<Category>,
     @InjectRepository(Media)
     private readonly mediaRepository: Repository<Media>,
+    @InjectRepository(VenueEvent)
+    private readonly eventRepository: Repository<VenueEvent>,
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
     private readonly config: ConfigService,
@@ -306,7 +309,7 @@ export class EntertainerService {
   }
 
   async findAllBooking(userId: number, query: BookingQueryDto) {
-    const { page = 1, pageSize = 10, search = '', status = null } = query;
+    const { page = 1, pageSize = 10, search = '', status = [] } = query;
 
     const skip = (Number(page) - 1) * Number(pageSize);
     try {
@@ -355,9 +358,9 @@ export class EntertainerService {
         );
       }
 
-      if (status) {
-        bookings.andWhere('booking.status = :eventStatus', {
-          eventStatus: status,
+      if (status && status.length > 0) {
+        bookings.andWhere('booking.status IN (:...statuses)', {
+          statuses: status,
         });
       }
 
@@ -624,7 +627,7 @@ export class EntertainerService {
   }
 
   async getUpcomingEvent(userId: number, query: UpcomingEventDto) {
-    const { page = 1, pageSize = 10, status = null, search = '' } = query;
+    const { page = 1, pageSize = 10, status = [], search = '' } = query;
     console.log('Status', status, 'Search', search);
     const skip = (Number(page) - 1) * Number(pageSize);
     try {
@@ -670,8 +673,10 @@ export class EntertainerService {
         });
       }
 
-      if (status) {
-        events.andWhere('event.status = :eventStatus', { eventStatus: status });
+      if (status && status.length > 0) {
+        events.andWhere('event.status IN (:...eventStatuses)', {
+          eventStatuses: status,
+        });
       }
 
       const totalCount = await events.getCount();
@@ -749,6 +754,42 @@ export class EntertainerService {
       throw new InternalServerErrorException({
         message: error.message,
         status: false,
+      });
+    }
+  }
+
+  async getEventDetailsById(userId: number, id: number) {
+    try {
+      const eventDetails = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .where('event.id = :id', { id })
+        .select([
+          'event.id AS event_id',
+          'event.title AS title',
+          'event.location AS location',
+          'event.userId AS userId',
+          'event.description AS description',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'event.recurring AS recurring',
+          'event.status AS status',
+          'event.isAdmin AS isAdmin',
+          'venue.name AS name',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+        ])
+        .getRawOne();
+
+      return {
+        message: 'Event Details returned successfully',
+        status: true,
+        data: eventDetails,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: true,
       });
     }
   }

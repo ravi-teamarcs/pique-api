@@ -145,7 +145,7 @@ export class EntertainerController {
   }
 
   @Roles('findAll')
-  @Patch()
+  @Patch(':id')
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
@@ -285,6 +285,13 @@ export class EntertainerController {
   upcomingEvent(@Req() req, @Query() query: UpcomingEventDto) {
     const { userId } = req.user;
     return this.entertainerService.getUpcomingEvent(userId, query);
+  }
+
+  @Get('events/details/:id')
+  @Roles('findAll')
+  getEventDetail(@Req() req, @Param('id')id: number) {
+    const { userId } = req.user;
+    return this.entertainerService.getEventDetailsById(userId, Number(id));
   }
 
   @Roles('findAll')

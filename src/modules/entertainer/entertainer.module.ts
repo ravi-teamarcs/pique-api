@@ -22,6 +22,7 @@ import { AvailabilityController } from './availability.controller';
 import { AvailabilityService } from './availability.service';
 import { WeeklyAvailability } from './entities/weekly-availability.entity';
 import { UnavailableDate } from './entities/unavailable.entity';
+import { VenueEvent } from '../event/entities/event.entity';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { UnavailableDate } from './entities/unavailable.entity';
       Invoice,
       WeeklyAvailability,
       UnavailableDate,
+      VenueEvent,
     ]),
     BookingModule,
     MediaModule,

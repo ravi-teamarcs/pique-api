@@ -19,6 +19,7 @@ import { VenueDetails } from './entities/venue.details.entity';
 import { MediaModule } from '../media/media.module';
 import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.entity';
 import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
+import { NotificationDto } from '../notification/dto/create-notification.dto';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
     ]),
     BookingModule,
     MediaModule,
+    NotificationDto,
   ],
   controllers: [VenueController, VenueDetailsController],
   providers: [VenueService, VenueDetailService],
