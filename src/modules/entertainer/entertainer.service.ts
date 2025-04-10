@@ -322,7 +322,7 @@ export class EntertainerService {
         .leftJoin('countries', 'country', 'country.id = venue.country') // Manual join since there's no
         .where('booking.entertainerUserId = :userId', { userId })
         .andWhere('booking.status IN (:...statuses)', {
-          statuses: ['pending', 'confirmed', 'cancelled', 'completed'],
+          statuses: ['pending', 'confirmed', 'cancelled', 'completed' ,'accepted'],
         })
         .select([
           'booking.id AS id',
