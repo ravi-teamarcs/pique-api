@@ -322,7 +322,13 @@ export class EntertainerService {
         .leftJoin('countries', 'country', 'country.id = venue.country') // Manual join since there's no
         .where('booking.entertainerUserId = :userId', { userId })
         .andWhere('booking.status IN (:...statuses)', {
-          statuses: ['pending', 'confirmed', 'cancelled', 'completed' ,'accepted'],
+          statuses: [
+            'pending',
+            'confirmed',
+            'cancelled',
+            'completed',
+            'accepted',
+          ],
         })
         .select([
           'booking.id AS id',
@@ -708,6 +714,7 @@ export class EntertainerService {
       date = '', // e.g., '2025-04'
       page = 1,
       pageSize = 10,
+      status = '',
     } = query;
 
     // If date is not provided, use current year and month
@@ -737,6 +744,10 @@ export class EntertainerService {
           'event.isAdmin AS isAdmin',
         ])
         .orderBy('event.startTime', 'ASC');
+
+      if (status) {
+        qb.andWhere('event.status=:status', { status });
+      }
 
       const totalCount = await qb.getCount();
       const results = await qb.skip(skip).take(pageSize).getRawMany();
