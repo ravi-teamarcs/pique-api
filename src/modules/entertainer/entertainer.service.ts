@@ -327,6 +327,7 @@ export class EntertainerService {
             'cancelled',
             'completed',
             'accepted',
+            'rejected'
           ],
         })
         .select([
