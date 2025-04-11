@@ -394,6 +394,58 @@ export class EntertainerService {
     }
   }
 
+  async findPendingBookings(userId: number) {
+    try {
+      const bookings = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+        .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('states', 'state', 'state.id = venue.state')
+        .leftJoin('countries', 'country', 'country.id = venue.country')
+        .where('booking.entertainerUserId = :userId', { userId })
+        .andWhere('booking.status = :status', { status: 'pending' })
+        .select([
+          'booking.id AS id',
+          'booking.status AS status',
+          'booking.showDate AS showDate',
+          'booking.showTime AS showTime',
+          'booking.specialNotes AS specialNotes',
+          'booking.performanceRole AS performanceRole',
+          'venue.name AS name',
+          'venue.phone AS phone',
+          'venue.email AS email',
+          'event.id AS event_id',
+          'event.title AS event_title',
+          'event.location AS event_location',
+          'event.description AS event_description',
+          'event.startTime AS event_startTime',
+          'event.endTime AS event_endTime',
+          'venue.description AS description',
+          'venue.state AS state',
+          'venue.city AS city',
+          'city.name AS city_name',
+          'country.name AS country_name',
+          'state.name AS state_name',
+        ])
+        .orderBy('booking.createdAt', 'DESC')
+        .getRawMany();
+  
+      return {
+        message: 'Pending bookings fetched successfully',
+        bookings,
+        count: bookings.length,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        error: error.message,
+        status: false,
+      });
+    }
+  }
+  
+
   async getCategories() {
     const categories = await this.categoryRepository.find({
       where: { parentId: 0 },

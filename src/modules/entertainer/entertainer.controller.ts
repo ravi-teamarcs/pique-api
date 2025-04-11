@@ -247,6 +247,23 @@ export class EntertainerController {
 
     return this.entertainerService.findAllBooking(userId, query);
   }
+
+
+  
+@Get('/booking/request/pending')
+@Roles('findAll')
+@ApiOperation({ summary: 'Get all pending bookings of the Entertainer' })
+@ApiResponse({
+  status: 200,
+  description: 'Pending bookings fetched successfully.',
+})
+getPendingBookings(@Request() req) {
+  const { userId } = req.user;
+  return this.entertainerService.findPendingBookings(userId);
+}
+
+
+
   @ApiOperation({
     summary: 'Get  entertainers  categories and sub categories. ',
   })
