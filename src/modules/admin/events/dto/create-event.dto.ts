@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsString,
   IsNumber,
@@ -12,10 +13,12 @@ export class CreateEventDto {
   @ApiProperty({ example: 1, description: 'Venue for  which event is created' })
   @IsNotEmpty()
   @IsNumber()
+  @Transform(({ value }) => Number(value))
   venueId: number;
 
   @IsNotEmpty()
   @IsNumber()
+  @Transform(({ value }) => Number(value))
   userId: number;
 
   @ApiProperty({
@@ -69,5 +72,6 @@ export class CreateEventDto {
   @ApiProperty({ example: false, description: 'Is Event creator Admin ?' })
   @IsBoolean()
   @IsNotEmpty()
+  @Transform(({ value }) => value === 'true')
   isAdmin: boolean;
 }

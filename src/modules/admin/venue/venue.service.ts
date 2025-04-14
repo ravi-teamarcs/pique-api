@@ -11,6 +11,7 @@ import { UpdateVenueDto } from './Dto/update-venue.dto';
 import { CreateVenueDto } from './Dto/create-venue.dto';
 import { User } from '../users/entities/users.entity';
 import { AddLocationDto } from './Dto/add-location.dto';
+import { UpdateLocationDto } from './Dto/update-location.dto';
 
 @Injectable()
 export class VenueService {
@@ -164,38 +165,54 @@ export class VenueService {
     }
   }
 
-  async getVenueLocation(id: number) {
-    const venueExists = await this.venueRepository.find({ where: { id } });
+  async updateLocation(id: number, dto: UpdateLocationDto) {
+    const venueExists = await this.venueRepository.findOne({
+      where: { id, isParent: false },
+    });
     if (!venueExists) {
       throw new NotFoundException({
-        message: 'Venue not Found',
+        message: 'Location not Found',
         status: false,
       });
     }
 
-    const location = await this.venueRepository.find({
-      where: { parentId: id },
-      select: [
-        'id',
-        'name',
-        'phone',
-        'email',
-        'addressLine1',
-        'addressLine2',
-        'parentId',
-        'isParent',
-        'description',
-        'city',
-        'state',
-        'zipCode',
-        'country',
-      ],
-    });
-
-    return {
-      message: 'Location returned Successfully',
-      data: location,
-      status: true,
-    };
+    try {
+      await this.venueRepository.update({ id: venueExists.id }, dto);
+      return {
+        message: 'Location updatesd Successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
+
+  async removeLocation(id: number) {
+    const venueExists = await this.venueRepository.findOne({
+      where: { id, isParent: false },
+    });
+    if (!venueExists) {
+      throw new NotFoundException({
+        message: 'Location not Found',
+        status: false,
+      });
+    }
+    try {
+      await this.venueRepository.remove(venueExists);
+      return {
+        message: 'Location removed Successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async getVenueLocation(id: number) {}
 }

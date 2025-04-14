@@ -23,51 +23,51 @@ export class ReportService {
     @InjectRepository(Invoice) private invoiceRepo: Repository<Invoice>,
   ) {}
 
-  async getAllEventData() {
-    const page = 1;
-    const skip = 10;
+  // async getAllEventData() {
+  //   const page = 1;
+  //   const skip = 10;
 
-    const events = await this.eventRepo.find();
-    const eventData = await Promise.all(
-      events.map(async (event) => {
-        const venue = await this.venueRepo.findOne({
-          where: { id: event.venueId },
-        });
-        const bookings = await this.bookingRepo.find({
-          where: { eventId: event.id },
-          order: { id: 'DESC' },
-        });
+  //   const events = await this.eventRepo.find();
+  //   const eventData = await Promise.all(
+  //     events.map(async (event) => {
+  //       const venue = await this.venueRepo.findOne({
+  //         where: { id: event.venueId },
+  //       });
+  //       const bookings = await this.bookingRepo.find({
+  //         where: { eventId: event.id },
+  //         order: { id: 'DESC' },
+  //       });
 
-        const bookingsWithEntertainers = await Promise.all(
-          bookings.map(async (booking) => {
-            // Fetch the entertainer linked to the booking
-            const entertainer = await this.entertainerRepo.findOne({
-              where: { user: { id: booking.entertainerUser?.id } },
-              relations: ['user'],
-            });
+  //       const bookingsWithEntertainers = await Promise.all(
+  //         bookings.map(async (booking) => {
+  //           // Fetch the entertainer linked to the booking
+  //           const entertainer = await this.entertainerRepo.findOne({
+  //             where: { user: { id: booking.entertainerUser?.id } },
+  //             relations: ['user'],
+  //           });
 
-            // Ensure that we only query invoices when an entertainer is found
-            const invoices = entertainer
-              ? await this.invoiceRepo.find({
-                  where: { entertainer_id: entertainer.id },
-                  order: { id: 'DESC' },
-                })
-              : [];
+  //           // Ensure that we only query invoices when an entertainer is found
+  //           const invoices = entertainer
+  //             ? await this.invoiceRepo.find({
+  //                 where: { entertainer_id: entertainer.id },
+  //                 order: { id: 'DESC' },
+  //               })
+  //             : [];
 
-            return { ...booking, entertainer, invoices };
-          }),
-        );
+  //           return { ...booking, entertainer, invoices };
+  //         }),
+  //       );
 
-        return {
-          ...event,
-          venue,
-          bookings: bookingsWithEntertainers,
-        };
-      }),
-    );
+  //       return {
+  //         ...event,
+  //         venue,
+  //         bookings: bookingsWithEntertainers,
+  //       };
+  //     }),
+  //   );
 
-    return eventData;
-  }
+  //   return eventData;
+  // }
 
   async getEventData(query: Report) {
     const { page = 1, limit = 10, from, to, search = '' } = query;
@@ -443,14 +443,14 @@ export class ReportService {
       if (!groupedData[month]) groupedData[month] = [];
       groupedData[month].push(event);
     });
-   
+
     // Determine filename based on event date range
     const months = Object.keys(groupedData);
     const firstMonth = months[0]?.split(' ')[0] || 'Jan';
     const lastMonth = months.slice(-1)[0]?.split(' ')[0] || 'Dec';
     const yearShort = new Date().getFullYear().toString().slice(-2); // Get last 2 digits of the year
     const fileName = `Event Report ${firstMonth}${yearShort}-${lastMonth}${yearShort}.xlsx`;
-    
+
     const excelData: any[][] = [];
 
     // Add Column Headers

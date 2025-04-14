@@ -46,7 +46,7 @@ export class InvoiceService {
       const alreadyGenerated = await this.invoiceRepository.findOne({
         where: {
           user_id: userId,
-          // booking_id: bookingId, // ✅ prevent duplicate invoice for same booking
+          booking_id: bookingId, // ✅ prevent duplicate invoice for same booking
         },
       });
 
@@ -75,8 +75,6 @@ export class InvoiceService {
         invoice_number: newInvoiceNumber,
         user_id: userId,
         event_id: Number(eventId),
-        entertainer_id: 1,
-        venue_id: 1,
         issue_date: issueDate.toISOString().split('T')[0],
         due_date: new Date(dueDate).toISOString().split('T')[0],
         total_amount: parseFloat(pricePerEvent.toFixed(2)),
@@ -86,6 +84,7 @@ export class InvoiceService {
         status: InvoiceStatus.PENDING,
         payment_method: '',
         payment_date: null,
+        booking_id: Number(bookingId),
       });
       await this.invoiceRepository.save(newInvoice);
     }

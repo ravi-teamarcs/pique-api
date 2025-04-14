@@ -63,7 +63,10 @@ export class GenerateInvoiceService {
     const bookings = await this.bookingRepo
       .createQueryBuilder('booking')
       .where('booking.eventId = :eventId', { eventId: event.id })
-      .select('booking.entertainerUserId as eId')
+      .select([
+        'booking.entertainerUserId as eId',
+        'booking.venueUserId as venueUserId',
+      ])
       .getRawMany();
 
     for (const booking of bookings) {
@@ -71,8 +74,11 @@ export class GenerateInvoiceService {
       const entertainer = await this.entertainerRepo.findOne({
         where: { user: booking.eId },
       });
+
+      // Tax Rate
       const taxRate = 10.0;
 
+      // Tax Amount ()
       const taxAmount = (entertainer.pricePerEvent * taxRate) / 100;
       const totalWithTax = entertainer.pricePerEvent + taxAmount;
 
@@ -90,10 +96,8 @@ export class GenerateInvoiceService {
 
       const newInvoice = this.invoiceRepo.create({
         invoice_number: newInvoiceNumber,
-        entertainer_id: Number(entertainer.id),
-        venue_id: Number(event.venueId),
         event_id: Number(event.id),
-        user_type: UserType.ENTERTAINER,
+        user_type: UserType.VENUE,
         issue_date: new Date(issueDate).toISOString().split('T')[0],
         due_date: new Date(dueDate).toISOString().split('T')[0],
         total_amount: parseFloat(entertainer.pricePerEvent.toFixed(2)),
@@ -103,7 +107,7 @@ export class GenerateInvoiceService {
         status: InvoiceStatus.PENDING,
         payment_method: '',
         payment_date: null,
-        user_id: 12,
+        user_id: Number(booking.venueUserId),
         booking_id: Number(booking.id),
       });
 

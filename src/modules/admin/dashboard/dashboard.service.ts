@@ -5,6 +5,7 @@ import { MoreThan, Repository } from 'typeorm';
 import { Booking } from '../booking/entities/booking.entity';
 import { Event } from '../events/entities/event.entity';
 import { ConfigService } from '@nestjs/config';
+import { Invoice } from '../invoice/entities/invoices.entity';
 
 @Injectable()
 export class DashboardService {
@@ -15,6 +16,9 @@ export class DashboardService {
     private readonly bookingRepo: Repository<Booking>,
     @InjectRepository(Event)
     private readonly eventRepo: Repository<Event>,
+
+    @InjectRepository(Invoice)
+    private readonly invoiceRepo: Repository<Event>,
     private readonly configService: ConfigService,
   ) {}
 
@@ -42,10 +46,17 @@ export class DashboardService {
         ])
         .getRawOne();
 
+      const { total } = await this.invoiceRepo
+        .createQueryBuilder('invoices')
+        .where('invoices.user_type = :userType', { userType: 'venue' })
+        .select('SUM(invoices.total_amount)', 'total')
+        .getRawOne();
+
       const data = {
         totalUsers,
         entertainerCount,
         venueCount,
+        TotalRevenue: Number(total) ?? 0,
         bookingStats: {
           total: Number(bookingStats.total),
           confirmed: Number(bookingStats.confirmed),
@@ -121,4 +132,6 @@ export class DashboardService {
       });
     }
   }
+
+  async;
 }

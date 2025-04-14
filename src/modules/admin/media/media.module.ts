@@ -8,9 +8,10 @@ import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../auth/entities/capability.entity';
 @Module({
   imports: [
-      TypeOrmModule.forFeature([Media,RoleCapability,Role,Capability]),
-    ],
+    TypeOrmModule.forFeature([Media, RoleCapability, Role, Capability]),
+  ],
   controllers: [MediaController],
-  providers: [MediaService]
+  providers: [MediaService],
+  exports: [MediaService],
 })
 export class MediaModule {}

@@ -262,10 +262,15 @@ export class AuthService {
   }
 
   async forgotPassword(email: string) {
-    const user = await this.usersRepository.findOne({ where: { email } });
+    const user = await this.usersRepository.findOne({
+      where: { email, isVerified: true },
+    });
 
     if (!user)
-      throw new NotFoundException({ message: 'User not found', status: false });
+      throw new NotFoundException({
+        message: 'User not found or Email not verified',
+        status: false,
+      });
 
     const resetToken = this.jwtService.sign(
       { email: user.email },

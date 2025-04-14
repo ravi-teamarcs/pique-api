@@ -12,6 +12,10 @@ import { Event } from './entities/event.entity';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
 import { GetEventDto } from './dto/get-event.dto';
 import { ConfigService } from '@nestjs/config';
+import { UploadedFile } from 'src/common/types/media.type';
+import { Media } from '../media/entities/media.entity';
+import { MediaService } from '../media/media.service';
+import { EventsQueryDto } from './dto/query.dto';
 
 @Injectable()
 export class EventService {
@@ -20,6 +24,8 @@ export class EventService {
     private readonly eventRepository: Repository<Event>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+
+    private readonly mediaService: MediaService,
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
   ) {}
@@ -32,7 +38,11 @@ export class EventService {
   }
 
   // New code of Venue Creation with Media
-  async createEventWithMedia(dto: CreateEventDto) {
+  async createEventWithMedia(
+    dto: CreateEventDto,
+    uploadedFiles: UploadedFile[],
+  ) {
+    const { userId, venueId } = dto;
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
 
@@ -40,10 +50,15 @@ export class EventService {
 
     try {
       const event = this.eventRepository.create(dto);
-      const savedVenue = await queryRunner.manager.save(event);
+      const savedEvent = await queryRunner.manager.save(event);
 
       // Step 2: Upload media (calls external service Need some changes in Admin Api)
-      // const mediaUploadResult = await this.mediaService.handleMediaUpload()
+      const mediaUploadResult = await this.mediaService.handleMediaUpload(
+        userId,
+        uploadedFiles,
+        venueId,
+        Number(savedEvent.id),
+      );
 
       // Step 3: Commit transaction if everything is successful
       await queryRunner.commitTransaction();
@@ -89,8 +104,6 @@ export class EventService {
     status: boolean;
   }> {
     const skip = (page - 1) * pageSize; // Calculate records to skip
-
-   
 
     const query = this.eventRepository
       .createQueryBuilder('event')
@@ -279,6 +292,64 @@ export class EventService {
       throw new InternalServerErrorException({
         message: error.message,
         status: true,
+      });
+    }
+  }
+
+  async getEventDetailsByMonth( query: EventsQueryDto) {
+    const {
+      date = '', // e.g., '2025-04'
+      page = 1,
+      pageSize = 10,
+      status = '',
+    } = query;
+
+    // If date is not provided, use current year and month
+    const current = new Date();
+    const year = date ? Number(date.split('-')[0]) : current.getFullYear();
+    const month = date ? Number(date.split('-')[1]) : current.getMonth() + 1;
+
+    const skip = (page - 1) * pageSize;
+
+    try {
+      const qb = this.eventRepository
+        .createQueryBuilder('event')
+        .andWhere('YEAR(event.startTime) = :year', { year })
+        .andWhere('MONTH(event.startTime) = :month', { month })
+        .select([
+          'event.id AS event_id',
+          'event.title AS title',
+          'event.location AS location',
+          'event.userId AS userId',
+          'event.description AS description',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'event.recurring AS recurring',
+          'event.status AS status',
+          'event.isAdmin AS isAdmin',
+        ])
+        .orderBy('event.startTime', 'ASC');
+
+      if (status) {
+        qb.andWhere('event.status=:status', { status });
+      }
+
+      const totalCount = await qb.getCount();
+      const results = await qb.skip(skip).take(pageSize).getRawMany();
+
+      return {
+        message: 'Events returned successfully',
+        data: results,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / pageSize),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
       });
     }
   }

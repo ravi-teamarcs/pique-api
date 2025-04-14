@@ -19,6 +19,7 @@ export class MediaService {
     userId: number,
     uploadedFiles: UploadedFile[],
     venueId: number,
+    eventId?: number,
   ) {
     try {
       for (const file of uploadedFiles) {
@@ -51,6 +52,7 @@ export class MediaService {
           ...file,
           user: { id: userId },
           refId: venueId ?? null,
+          eventId: eventId ?? null,
         });
         await this.mediaRepository.save(media);
       }

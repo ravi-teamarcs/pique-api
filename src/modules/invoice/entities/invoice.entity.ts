@@ -25,12 +25,6 @@ export class Invoice {
   invoice_number: string;
 
   @Column()
-  entertainer_id: number; // Refers to the entertainer or venue user ID
-
-  @Column()
-  venue_id: number;
-
-  @Column()
   user_id: number;
 
   @Column()
