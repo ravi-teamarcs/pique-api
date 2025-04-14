@@ -540,19 +540,6 @@ export class VenueService {
         (qb) =>
           qb
             .select([
-              'booking.entertainerUserId',
-              'JSON_ARRAYAGG(DISTINCT JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookedDates',
-            ])
-            .from('booking', 'booking')
-            .where('booking.status = "confirmed"')
-            .groupBy('booking.entertainerUserId'),
-        'bookings',
-        'bookings.entertainerUserId = user.id',
-      )
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
               'media.userId',
               `JSON_ARRAYAGG(
             JSON_OBJECT(
@@ -566,6 +553,40 @@ export class VenueService {
         'media',
         'media.userId = user.id',
       )
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'wa.user AS user', // Alias this!
+              `JSON_ARRAYAGG(
+                JSON_OBJECT(
+                  "dayOfWeek", wa.dayOfWeek,
+                  "startTime", wa.startTime,
+                  "endTime", wa.endTime
+                )
+              ) AS weeklyAvailability`,
+            ])
+            .from('weekly_availability', 'wa')
+            .groupBy('wa.user'),
+        'weekly',
+        'weekly.user = user.id', // Now this matches!
+      )
+
+      // Unavailability Subquery
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'ua.user AS user', // ✅ alias the user column
+              `CONCAT("[", GROUP_CONCAT(CONCAT('"', ua.date, '"')), "]") AS unavailableDates`,
+            ])
+            .from('unavailability', 'ua')
+            .groupBy('ua.user'),
+        'unavail',
+        'unavail.user = user.id', // ✅ now this matches
+      )
+      
+
       .select([
         'user.id AS eid',
         'user.email AS email',
@@ -579,10 +600,13 @@ export class VenueService {
         'entertainer.performanceRole AS performanceRole',
         'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
+        'entertainer.services AS services',
         'entertainer.bio AS bio',
         'entertainer.vaccinated AS vaccinated',
-        'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
         'COALESCE(media.mediaDetails, "[]") AS media',
+        'COALESCE(weekly.weeklyAvailability, "[]") AS availability',
+        'COALESCE(unavail.unavailableDates, "[]") AS unavailability',
+
         `CASE
         WHEN wish.ent_id IS NOT NULL THEN 1
         ELSE 0
@@ -593,14 +617,24 @@ export class VenueService {
       .setParameter('userId', userId)
       .getRawOne();
 
+    console.log('Response od Entertainer', res);
     // Parse JSON fields
-    const { bookedFor, media, isWishlisted, ...details } = res;
+    const {
+      availability,
+      unavailability,
+      services,
+      media,
+      isWishlisted,
+      ...details
+    } = res;
     return {
       message: 'Entertainer Details returned Successfully',
       data: {
         ...details,
         isWishlisted: Boolean(isWishlisted),
-        bookedFor: JSON.parse(bookedFor),
+        services: JSON.parse(services),
+        availability: JSON.parse(availability),
+        unavailability: JSON.parse(unavailability),
         media: JSON.parse(media),
       },
       status: true,

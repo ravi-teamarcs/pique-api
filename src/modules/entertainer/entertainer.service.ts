@@ -243,11 +243,12 @@ export class EntertainerService {
   }
 
   async update(
-    updateEntertainerDto: UpdateEntertainerDto,
+    dto: UpdateEntertainerDto,
     userId: number,
     uploadedFiles: UploadedFile[],
   ) {
-    const { contactNumber, contactPerson, ...rest } = updateEntertainerDto;
+    const { contactNumber, contactPerson, ...rest } = dto;
+
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -263,32 +264,45 @@ export class EntertainerService {
       });
     }
 
+    const updatePayload: any = {
+      ...rest,
+    };
+
+    if (contactNumber !== undefined) {
+      updatePayload.contact_number = contactNumber;
+    }
+
+    if (contactPerson !== undefined) {
+      updatePayload.contact_person = contactPerson;
+    }
+
     try {
-      const entertainer = this.entertainerRepository.update(
+      // Step 1: Update entertainer
+      await queryRunner.manager.update(
+        this.entertainerRepository.target,
         { user: { id: userId } },
-        {
-          ...rest,
-          contact_number: contactNumber,
-          contact_person: contactPerson,
-        },
+        updatePayload,
       );
 
-      // Step 2: Upload media (calls external service)
-      const mediaUploadResult = await this.mediaService.handleMediaUpload(
-        userId,
-        uploadedFiles,
-        { venueId: null, eventId: null },
-      );
+      // Step 2: If media is present, upload it — or else skip
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        const mediaUploadResult = await this.mediaService.handleMediaUpload(
+          userId,
+          uploadedFiles,
+          { venueId: null, eventId: null },
+        );
 
-      // Step 3: Commit transaction if everything is successful
+        // You can add validation here to check if upload failed, if needed
+      }
+
+      // Step 3: Commit transaction
       await queryRunner.commitTransaction();
 
       return {
-        message: 'Entertainer updated  Successfully',
+        message: 'Entertainer updated successfully',
         status: true,
       };
     } catch (error) {
-      // Step 4: Rollback transaction if anything fails
       await queryRunner.rollbackTransaction();
       throw new InternalServerErrorException({
         error: error.message,
@@ -327,7 +341,7 @@ export class EntertainerService {
             'cancelled',
             'completed',
             'accepted',
-            'rejected'
+            'rejected',
           ],
         })
         .select([
@@ -430,7 +444,7 @@ export class EntertainerService {
         ])
         .orderBy('booking.createdAt', 'DESC')
         .getRawMany();
-  
+
       return {
         message: 'Pending bookings fetched successfully',
         bookings,
@@ -444,7 +458,6 @@ export class EntertainerService {
       });
     }
   }
-  
 
   async getCategories() {
     const categories = await this.categoryRepository.find({
