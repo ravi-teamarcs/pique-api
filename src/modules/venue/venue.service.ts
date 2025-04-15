@@ -236,6 +236,8 @@ export class VenueService {
       city = null,
       country = null,
       date = '',
+      startDate,
+      endDate,
     } = query;
 
     // Pagination
@@ -375,6 +377,30 @@ export class VenueService {
           )`;
         },
         { blockedDate: date },
+      );
+    }
+
+    //  Logic for filter b/w dates (both are inclusive.)
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      console.log('Inside start Date');
+      if (end < start) {
+        throw new BadRequestException({
+          message: 'endDate cannot be earlier than startDate',
+          status: false,
+        });
+      }
+      res.andWhere(
+        (qb) => {
+          return `NOT EXISTS (
+            SELECT 1 FROM booking b
+            WHERE b.entertainerUserId = user.id
+            AND b.showDate BETWEEN :startDate AND :endDate
+          )`;
+        },
+        { startDate, endDate },
       );
     }
 
@@ -585,7 +611,6 @@ export class VenueService {
         'unavail',
         'unavail.user = user.id', // ✅ now this matches
       )
-      
 
       .select([
         'user.id AS eid',
@@ -600,7 +625,12 @@ export class VenueService {
         'entertainer.performanceRole AS performanceRole',
         'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
-        'entertainer.services AS services',
+        `CASE 
+     WHEN entertainer.services IS NULL OR entertainer.services = '' 
+     THEN '[]' 
+     ELSE entertainer.services 
+     END AS services`,
+
         'entertainer.bio AS bio',
         'entertainer.vaccinated AS vaccinated',
         'COALESCE(media.mediaDetails, "[]") AS media',
@@ -617,7 +647,7 @@ export class VenueService {
       .setParameter('userId', userId)
       .getRawOne();
 
-    console.log('Response od Entertainer', res);
+    console.log('Response of Entertainer', res);
     // Parse JSON fields
     const {
       availability,

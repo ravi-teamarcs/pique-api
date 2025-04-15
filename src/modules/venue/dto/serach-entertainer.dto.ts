@@ -34,7 +34,6 @@ export class SearchEntertainerDto {
   })
   @IsOptional()
   @Transform(({ value }) => {
-
     if (typeof value === 'string' && value.trim() !== '') {
       return value
         .split(',')
@@ -98,4 +97,13 @@ export class SearchEntertainerDto {
   @IsOptional()
   @IsString()
   date: string;
+
+  @ApiProperty({ description: 'Start Date', required: false })
+  @IsOptional()
+  @IsString()
+  startDate: string;
+  @ApiProperty({ description: 'End Date', required: false })
+  @IsOptional()
+  @IsString()
+  endDate: string;
 }
