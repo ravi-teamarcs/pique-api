@@ -62,18 +62,9 @@ export class InvoiceService {
 
     const queryBuilder = this.invoiceRepository
       .createQueryBuilder('invoices')
-      .leftJoinAndSelect(
-        'entertainers',
-        'ent',
-        'invoices.entertainer_id = ent.id',
-      )
-      .leftJoinAndSelect('venue', 'ven', 'invoices.venue_id = ven.id')
-      .leftJoinAndSelect('event', 'eve', 'invoices.event_id = eve.id')
+
       .select([
         'invoices.*', // Select all fields from `invoices`
-        'ent.name AS entertainer_name',
-        'ven.*',
-        'eve.title AS event_name',
       ])
       .orderBy('invoices.id', 'DESC');
     if (search) {
