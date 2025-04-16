@@ -423,7 +423,6 @@ export class VenueService {
       .take(Number(pageSize))
       .getRawMany();
 
-    console.log('Result', results);
     // Base Query
     const arr = [3, 4, 5, 2, 1];
 
@@ -434,8 +433,9 @@ export class VenueService {
           ...item,
           isWishlisted: Boolean(isWishlisted),
           vaccination_status:
-            vaccinated === 'yes' ? 'vaccinated' : 'not vaccinated',
+            vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
           ratings: arr[index % arr.length],
+
           whatwillyouget: [
             { text: 'you will get full service' },
             { text: 'you will get full Satisfaction' },
