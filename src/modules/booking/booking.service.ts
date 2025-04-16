@@ -2,7 +2,6 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
-  UnauthorizedException,
 } from '@nestjs/common';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -14,7 +13,6 @@ import { BookingRequest } from './entities/changeBooking.entity';
 import { BookingReqResponse } from './dto/request-booking.dto';
 import { ResponseDto } from './dto/booking-response-dto';
 import { BookingLog } from './entities/booking-log.entity';
-import { User } from '../users/entities/users.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailService } from '../Email/email.service';
 import { NotificationService } from '../notification/notification.service';
@@ -126,7 +124,8 @@ export class BookingService {
       .createQueryBuilder('booking')
       .leftJoinAndSelect('booking.entertainerUser', 'entertainerUser')
       .leftJoinAndSelect('booking.venueUser', 'venueUser')
-      .leftJoin('venue', 'venue', 'venue.id = booking.venueId') // Join venue table
+      .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+      // Join venue table
       .select([
         'booking.id AS id',
         'booking.status AS status',
@@ -190,11 +189,13 @@ export class BookingService {
     };
 
     this.emailService.handleSendEmail(emailPayload);
-    // Notification Service
+
+    // Notification Service  Booking (Venue and )
+
     this.notifyService.sendPush(
       {
         title: 'Booking Response',
-        body: `${role.charAt(0).toUpperCase() + role.slice(1)} has ${status} the booking.`,
+        body: `${role.charAt(0).toUpperCase() + role.slice(1)} has ${status} the booking request.`,
         type: 'booking_response',
       },
 
@@ -265,9 +266,9 @@ export class BookingService {
       // Notification
       this.notifyService.sendPush(
         {
-          title: 'Booking Request',
-          body: `Booking date and time change.`,
-          type: 'change_date_time',
+          title: 'Modify Booking Request',
+          body: 'The venue has requested to change the date and time of the booking.',
+          type: 'booking_modify_request', // more specific and consistent
         },
         booking.eId,
       );
@@ -298,9 +299,11 @@ export class BookingService {
     userId: number,
   ) {
     const { response } = reqDto;
+
     const request = await this.reqRepository.findOne({
       where: { id: requestId, euid: userId },
     });
+
     if (!request) {
       throw new NotFoundException({
         message: 'Request not found',
@@ -330,6 +333,17 @@ export class BookingService {
           eventId: request.reqEventId,
         },
       );
+
+      this.notifyService.sendPush(
+        {
+          title: 'Booking Reschedule Request Update',
+          body: `The entertainer has ${response} your request to change the date and time of the booking.`,
+          type: 'change_date_time',
+        },
+
+        request.vuid,
+      );
+
       const payload = {
         bookingId: request.bookingId,
         status: res,
@@ -337,6 +351,7 @@ export class BookingService {
         performedBy: 'entertainer',
       };
       this.generateBookingLog(payload);
+
       return {
         message: `Request ${response} successfully`,
         status: true,

@@ -417,25 +417,35 @@ export class VenueService {
     // }
 
     const totalCount = await res.getCount();
-    const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
+    const results = await res
+      .orderBy('entertainer.name', 'ASC')
+      .skip(skip)
+      .take(Number(pageSize))
+      .getRawMany();
+
+    console.log('Result', results);
     // Base Query
     const arr = [3, 4, 5, 2, 1];
 
     // Parse JSON fields
-    const entertainers = results.map(({ isWishlisted, ...item }, index) => {
-      return {
-        ...item,
-        isWishlisted: Boolean(isWishlisted),
-        ratings: arr[index % arr.length],
-        whatwillyouget: [
-          { text: 'you will get full service' },
-          { text: 'you will get full Satisfaction' },
-          { text: 'Professional Talent' },
-          { text: 'An feeling of sophistication' },
-          { text: 'Experince of life' },
-        ],
-      };
-    });
+    const entertainers = results.map(
+      ({ isWishlisted, vaccinated, ...item }, index) => {
+        return {
+          ...item,
+          isWishlisted: Boolean(isWishlisted),
+          vaccination_status:
+            vaccinated === 'yes' ? 'vaccinated' : 'not vaccinated',
+          ratings: arr[index % arr.length],
+          whatwillyouget: [
+            { text: 'you will get full service' },
+            { text: 'you will get full Satisfaction' },
+            { text: 'Professional Talent' },
+            { text: 'An feeling of sophistication' },
+            { text: 'Experince of life' },
+          ],
+        };
+      },
+    );
 
     return {
       message: 'Entertainers fetched successfully',
