@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Put,
@@ -25,6 +26,9 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
 import { AddLocationDto } from './Dto/add-location.dto';
 import { UpdateLocationDto } from './Dto/update-location.dto';
+import { CreateNeighbourhoodDto } from './Dto/create-neighbourhood.dto';
+import { UpdateNeighbourhoodDto } from './Dto/update-neighbourhood';
+import { Neighbourhood } from './entities/neighbourhood.entity';
 
 @ApiTags('admin')
 @Controller('admin/venue')
@@ -102,11 +106,11 @@ export class VenueController {
     return this.venueService.addVenueLocation(dto);
   }
 
-  @Roles('super-admin', 'venue-admin')
-  @Get('location/:id')
-  getvenueLocation(@Param('id') id: number) {
-    return this.venueService.getVenueLocation(Number(id));
-  }
+  // @Roles('super-admin', 'venue-admin')
+  // @Get('location/:id')
+  // getvenueLocation(@Param('id') id: number) {
+  //   return this.venueService.getVenueLocation(Number(id));
+  // }
 
   @Roles('super-admin', 'venue-admin')
   @Put('location/:id')
@@ -118,5 +122,23 @@ export class VenueController {
   @Delete('location/:id')
   removeLocation(@Param('id') id: number) {
     return this.venueService.removeLocation(Number(id));
+  }
+
+  @Post('neighbourhood')
+  create(@Body() dto: CreateNeighbourhoodDto) {
+    return this.venueService.create(dto);
+  }
+
+  @Patch('neighbourhood/:id')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateNeighbourhoodDto,
+  ) {
+    return this.venueService.update(id, dto);
+  }
+
+  @Delete('neighbourhood/:id')
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.venueService.removeNeighbourhood(id);
   }
 }

@@ -7,13 +7,20 @@ import { User } from '../users/entities/users.entity';
 import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../auth/entities/capability.entity';
-
+import { Neighbourhood } from './entities/neighbourhood.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Venue,User,Role,RoleCapability,Capability]),
+    TypeOrmModule.forFeature([
+      Venue,
+      User,
+      Role,
+      RoleCapability,
+      Capability,
+      Neighbourhood,
+    ]),
   ],
   controllers: [VenueController],
-  providers: [VenueService]
+  providers: [VenueService],
 })
-export class VenueModule { } 
+export class VenueModule {}

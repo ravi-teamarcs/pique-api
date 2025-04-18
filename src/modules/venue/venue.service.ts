@@ -170,8 +170,7 @@ export class VenueService {
       (existing.profileStep === 1 || existing.profileStep > 1)
     ) {
       throw new BadRequestException({
-        message:
-          'Please complete your venue profile before starting a new one.',
+        message: 'Please complete your venue profile.',
         status: false,
       });
     }
@@ -181,8 +180,14 @@ export class VenueService {
       user: { id: userId },
       profileStep: 1,
     });
-    this.venueRepository.save(venue);
-    return { message: 'Details saved successfully', status: true };
+    const savedVenue = await this.venueRepository.save(venue);
+    return {
+      message: 'Primary Details saved successfully',
+      step: 1,
+      nexStep: Number('02'),
+      data: savedVenue,
+      status: true,
+    };
   }
 
   // Step :2
@@ -196,25 +201,21 @@ export class VenueService {
           profileStep: 1,
         },
       });
-      if (venue.profileStep !== 1) {
-        throw new BadRequestException({
-          message: 'You must complete step 1 before proceeding.',
-          status: true,
-        });
-      }
 
-      // update fields...
-      await this.venueRepository.update(
-        { id: venue.id },
-        {
-          ...dto,
-          profileStep: 2, // or logic to increment if needed
-        },
-      );
+      // Assign address fields
+      Object.assign(venue, dto);
+
+      // Move to next step
+      venue.profileStep = 2;
+
+      await this.venueRepository.save(venue);
+
       return {
         message: 'Address updated successfully. Proceed to media upload.',
-        nextStep: 3,
+        step: 2,
+        nextStep: Number('03'),
         status: true,
+        data: venue, // already updated
       };
     } catch (error) {
       throw new InternalServerErrorException({
@@ -248,7 +249,7 @@ export class VenueService {
         { id: venue.id },
         { isProfileComplete: true, profileStep: 3 },
       );
-      return { message: 'Venue Signup completed. ', status: true };
+      return { message: 'Venue Signup completed. ', step: 3, status: true };
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,

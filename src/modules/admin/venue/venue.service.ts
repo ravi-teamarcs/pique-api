@@ -12,12 +12,17 @@ import { CreateVenueDto } from './Dto/create-venue.dto';
 import { User } from '../users/entities/users.entity';
 import { AddLocationDto } from './Dto/add-location.dto';
 import { UpdateLocationDto } from './Dto/update-location.dto';
+import { Neighbourhood } from './entities/neighbourhood.entity';
+import { CreateNeighbourhoodDto } from './Dto/create-neighbourhood.dto';
+import { UpdateNeighbourhoodDto } from './Dto/update-neighbourhood';
 
 @Injectable()
 export class VenueService {
   constructor(
     @InjectRepository(Venue)
     private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(Neighbourhood)
+    private readonly neighbourRepository: Repository<Neighbourhood>,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
@@ -30,20 +35,55 @@ export class VenueService {
     pageSize: number;
     search: string;
   }) {
-    const skip = (page - 1) * pageSize; // Calculate records to skip
-    const [records, total] = await this.venueRepository.findAndCount({
-      where: {
-        isParent: true,
-        ...(search ? { name: Like(`%${search}%`) } : {}), // Search by name if provided
-      },
-      skip,
-      take: pageSize,
-      order: { id: 'DESC' },
-    });
+    const skip = (page - 1) * pageSize;
+
+    const queryBuilder = this.venueRepository
+      .createQueryBuilder('venue')
+      .leftJoin('cities', 'city', 'city.id = venue.city')
+      .leftJoin('states', 'state', 'state.id = venue.state')
+      .leftJoin('countries', 'country', 'country.id = venue.country')
+      .where('venue.isParent = :isParent', { isParent: true }) // filter isParent = true
+      .orderBy('venue.id', 'DESC')
+      .skip(skip)
+      .take(pageSize);
+
+    if (search) {
+      queryBuilder.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    const records = await queryBuilder
+      .select([
+        // Customize this select as needed
+        'venue.name AS name',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+        'venue.zipCode AS zipCode',
+        'city.name AS city',
+        'state.name AS state',
+        'country.name AS country',
+      ])
+      .getRawMany();
+
+    const countQuery = this.venueRepository
+      .createQueryBuilder('venue')
+      .where('venue.isParent = :isParent', { isParent: true });
+
+    if (search) {
+      countQuery.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    const total = await countQuery.getCount();
 
     return {
       records,
       total,
+      page,
+      pageSize,
+      pageCount: Math.ceil(total / pageSize),
     };
   }
 
@@ -203,6 +243,23 @@ export class VenueService {
       });
     }
   }
+  // Creation Logic Neighbourhood
+  async create(dto: CreateNeighbourhoodDto) {
+    const neighbourhood = this.neighbourRepository.create(dto);
+    await this.neighbourRepository.save(neighbourhood);
+    return { message: 'Neighbourhood added successfully', status: true };
+  }
 
-  async getVenueLocation(id: number) {}
+  async update(id: number, dto: UpdateNeighbourhoodDto) {
+    await this.neighbourRepository.update(id, dto);
+    return { message: 'Neighbourhood updated successfully', status: true };
+  }
+
+  async removeNeighbourhood(id: number) {
+    const result = await this.neighbourRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException('Neighbourhood not found');
+    }
+    return { message: 'Neighbourhood deleted successfully', status: true };
+  }
 }
