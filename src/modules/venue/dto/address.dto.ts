@@ -1,5 +1,5 @@
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, IsNotEmpty } from 'class-validator';
+import { IsOptional, IsString, IsNotEmpty, IsNumber } from 'class-validator';
 
 export class AddressDto {
   @IsNotEmpty()
@@ -11,21 +11,21 @@ export class AddressDto {
   addressLine2?: string;
 
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   @Transform(({ value }) => Number(value))
   city: number;
 
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   @Transform(({ value }) => Number(value))
   state: number;
 
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   @Transform(({ value }) => Number(value))
   country: number;
 
-  @IsNotEmpty()
   @IsString() // or use specific locale like 'IN', 'US'
-  zipcode: string;
+  @IsNotEmpty()
+  zipCode: string;
 }

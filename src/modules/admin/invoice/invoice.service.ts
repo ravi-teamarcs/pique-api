@@ -5,6 +5,7 @@ import { Like, Repository } from 'typeorm';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Venue } from '../venue/entities/venue.entity';
+import { InvoiceQueryDto } from './Dto/invoice-query.dto';
 
 @Injectable()
 export class InvoiceService {
@@ -49,37 +50,39 @@ export class InvoiceService {
     return await this.invoiceRepository.save(invoice);
   }
 
-  async findAll({
-    page,
-    pageSize,
-    search,
-  }: {
-    page: number;
-    pageSize: number;
-    search?: string;
-  }): Promise<any> {
-    const skip = (page - 1) * pageSize; // Calculate records to skip
+  async findAll(dto: InvoiceQueryDto) {
+    const { page = 1, pageSize = 10, search = '', role } = dto;
+    const skip = (page - 1) * pageSize;
 
-    const queryBuilder = this.invoiceRepository
+    const baseQuery = this.invoiceRepository
       .createQueryBuilder('invoices')
+      .select(['invoices.*'])
+      .where('invoices.user_type = :role', { role });
 
-      .select([
-        'invoices.*', // Select all fields from `invoices`
-      ])
-      .orderBy('invoices.id', 'DESC');
     if (search) {
-      queryBuilder.andWhere(
-        'LOWER(invoices.invoice_number) LIKE LOWER(:search)',
-        {
-          search: `%${search}%`,
-        },
-      );
+      baseQuery.andWhere('LOWER(invoices.invoice_number) LIKE LOWER(:search)', {
+        search: `%${search}%`,
+      });
     }
 
-    const records = await queryBuilder.getRawMany();
-    const total = await queryBuilder.getCount();
+    // Clone the query for count before applying pagination
+    const countQuery = baseQuery.clone();
 
-    return { records, total };
+    const records = await baseQuery
+      .orderBy('invoices.id', 'DESC')
+      .skip(skip)
+      .take(pageSize)
+      .getRawMany();
+
+    const total = await countQuery.getCount();
+
+    return {
+      records,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
 
   // Get a specific invoice by ID

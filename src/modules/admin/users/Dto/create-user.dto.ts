@@ -8,7 +8,7 @@ import {
 } from 'class-validator';
 
 export class CreateUserDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   name: string;
 
@@ -20,7 +20,7 @@ export class CreateUserDto {
   @IsString()
   password: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @Length(10, 13)
   phoneNumber: string;

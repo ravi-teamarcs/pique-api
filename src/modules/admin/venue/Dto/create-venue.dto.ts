@@ -52,4 +52,8 @@ export class CreateVenueDto {
   @IsOptional()
   @IsNumber()
   parentId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  userId?: number | null;
 }

@@ -83,6 +83,7 @@ export class UsersService {
       password: hashedPassword,
       status: 'active',
       isVerified: true,
+      createdByAdmin: true,
     });
 
     return this.userRepository.save(newUser);

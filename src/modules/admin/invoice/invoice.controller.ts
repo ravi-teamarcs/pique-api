@@ -18,6 +18,7 @@ import { GenerateInvoiceService } from 'src/common/invoice/generateinvoice.servi
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
+import { InvoiceQueryDto } from './Dto/invoice-query.dto';
 
 @ApiTags('admin')
 @Controller('admin/invoice')
@@ -48,13 +49,8 @@ export class InvoiceController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Get('getallinvoice')
-  async findAll(
-    @Req() req,
-    @Query('page') page: number = 1,
-    @Query('pageSize') pageSize: number = 10,
-    @Query('search') search: string = '',
-  ): Promise<Invoice[]> {
-    return await this.invoiceService.findAll({ page, pageSize, search });
+  async findAll(@Req() req, @Query() dto: InvoiceQueryDto) {
+    return await this.invoiceService.findAll(dto);
   }
 
   @Roles('super-admin')

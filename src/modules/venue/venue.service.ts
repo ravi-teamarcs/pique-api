@@ -157,18 +157,27 @@ export class VenueService {
   // New Flow   Venue Creation   Step:1
   async createVenue(userId: number, dto) {
     const existing = await this.venueRepository.findOne({
-      where: { user: { id: userId }, isProfileComplete: true },
+      where: { user: { id: userId } },
     });
 
-    if (existing) {
+    if (existing?.isProfileComplete) {
       throw new BadRequestException({
-        message: 'You already have a venue.',
+        message: 'You already have a completed venue profile.',
+        status: false,
+      });
+    } else if (
+      existing &&
+      (existing.profileStep === 1 || existing.profileStep > 1)
+    ) {
+      throw new BadRequestException({
+        message:
+          'Please complete your venue profile before starting a new one.',
         status: false,
       });
     }
 
     const venue = this.venueRepository.create({
-      name: dto.name,
+      ...dto,
       user: { id: userId },
       profileStep: 1,
     });
@@ -181,8 +190,18 @@ export class VenueService {
   async updateVenueAddress(userId: number, dto: AddressDto) {
     try {
       const venue = await this.venueRepository.findOneOrFail({
-        where: { user: { id: userId } },
+        where: {
+          user: { id: userId },
+          isProfileComplete: false,
+          profileStep: 1,
+        },
       });
+      if (venue.profileStep !== 1) {
+        throw new BadRequestException({
+          message: 'You must complete step 1 before proceeding.',
+          status: true,
+        });
+      }
 
       // update fields...
       await this.venueRepository.update(
@@ -192,7 +211,11 @@ export class VenueService {
           profileStep: 2, // or logic to increment if needed
         },
       );
-      return { message: 'Details Saved Successfully', status: true };
+      return {
+        message: 'Address updated successfully. Proceed to media upload.',
+        nextStep: 3,
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,
@@ -205,19 +228,27 @@ export class VenueService {
   async uploadVenueMedia(userId: number, uploadedFiles: UploadedFile[]) {
     try {
       const venue = await this.venueRepository.findOneOrFail({
-        where: { user: { id: userId } },
+        where: { user: { id: userId }, isProfileComplete: false },
       });
+
+      if (venue.profileStep !== 2) {
+        throw new BadRequestException({
+          message: 'You must complete step 2 before proceeding.',
+          status: true,
+        });
+      }
 
       const mediaUploadResult = await this.mediaService.handleMediaUpload(
         venue.id,
         uploadedFiles,
+        { venueId: null, eventId: null },
       );
 
       await this.venueRepository.update(
         { id: venue.id },
         { isProfileComplete: true, profileStep: 3 },
       );
-      return { message: 'Venue Signup completed ', status: true };
+      return { message: 'Venue Signup completed. ', status: true };
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,

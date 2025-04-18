@@ -216,7 +216,7 @@ export class AuthService {
     // Checks for Profile Completion
     const { isProfileComplete, profileStep } =
       await this.isProfileCompleted(user);
-
+    console.log('insider Lofig', profileStep);
     // Fcm Token
     const deviceType = this.detectDevice(userAgent);
 
@@ -248,13 +248,15 @@ export class AuthService {
   }
 
   private async isProfileCompleted(user: User) {
+    console.log('Inside User');
     if (user.role === 'venue') {
       const venue = await this.venueRepository.findOne({
         where: { user: { id: user.id } },
       });
+      console.log('Venue Detaisl', venue);
       return {
-        profileStep: venue.profileStep,
-        isProfileComplete: venue.isProfileComplete,
+        profileStep: venue?.profileStep ?? 0,
+        isProfileComplete: venue?.isProfileComplete ?? false,
       };
     }
 
