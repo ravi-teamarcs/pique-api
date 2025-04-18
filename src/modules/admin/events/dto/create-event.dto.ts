@@ -7,6 +7,7 @@ import {
   IsBoolean,
   IsEnum,
   IsDate,
+  IsOptional,
 } from 'class-validator';
 
 export class CreateEventDto {
@@ -16,7 +17,7 @@ export class CreateEventDto {
   @Transform(({ value }) => Number(value))
   venueId: number;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
   @Transform(({ value }) => Number(value))
   userId: number;

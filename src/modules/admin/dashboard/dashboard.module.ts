@@ -9,6 +9,8 @@ import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../adminuser/entities/capability.entity';
 import { Event } from '../events/entities/event.entity';
 import { Invoice } from '../invoice/entities/invoices.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { Venue } from '../venue/entities/venue.entity';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { Invoice } from '../invoice/entities/invoices.entity';
       Capability,
       Event,
       Invoice,
+      Entertainer,
+      Venue,
     ]),
   ],
   providers: [DashboardService],

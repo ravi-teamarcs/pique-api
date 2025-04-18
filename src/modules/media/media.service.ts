@@ -31,7 +31,7 @@ export class MediaService {
 
         if (file.type === 'headshot') {
           const existsAlready = await this.mediaRepository.findOne({
-            where: { user: { id: userId }, type: 'headshot' },
+            where: { user_id: userId, type: 'headshot' },
           });
 
           if (existsAlready) {
@@ -43,8 +43,7 @@ export class MediaService {
             // Create a new headshot if none exists
             const newHeadshot = this.mediaRepository.create({
               ...file,
-              user: { id: userId },
-              refId: venueId,
+              user_id: userId,
               eventId,
             });
             await this.mediaRepository.save(newHeadshot);
@@ -55,8 +54,7 @@ export class MediaService {
         // For non-headshot files, create a new media entry
         const media = this.mediaRepository.create({
           ...file,
-          user: { id: userId },
-          refId: venueId,
+          user_id: userId,
           eventId,
         });
         await this.mediaRepository.save(media);
@@ -72,28 +70,7 @@ export class MediaService {
     }
   }
 
-  async findAllMedia(userId: number, venueId: number) {
-    if (venueId) {
-      const media = await this.mediaRepository
-        .createQueryBuilder('media')
-        .select([
-          'media.id AS id',
-          `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
-          'media.type AS type',
-          'media.refId AS venueId',
-          'media.name AS name',
-        ])
-        .where('media.refId = :venueId', { venueId })
-        .andWhere('media.userId = :userId', { userId })
-        .getRawMany();
-
-      return {
-        message: 'Multimedia returned successfully',
-        media,
-        status: true,
-      };
-    }
-
+  async findAllMedia(userId: number) {
     const media = await this.mediaRepository
       .createQueryBuilder('media')
       .select([
@@ -102,7 +79,7 @@ export class MediaService {
         'media.type AS type',
         'media.name  AS name',
       ])
-      .where('media.userId = :userId', { userId })
+      .where('media.user_id = :userId', { userId })
       .getRawMany();
 
     if (!media) {
@@ -114,10 +91,10 @@ export class MediaService {
     return { message: 'Multimedia returned successfully', media, status: true };
   }
 
-  async updateMedia(mediaId: number, userId: number, uploadedFile) {
+  async updateMedia(mediaId: number, uploadedFile) {
     // console.log('mediaId', typeof mediaId, mediaId);
     const media = await this.mediaRepository.findOne({
-      where: { id: mediaId, user: { id: userId } },
+      where: { id: mediaId },
     });
 
     if (!media) {
@@ -132,9 +109,9 @@ export class MediaService {
     return { message: 'Media updated Successfully', status: true };
   }
 
-  async removeMedia(id: number, userId: number) {
+  async removeMedia(id: number) {
     const media = await this.mediaRepository.findOne({
-      where: { id, user: { id: userId } },
+      where: { id },
     });
 
     if (!media) {

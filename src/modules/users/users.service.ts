@@ -44,7 +44,6 @@ export class UsersService {
 
     const newUser = this.userRepository.create({
       ...createUserDto,
-      status: 'active',
       isVerified: true,
     });
     return this.userRepository.save(newUser);

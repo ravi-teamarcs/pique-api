@@ -73,20 +73,10 @@ export class VenueService {
   }
 
   async createVenue(createVenueDto: CreateVenueDto): Promise<Venue> {
-    const { userId, ...venueData } = createVenueDto;
-    const alreadyExists = await this.venueRepository.findOne({
-      where: { user: { id: userId } },
-    });
+    const { ...venueData } = createVenueDto;
 
-    if (alreadyExists) {
-      throw new BadRequestException({
-        message: 'Venue Already exists for the User',
-        status: false,
-      });
-    }
     const venue = this.venueRepository.create({
       ...venueData,
-      user: { id: userId },
       isParent: true,
     });
     await this.venueRepository.save(venue);

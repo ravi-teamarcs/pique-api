@@ -34,7 +34,7 @@ export class EventService {
   async create(createEventDto: CreateEventDto) {
     const event = this.eventRepository.create(createEventDto);
     const data = await this.eventRepository.save(event);
-    return { message: 'Event Creates Successfully', data: event, status: true };
+    return { message: 'Event Created Successfully', data: event, status: true };
   }
 
   // New code of Venue Creation with Media
@@ -154,27 +154,23 @@ export class EventService {
     const event = await this.eventRepository
       .createQueryBuilder('event')
       .leftJoinAndSelect('venue', 'venue', 'venue.id = event.venueId')
-      .leftJoin('users', 'user', 'user.id = venue.userId ')
+
       .select([
-        'user.id AS uid',
-        'user.name AS username',
-        'user.phoneNumber as phoneNumber',
+        'venue.id AS venueId',
         'event.id AS eid',
         'event.title AS ename',
         'event.location AS location',
-
         'event.description AS description',
         'event.startTime AS startTime',
         'event.endTime AS endTime',
         'event.recurring AS recurring',
         'event.status AS status',
         'event.isAdmin As isAdmin', // Select all event fields
-        'venue.id As vid',
         'venue.name AS vname',
         'venue.phone AS phone',
-        'addressLine1 As addressLine1',
-        'addressLine2 As addressLine2',
-        'zipCode AS zipCode',
+        'venue.addressLine1 As addressLine1',
+        'venue.addressLine2 As addressLine2',
+        'venue.zipCode AS zipCode',
       ])
       .where('event.id = :id', { id })
       .getRawOne(); // Use getRawOne() for raw results
@@ -218,13 +214,9 @@ export class EventService {
   async findBooking(eventId: number): Promise<any[]> {
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoinAndSelect(
-        'entertainers',
-        'ent',
-        'ent.userId = booking.entertainerUserId',
-      ) // Join Entertainers table using userId
-      .leftJoinAndSelect('categories', 'cat', 'cat.id = ent.category') // Join categories table for main category
-      .leftJoinAndSelect(
+      .leftJoin('entertainers', 'ent', 'ent.userId = booking.entId') // Join Entertainers table using userId
+      .leftJoin('categories', 'cat', 'cat.id = ent.category') // Join categories table for main category
+      .leftJoin(
         'categories',
         'specific_cat',
         'specific_cat.id = ent.specific_category',
@@ -296,7 +288,7 @@ export class EventService {
     }
   }
 
-  async getEventDetailsByMonth( query: EventsQueryDto) {
+  async getEventDetailsByMonth(query: EventsQueryDto) {
     const {
       date = '', // e.g., '2025-04'
       page = 1,

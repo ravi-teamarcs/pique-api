@@ -10,6 +10,7 @@ import { VenueEvent } from './entities/event.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Venue } from '../venue/entities/venue.entity';
+import { AnyCatcher } from 'rxjs/internal/AnyCatcher';
 
 @Injectable()
 export class EventService {
@@ -20,8 +21,9 @@ export class EventService {
     private readonly venueRepository: Repository<Venue>,
   ) {}
 
-  async createEvent(createEventDto: CreateEventDto, userId: number) {
-    const event = this.eventRepository.create({ userId, ...createEventDto });
+  async createEvent(createEventDto: CreateEventDto) {
+    console.log('create event Dto', createEventDto);
+    const event = this.eventRepository.create(createEventDto);
 
     const savedEvent = await this.eventRepository.save(event);
     if (!savedEvent) {
@@ -31,10 +33,10 @@ export class EventService {
     return { message: 'Event created Successfully', event, status: true };
   }
 
-  async handleUpdateEvent(updateEventDto: UpdateEventDto, userId: number) {
+  async handleUpdateEvent(updateEventDto: any, venueId: number) {
     const { eventId, ...details } = updateEventDto;
     const event = await this.eventRepository.findOne({
-      where: { id: eventId, userId: userId },
+      where: { id: eventId, venueId },
     });
 
     if (!event) {
@@ -59,14 +61,10 @@ export class EventService {
     }
   }
   // Created for venues
-  async getAllEvents(userId: number) {
+  async getAllEvents(id: number) {
     const [events, totalCount] = await this.eventRepository
       .createQueryBuilder('event')
-      .where(
-        'event.venueId IN ' +
-          `(SELECT venue.id FROM venue WHERE venue.userId = :userId)`,
-        { userId },
-      )
+      .where('event.venueId =:id', { id })
       .andWhere('event.startTime > :now', { now: new Date() })
       .orderBy('event.startTime', 'ASC')
       .select([
@@ -90,10 +88,10 @@ export class EventService {
       status: true,
     };
   }
-
-  async deleteEvent(userId: number, eventId: number) {
+   // Api Working
+  async deleteEvent(venueId: number, eventId: number) {
     const event = await this.eventRepository.findOne({
-      where: { id: eventId, userId: userId },
+      where: { id: eventId, venueId },
     });
     if (!event) {
       throw new BadRequestException({

@@ -19,6 +19,14 @@ export class UpdateEventDto {
   eventId: number; //  //  Update eventId in the request body.
 
   @ApiProperty({
+    example: 1,
+    description: 'Event Id which you want to Update.',
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  venueId: number; //  //  Update eventId in the request body.
+
+  @ApiProperty({
     example: 'singing',
     description: 'title of the event .',
   })

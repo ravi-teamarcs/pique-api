@@ -28,7 +28,8 @@ export class Venue {
   @Column()
   addressLine1: string;
 
-  @Column()
+  // Now made  AddressLine 2  unavailable
+  @Column({ nullable: true })
   addressLine2: string;
 
   @Column({ type: 'text', nullable: true })

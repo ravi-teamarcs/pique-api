@@ -34,7 +34,6 @@ import { MediaDto } from './dto/update-media.dto';
 import { typeMap } from 'src/common/constants/media.constants';
 import { UploadedFile } from 'src/common/types/media.type';
 import { UploadMedia } from './dto/upload-media.dto';
-import { DeleteResult } from 'typeorm';
 import { Roles } from '../auth/roles.decorator';
 
 @ApiTags('Media')
@@ -45,7 +44,7 @@ export class MediaController {
 
   @ApiOperation({ summary: 'Upload User Multimedia' })
   @ApiResponse({ status: 201, description: 'Media uploaded successfully.' })
-  @Post('uploads')
+  @Post('uploads/:id')
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
@@ -78,13 +77,12 @@ export class MediaController {
     }),
   )
   async uploadMedia(
-    @Req() req: any,
+    @Param('id') userId: number,
     @UploadedFiles() files: Array<Express.Multer.File>,
-    @Body() uploaddto: UploadMedia,
+    @Body() uploaddto?: UploadMedia,
   ) {
     let uploadedFiles: UploadedFile[] = [];
 
-    const { userId } = req.user;
     if (files.length > 0) {
       uploadedFiles = await Promise.all(
         files.map(async (file) => {
@@ -105,14 +103,13 @@ export class MediaController {
     );
   }
 
-  @Get('uploads')
+  @Get('uploads/:id')
   @ApiOperation({
     summary: 'Get all the multimedia of the logged in User.',
   })
   @ApiResponse({ status: 200, description: 'Multimedia fetched Successfully.' })
-  getAllMedia(@Req() req: any, @Query('venueId') venueId?: number) {
-    const { userId } = req.user;
-    return this.mediaService.findAllMedia(userId, venueId);
+  getAllMedia(@Param('id') id: number) {
+    return this.mediaService.findAllMedia(id);
   }
   @Roles('findAll')
   @Put(':mediaId')
@@ -150,10 +147,7 @@ export class MediaController {
     @Req() req: any,
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Param('mediaId') mediaId: number,
-    @Body() body,
   ) {
-    const { userId } = req.user;
-
     if (files.length !== 1) {
       throw new BadRequestException(
         'You must upload exactly one media type (image, video, or headshot).',
@@ -171,13 +165,12 @@ export class MediaController {
       type: typeMap[fieldname],
     };
 
-    return this.mediaService.updateMedia(Number(mediaId), userId, uploadedFile);
+    return this.mediaService.updateMedia(Number(mediaId), uploadedFile);
   }
 
   @Roles('findAll')
   @Delete(':id')
-  removeMedia(@Param('id') id: number, @Req() req) {
-    const { userId } = req.user;
-    return this.mediaService.removeMedia(Number(id), userId);
+  removeMedia(@Param('id') id: number) {
+    return this.mediaService.removeMedia(Number(id));
   }
 }

@@ -63,16 +63,13 @@ export class GenerateInvoiceService {
     const bookings = await this.bookingRepo
       .createQueryBuilder('booking')
       .where('booking.eventId = :eventId', { eventId: event.id })
-      .select([
-        'booking.entertainerUserId as eId',
-        'booking.venueUserId as venueUserId',
-      ])
+      .select(['booking.entId as eId', 'booking.venueId as venueId'])
       .getRawMany();
 
     for (const booking of bookings) {
       // Process sequentially instead of in parallel
       const entertainer = await this.entertainerRepo.findOne({
-        where: { user: booking.eId },
+        where: { id: booking.entId },
       });
 
       // Tax Rate
@@ -107,7 +104,7 @@ export class GenerateInvoiceService {
         status: InvoiceStatus.PENDING,
         payment_method: '',
         payment_date: null,
-        user_id: Number(booking.venueUserId),
+        user_id: Number(booking.venueId),
         booking_id: Number(booking.id),
       });
 

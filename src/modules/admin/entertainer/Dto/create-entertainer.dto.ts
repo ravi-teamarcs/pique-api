@@ -1,84 +1,119 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
-  IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
   IsNumber,
+  IsDateString,
+  IsArray,
+  IsIn,
 } from 'class-validator';
 
 export class CreateEntertainerDto {
-  @ApiProperty({ description: 'Name of the entertainer' })
+  @ApiProperty({
+    example: 'Raghav Singh',
+    description: 'Name of the entertainer',
+  })
   @IsString()
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ description: 'Category ID of the entertainer' })
+  @ApiProperty({ example: 1, description: 'Category  of the entertainer' })
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   category: number;
 
-  @ApiProperty({ description: 'Specific category ID of the entertainer' })
+  @ApiProperty({
+    example: 13,
+    description: 'specific-category of the entertainer',
+  })
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   specific_category: number;
 
-  @ApiProperty({ description: 'Bio of the entertainer' })
+  @ApiProperty({
+    example: 'performed in  a lot of shows.',
+    description: 'Bio of the entertainer',
+  })
   @IsString()
   @IsNotEmpty()
   bio: string;
 
-  @ApiProperty({ description: 'Enter the Phone Number of Entertainer' })
-  @IsString()
+  @ApiProperty({
+    example: 'solo',
+    description: 'Role of entertainer (soloist , duo , trio)',
+  })
+  @IsIn(['solo', 'duo', 'trio', 'ensemble'])
   @IsNotEmpty()
-  phone1: string;
+  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble'
 
   @ApiProperty({
-    description: 'Enter the alternative Phone number of Entertainer',
+    example: 3000,
+    description: 'Price per Event Entertainer Charges',
   })
-  @IsString()
-  @IsNotEmpty()
-  phone2: string;
-
-  @ApiProperty({ description: ' Role of entertainer (soloist , duo , trio)' })
-  @IsEnum(['soloist', 'duo', 'trio', 'ensemble'])
-  @IsNotEmpty()
-  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
-
-  @ApiProperty({ description: 'Availability schedule of the entertainer' })
-  @IsEnum(['yes', 'no'])
-  @IsNotEmpty()
-  availability: 'yes' | 'no';
-
-  @ApiProperty({ description: 'Price per Event Entertainer Charges' })
   @IsNumber()
+  @Transform(({ value }) => Number(value))
   pricePerEvent: number;
 
-  @ApiProperty({ description: 'Social Media Link of Entertainer' })
+  @ApiProperty({
+    example: 'www.fb.com/raghavThakur',
+    description: 'Social Media Link of Entertainer',
+  })
   @IsString()
-  socialLinks: string;
+  socialLinks?: string;
 
-  @ApiProperty({ description: 'Vaccinated or Not' })
-  @IsEnum(['yes', 'no'])
+  @ApiProperty({ example: 'yes', description: 'Vaccinated or Not' })
+  @IsIn(['yes', 'no'])
   vaccinated: 'yes' | 'no';
-
-  @ApiProperty({ description: 'Status of Entertainer' })
-  @IsString()
-  status: string;
 
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   city: number;
 
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   state: number;
 
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   country: number;
 
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
-  userId: number;
+  zipCode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  address: string;
+
+  @IsNotEmpty()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    // If it's already an array (e.g., services[]=A&services[]=B), return as-is
+    if (Array.isArray(value)) return value;
+    // If it's a comma-separated string: "A,B,C"
+    if (typeof value === 'string')
+      return value.split(',').map((item) => item.trim());
+    return [];
+  })
+  services: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  contactPerson: string;
+
+  @IsString()
+  @IsNotEmpty()
+  contactNumber: string;
+
+  @IsDateString()
+  @IsNotEmpty()
+  dob: string;
 }

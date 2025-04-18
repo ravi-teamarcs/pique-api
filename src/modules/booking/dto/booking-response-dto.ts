@@ -7,6 +7,11 @@ export class ResponseDto {
   @IsNotEmpty()
   bookingId: number;
 
+  @ApiProperty({ description: 'venue Id' })
+  @IsNumber()
+  @IsNotEmpty()
+  venueId: number;
+
   @ApiProperty({ description: 'If user is venue' })
   @IsNotEmpty()
   status:

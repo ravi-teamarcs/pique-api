@@ -44,14 +44,12 @@ import { BookingQueryDto } from './dto/booking-query-dto';
 @ApiTags('Entertainers')
 @ApiBearerAuth()
 @Controller('entertainers')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class EntertainerController {
   constructor(
     private readonly entertainerService: EntertainerService,
     private readonly bookingService: BookingService,
   ) {}
 
-  @Roles('findAll') // Only users with the 'venue' role can access this route
   @Post()
   @UseInterceptors(
     AnyFilesInterceptor({
@@ -117,15 +115,9 @@ export class EntertainerController {
     );
   }
 
-  // @Roles('findAll')
-  // @Post()
-  // async create(@Body() dto: CreateEntertainerDto, @Req() req) {
-  //   const { userId } = req.user;
-  //   return this.entertainerService.create(dto, userId);
-  // }
-
-  @Roles('findAll')
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
   @ApiOperation({ summary: 'Get all entertainers for the logged-in user' })
   findAll(@Request() req) {
     const { userId } = req.user;
@@ -137,15 +129,17 @@ export class EntertainerController {
     status: 200,
     description: 'Entertainer Dashboard statistics returned Successfully',
   })
-  @Roles('findAll')
   @Get('dashboard')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
   getdashboardStats(@Request() req, @Query() query: DashboardDto) {
     const { userId } = req.user;
     return this.entertainerService.getDashboardStatistics(userId, query);
   }
 
-  @Roles('findAll')
   @Patch()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
@@ -229,6 +223,7 @@ export class EntertainerController {
     description: 'Response registered Successfully',
   })
   @Patch('booking/response')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   entertainerBookingResponse(@Body() resDto: ResponseDto, @Request() req) {
     const { role, userId } = req.user;
@@ -236,6 +231,7 @@ export class EntertainerController {
   }
 
   @Get('/booking/request')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   @ApiOperation({ summary: 'Get all the booking of the  Entertainer' })
   @ApiResponse({
@@ -248,21 +244,18 @@ export class EntertainerController {
     return this.entertainerService.findAllBooking(userId, query);
   }
 
-
-  
-@Get('/booking/request/pending')
-@Roles('findAll')
-@ApiOperation({ summary: 'Get all pending bookings of the Entertainer' })
-@ApiResponse({
-  status: 200,
-  description: 'Pending bookings fetched successfully.',
-})
-getPendingBookings(@Request() req) {
-  const { userId } = req.user;
-  return this.entertainerService.findPendingBookings(userId);
-}
-
-
+  @Get('/booking/request/pending')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  @ApiOperation({ summary: 'Get all pending bookings of the Entertainer' })
+  @ApiResponse({
+    status: 200,
+    description: 'Pending bookings fetched successfully.',
+  })
+  getPendingBookings(@Request() req) {
+    const { userId } = req.user;
+    return this.entertainerService.findPendingBookings(userId);
+  }
 
   @ApiOperation({
     summary: 'Get  entertainers  categories and sub categories. ',
@@ -276,6 +269,7 @@ getPendingBookings(@Request() req) {
   async getCategories() {
     return this.entertainerService.getCategories();
   }
+
   @Get('categories/subcategories')
   @Roles('findAll')
   getSubCategories(@Query('id') id: number) {
@@ -290,12 +284,14 @@ getPendingBookings(@Request() req) {
     description: 'Events  fetched Successfully.',
   })
   @Get('events')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getEventDetails(@Req() req) {
     const { userId } = req.user;
     return this.entertainerService.getEventDetails(userId);
   }
   @Get('events/upcoming')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   upcomingEvent(@Req() req, @Query() query: UpcomingEventDto) {
     const { userId } = req.user;
@@ -303,14 +299,16 @@ getPendingBookings(@Request() req) {
   }
 
   @Get('events/details/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getEventDetail(@Req() req, @Param('id') id: number) {
     const { userId } = req.user;
     return this.entertainerService.getEventDetailsById(userId, Number(id));
   }
 
-  @Roles('findAll')
   @Get('calendar/events')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
   async getUpcomingEvents(@Request() req, @Query() query: EventsByMonthDto) {
     const { userId } = req.user;
     return this.entertainerService.getEventDetailsByMonth(userId, query);

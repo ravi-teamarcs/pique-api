@@ -184,8 +184,7 @@ export class VenueService {
             'media.type AS type',
             'media.name  AS name',
           ])
-          .where('media.userId = :userId', { userId })
-          .andWhere('media.refId = :venueId', { venueId })
+          .where('media.userId = :userId', { venueId }) // Changed to venueId basis
           .getRawMany();
 
         return {
@@ -202,7 +201,7 @@ export class VenueService {
     };
   }
 
-  async findVenueLocation(id: number, userId: number) {
+  async findVenueLocation(id: number) {
     const venue = await this.venueRepository.find({
       where: { parentId: id },
       select: [
@@ -225,7 +224,7 @@ export class VenueService {
     return { message: 'Venue fetched successfully', data: venue, status: true };
   }
 
-  async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
+  async findAllEntertainers(query: SearchEntertainerDto, venueId: number) {
     const {
       availability = '',
       category = [],
@@ -261,7 +260,6 @@ export class VenueService {
 
     const res = this.entertainerRepository
       .createQueryBuilder('entertainer')
-      .leftJoinAndSelect('entertainer.user', 'user')
       .leftJoin('cities', 'city', 'city.id = entertainer.city')
       .leftJoin('states', 'state', 'state.id = entertainer.state')
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
@@ -270,26 +268,25 @@ export class VenueService {
       .leftJoin(
         'wishlist',
         'wish',
-        'wish.ent_id = user.id AND wish.user_id = :userId',
+        'wish.ent_id = entertainer.id AND wish.user_id = :venueId',
       )
 
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
-              'media.userId',
-              `COALESCE(MAX(CONCAT(:serverUri, media.url)), :defaultMediaUrl) AS mediaUrl`,
-            ])
+      // .leftJoin(
+      //   (qb) =>
+      //     qb
+      //       .select([
+      //         'media.user_id AS user_id',
+      //         `COALESCE(MAX(CONCAT(:serverUri, media.url)), :defaultMediaUrl) AS mediaUrl`,
+      //       ])
+      //       .from('media', 'media')
+      //       .where('media.type = "headshot"')
+      //       .groupBy('media.user_id'),
+      //   'media_headshot', // <- alias the subquery result
+      //   'media_headshot.user_id = entertainer.id', // <- use alias from subquery SELECT
+      // )
 
-            .from('media', 'media')
-            .where('media.type = "headshot"')
-            .groupBy('media.userId'),
-        'media',
-        'media.userId = user.id',
-      )
       .select([
-        'user.id AS eid',
-        'user.name AS user_name',
+        'entertainer.id AS eid',
         'entertainer.name AS name',
         'entertainer.category AS category',
         'entertainer.specific_category AS specific_category',
@@ -299,14 +296,12 @@ export class VenueService {
         'entertainer.availability AS availability',
         'entertainer.status AS status',
         'entertainer.bio AS bio',
-        'user.email AS email',
         'city.name AS city',
         'state.name AS state',
         'country.name AS country',
         'category.name AS category_name',
         'subcat.name AS specific_category_name',
-        'media.mediaUrl As mediaUrl',
-
+        'media_headshot.mediaUrl As mediaUrl',
         `CASE
      WHEN wish.ent_id IS NOT NULL THEN 1
      ELSE 0
@@ -315,7 +310,7 @@ export class VenueService {
       ])
       .setParameter('serverUri', this.config.get<string>('BASE_URL'))
       .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
-      .setParameter('userId', userId);
+      .setParameter('venueId', venueId);
 
     // Use getRawMany() to retrieve raw data
 
@@ -373,7 +368,7 @@ export class VenueService {
         (qb) => {
           return `NOT EXISTS (
             SELECT 1 FROM booking b
-            WHERE b.entertainerUserId = user.id AND b.showDate = :blockedDate
+            WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
           )`;
         },
         { blockedDate: date },
@@ -428,8 +423,9 @@ export class VenueService {
 
     // Parse JSON fields
     const entertainers = results.map(
-      ({ isWishlisted, vaccinated, ...item }, index) => {
+      ({ eid, isWishlisted, vaccinated, ...item }, index) => {
         return {
+          eid: Number(eid),
           ...item,
           isWishlisted: Boolean(isWishlisted),
           vaccination_status:
@@ -458,14 +454,13 @@ export class VenueService {
     };
   }
 
-  async findAllBooking(userId: number) {
+  async findAllBooking(venueId: number) {
+    // Changes Done
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoin('users', 'user', 'user.id = booking.entertainerUserId')
-      .leftJoin('entertainers', 'entertainer', 'entertainer.userId = user.id')
+      .leftJoin('entertainers', 'entertainer', 'entertainer.id= booking.entId')
       .leftJoin('event', 'event', 'booking.eventId = event.id')
-
-      .where('booking.venueUser.id = :userId', { userId })
+      .where('booking.venueId = :venueId', { venueId })
       .select([
         'booking.id AS id',
         'booking.status AS status',
@@ -473,9 +468,7 @@ export class VenueService {
         'booking.showTime AS showTime',
         'booking.specialNotes AS specialNotes',
         'booking.venueId AS vid',
-        'user.id AS eid',
-        'user.email AS email',
-        'user.name AS username',
+        'entertainer.id AS eid',
         'entertainer.name AS name',
         'entertainer.category AS category',
         'entertainer.specific_category AS  specific_category',
@@ -501,14 +494,11 @@ export class VenueService {
       status: true,
     };
   }
-
-  async handleUpdateVenueDetails(
-    updateVenueDto: UpdateVenueDto,
-    userId: number,
-  ) {
+  // Update Venue
+  async handleUpdateVenueDetails(updateVenueDto: UpdateVenueDto) {
     const { venueId, ...details } = updateVenueDto;
     const venue = await this.venueRepository.findOne({
-      where: { id: venueId, user: { id: userId } },
+      where: { id: venueId },
     });
 
     if (!venue) {
@@ -529,9 +519,10 @@ export class VenueService {
     }
   }
 
-  async handleRemoveVenue(id: number, userId: number) {
+  // Changed
+  async handleRemoveVenue(id: number) {
     const venue = await this.venueRepository.findOne({
-      where: { id: id, user: { id: userId } },
+      where: { id: id },
     });
 
     if (!venue) {
@@ -553,10 +544,9 @@ export class VenueService {
     }
   }
 
-  async findEntertainerDetails(id: number, userId: number) {
+  async findEntertainerDetails(id: number, venueId: number) {
     const res = await this.entertainerRepository
       .createQueryBuilder('entertainer')
-      .leftJoinAndSelect('entertainer.user', 'user')
       .leftJoin('cities', 'city', 'city.id = entertainer.city')
       .leftJoin('states', 'state', 'state.id = entertainer.state')
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
@@ -564,7 +554,7 @@ export class VenueService {
       .leftJoin(
         'wishlist',
         'wish',
-        'wish.ent_id = user.id AND wish.user_id = :userId',
+        'wish.ent_id = entertainer.id AND wish.user_id = :venueId',
       )
       .leftJoin(
         'categories',
@@ -572,60 +562,58 @@ export class VenueService {
         'subcat.id = entertainer.specific_category',
       )
 
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
-              'media.userId',
-              `JSON_ARRAYAGG(
-            JSON_OBJECT(
-              "url", CONCAT(:serverUri, media.url),
-              "type", media.type
-            )
-          ) AS mediaDetails`,
-            ])
-            .from('media', 'media')
-            .groupBy('media.userId'),
-        'media',
-        'media.userId = user.id',
-      )
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
-              'wa.user AS user', // Alias this!
-              `JSON_ARRAYAGG(
-                JSON_OBJECT(
-                  "dayOfWeek", wa.dayOfWeek,
-                  "startTime", wa.startTime,
-                  "endTime", wa.endTime
-                )
-              ) AS weeklyAvailability`,
-            ])
-            .from('weekly_availability', 'wa')
-            .groupBy('wa.user'),
-        'weekly',
-        'weekly.user = user.id', // Now this matches!
-      )
+      // .leftJoin(
+      //   (qb) =>
+      //     qb
+      //       .select([
+      //         'media.userId',
+      //         `JSON_ARRAYAGG(
+      //       JSON_OBJECT(
+      //         "url", CONCAT(:serverUri, media.url),
+      //         "type", media.type
+      //       )
+      //     ) AS mediaDetails`,
+      //       ])
+      //       .from('media', 'media')
+      //       .groupBy('media.userId'),
+      //   'media',
+      //   'media.userId = user.id',
+      // )
+      // .leftJoin(
+      //   (qb) =>
+      //     qb
+      //       .select([
+      //         'wa.user AS user', // Alias this!
+      //         `JSON_ARRAYAGG(
+      //           JSON_OBJECT(
+      //             "dayOfWeek", wa.dayOfWeek,
+      //             "startTime", wa.startTime,
+      //             "endTime", wa.endTime
+      //           )
+      //         ) AS weeklyAvailability`,
+      //       ])
+      //       .from('weekly_availability', 'wa')
+      //       .groupBy('wa.user'),
+      //   'weekly',
+      //   'weekly.user = user.id', // Now this matches!
+      // )
 
       // Unavailability Subquery
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
-              'ua.user AS user', // ✅ alias the user column
-              `CONCAT("[", GROUP_CONCAT(CONCAT('"', ua.date, '"')), "]") AS unavailableDates`,
-            ])
-            .from('unavailability', 'ua')
-            .groupBy('ua.user'),
-        'unavail',
-        'unavail.user = user.id', // ✅ now this matches
-      )
+      // .leftJoin(
+      //   (qb) =>
+      //     qb
+      //       .select([
+      //         'ua.user AS user', // ✅ alias the user column
+      //         `CONCAT("[", GROUP_CONCAT(CONCAT('"', ua.date, '"')), "]") AS unavailableDates`,
+      //       ])
+      //       .from('unavailability', 'ua')
+      //       .groupBy('ua.user'),
+      //   'unavail',
+      //   'unavail.user = user.id', // ✅ now this matches
+      // )
 
       .select([
-        'user.id AS eid',
-        'user.email AS email',
-        'user.name AS username',
+        'entertainer.id AS eid',
         'entertainer.name AS entertainer_name',
         'entertainer.category AS category',
         'entertainer.specific_category AS specific_category',
@@ -636,32 +624,29 @@ export class VenueService {
         'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
         `CASE 
-     WHEN entertainer.services IS NULL OR entertainer.services = '' 
-     THEN '[]' 
+       WHEN entertainer.services IS NULL OR entertainer.services = '' 
+       THEN '[]' 
      ELSE entertainer.services 
      END AS services`,
-
         'entertainer.bio AS bio',
         'entertainer.vaccinated AS vaccinated',
-        'COALESCE(media.mediaDetails, "[]") AS media',
-        'COALESCE(weekly.weeklyAvailability, "[]") AS availability',
-        'COALESCE(unavail.unavailableDates, "[]") AS unavailability',
 
+        // 'COALESCE(media.mediaDetails, "[]") AS media',
         `CASE
         WHEN wish.ent_id IS NOT NULL THEN 1
         ELSE 0
         END AS isWishlisted`,
       ])
-      .where('entertainer.userId = :id', { id })
+      .where('entertainer.id = :id', { id })
       .setParameter('serverUri', this.config.get<string>('BASE_URL'))
-      .setParameter('userId', userId)
+      .setParameter('venueId', venueId)
       .getRawOne();
 
     console.log('Response of Entertainer', res);
     // Parse JSON fields
     const {
-      availability,
-      unavailability,
+      // availability,
+      // unavailability,
       services,
       media,
       isWishlisted,
@@ -673,14 +658,14 @@ export class VenueService {
         ...details,
         isWishlisted: Boolean(isWishlisted),
         services: JSON.parse(services),
-        availability: JSON.parse(availability),
-        unavailability: JSON.parse(unavailability),
-        media: JSON.parse(media),
+        // availability: JSON.parse(availability),
+        // unavailability: JSON.parse(unavailability),
+        // media: JSON.parse(media),
       },
       status: true,
     };
   }
-
+  // Working
   async getSearchSuggestions(query: string) {
     const categories = await this.catRepository.find({
       where: { name: Like(`%${query}%`), parentId: 0 },
@@ -696,42 +681,27 @@ export class VenueService {
   async getAllEntertainersByCategory(cid: number) {
     const results = await this.entertainerRepository
       .createQueryBuilder('entertainer')
-      .leftJoin('entertainer.user', 'user')
       .leftJoin(
         (qb) =>
           qb
             .select([
-              'booking.userId AS entertainerId',
-              'JSON_ARRAYAGG(JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookings',
-            ])
-            .from('booking', 'booking')
-            .groupBy('booking.userId'),
-        'bookings',
-        'bookings.entertainerId = user.id',
-      )
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
-              'media.userId AS userId',
+              'media.user_id AS user_id',
               "JSON_ARRAYAGG(JSON_OBJECT('id', media.id, 'url', CONCAT(:serverUri, media.url), 'type', media.type, 'name', media.name)) AS mediaFiles",
             ])
             .from('media', 'media')
-            .groupBy('media.userId'),
+            .groupBy('media.user_id'),
         'media',
-        'media.userId = user.id',
+        'media.user_id = entertainer.id',
       )
+
       .select([
-        'user.id AS eid',
+        'entertainer.id AS eid',
         'entertainer.name AS name',
         'entertainer.bio AS bio',
-        'entertainer.phone1 AS phone1',
-        'entertainer.phone2 AS phone2',
         'entertainer.category AS category',
         'entertainer.pricePerEvent AS pricePerEvent',
         'entertainer.availability AS availability',
         'entertainer.socialLinks AS socialLinks',
-        'COALESCE(bookings.bookings, "[]") AS bookings', // Default to empty array if no bookings
         'COALESCE(media.mediaFiles, "[]") AS media',
       ])
       .where('entertainer.category = :cid', { cid })
@@ -836,12 +806,12 @@ export class VenueService {
     };
   }
 
-  async toggleWishlist(userId: number, wishDto: WishlistDto) {
+  async toggleWishlist(venueId: number, wishDto: WishlistDto) {
     // Check if entertainer is already in wishlist
     const { entId, ...wish } = wishDto;
 
     const existingWishlist = await this.wishRepository.findOne({
-      where: { user_id: userId, ent_id: entId },
+      where: { user_id: venueId, ent_id: entId },
     });
 
     if (existingWishlist) {
@@ -854,7 +824,7 @@ export class VenueService {
       const wishlistItem = this.wishRepository.create({
         ...wish,
         ent_id: entId,
-        user_id: userId,
+        user_id: venueId,
       });
       await this.wishRepository.save(wishlistItem);
       return { message: 'Entertainer Added to wishlist', status: true };
@@ -867,7 +837,7 @@ export class VenueService {
     }
   }
 
-  async getWishlist(userId: number) {
+  async getWishlist(venueId: number) {
     const wishlistItems = await this.wishRepository
       .createQueryBuilder('wish')
       .leftJoin(
@@ -892,7 +862,7 @@ export class VenueService {
         'cat.name AS category_name',
         'subcat.name AS specific_category_name',
       ])
-      .where('wish.user_id = :userId', { userId })
+      .where('wish.user_id = :venueId', { venueId })
       .getRawMany();
 
     return {
@@ -902,9 +872,9 @@ export class VenueService {
     };
   }
 
-  async removeFromWishlist(id: number, userId: number) {
+  async removeFromWishlist(id: number, venueId: number) {
     const wishlistItem = await this.wishRepository.findOne({
-      where: { ent_id: id, user_id: userId },
+      where: { ent_id: id, user_id: venueId },
     });
 
     if (!wishlistItem) {
@@ -918,72 +888,74 @@ export class VenueService {
     return { message: 'Wishlist item removed successfully', status: true };
   }
 
-  async getEventDetails() {
-    try {
-    } catch (error) {
-      throw new InternalServerErrorException({
-        status: false,
-        error: error.message,
-      });
-    }
-  }
+  // async getEventDetails() {
+  //   try {
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       status: false,
+  //       error: error.message,
+  //     });
+  //   }
+  // }
 
-  async isBookingAllowed(
-    userId: number,
-    bookingDate,
-    startTime: string,
-    endTime: string,
-  ) {
-    const dayOfWeek = new Date(bookingDate).toLocaleString('en-US', {
-      weekday: 'long',
-    });
+  // Is Booking Allowed
 
-    console.log('Day of Week ', dayOfWeek);
+  // async isBookingAllowed(
+  //   userId: number,
+  //   bookingDate,
+  //   startTime: string,
+  //   endTime: string,
+  // ) {
+  //   const dayOfWeek = new Date(bookingDate).toLocaleString('en-US', {
+  //     weekday: 'long',
+  //   });
 
-    // Check if date lies is unavailability.
-    const isUnavailable = await this.unavailabilityRepo.findOne({
-      where: { user: userId, date: bookingDate },
-    });
-    if (isUnavailable) {
-      throw new BadRequestException({
-        message: 'The entertainer is unavailable on this date.',
-        status: false,
-      });
-    }
+  //   console.log('Day of Week ', dayOfWeek);
 
-    // Check if time slot is within availability
-    const availableSlot = await this.availabilityRepo.findOne({
-      where: {
-        user: userId,
-        dayOfWeek,
-        startTime: LessThanOrEqual(startTime),
-        endTime: MoreThanOrEqual(endTime),
-      },
-    });
-    if (!availableSlot) {
-      throw new BadRequestException({
-        message: "Requested time is outside of entertainer'\s availability.",
-        status: false,
-      });
-    }
+  //   // Check if date lies is unavailability.
+  //   const isUnavailable = await this.unavailabilityRepo.findOne({
+  //     where: { user: userId, date: bookingDate },
+  //   });
+  //   if (isUnavailable) {
+  //     throw new BadRequestException({
+  //       message: 'The entertainer is unavailable on this date.',
+  //       status: false,
+  //     });
+  //   }
 
-    // Check for booking overlap (assuming you have a Booking entity) (And for Slot )
+  //   // Check if time slot is within availability
+  //   const availableSlot = await this.availabilityRepo.findOne({
+  //     where: {
+  //       user: userId,
+  //       dayOfWeek,
+  //       startTime: LessThanOrEqual(startTime),
+  //       endTime: MoreThanOrEqual(endTime),
+  //     },
+  //   });
+  //   if (!availableSlot) {
+  //     throw new BadRequestException({
+  //       message: "Requested time is outside of entertainer'\s availability.",
+  //       status: false,
+  //     });
+  //   }
 
-    const overlap = await this.bookingRepository.findOne({
-      where: {
-        entertainerUser: { id: userId },
-        showDate: bookingDate,
-        // startTime: LessThan(endTime),
-        // endTime: MoreThan(startTime),
-      },
-    });
+  //   // Check for booking overlap (assuming you have a Booking entity) (And for Slot )
 
-    if (overlap) {
-      throw new BadRequestException({
-        message:
-          'The entertainer already has a booking that overlaps with the requested time.',
-        status: false,
-      });
-    }
-  }
+  //   const overlap = await this.bookingRepository.findOne({
+  //     where: {
+  //       entertainerUser: { id: userId },
+  //       showDate: bookingDate,
+  //       // startTime: LessThan(endTime),
+  //       // endTime: MoreThan(startTime),
+  //     },
+  //   });
+
+  //   if (overlap) {
+  //     throw new BadRequestException({
+  //       message:
+  //         'The entertainer already has a booking that overlaps with the requested time.',
+  //       status: false,
+  //     });
+  //   }
+  // }
 }

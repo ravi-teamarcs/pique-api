@@ -14,16 +14,23 @@ export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.venueBookings, { onDelete: 'CASCADE' })
+  @ManyToOne(() => User, (user) => user.venueBookings, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   venueUser: User;
 
   @ManyToOne(() => User, (user) => user.entertainerBookings, {
     onDelete: 'CASCADE',
+    nullable: true,
   })
   entertainerUser: User;
 
   @Column({ nullable: false })
   venueId: number;
+
+  @Column({ nullable: false })
+  entId: number;
 
   @Column({ nullable: false })
   eventId: number;

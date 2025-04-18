@@ -166,7 +166,7 @@ export class MediaController {
       headshot?: Express.Multer.File[];
     },
   ) {
-    const { userId, RefId } = body;
+    const { userId } = body;
 
     // Validate only one type of media is uploaded
     const fileTypes = Object.keys(files).filter(
@@ -212,7 +212,7 @@ export class MediaController {
     return this.mediaService.updateMedia(
       Number(mediaId),
       userId,
-      RefId,
+
       uploadResults[0],
     );
   }

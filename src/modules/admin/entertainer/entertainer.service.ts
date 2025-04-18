@@ -41,7 +41,7 @@ export class EntertainerService {
   //       ...(search ? { name: Like(`%${search}%`) } : {}), // Filter by name if
   //       status: In(['pending']),
   //     },
-  //     relations: ['user'], // Include the related `User` entity
+  //     relations: ['entertainer'], // Include the related `entertainer` entity
   //     skip, // Pagination: records to skip
   //     take: pageSize,
   //     order: { id: 'DESC' },
@@ -67,14 +67,30 @@ export class EntertainerService {
 
     const query = this.entertainerRepository
       .createQueryBuilder('entertainer')
-      .leftJoin('entertainer.user', 'user') // Join without selecting all fields
-      .addSelect([
-        'user.id',
-        'user.name',
-        'user.email',
-        'user.phoneNumber',
-        'user.status',
-        'user.isverified',
+      .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .leftJoin('states', 'state', 'state.id = entertainer.state')
+      .leftJoin('cities', 'city', 'city.id = entertainer.city')
+      .leftJoin('categories', 'cat', 'cat.id = entertainer.category ')
+      .leftJoin(
+        'categories',
+        'subcat',
+        'subcat.id = entertainer.specific_category ',
+      )
+      .select([
+        'entertainer.id AS id',
+        'entertainer.name AS name',
+        'entertainer.dob AS dob',
+        'entertainer.bio AS bio',
+        'entertainer.performanceRole AS performanceRole',
+        'entertainer.socialLinks AS SocialLinks',
+        'entertainer.zipCode AS ZipCode',
+        'entertainer.services AS services',
+        'entertainer.contact_person AS contactPerson',
+        'entertainer.contact_number AS ContactNumber',
+        'entertainer.address AS address',
+        'city.name AS city',
+        'country.name AS country',
+        'state.name AS state',
       ]);
 
     if (search) {
@@ -92,11 +108,9 @@ export class EntertainerService {
     };
   }
 
-  async getEntertainerByUserId(userId: number) {
+  async getEntertainerByentertainerId(entertainerId: number) {
     const records = await this.entertainerRepository.find({
-      where: {
-        user: { id: userId },
-      },
+      where: { id: entertainerId },
     });
 
     return {
@@ -106,19 +120,14 @@ export class EntertainerService {
   }
 
   async create(createEntertainerDto: CreateEntertainerDto): Promise<any> {
-    const { userId, ...entertainerData } = createEntertainerDto;
+    const { contactPerson, contactNumber, ...entertainerData } =
+      createEntertainerDto;
 
-    const existingEntertainer = await this.entertainerRepository.findOne({
-      where: { user: { id: userId } },
-    });
-
-    if (existingEntertainer) {
-      throw new BadRequestException('Entertainer already exists for the user');
-    }
     // Create the entertainer
     const entertainer = this.entertainerRepository.create({
       ...entertainerData,
-      user: { id: userId },
+      contact_number: contactNumber,
+      contact_person: contactPerson,
     });
 
     return this.entertainerRepository.save(entertainer);
@@ -128,8 +137,8 @@ export class EntertainerService {
     const { id, fieldsToUpdate } = updateEntertainerDto;
 
     const existingEntertainer = await this.entertainerRepository.findOne({
-      where: { user: { id } }, // Use nested object for relations
-      relations: ['user'], // Ensure the relation is loaded
+      where: { id }, // Use nested object for relations
+      relations: ['entertainer'], // Ensure the relation is loaded
     });
 
     if (!existingEntertainer) {
@@ -209,11 +218,11 @@ export class EntertainerService {
   }
 
   async deleteEntertainer(id: number) {
-    const user = await this.entertainerRepository.findOne({
+    const entertainer = await this.entertainerRepository.findOne({
       where: { id },
     });
 
-    if (!user) {
+    if (!entertainer) {
       throw new NotFoundException({
         message: 'Entertainer Not Found',
         status: false,
@@ -221,7 +230,7 @@ export class EntertainerService {
     }
 
     try {
-      await this.entertainerRepository.remove(user);
+      await this.entertainerRepository.remove(entertainer);
       return { message: 'Entertainer Deleted Successfully', status: true };
     } catch (error) {
       throw new InternalServerErrorException({

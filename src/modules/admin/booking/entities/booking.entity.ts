@@ -21,8 +21,18 @@ export class Booking {
   })
   entertainerUser: User;
 
+  @Column({
+    type: 'enum',
+    enum: ['soloist', 'duo', 'trio', 'ensemble'],
+    nullable: false,
+  })
+  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
+
   @Column({ nullable: false })
   venueId: number;
+ 
+  @Column({ nullable: false })
+  entId: number;
 
   @Column({ nullable: false })
   eventId: number;

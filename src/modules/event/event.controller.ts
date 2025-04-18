@@ -26,11 +26,10 @@ export class EventController {
     status: 201,
     description: 'Event has been  Created Sucessfully.',
   })
-  @Post()
+  @Post() // Working Fine
   @Roles('findAll')
   createEvent(@Body() createEventDto: CreateEventDto, @Req() req) {
-    const { userId } = req.user;
-    return this.eventService.createEvent(createEventDto, userId);
+    return this.eventService.createEvent(createEventDto);
   }
 
   @ApiOperation({ summary: 'Get all Event for the Logged In User' })
@@ -41,8 +40,8 @@ export class EventController {
   @Get()
   @Roles('findAll')
   getAllEvent(@Req() req) {
-    const { userId } = req.user;
-    return this.eventService.getAllEvents(userId);
+    const id = 64;
+    return this.eventService.getAllEvents(id);
   }
 
   @ApiOperation({ summary: 'Update an Event' })
@@ -50,16 +49,19 @@ export class EventController {
     status: 200,
     description: 'Event  updated Successfully.',
   })
-  @Patch()
+  @Patch() // working fine
   @Roles('findAll')
   updateEvent(@Body() updateEventDto: UpdateEventDto, @Req() req) {
-    const { userId } = req.user;
-    return this.eventService.handleUpdateEvent(updateEventDto, userId);
+    const { venueId, ...rest } = updateEventDto;
+    return this.eventService.handleUpdateEvent(rest, venueId);
   }
   @Delete(':id')
   @Roles('findAll')
-  deleteEvent(@Param('id') id: number, @Req() req) {
-    const { userId } = req.user;
-    return this.eventService.deleteEvent(userId, Number(id));
+  deleteEvent(
+    @Param('id') id: number,
+    @Req() req,
+    @Body('venueId') venueId: number,
+  ) {
+    return this.eventService.deleteEvent(venueId, Number(id));
   }
 }

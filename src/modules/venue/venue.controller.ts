@@ -47,15 +47,14 @@ import { uploadFile } from 'src/common/middlewares/multer.middleware';
 @ApiTags('venues')
 @ApiBearerAuth()
 @Controller('venues')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class VenueController {
   constructor(
     private readonly venueService: VenueService,
     private readonly bookingService: BookingService,
   ) {}
 
-  @Roles('findAll')
   @Post()
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
@@ -117,8 +116,9 @@ export class VenueController {
       uploadedFiles,
     );
   }
-  @Roles('findAll')
+
   @Post('add')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create a venue' })
   @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
@@ -129,6 +129,7 @@ export class VenueController {
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll') // Restrict access to the 'venue' role
   @ApiOperation({ summary: 'Get all venues for logged-in user' })
   @ApiResponse({ status: 200, description: 'List of venues.', type: Venue })
@@ -138,16 +139,18 @@ export class VenueController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   @ApiOperation({ summary: 'Get a single venue by ID' })
   @ApiResponse({ status: 200, description: 'Venue details.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
     const { userId } = req.user;
-    return this.venueService.findVenueLocation(id, userId);
+    return this.venueService.findVenueLocation(id);
   }
 
   @Get('search/entertainers')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   @ApiOperation({ summary: 'Search entertainers by availability and type' })
   @ApiResponse({
@@ -159,12 +162,16 @@ export class VenueController {
     status: 404,
     description: 'Cannot get entertainers.',
   })
-  search(@Query() query: SearchEntertainerDto, @Request() req) {
-    const { userId } = req.user;
-    return this.venueService.findAllEntertainers(query, userId);
+  search(
+    @Query() query: SearchEntertainerDto,
+    // @Body('venueId') venueId: number,
+  ) {
+    const venueId = 24;
+    return this.venueService.findAllEntertainers(query, venueId);
   }
 
   @Get('entertainer-profile/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   @ApiOperation({ summary: 'Get Entertainer by Id' })
   @ApiResponse({
@@ -177,8 +184,8 @@ export class VenueController {
     description: 'Entertainer not found.',
   })
   getEntertainerDetails(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    const { userId } = req.user;
-    return this.venueService.findEntertainerDetails(Number(id), userId);
+    const venueId = 24;
+    return this.venueService.findEntertainerDetails(Number(id), venueId);
   }
 
   // Booking Request   and create a new requet
@@ -188,6 +195,7 @@ export class VenueController {
     description: 'Booking Created Sucessfully.',
   })
   @Post('createbooking')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   createBooking(@Body() createBookingDto: CreateBookingDto, @Request() req) {
     const { userId } = req.user;
@@ -200,17 +208,21 @@ export class VenueController {
     description: 'Booking list fetched Successfully .',
   })
   @Get('booking/request')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getAllBooking(@Request() req) {
     const { userId } = req.user;
     return this.venueService.findAllBooking(userId);
   }
+
+  // Not Touched
   @ApiOperation({ summary: 'Respond to a Booking' })
   @ApiResponse({
     status: 200,
     description: 'Successfully responded to booking .',
   })
   @Patch('booking/response')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   bookingResponse(@Body() resDto: ResponseDto, @Request() req) {
     const { role, userId } = req.user;
@@ -223,36 +235,41 @@ export class VenueController {
     description: 'Venue updated Successfully .',
   })
   @Put()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   updateVenue(@Body() UpdateVenueDto: UpdateVenueDto, @Request() req) {
-    const { userId } = req.user;
-    return this.venueService.handleUpdateVenueDetails(UpdateVenueDto, userId);
+    return this.venueService.handleUpdateVenueDetails(UpdateVenueDto);
   }
+
+  // Working
   @ApiOperation({ summary: 'Remove venue By id. ' })
   @ApiResponse({
     status: 200,
     description: 'Venue removed Successfully .',
   })
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
-  remove(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    const { userId } = req.user;
-    return this.venueService.handleRemoveVenue(Number(id), userId);
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.venueService.handleRemoveVenue(Number(id));
   }
 
   @Post('request-change')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   requestChange(@Body() dateTimeChangeDto: ChangeBooking, @Request() req) {
     const { userId } = req.user;
     return this.bookingService.handleChangeRequest(dateTimeChangeDto, userId);
   }
 
+  // Working
   @ApiOperation({ summary: 'Get search suggestions based on category' })
   @ApiResponse({
     status: 200,
     description: 'Search suggestions fetched successfully.',
   })
   @Get('search/suggestion/cat')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   async getSuggestions(@Query('q') query: string) {
     return this.venueService.getSearchSuggestions(query);
@@ -263,28 +280,35 @@ export class VenueController {
     status: 200,
     description: 'Filters Fetched Successfully.',
   })
+
+  // Working
   @Get('search/filters')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   async getAllCategory(@Query() query: Data) {
     return this.venueService.getAllCategories(query);
   }
+
+  // Working
   @Get('search/category/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getEntertainerByCategory(@Param('id') cid: number) {
     return this.venueService.getAllEntertainersByCategory(cid);
   }
 
-  @ApiOperation({ summary: 'Add Venue Location' })
-  @ApiResponse({
-    status: 201,
-    description: 'Venue Location added Successfully',
-  })
-  @Roles('findAll')
-  @Post('/location/add')
-  addLocation(@Body() locationDto: VenueLocationDto, @Request() req) {
-    const { userId } = req.user;
-    return this.venueService.addVenueLocation(userId, locationDto);
-  }
+  // @ApiOperation({ summary: 'Add Venue Location' })
+  // @ApiResponse({
+  //   status: 201,
+  //   description: 'Venue Location added Successfully',
+  // })
+  // @Roles('findAll')
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Post('/location/add')
+  // addLocation(@Body() locationDto: VenueLocationDto, @Request() req) {
+  //   const { userId } = req.user;
+  //   return this.venueService.addVenueLocation(userId, locationDto);
+  // }
 
   @ApiOperation({ summary: 'Add Entertainer to the whishlist' })
   @ApiResponse({
@@ -292,21 +316,25 @@ export class VenueController {
     description: 'Entertainer added to wishlist.',
   })
   @Roles('findAll')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Post('/toogle/wishlist')
   toggleWishList(@Body() wishDto: WishlistDto, @Request() req) {
     const { userId } = req.user;
     return this.venueService.toggleWishlist(userId, wishDto);
   }
+
+  // Working Fine
   @ApiOperation({ summary: 'Get Whishlist' })
   @ApiResponse({
     status: 200,
     description: 'WishList fetched Successfully',
   })
   @Roles('findAll')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('/entertainers/wishlist')
   getWishList(@Request() req) {
-    const { userId } = req.user;
-    return this.venueService.getWishlist(userId);
+    const venueId = 24;
+    return this.venueService.getWishlist(venueId);
   }
 
   @ApiOperation({ summary: 'Get enytertainer roles.' })
@@ -315,6 +343,7 @@ export class VenueController {
     description: 'Entertainer roles fetched Successfully.',
   })
   @Roles('findAll')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('entertainer/roles')
   getRoles() {
     return {
@@ -323,16 +352,18 @@ export class VenueController {
       data: [{ role: 'soloist' }, { role: 'duo' }, { role: 'ensemble' }],
     };
   }
+
   @Roles('findAll')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Delete('entertainer/wishlist/:id')
   removeFromWishlist(@Request() req, @Param('id') id: number) {
-    const { userId } = req.user;
-    return this.venueService.removeFromWishlist(Number(id), userId);
+    // return this.venueService.removeFromWishlist(Number(id), venueId);
   }
   @Roles('findAll')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Get('events')
   getEvents(@Request() req, @Param('id') id: number) {
-    const { userId } = req.user;
-    return this.venueService.removeFromWishlist(Number(id), userId);
+    const venueId = 24;
+    return this.venueService.removeFromWishlist(Number(id), venueId);
   }
 }

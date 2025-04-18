@@ -132,7 +132,6 @@ export class ReportService {
           'event.id AS event_id',
           'event.title AS event_title',
           'event.location AS event_location',
-          'event.userId AS event_userId',
           'event.venueId AS event_venueId',
           'event.description AS event_description',
           'event.startTime AS event_startTime',
@@ -147,7 +146,7 @@ export class ReportService {
 
           'booking.id AS booking_id',
           'booking.status AS booking_status',
-          'booking.entertainerUserId AS booking_eid',
+          'booking.entId AS booking_eid',
 
           'entertainer.id AS entertainer_id',
           'entertainer.name AS entertainer_name',
@@ -180,15 +179,11 @@ export class ReportService {
         .leftJoin(
           'entertainers',
           'entertainer',
-          'entertainer.userId = booking.entertainerUserId',
+          'entertainer.id = booking.entId',
         )
-        .leftJoin('users', 'user', 'user.id = entertainer.userId')
-        .leftJoin(
-          'invoices',
-          'invoice',
-          'invoice.user_id = booking.entertainerUserId',
-        )
-        .leftJoin('invoices', 'inv', 'inv.user_id = booking.venueUserId')
+
+        .leftJoin('invoices', 'invoice', 'invoice.user_id = booking.entId')
+        .leftJoin('invoices', 'inv', 'inv.user_id = booking.venueId')
         .leftJoin(
           (qb) =>
             qb
@@ -234,14 +229,10 @@ export class ReportService {
         .leftJoin(
           'entertainers',
           'entertainer',
-          'entertainer.userId = booking.entertainerUserId',
+          'entertainer.id = booking.entId',
         )
-        .leftJoin('users', 'user', 'user.id = entertainer.userId')
-        .leftJoin(
-          'invoices',
-          'invoice',
-          'invoice.user_id = booking.entertainerUserId',
-        )
+
+        .leftJoin('invoices', 'invoice', 'invoice.user_id = booking.entId')
         .leftJoin('invoices', 'inv', 'inv.user_id = booking.venueUserId')
         .getRawOne();
 
@@ -707,15 +698,10 @@ export class ReportService {
         .leftJoin(
           'entertainers',
           'entertainer',
-          'entertainer.userId = booking.entertainerUserId',
+          'entertainer.id = booking.entId',
         )
-        .leftJoin('users', 'user', 'user.id = entertainer.userId')
-        .leftJoin(
-          'invoices',
-          'invoice',
-          'invoice.user_id = booking.entertainerUserId',
-        )
-        .leftJoin('invoices', 'inv', 'inv.user_id = booking.venueUserId')
+        .leftJoin('invoices', 'invoice', 'invoice.user_id = booking.entId')
+        .leftJoin('invoices', 'inv', 'inv.user_id = booking.venueId')
         .leftJoin(
           (qb) =>
             qb

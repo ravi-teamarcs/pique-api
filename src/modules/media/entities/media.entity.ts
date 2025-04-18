@@ -28,6 +28,9 @@ export class Media {
   refId: number;
 
   @Column({ nullable: true })
+  user_id: number;
+
+  @Column({ nullable: true })
   eventId: number;
   // Relation to userId
   @ManyToOne(() => User, (user) => user.media, { onDelete: 'CASCADE' })

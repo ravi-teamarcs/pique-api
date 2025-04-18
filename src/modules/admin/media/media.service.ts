@@ -18,16 +18,17 @@ export class MediaService {
   async handleMediaUpload(
     userId: number,
     uploadedFiles: UploadedFile[],
-    venueId: number,
+    venueId?: number,
     eventId?: number,
   ) {
     try {
       for (const file of uploadedFiles) {
         if (!file || !file.type) continue; // Safety check
 
+        // Here user user_id instead of relation(VenueId or Entertainer id)
         if (file.type === 'headshot') {
           const existsAlready = await this.mediaRepository.findOne({
-            where: { user: { id: userId }, type: 'headshot' },
+            where: { user_id: userId, type: 'headshot' },
           });
 
           if (existsAlready) {
@@ -39,8 +40,7 @@ export class MediaService {
             // Create a new headshot if none exists
             const newHeadshot = this.mediaRepository.create({
               ...file,
-              user: { id: userId },
-              refId: venueId ?? null,
+              user_id: userId,
             });
             await this.mediaRepository.save(newHeadshot);
           }
@@ -50,10 +50,10 @@ export class MediaService {
         // For non-headshot files, create a new media entry
         const media = this.mediaRepository.create({
           ...file,
-          user: { id: userId },
-          refId: venueId ?? null,
+          user_id: userId,
           eventId: eventId ?? null,
         });
+
         await this.mediaRepository.save(media);
       }
 
@@ -74,14 +74,11 @@ export class MediaService {
       .select([
         'media.id AS id',
         `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
-        'media.type AS type',
-        'media.refId AS venueId',
-        'media.userId AS userId',
+        'media.user_id AS userId',
         'media.name AS name',
+        'media.type AS type',
       ])
-      .where('media.refId = :Id', { Id })
-      .orWhere('media.userId = :Id', { Id })
-
+      .where('media.user_id = :Id', { Id })
       .getRawMany();
 
     if (media.length === 0) {
@@ -91,12 +88,7 @@ export class MediaService {
     return { message: 'Multimedia returned successfully', media };
   }
 
-  async updateMedia(
-    mediaId: number,
-    userId: any,
-    RefId: any,
-    uploadedFile: any,
-  ) {
+  async updateMedia(mediaId: number, userId: any, uploadedFile: any) {
     // Initialize where clause to dynamically build the query
     const whereClause: any = {};
 
@@ -106,10 +98,7 @@ export class MediaService {
     }
 
     if (userId) {
-      whereClause.user = { id: userId }; // Add user condition if provided
-    }
-    if (RefId) {
-      whereClause.refId = { id: RefId };
+      whereClause.user_id = userId; // Add user condition if provided
     }
 
     // Check if media exists based on provided conditions

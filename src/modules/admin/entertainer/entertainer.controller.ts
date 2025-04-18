@@ -63,9 +63,9 @@ export class EntertainerController {
   @Roles('super-admin', 'entertainer-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get('entertainerbyId/:userId')
-  async getEntertainerByUserId(@Param('userId') userId: number) {
-    return this.EntertainerService.getEntertainerByUserId(userId);
+  @Get('entertainerbyId/:id')
+  async getEntertainerByUserId(@Param('id') id: number) {
+    return this.EntertainerService.getEntertainerByentertainerId(id);
   }
 
   @Get('categorybyId')

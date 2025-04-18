@@ -48,11 +48,6 @@ export class CreateEventDto {
   @IsString()
   description: string;
 
-  // @ApiProperty({ example: 'singing', description: 'Type of the event' })
-  // @IsNotEmpty()
-  // @IsString()
-  // type: string;
-
   @ApiProperty({ example: false, description: 'Is Event creator Admin ?' })
   @IsBoolean()
   @IsNotEmpty()

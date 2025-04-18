@@ -40,10 +40,6 @@ class AdminBookingDto {
   @IsNumber()
   @IsNotEmpty()
   eventId: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  venueUserId: number;
 }
 
 export { AdminBookingDto };

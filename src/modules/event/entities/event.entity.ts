@@ -17,11 +17,14 @@ export class VenueEvent {
   @Column()
   location: string;
 
-  @Column()
+  @Column({ nullable: true })
   userId: number;
 
   @Column()
   venueId: number;
+
+  @Column({ nullable: true })
+  sub_venue_id: number;
 
   @Column()
   description: string;

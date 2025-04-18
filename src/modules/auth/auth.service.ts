@@ -66,6 +66,7 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
+
     const newUser = await this.usersService.create({
       ...registerDto,
       password: hashedPassword,
@@ -75,6 +76,7 @@ export class AuthService {
       sub: newUser.id,
       email: newUser.email,
       role: newUser.role,
+      status: newUser.status,
     };
     const token = this.jwtService.sign(tokenPayload);
     // Sending Email to newly registerd User.
@@ -173,15 +175,17 @@ export class AuthService {
     if (new Date(otpRecord.expiresAt) < new Date())
       throw new BadRequestException({ message: 'OTP expired', status: false });
 
-    const user = await this.usersRepository.findOne({
-      where: { email, createdByAdmin: true },
-    });
-    if (user) {
-      await this.usersRepository.update(
-        { id: user.id },
-        { isVerified: true, status: 'active' },
-      );
-    }
+    //  No need
+
+    // const user = await this.usersRepository.findOne({
+    //   where: { email, createdByAdmin: true },
+    // });
+    // if (user) {
+    //   await this.usersRepository.update(
+    //     { id: user.id },
+    //     { isVerified: true, status: 'active' },
+    //   );
+    // }
     await this.otpRepository.delete({ email });
     return { message: 'Email verified Successfully', status: true };
   }
@@ -202,7 +206,12 @@ export class AuthService {
       );
     }
 
-    const payload = { sub: user.id, email: user.email, role: user.role };
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+    };
     const token = this.jwtService.sign(payload);
     // Checks for Profile Completion
     const completed = await this.isProfileCompleted(user);

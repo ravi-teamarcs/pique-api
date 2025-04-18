@@ -30,9 +30,16 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
-
+    console.log('user inside Rolesguard', user);
     if (!user || !user.role) {
       throw new ForbiddenException('User role is missing.');
+    }
+    // Inactive account don not have access
+    if (user.status === 'inactive' || user.status === 'pending') {
+      throw new ForbiddenException({
+        message: 'Your do not have  access to this resource.',
+        status: false,
+      });
     }
 
     const userRole = await this.roleRepository.findOne({
@@ -46,6 +53,7 @@ export class RolesGuard implements CanActivate {
     const endpoint = await this.endpointRepository.findOne({
       where: { endpoint: roles[0] },
     });
+
     const hasAccess = await this.accessRepository.findOne({
       where: {
         roleId: userRole.id,

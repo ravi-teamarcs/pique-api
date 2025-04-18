@@ -23,8 +23,8 @@ export class BookingService {
     const skip = (Number(page) - 1) * Number(pageSize);
     const [bookings, count] = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoinAndSelect('booking.venueUser', 'venueUser')
-      .leftJoinAndSelect('booking.entertainerUser', 'entertainerUser')
+      .leftJoin('venue', 'venue', 'venue.id=booking.venueId')
+      .leftJoin('entertainers', 'ent', 'ent.id=booking.entId')
       .where('booking.status = :status', { status })
       .select([
         'booking.id',
@@ -34,13 +34,9 @@ export class BookingService {
         'booking.showDate',
         'booking.eventId',
         'booking.specialNotes',
-        'venueUser.id',
-        'venueUser.name',
-        'venueUser.email',
-        'entertainerUser.id',
-        'entertainerUser.name',
-        'entertainerUser.email',
+        'ent.name',
       ])
+
       .skip(Number(skip))
       .take(Number(pageSize))
       .getManyAndCount();
@@ -56,13 +52,12 @@ export class BookingService {
   }
 
   async createBooking(payload: AdminBookingDto) {
-    const { venueUserId, entertainerId, ...data } = payload;
+    const { venueId, entertainerId, ...data } = payload;
     try {
       const newBooking = this.bookingRepository.create({
         ...data,
-
-        venueUser: { id: venueUserId },
-        entertainerUser: { id: entertainerId },
+        venueId: venueId,
+        entId: entertainerId,
       });
       await this.bookingRepository.save(newBooking);
 
@@ -83,24 +78,18 @@ export class BookingService {
       const skip = (Number(page) - 1) * Number(pageSize);
       const [bookings, count] = await this.bookingRepository
         .createQueryBuilder('booking')
-        .leftJoinAndSelect('booking.venueUser', 'venueUser')
-        .leftJoinAndSelect('booking.entertainerUser', 'entertainerUser')
+        .leftJoin('venue', 'venue', 'venue.id=booking.venueId')
+        .leftJoin('entertainers', 'ent', 'ent.id=booking.entId')
         .where('booking.venueUser.id = :userId', { userId })
         .andWhere('booking.status = :status', { status })
         .select([
-          'booking.id',
-          'booking.status',
-          'booking.venueId',
-          'booking.showTime',
+          'booking.id AS id',
+          'booking.status AS status',
+          'booking.venueId AS venueId',
+          'booking.showTime AS show',
           'booking.showDate',
           'booking.eventId',
           'booking.specialNotes',
-          'venueUser.id',
-          'venueUser.name',
-          'venueUser.email',
-          'entertainerUser.id',
-          'entertainerUser.name',
-          'entertainerUser.email',
         ])
         .skip(Number(skip))
         .take(Number(pageSize))

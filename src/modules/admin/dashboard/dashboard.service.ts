@@ -1,17 +1,20 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../users/entities/users.entity';
 import { MoreThan, Repository } from 'typeorm';
 import { Booking } from '../booking/entities/booking.entity';
 import { Event } from '../events/entities/event.entity';
 import { ConfigService } from '@nestjs/config';
 import { Invoice } from '../invoice/entities/invoices.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { Venue } from '../venue/entities/venue.entity';
 
 @Injectable()
 export class DashboardService {
   constructor(
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
+    @InjectRepository(Entertainer)
+    private readonly entRepo: Repository<Entertainer>,
+    @InjectRepository(Venue)
+    private readonly venueRepo: Repository<Venue>,
     @InjectRepository(Booking)
     private readonly bookingRepo: Repository<Booking>,
     @InjectRepository(Event)
@@ -24,16 +27,9 @@ export class DashboardService {
 
   async getDashboardStats() {
     try {
-      const totalUsers = await this.userRepo.count();
-
       // Count users by role
-      const entertainerCount = await this.userRepo.count({
-        where: { role: 'entertainer' },
-      });
-
-      const venueCount = await this.userRepo.count({
-        where: { role: 'venue' },
-      });
+      const entertainerCount = await this.entRepo.count();
+      const venueCount = await this.venueRepo.count();
 
       // Booking statistics
       const bookingStats = await this.bookingRepo
@@ -53,7 +49,6 @@ export class DashboardService {
         .getRawOne();
 
       const data = {
-        totalUsers,
         entertainerCount,
         venueCount,
         TotalRevenue: Number(total) ?? 0,
@@ -132,6 +127,4 @@ export class DashboardService {
       });
     }
   }
-
-  async;
 }

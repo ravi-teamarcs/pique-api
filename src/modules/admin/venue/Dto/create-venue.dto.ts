@@ -49,9 +49,6 @@ export class CreateVenueDto {
   @IsNotEmpty()
   zipCode: string;
 
-  @IsNotEmpty()
-  userId: number; // Assuming the venue is linked to a user
-
   @IsOptional()
   @IsNumber()
   parentId?: number;
