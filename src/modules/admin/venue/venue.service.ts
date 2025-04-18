@@ -74,11 +74,11 @@ export class VenueService {
 
   async createVenue(createVenueDto: CreateVenueDto): Promise<Venue> {
     const { ...venueData } = createVenueDto;
-
     const venue = this.venueRepository.create({
       ...venueData,
       isParent: true,
     });
+
     await this.venueRepository.save(venue);
 
     return venue;

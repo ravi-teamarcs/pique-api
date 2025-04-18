@@ -36,6 +36,7 @@ import { UploadedFile } from 'src/common/types/media.type';
 import { MediaService } from '../media/media.service';
 import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
 import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.entity';
+import { AddressDto } from './dto/address.dto';
 
 @Injectable()
 export class VenueService {
@@ -63,26 +64,135 @@ export class VenueService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async create(createVenueDto: CreateVenueDto, userId: number) {
-    const venueExists = await this.venueRepository.findOne({
-      where: { user: { id: userId } },
+  // async create(createVenueDto: CreateVenueDto, userId: number) {
+  //   const venueExists = await this.venueRepository.findOne({
+  //     where: { user: { id: userId } },
+  //   });
+
+  //   if (venueExists) {
+  //     throw new BadRequestException({
+  //       message: 'Venue already exists for the user',
+  //       status: false,
+  //     });
+  //   }
+  //   try {
+  //     const venue = this.venueRepository.create({
+  //       ...createVenueDto,
+  //       user: { id: userId },
+  //       parentId: null,
+  //       isParent: true,
+  //     });
+  //     const saved = await this.venueRepository.save(venue);
+  //     return { message: 'Venue created successfully', venue, status: true };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
+  // New Method to create Venue with Media
+  // async createVenueWithMedia(
+  //   dto: CreateVenueDto,
+  //   userId: number,
+  //   uploadedFiles: UploadedFile[],
+  // ) {
+  //   const queryRunner = this.dataSource.createQueryRunner();
+  //   await queryRunner.connect();
+
+  //   await queryRunner.startTransaction();
+
+  //   const venueExists = await this.venueRepository.findOne({
+  //     where: { user: { id: userId } },
+  //   });
+
+  //   if (venueExists) {
+  //     throw new BadRequestException({
+  //       message: 'Venue already exists for the user',
+  //       status: false,
+  //     });
+  //   }
+
+  //   try {
+  //     const venue = this.venueRepository.create({
+  //       ...dto,
+  //       description: 'New Venue',
+  //       user: { id: userId },
+  //       parentId: null,
+  //       isParent: true,
+  //     });
+
+  //     const savedVenue = await queryRunner.manager.save(venue);
+
+  //     // Step 2: Upload media (calls external service)
+  //     const mediaUploadResult = await this.mediaService.handleMediaUpload(
+  //       userId,
+  //       uploadedFiles,
+  //       {
+  //         venueId: savedVenue.id,
+  //       },
+  //     );
+
+  //     // Step 3: Commit transaction if everything is successful
+  //     await queryRunner.commitTransaction();
+
+  //     return {
+  //       message: 'Venue is Successfully creates with media',
+  //       data: dto,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     // Step 4: Rollback transaction if anything fails
+  //     await queryRunner.rollbackTransaction();
+  //     throw new InternalServerErrorException({
+  //       error: error.message,
+  //       status: false,
+  //     });
+  //   } finally {
+  //     await queryRunner.release();
+  //   }
+  // }
+
+  // New Flow   Venue Creation   Step:1
+  async createVenue(userId: number, dto) {
+    const existing = await this.venueRepository.findOne({
+      where: { user: { id: userId }, isProfileComplete: true },
     });
 
-    if (venueExists) {
+    if (existing) {
       throw new BadRequestException({
-        message: 'Venue already exists for the user',
+        message: 'You already have a venue.',
         status: false,
       });
     }
+
+    const venue = this.venueRepository.create({
+      name: dto.name,
+      user: { id: userId },
+      profileStep: 1,
+    });
+    this.venueRepository.save(venue);
+    return { message: 'Details saved successfully', status: true };
+  }
+
+  // Step :2
+
+  async updateVenueAddress(userId: number, dto: AddressDto) {
     try {
-      const venue = this.venueRepository.create({
-        ...createVenueDto,
-        user: { id: userId },
-        parentId: null,
-        isParent: true,
+      const venue = await this.venueRepository.findOneOrFail({
+        where: { user: { id: userId } },
       });
-      const saved = await this.venueRepository.save(venue);
-      return { message: 'Venue created successfully', venue, status: true };
+
+      // update fields...
+      await this.venueRepository.update(
+        { id: venue.id },
+        {
+          ...dto,
+          profileStep: 2, // or logic to increment if needed
+        },
+      );
+      return { message: 'Details Saved Successfully', status: true };
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,
@@ -91,65 +201,28 @@ export class VenueService {
     }
   }
 
-  // New Method to create Venue with Media
-  async createVenueWithMedia(
-    dto: CreateVenueDto,
-    userId: number,
-    uploadedFiles: UploadedFile[],
-  ) {
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-
-    await queryRunner.startTransaction();
-
-    const venueExists = await this.venueRepository.findOne({
-      where: { user: { id: userId } },
-    });
-
-    if (venueExists) {
-      throw new BadRequestException({
-        message: 'Venue already exists for the user',
-        status: false,
-      });
-    }
-
+  // step 3 (Final Step include Media upload)
+  async uploadVenueMedia(userId: number, uploadedFiles: UploadedFile[]) {
     try {
-      const venue = this.venueRepository.create({
-        ...dto,
-        description: 'New Venue',
-        user: { id: userId },
-        parentId: null,
-        isParent: true,
+      const venue = await this.venueRepository.findOneOrFail({
+        where: { user: { id: userId } },
       });
 
-      const savedVenue = await queryRunner.manager.save(venue);
-
-      // Step 2: Upload media (calls external service)
       const mediaUploadResult = await this.mediaService.handleMediaUpload(
-        userId,
+        venue.id,
         uploadedFiles,
-        {
-          venueId: savedVenue.id,
-        },
       );
 
-      // Step 3: Commit transaction if everything is successful
-      await queryRunner.commitTransaction();
-
-      return {
-        message: 'Venue is Successfully creates with media',
-        data: dto,
-        status: true,
-      };
+      await this.venueRepository.update(
+        { id: venue.id },
+        { isProfileComplete: true, profileStep: 3 },
+      );
+      return { message: 'Venue Signup completed ', status: true };
     } catch (error) {
-      // Step 4: Rollback transaction if anything fails
-      await queryRunner.rollbackTransaction();
       throw new InternalServerErrorException({
-        error: error.message,
+        message: error.message,
         status: false,
       });
-    } finally {
-      await queryRunner.release();
     }
   }
 

@@ -18,7 +18,7 @@ export class Venue {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   name: string;
 
   @Column({ nullable: true })
@@ -27,25 +27,25 @@ export class Venue {
   @Column({ nullable: true })
   email: string;
 
-  @Column()
+  @Column({ nullable: true })
   addressLine1: string;
 
-  @Column()
+  @Column({ nullable: true })
   addressLine2: string;
 
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column()
+  @Column({ nullable: true })
   city: number;
 
-  @Column()
+  @Column({ nullable: true })
   state: number;
 
-  @Column()
+  @Column({ nullable: true })
   zipCode: string;
 
-  @Column()
+  @Column({ nullable: true })
   country: number;
 
   @CreateDateColumn()
@@ -59,6 +59,12 @@ export class Venue {
 
   @OneToMany(() => Gig, (gigs) => gigs.venue)
   gigs: Gig[];
+
+  @Column({ default: 0 }) // Step 0 = Not Started
+  profileStep: number; //
+
+  @Column({ default: false })
+  isProfileComplete: boolean;
 
   @Column({ type: 'boolean', default: false })
   @Transform(({ value }) => Boolean(value))

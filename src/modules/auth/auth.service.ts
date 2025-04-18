@@ -214,7 +214,8 @@ export class AuthService {
     };
     const token = this.jwtService.sign(payload);
     // Checks for Profile Completion
-    const completed = await this.isProfileCompleted(user);
+    const { isProfileComplete, profileStep } =
+      await this.isProfileCompleted(user);
 
     // Fcm Token
     const deviceType = this.detectDevice(userAgent);
@@ -233,7 +234,8 @@ export class AuthService {
           phone: user.phoneNumber,
           email: user.email,
           isVerified: user.isVerified,
-          completed,
+          completed: isProfileComplete,
+          profileStep,
         },
       },
       status: true,
@@ -247,20 +249,23 @@ export class AuthService {
 
   private async isProfileCompleted(user: User) {
     if (user.role === 'venue') {
-      const venueCount = await this.venueRepository.count({
+      const venue = await this.venueRepository.findOne({
         where: { user: { id: user.id } },
       });
-      return venueCount > 0;
+      return {
+        profileStep: venue.profileStep,
+        isProfileComplete: venue.isProfileComplete,
+      };
     }
 
-    if (user.role === 'entertainer') {
-      const profileExists = await this.entertainerRepository.count({
-        where: { user: { id: user.id } },
-      });
-      return profileExists > 0;
-    }
+    // if (user.role === 'entertainer') {
+    //   const profileExists = await this.entertainerRepository.count({
+    //     where: { user: { id: user.id } },
+    //   });
+    //   return profileExists > 0;
+    // }
 
-    return false;
+    // return false;
   }
 
   detectDevice(userAgent: string): Device {

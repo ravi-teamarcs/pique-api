@@ -16,6 +16,7 @@ import {
   BadRequestException,
   UseInterceptors,
   UploadedFiles,
+  Req,
 } from '@nestjs/common';
 import { VenueService } from './venue.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
@@ -43,6 +44,8 @@ import { typeMap } from 'src/common/constants/media.constants';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UploadedFile } from 'src/common/types/media.type';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
+import { AddressDto } from './dto/address.dto';
+import { PrimaryInfoDto } from './dto/primary-info.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -53,8 +56,95 @@ export class VenueController {
     private readonly bookingService: BookingService,
   ) {}
 
+  // @Post()
+  // @UseGuards(JwtAuthGuard)
+  // @UseInterceptors(
+  //   AnyFilesInterceptor({
+  //     fileFilter: (req, file, callback) => {
+  //       // Check file type from typeMap
+  //       const fileType = typeMap[file.fieldname];
+
+  //       if (!fileType) {
+  //         return callback(
+  //           new BadRequestException({
+  //             message: 'Invalid file field name',
+  //             status: false,
+  //           }),
+  //           false,
+  //         );
+  //       }
+
+  //       // Restrict video file size to 500MB
+  //       if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
+  //         return callback(
+  //           new BadRequestException({
+  //             message: 'Video file size cannot exceed 500 MB',
+  //             status: false,
+  //           }),
+  //           false,
+  //         );
+  //       }
+
+  //       callback(null, true);
+  //     },
+  //   }),
+  // )
+  // // Only users with the 'venue' role can access this route
+  // @ApiOperation({ summary: 'Create a venue' })
+  // @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
+  // @ApiResponse({ status: 403, description: 'Forbidden.' })
+  // async createVenue(
+  //   @Body() venueDto: CreateVenueDto,
+  //   @Request() req,
+  //   @UploadedFiles() files: Array<Express.Multer.File>,
+  // ) {
+  //   const { userId } = req.user;
+  //   let uploadedFiles: UploadedFile[] = [];
+
+  //   if (files.length > 0) {
+  //     uploadedFiles = await Promise.all(
+  //       files.map(async (file) => {
+  //         const filePath = await uploadFile(file); // Wait for the upload
+  //         return {
+  //           url: filePath,
+  //           name: file.originalname,
+  //           type: typeMap[file.fieldname],
+  //         };
+  //       }),
+  //     );
+  //   }
+  //   return this.venueService.createVenueWithMedia(
+  //     venueDto,
+  //     userId,
+  //     uploadedFiles,
+  //   );
+  // }
+
+  // @Post('add')
+  // @UseGuards(JwtAuthGuard)
+  // @ApiOperation({ summary: 'Create a venue' })
+  // @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
+  // @ApiResponse({ status: 403, description: 'Forbidden.' })
+  // async create(@Body() venueDto: CreateVenueDto, @Request() req) {
+  //   const { userId } = req.user;
+
+  //   return this.venueService.create(venueDto, userId);
+  // }
+
+  // New Flow Signup under testing
   @Post()
   @UseGuards(JwtAuthGuard)
+  async createVenue(@Body() dto: PrimaryInfoDto, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.createVenue(userId, dto);
+  }
+  @Post('address')
+  @UseGuards(JwtAuthGuard)
+  async addVenueAddress(@Body() dto: AddressDto, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.updateVenueAddress(userId, dto);
+  }
+  @Post('media')
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
@@ -86,16 +176,14 @@ export class VenueController {
       },
     }),
   )
-  // Only users with the 'venue' role can access this route
-  @ApiOperation({ summary: 'Create a venue' })
-  @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async createVenue(
-    @Body() venueDto: CreateVenueDto,
-    @Request() req,
+  @UseGuards(JwtAuthGuard)
+  @Roles('findAll')
+  async addVenueMedia(
     @UploadedFiles() files: Array<Express.Multer.File>,
+    @Request() req,
   ) {
     const { userId } = req.user;
+
     let uploadedFiles: UploadedFile[] = [];
 
     if (files.length > 0) {
@@ -110,22 +198,7 @@ export class VenueController {
         }),
       );
     }
-    return this.venueService.createVenueWithMedia(
-      venueDto,
-      userId,
-      uploadedFiles,
-    );
-  }
-
-  @Post('add')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: 'Create a venue' })
-  @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
-  @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async create(@Body() venueDto: CreateVenueDto, @Request() req) {
-    const { userId } = req.user;
-
-    return this.venueService.create(venueDto, userId);
+    return this.venueService.uploadVenueMedia(userId, uploadedFiles);
   }
 
   @Get()

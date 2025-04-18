@@ -16,7 +16,7 @@ export class Venue {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   name: string;
 
   @Column({ nullable: true })
@@ -25,7 +25,7 @@ export class Venue {
   @Column({ nullable: true })
   email: string;
 
-  @Column()
+  @Column({ nullable: true })
   addressLine1: string;
 
   // Now made  AddressLine 2  unavailable
@@ -35,16 +35,16 @@ export class Venue {
   @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column()
+  @Column({ nullable: true })
   city: number;
 
-  @Column()
+  @Column({ nullable: true })
   state: number;
 
-  @Column()
+  @Column({ nullable: true })
   zipCode: string;
 
-  @Column()
+  @Column({ nullable: true })
   country: number;
 
   @CreateDateColumn()
@@ -65,6 +65,12 @@ export class Venue {
 
   @Column({ nullable: true })
   parentId: number;
+
+  @Column({ default: 0 }) // Step 0 = Not Started
+  profileStep: number; //
+
+  @Column({ default: false })
+  isProfileComplete: boolean;
 }
 
 //Note in second callback first Argument Doesn't Matter it the second one that must be property name.

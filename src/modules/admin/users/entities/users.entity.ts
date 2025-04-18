@@ -21,7 +21,7 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   name: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
@@ -30,7 +30,7 @@ export class User {
   @Column({ type: 'varchar', length: 255 })
   password: string;
 
-  @Column({ type: 'varchar', length: 13 })
+  @Column({ type: 'varchar', length: 13, nullable: true })
   phoneNumber: string;
 
   @Column({ type: 'enum', enum: ['venue', 'entertainer'] })
