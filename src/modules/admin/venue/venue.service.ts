@@ -31,6 +31,68 @@ export class VenueService {
     private readonly mediaService: MediaService,
   ) {}
 
+  // async getAllVenue({
+  //   page,
+  //   pageSize,
+  //   search,
+  // }: {
+  //   page: number;
+  //   pageSize: number;
+  //   search: string;
+  // }) {
+  //   const skip = (page - 1) * pageSize;
+
+  //   const queryBuilder = this.venueRepository
+  //     .createQueryBuilder('venue')
+  //     .leftJoin('cities', 'city', 'city.id = venue.city')
+  //     .leftJoin('states', 'state', 'state.id = venue.state')
+  //     .leftJoin('countries', 'country', 'country.id = venue.country')
+  //     .leftJoin('neighbourhood', 'hood', 'hood.venue_id = venue.id')
+  //     .orderBy('venue.id', 'DESC')
+  //     .skip(skip)
+  //     .take(pageSize);
+
+  //   if (search) {
+  //     queryBuilder.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
+  //       search: `%${search}%`,
+  //     });
+  //   }
+
+  //   const records = await queryBuilder
+  //     .select([
+  //       // Customize this select as needed
+  //       'venue.name AS name',
+  //       'venue.addressLine1 AS addressLine1',
+  //       'venue.addressLine2 AS addressLine2',
+  //       'venue.zipCode AS zipCode',
+  //       'city.name AS city',
+  //       'state.name AS state',
+  //       'country.name AS country',
+  //       'hood.name AS name',
+  //       'hood.contactPerson AS contactPerson',
+  //       'hood.contactNumber AS contactNumber',
+  //     ])
+  //     .getRawMany();
+
+  //   const countQuery = this.venueRepository.createQueryBuilder('venue');
+
+  //   if (search) {
+  //     countQuery.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
+  //       search: `%${search}%`,
+  //     });
+  //   }
+
+  //   const total = await countQuery.getCount();
+
+  //   return {
+  //     records,
+  //     total,
+  //     page,
+  //     pageSize,
+  //     pageCount: Math.ceil(total / pageSize),
+  //   };
+  // }
+
   async getAllVenue({
     page,
     pageSize,
@@ -47,7 +109,21 @@ export class VenueService {
       .leftJoin('cities', 'city', 'city.id = venue.city')
       .leftJoin('states', 'state', 'state.id = venue.state')
       .leftJoin('countries', 'country', 'country.id = venue.country')
-      .where('venue.isParent = :isParent', { isParent: true }) // filter isParent = true
+      .leftJoin('neighbourhood', 'hood', 'hood.venue_id = venue.id')
+      .select([
+        'venue.id AS id',
+        'venue.name AS name',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+        'venue.zipCode AS zipCode',
+        'city.name AS city',
+        'state.name AS state',
+        'country.name AS country',
+        'hood.name AS hoodName',
+        'hood.contactPerson AS contactPerson',
+        'hood.contactNumber AS contactNumber',
+        'COUNT(*) OVER() AS total',
+      ])
       .orderBy('venue.id', 'DESC')
       .skip(skip)
       .take(pageSize);
@@ -58,33 +134,23 @@ export class VenueService {
       });
     }
 
-    const records = await queryBuilder
-      .select([
-        // Customize this select as needed
-        'venue.name AS name',
-        'venue.addressLine1 AS addressLine1',
-        'venue.addressLine2 AS addressLine2',
-        'venue.zipCode AS zipCode',
-        'city.name AS city',
-        'state.name AS state',
-        'country.name AS country',
-      ])
-      .getRawMany();
-
-    const countQuery = this.venueRepository
-      .createQueryBuilder('venue')
-      .where('venue.isParent = :isParent', { isParent: true });
-
-    if (search) {
-      countQuery.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
-        search: `%${search}%`,
-      });
-    }
-
-    const total = await countQuery.getCount();
-
+    const rawRecords = await queryBuilder.getRawMany();
+    const total = rawRecords[0]?.total ? Number(rawRecords[0].total) : 0;
+    console.log('Raw Record', rawRecords);
     return {
-      records,
+      records: rawRecords.map((row) => ({
+        id: row.id,
+        name: row.name,
+        addressLine1: row.addressLine1,
+        addressLine2: row.addressLine2,
+        zipCode: row.zipCode,
+        city: row.city,
+        state: row.state,
+        country: row.country,
+        neighbourhoodName: row.hoodName,
+        contactPerson: row.contactPerson,
+        contactNumber: row.contactNumber,
+      })),
       total,
       page,
       pageSize,
@@ -312,7 +378,9 @@ export class VenueService {
   }
 
   async getVenueNeighbourhoods(id: number) {
-    const res = await this.neighbourRepository.find({ where: { id } });
+    const res = await this.neighbourRepository.find({
+      where: { venueId: id },
+    });
     return {
       message: 'Neighbourhood fetched successfully',
       data: res,

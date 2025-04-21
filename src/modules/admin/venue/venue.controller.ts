@@ -77,39 +77,39 @@ export class VenueController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     let uploadedFiles: UploadedFile[] = [];
-    const mimeTypeMap = {
-      image: ['image/jpeg', 'image/png', 'image/webp'],
-      video: ['video/mp4', 'video/webm', 'video/quicktime'],
-      headshot: ['image/jpeg', 'image/png'], // optional, if you want to distinguish
-      event_headshot: ['image/jpeg', 'image/png'], // optional
-    } as const;
-    type FileType = keyof typeof mimeTypeMap;
+    // const mimeTypeMap = {
+    //   image: ['image/jpeg', 'image/png', 'image/webp'],
+    //   video: ['video/mp4', 'video/webm', 'video/quicktime'],
+    //   headshot: ['image/jpeg', 'image/png'], // optional, if you want to distinguish
+    //   event_headshot: ['image/jpeg', 'image/png'], // optional
+    // } as const;
+    // type FileType = keyof typeof mimeTypeMap;
 
-    function getFileType(mimetype: string): FileType | null {
-      for (const [key, mimeList] of Object.entries(mimeTypeMap) as [
-        FileType,
-        readonly string[],
-      ][]) {
-        if (mimeList.includes(mimetype)) {
-          return key;
-        }
-      }
-      return null;
-    }
+    // function getFileType(mimetype: string): FileType | null {
+    //   for (const [key, mimeList] of Object.entries(mimeTypeMap) as [
+    //     FileType,
+    //     readonly string[],
+    //   ][]) {
+    //     if (mimeList.includes(mimetype)) {
+    //       return key;
+    //     }
+    //   }
+    //   return null;
+    // }
 
-    if (files.length > 0) {
-      uploadedFiles = await Promise.all(
-        files.map(async (file) => {
-          const filePath = await uploadFile(file);
-          const type = getFileType(file.mimetype); // Wait for the upload
-          return {
-            url: filePath,
-            name: file.originalname,
-            type,
-          };
-        }),
-      );
-    }
+    // if (files.length > 0) {
+    //   uploadedFiles = await Promise.all(
+    //     files.map(async (file) => {
+    //       const filePath = await uploadFile(file);
+    //       const type = getFileType(file.mimetype); // Wait for the upload
+    //       return {
+    //         url: filePath,
+    //         name: file.originalname,
+    //         type,
+    //       };
+    //     }),
+    //   );
+    // }
 
     return this.venueService.createVenue(dto, uploadedFiles);
   }
@@ -171,7 +171,7 @@ export class VenueController {
 
   @Roles('super-admin', 'venue-admin')
   @Get(':id/neighbourhoods')
-  getNeighbourhoods(@Param(':id', ParseIntPipe) id: number) {
+  getNeighbourhoods(@Param('id', ParseIntPipe) id: number) {
     return this.venueService.getVenueNeighbourhoods(id);
   }
 
