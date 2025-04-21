@@ -185,7 +185,7 @@ export class VenueService {
         });
       }
 
-      const mediaUploadResult = await this.mediaService.handleMediaUpload(
+      const { data } = await this.mediaService.handleMediaUpload(
         venue.id,
         uploadedFiles,
         { eventId: null },
@@ -195,7 +195,12 @@ export class VenueService {
         { id: venue.id },
         { isProfileComplete: true, profileStep: 4 },
       );
-      return { message: 'Venue Signup completed. ', step: 4, status: true };
+      return {
+        message: 'Venue Signup completed. ',
+        data: data,
+        step: 4,
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,

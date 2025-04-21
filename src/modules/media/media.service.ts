@@ -57,10 +57,15 @@ export class MediaService {
           user_id: userId,
           eventId,
         });
-        await this.mediaRepository.save(media);
+
+        console.log('On save', await this.mediaRepository.save(media));
       }
 
-      return { message: 'Files Saved Successfully', status: true };
+      return {
+        message: 'Files Saved Successfully',
+        data: uploadedFiles,
+        status: true,
+      };
     } catch (error) {
       console.error('Error uploading media:', error);
       throw new InternalServerErrorException({

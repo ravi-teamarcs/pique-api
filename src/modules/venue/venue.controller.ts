@@ -137,7 +137,6 @@ export class VenueController {
   @UseGuards(JwtAuthGuard)
   async createVenue(@Body() dto: PrimaryInfoDto, @Request() req) {
     const { userId } = req.user;
-    console.log(req.user, 'Inside Controller');
     return this.venueService.createVenue(userId, dto);
   }
 

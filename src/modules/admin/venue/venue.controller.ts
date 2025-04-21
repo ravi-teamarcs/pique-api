@@ -62,9 +62,9 @@ export class VenueController {
   @Roles('super-admin', 'venue-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get('venuebyId/:userId')
-  async getVenuesByUserId(@Param('userId') userId: number) {
-    return this.venueService.getVenueByUserId(userId);
+  @Get(':venueId')
+  async getVenuesByUserId(@Param('venueId') venueId: number) {
+    return this.venueService.getVenueByUserId(venueId);
   }
 
   @ApiBearerAuth()

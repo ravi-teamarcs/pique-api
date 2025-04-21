@@ -169,17 +169,38 @@ export class VenueService {
     };
   }
 
-  async getVenueByUserId(userId) {
-    const records = await this.venueRepository.find({
-      where: {
-        user: { id: userId },
-      },
-      //relations: ['users'],
+  async getVenueByUserId(venueId: number) {
+    const venueDetails = await this.venueRepository
+      .createQueryBuilder('venue')
+      .leftJoinAndSelect('venue.user', 'user')
+      .leftJoin('cities', 'city', 'city.id = venue.city')
+      .leftJoin('states', 'state', 'state.id = venue.state')
+      .leftJoin('countries', 'country', 'country.id = venue.country')
+      .select([
+        'venue.id AS id',
+        'venue.name AS name',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+        'venue.zipCode AS zipCode',
+        'city.name AS city',
+        'state.name AS state',
+        'country.name AS country',
+        'user.email AS email',
+      ])
+
+      .where('venue.id=:venueId', { venueId })
+      .getRawOne();
+
+    const neighbourhood = await this.neighbourRepository.find({
+      where: { venueId },
     });
-    //console.log(records);
+
+    venueDetails['neighbourhoods'] = neighbourhood;
+
     return {
-      records,
-      total: records.length,
+      message: 'Venue Details fetched Successfully',
+      data: venueDetails,
+      status: true,
     };
   }
 
