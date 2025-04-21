@@ -6,15 +6,18 @@ import {
 } from '@nestjs/common';
 import { Venue } from './entities/venue.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { DataSource, Like, Repository } from 'typeorm';
 import { UpdateVenueDto } from './Dto/update-venue.dto';
-import { CreateVenueDto } from './Dto/create-venue.dto';
+import { CreateVenueDto, CreateVenueRequestDto } from './Dto/create-venue.dto';
 import { User } from '../users/entities/users.entity';
 import { AddLocationDto } from './Dto/add-location.dto';
 import { UpdateLocationDto } from './Dto/update-location.dto';
 import { Neighbourhood } from './entities/neighbourhood.entity';
 import { CreateNeighbourhoodDto } from './Dto/create-neighbourhood.dto';
 import { UpdateNeighbourhoodDto } from './Dto/update-neighbourhood';
+import { MediaService } from '../media/media.service';
+import { UploadedFile } from 'src/common/types/media.type';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class VenueService {
@@ -24,6 +27,8 @@ export class VenueService {
     @InjectRepository(Neighbourhood)
     private readonly neighbourRepository: Repository<Neighbourhood>,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    private readonly dataSource: DataSource,
+    private readonly mediaService: MediaService,
   ) {}
 
   async getAllVenue({
@@ -112,16 +117,67 @@ export class VenueService {
     };
   }
 
-  async createVenue(createVenueDto: CreateVenueDto): Promise<Venue> {
-    const { ...venueData } = createVenueDto;
-    const venue = this.venueRepository.create({
-      ...venueData,
-      isParent: true,
-    });
+  async createVenue(dto: CreateVenueRequestDto, uploadedFiles: UploadedFile[]) {
+    const { createLogin, user, venue, neighbourhood } = dto;
 
-    await this.venueRepository.save(venue);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    return venue;
+    try {
+      let savedUser = null;
+
+      // 1. Create user if checkbox is checked
+      if (createLogin) {
+        const { password, ...rest } = user;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = this.userRepository.create({
+          ...rest,
+          password: hashedPassword,
+          isVerified: true,
+          createdByAdmin: true,
+        });
+        savedUser = await queryRunner.manager.save(newUser);
+      }
+
+      // 2. Create venue with reference to user (if present)
+      const newVenue = this.venueRepository.create({
+        ...venue,
+        user: savedUser ? { id: savedUser.id } : null,
+        profileStep: 3,
+        isProfileComplete: true,
+      });
+      const savedVenue = await queryRunner.manager.save(newVenue);
+
+      // 3. Upload media (pass queryRunner to use same transaction if saving to DB)
+      if (neighbourhood && neighbourhood.length > 0) {
+        const neighbourhoods = neighbourhood.map((item) =>
+          this.neighbourRepository.create({
+            ...item,
+            venueId: savedVenue.id, // ensure this is included
+          }),
+        );
+        await queryRunner.manager.save(neighbourhoods);
+      }
+
+      if (uploadedFiles?.length > 0) {
+        await this.mediaService.handleMediaUpload(savedVenue.id, uploadedFiles);
+      }
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Venue Created Successfully with media .',
+        status: true,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException({
+        message: error.mesage,
+        status: false,
+      });
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async updateVenue(updateVenueDto: UpdateVenueDto) {
@@ -253,6 +309,15 @@ export class VenueService {
   async update(id: number, dto: UpdateNeighbourhoodDto) {
     await this.neighbourRepository.update(id, dto);
     return { message: 'Neighbourhood updated successfully', status: true };
+  }
+
+  async getVenueNeighbourhoods(id: number) {
+    const res = await this.neighbourRepository.find({ where: { id } });
+    return {
+      message: 'Neighbourhood fetched successfully',
+      data: res,
+      status: true,
+    };
   }
 
   async removeNeighbourhood(id: number) {

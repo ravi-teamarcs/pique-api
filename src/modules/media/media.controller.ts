@@ -10,7 +10,6 @@ import {
   Query,
   Req,
   Request,
-  // UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
@@ -44,7 +43,7 @@ export class MediaController {
 
   @ApiOperation({ summary: 'Upload User Multimedia' })
   @ApiResponse({ status: 201, description: 'Media uploaded successfully.' })
-  @Post('uploads/:id')
+  @Post('uploads')
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
@@ -77,11 +76,12 @@ export class MediaController {
     }),
   )
   async uploadMedia(
-    @Param('id') userId: number,
     @UploadedFiles() files: Array<Express.Multer.File>,
+    @Request() req,
     @Body() uploaddto?: UploadMedia,
   ) {
     let uploadedFiles: UploadedFile[] = [];
+    const { refId } = req.user;
 
     if (files.length > 0) {
       uploadedFiles = await Promise.all(
@@ -96,11 +96,11 @@ export class MediaController {
       );
     }
 
-    return this.mediaService.handleMediaUpload(
-      userId,
-      uploadedFiles,
-      uploaddto,
-    );
+    // return this.mediaService.handleMediaUpload(
+    //   userId,
+    //   uploadedFiles,
+    //   uploaddto,
+    // );
   }
 
   @Get('uploads/:id')

@@ -120,7 +120,7 @@ export class EntertainerService {
       const mediaUploadResult = await this.mediaService.handleMediaUpload(
         userId,
         uploadedFiles,
-        { venueId: null, eventId: null },
+        { eventId: null },
       );
 
       // Step 3: Commit transaction if everything is successful
@@ -289,7 +289,7 @@ export class EntertainerService {
         const mediaUploadResult = await this.mediaService.handleMediaUpload(
           userId,
           uploadedFiles,
-          { venueId: null, eventId: null },
+          { eventId: null },
         );
 
         // You can add validation here to check if upload failed, if needed

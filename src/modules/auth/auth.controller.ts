@@ -6,7 +6,6 @@ import {
   Request,
   HttpCode,
   Req,
-  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -97,21 +96,5 @@ export class AuthController {
   resetPassword(@Body() resetDto: ResetPassword) {
     const { token, newPassword } = resetDto;
     return this.authService.resetPassword(token, newPassword);
-  }
-
-  @ApiOperation({ summary: 'Send the OTP to the mail.' })
-  @ApiResponse({ status: 200, description: 'Email verified Successfully.' })
-  @HttpCode(200)
-  @Post('verify-email')
-  async verifyEmail(@Body() dto: verifyEmail) {
-    return await this.authService.isUserVerified(dto);
-  }
-
-  @ApiOperation({ summary: 'Send the OTP to the mail.' })
-  @ApiResponse({ status: 200, description: 'Email sent Successfully.' })
-  @HttpCode(200)
-  @Post('user-verification')
-  async sendVerificationMail(@Body('email') email: string) {
-    return await this.authService.sendVerificationEmail(email);
   }
 }

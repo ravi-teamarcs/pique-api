@@ -39,7 +39,7 @@ export class BookingController {
   @Get('request')
   @HttpCode(200)
   @Roles('super-admin')
-  getAllBookingById(@Query() @Query() query: BookingQueryDto) {
+  getAllBooking(@Query() query: BookingQueryDto) {
     return this.bookingService.getAllBookings(query);
   }
 
@@ -50,7 +50,7 @@ export class BookingController {
   @Get(':id/request')
   @HttpCode(200)
   @Roles('super-admin')
-  getAllBooking(@Query() query: BookingQueryDto, @Param('id') userId) {
+  getAllBookingById(@Query() query: BookingQueryDto, @Param('id') userId) {
     return this.bookingService.getAllBookingById(query, Number(userId));
   }
   @ApiOperation({

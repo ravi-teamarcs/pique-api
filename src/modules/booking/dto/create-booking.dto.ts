@@ -24,11 +24,10 @@ export class CreateBookingDto {
     example: 'duo',
     description: 'Role of entertainer (soloist, duo, trio, ensemble)',
   })
-  @ApiProperty({ example: 1, description: 'Reference to the Venue' })
-  @IsNumber()
-  @IsNotEmpty()
-  venueId: number;
-
+  // @ApiProperty({ example: 1, description: 'Reference to the Venue' })
+  // @IsNumber()
+  // @IsNotEmpty()
+  // venueId: number;
   @ApiProperty({ example: 1, description: 'Reference to the Entertainers' })
   @IsNumber()
   @IsNotEmpty()

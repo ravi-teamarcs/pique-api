@@ -34,15 +34,15 @@ export class BookingService {
     private readonly notifyService: NotificationService,
   ) {}
 
-  async createBooking(createBookingDto: CreateBookingDto, userId: number) {
+  async createBooking(createBookingDto: CreateBookingDto, venueId: number) {
     const { entertainerId, ...bookingData } = createBookingDto;
 
     // Create the booking
 
     const newBooking = this.bookingRepository.create({
       ...bookingData,
-      venueUser: { id: userId },
-      entertainerUser: { id: entertainerId },
+      venueId: venueId,
+      entId: entertainerId,
     });
 
     // Save the booking
@@ -56,33 +56,41 @@ export class BookingService {
     if (!savedBooking) {
       throw new InternalServerErrorException('Failed to save Booking');
     }
-    const entUserId = savedBooking.entertainerUser.id;
+    const entUserId = savedBooking.entId;
 
-    const user = await this.entRepository
+    const ent = await this.entRepository
       .createQueryBuilder('entertainer')
-      .leftJoinAndSelect('entertainer.user', 'user')
+      .leftJoin('entertainer.user', 'user')
       .select(['entertainer.name AS name', 'user.email AS email'])
-      .where('user.id = :id', { id: entUserId })
+      .where('entertainer.id =:id', { id: entUserId })
       .getRawOne();
 
-    const venue = await this.venueRepository.findOne({
-      where: { id: savedBooking.venueId },
-      select: ['name', 'email', 'phone', 'addressLine1', 'addressLine2'],
-    });
+    const venue = await this.venueRepository
+      .createQueryBuilder('venue')
+      .leftJoin('venue.user', 'user')
+      .select([
+        'venue.name AS name',
+        'user.email AS email',
+        'user.phoneNumber AS phoneNumber',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+      ])
+      .where('venue.id =:id', { id: venueId })
+      .getRawOne();
 
     const emailPayload = {
-      to: user.email,
+      to: ent.email,
       subject: 'New Booking Request',
       templateName: 'booking-request.html',
 
       replacements: {
         venueName: venue.name,
-        entertainerName: user.name,
+        entertainerName: ent.name,
         bookingDate: savedBooking.showDate,
         bookingTime: savedBooking.showTime,
         vname: venue.name,
         vemail: venue.email,
-        vphone: venue.phone,
+        vphone: venue.phoneNumber,
         Address: `${venue.addressLine1}, ${venue.addressLine2}`,
       },
     };
@@ -100,7 +108,7 @@ export class BookingService {
     const payload = {
       bookingId: savedBooking.id,
       status: savedBooking.status,
-      user: savedBooking.venueUser.id,
+      user: savedBooking.venueId,
       performedBy: 'venue',
     };
 
@@ -122,9 +130,15 @@ export class BookingService {
 
     const booking = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoinAndSelect('booking.entertainerUser', 'entertainerUser')
-      .leftJoinAndSelect('booking.venueUser', 'venueUser')
       .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+      .leftJoin('users', 'vuser', 'vuser.id = venue.userId') // venue's user
+      .leftJoin(
+        'entertainers',
+        'entertainer',
+        'entertainer.id = booking.entId',
+      )
+      .leftJoin('users', 'euser', 'euser.id = entertainer.userId') // entertainer's user
+
       // Join venue table
       .select([
         'booking.id AS id',
@@ -133,15 +147,15 @@ export class BookingService {
         'booking.showTime AS showTime',
         'booking.showDate AS showDate',
 
-        'entertainerUser.email AS eEmail',
-        'entertainerUser.name AS ename',
-        'entertainerUser.id AS eid ',
-        'entertainerUser.phoneNumber AS ephone',
+        'euser.email AS eEmail',
+        'euser.name AS ename',
+        'euser.id AS eid ',
+        'euser.phoneNumber AS ephone',
 
         'venue.name  As  vname',
-        'venueUser.email As vemail',
-        'venueUser.phoneNumber As vphone',
-        'venueUser.id As vid',
+        'vuser.email As vemail',
+        'vuser.phoneNumber As vphone',
+        'vuser.id As vid',
       ])
       .where('booking.id = :id', { id: bookingId })
       .getRawOne();
@@ -220,7 +234,7 @@ export class BookingService {
 
     const booking = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoinAndSelect('booking.entertainerUser', 'ent')
+      .leftJoinAndSelect('booking.euser', 'ent')
       .leftJoinAndSelect('booking.venueUser', 'vuser')
       .select([
         'booking.id AS id',

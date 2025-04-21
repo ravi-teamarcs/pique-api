@@ -11,8 +11,8 @@ export class VenueDetailService {
     private readonly detailsRepository: Repository<VenueDetails>,
   ) {}
 
-  async registerContact(payload: ContactDto, userId: number) {
-    const { venueId, contactPerson } = payload;
+  async registerContact(payload: ContactDto, venueId: number) {
+    const { contactPerson } = payload;
 
     const alreadyRegistered = await this.detailsRepository.findOne({
       where: { venue_id: venueId },
@@ -28,7 +28,6 @@ export class VenueDetailService {
     try {
       const contactDetails = this.detailsRepository.create({
         venue_id: venueId,
-        user_id: userId,
         contactPerson,
       });
 
@@ -39,9 +38,9 @@ export class VenueDetailService {
     }
   }
 
-  async getContactDetails(id: number, userId: number) {
+  async getContactDetails(venueId: number) {
     const contactDetails = await this.detailsRepository.findOne({
-      where: { venue_id: id, user_id: userId },
+      where: { venue_id: venueId },
       select: ['id', 'contactPerson', 'venue_id'],
     });
 

@@ -24,7 +24,7 @@ export class MediaService {
     uploadedFiles: UploadedFile[],
     dto?: UploadMedia,
   ) {
-    const { venueId = null, eventId = null } = dto;
+    const { eventId = null } = dto;
     try {
       for (const file of uploadedFiles) {
         if (!file || !file.type) continue; // Safety check

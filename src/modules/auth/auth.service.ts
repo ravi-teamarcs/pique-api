@@ -205,19 +205,22 @@ export class AuthService {
         HttpStatus.UNAUTHORIZED,
       );
     }
-
+    // Getting Original Id (Venue or Entertainer)
+    const originalId = await this.getOriginalIdFromUser(user);
+    console.log;
     const payload = {
       sub: user.id,
       email: user.email,
       role: user.role,
       status: user.status,
+      refId: originalId,
     };
     const token = this.jwtService.sign(payload);
+
     // Checks for Profile Completion
     const { isProfileComplete, profileStep } =
       await this.isProfileCompleted(user);
-    console.log('insider Lofig', profileStep);
-    // Fcm Token
+
     const deviceType = this.detectDevice(userAgent);
 
     this.notificationService.storeFcmToken(user.id, fcmToken, deviceType);
@@ -248,7 +251,6 @@ export class AuthService {
   }
 
   private async isProfileCompleted(user: User) {
-    console.log('Inside User');
     if (user.role === 'venue') {
       const venue = await this.venueRepository.findOne({
         where: { user: { id: user.id } },
@@ -344,69 +346,19 @@ export class AuthService {
     }
   }
 
-  async isUserVerified(dto: verifyEmail) {
-    try {
-      const { email, otp } = dto;
-      await this.verifyOtp(dto);
-      const user = this.usersRepository.findOne({ where: { email } });
-      await this.usersRepository.update(
-        { email },
-        { status: 'active', isVerified: true },
-      );
-      return { message: 'Email verified Successfully', status: true };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: 'Error while verifying user',
-        error: error.message,
-        status: false,
+  private async getOriginalIdFromUser(user: User) {
+    const { role, id } = user;
+
+    if (role === 'venue') {
+      const venue = await this.venueRepository.findOne({
+        where: { user: { id } },
       });
+      return Number(venue?.id) ?? null;
     }
-  }
 
-  async sendVerificationEmail(email: string) {
-    const user = await this.usersRepository.findOne({ where: { email } });
-    if (!user)
-      throw new NotFoundException({ message: 'User not found', status: false });
-
-    try {
-      const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-      const existingOtp = await this.otpRepository.findOne({
-        where: { email },
-      });
-
-      if (existingOtp) {
-        // Update existing OTP
-        existingOtp.otp = otpCode;
-        existingOtp.expiresAt = new Date(Date.now() + 10 * 60000); // Extend expiry
-        await this.otpRepository.save(existingOtp);
-      } else {
-        // Create new OTP record
-        const newOtp = this.otpRepository.create({
-          email,
-          otp: otpCode,
-          expiresAt: new Date(Date.now() + 10 * 60000),
-        });
-        await this.otpRepository.save(newOtp);
-      }
-      const payload = {
-        to: email,
-        subject: 'Email verification   ',
-        templateName: 'email-verification.html',
-        replacements: {
-          otp: otpCode,
-        },
-      };
-      // send via email
-      await this.emailService.handleSendEmail(payload);
-      return {
-        message: 'Otp Sent Successfully to the entered  email.',
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
-        status: false,
-      });
-    }
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id } },
+    });
+    return Number(entertainer.id) ?? null;
   }
 }

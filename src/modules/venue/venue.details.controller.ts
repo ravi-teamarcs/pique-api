@@ -25,16 +25,16 @@ export class VenueDetailsController {
   @Roles('findAll')
   @Post()
   async registerContact(@Request() req, @Body() payload: ContactDto) {
-    const { userId } = req.user;
-    return this.venueDetailService.registerContact(payload, userId);
+    const { refId } = req.user;
+    return this.venueDetailService.registerContact(payload, refId);
   }
 
   @ApiOperation({ summary: 'Fetches the contactPerson detail for Venue' })
   @ApiResponse({ status: 200, description: 'Details Fetched Successfully' })
   @Roles('findAll')
   @Get(':id')
-  async getContactDetails(@Request() req, @Param('id') id: number) {
-    const { userId } = req.user;
-    return this.venueDetailService.getContactDetails(Number(id), userId);
+  async getContactDetails(@Request() req) {
+    const { refId } = req.user;
+    return this.venueDetailService.getContactDetails(refId);
   }
 }

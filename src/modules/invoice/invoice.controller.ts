@@ -40,7 +40,7 @@ export class InvoiceController {
   @Roles('findAll')
   @Get()
   getAllInvoices(@Request() req) {
-    const { userId } = req.user;
-    return this.invoiceService.findAllInvoice(userId);
+    const { refId } = req.user;
+    return this.invoiceService.findAllInvoice(refId);
   }
 }

@@ -8,6 +8,7 @@ import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../auth/entities/capability.entity';
 import { Neighbourhood } from './entities/neighbourhood.entity';
+import { MediaModule } from '../media/media.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { Neighbourhood } from './entities/neighbourhood.entity';
       Capability,
       Neighbourhood,
     ]),
+    MediaModule,
   ],
   controllers: [VenueController],
   providers: [VenueService],

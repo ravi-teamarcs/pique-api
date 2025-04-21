@@ -37,6 +37,7 @@ import { MediaService } from '../media/media.service';
 import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
 import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.entity';
 import { AddressDto } from './dto/address.dto';
+import { BookingQueryDto } from './dto/get-venue-booking.dto';
 
 @Injectable()
 export class VenueService {
@@ -242,7 +243,7 @@ export class VenueService {
       const mediaUploadResult = await this.mediaService.handleMediaUpload(
         venue.id,
         uploadedFiles,
-        { venueId: null, eventId: null },
+        { eventId: null },
       );
 
       await this.venueRepository.update(
@@ -329,7 +330,7 @@ export class VenueService {
     return { message: 'Venue fetched successfully', data: venue, status: true };
   }
 
-  async findAllEntertainers(query: SearchEntertainerDto, venueId: number) {
+  async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
     const {
       availability = '',
       category = [],
@@ -373,22 +374,27 @@ export class VenueService {
       .leftJoin(
         'wishlist',
         'wish',
-        'wish.ent_id = entertainer.id AND wish.user_id = :venueId',
+        'wish.ent_id = entertainer.id AND wish.user_id = :userId',
       )
 
-      // .leftJoin(
-      //   (qb) =>
-      //     qb
-      //       .select([
-      //         'media.user_id AS user_id',
-      //         `COALESCE(MAX(CONCAT(:serverUri, media.url)), :defaultMediaUrl) AS mediaUrl`,
-      //       ])
-      //       .from('media', 'media')
-      //       .where('media.type = "headshot"')
-      //       .groupBy('media.user_id'),
-      //   'media_headshot', // <- alias the subquery result
-      //   'media_headshot.user_id = entertainer.id', // <- use alias from subquery SELECT
-      // )
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'entertainer.id AS entertainer_id',
+              `
+              COALESCE(
+                MAX(CASE WHEN media.type = 'headshot' THEN CONCAT(:serverUri, media.url) END),
+                :defaultMediaUrl
+              ) AS media_url
+              `,
+            ])
+            .from('entertainers', 'entertainer')
+            .leftJoin('media', 'media', 'media.user_id = entertainer.id')
+            .groupBy('entertainer.id'),
+        'media',
+        'media.entertainer_id = entertainer.id',
+      )
 
       .select([
         'entertainer.id AS eid',
@@ -406,7 +412,7 @@ export class VenueService {
         'country.name AS country',
         'category.name AS category_name',
         'subcat.name AS specific_category_name',
-        'media_headshot.mediaUrl As mediaUrl',
+        'media.media_url As mediaUrl',
         `CASE
      WHEN wish.ent_id IS NOT NULL THEN 1
      ELSE 0
@@ -415,16 +421,9 @@ export class VenueService {
       ])
       .setParameter('serverUri', this.config.get<string>('BASE_URL'))
       .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
-      .setParameter('venueId', venueId);
+      .setParameter('userId', userId);
 
     // Use getRawMany() to retrieve raw data
-
-    // **Availability Filter**
-    if (availability) {
-      res.andWhere('entertainer.availability = :availability', {
-        availability,
-      });
-    }
 
     // **Category Filter (Applies Only If Not Null)**
     if (category !== null && category.length > 0) {
@@ -460,14 +459,11 @@ export class VenueService {
         }),
       );
     }
-
     // **City Filter**
     if (city) {
       res.andWhere('entertainer.city = :city', { city });
     }
-    if (country) {
-      res.andWhere('entertainer.country = :country', { country });
-    }
+
     if (date) {
       res.andWhere(
         (qb) => {
@@ -496,25 +492,13 @@ export class VenueService {
         (qb) => {
           return `NOT EXISTS (
             SELECT 1 FROM booking b
-            WHERE b.entertainerUserId = user.id
+            WHERE b.entId = entertainer.id
             AND b.showDate BETWEEN :startDate AND :endDate
           )`;
         },
         { startDate, endDate },
       );
     }
-
-    // **Search Filter**
-    // (search && search.trim()) {
-    //   res.andWhere(
-    //     `(
-    //       LOWER(entertainer.name) LIKE :search OR
-    //       LOWER(entertainer.bio) LIKE :search OR
-    //       LOWER(user.email) LIKE :search
-    //     )`,
-    //     { search: `%${search.toLowerCase()}%` }
-    //   );
-    // }
 
     const totalCount = await res.getCount();
     const results = await res
@@ -536,14 +520,6 @@ export class VenueService {
           vaccination_status:
             vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
           ratings: arr[index % arr.length],
-
-          whatwillyouget: [
-            { text: 'you will get full service' },
-            { text: 'you will get full Satisfaction' },
-            { text: 'Professional Talent' },
-            { text: 'An feeling of sophistication' },
-            { text: 'Experince of life' },
-          ],
         };
       },
     );
@@ -559,9 +535,10 @@ export class VenueService {
     };
   }
 
-  async findAllBooking(venueId: number) {
-    // Changes Done
-    const bookings = await this.bookingRepository
+  async findAllBooking(venueId: number, query: BookingQueryDto) {
+    const { page = 1, pageSize = 10, status = '' } = query;
+    const skip = (Number(page) - 1) * Number(pageSize);
+    const res = this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('entertainers', 'entertainer', 'entertainer.id= booking.entId')
       .leftJoin('event', 'event', 'booking.eventId = event.id')
@@ -588,20 +565,29 @@ export class VenueService {
         'event.startTime AS event_start_time',
         'event.endTime AS event_end_time',
         'event.description AS event_description',
-      ])
+      ]);
+    if (status) {
+      res.andWhere('booking.status=:status', { status });
+    }
+    const totalCount = await res.getCount();
+    const results = await res
       .orderBy('booking.createdAt', 'DESC')
+      .skip(skip)
+      .take(Number(pageSize))
       .getRawMany();
 
     return {
       message: 'Bookings returned successfully',
-      count: bookings.length,
-      bookings,
+      count: totalCount,
+      bookings: results,
+      totalPages: Math.ceil(totalCount / Number(pageSize)),
+      page,
+      pageSize,
       status: true,
     };
   }
   // Update Venue
-  async handleUpdateVenueDetails(updateVenueDto: UpdateVenueDto) {
-    const { venueId, ...details } = updateVenueDto;
+  async updateVenue(venueId: number, dto: UpdateVenueDto) {
     const venue = await this.venueRepository.findOne({
       where: { id: venueId },
     });
@@ -614,7 +600,7 @@ export class VenueService {
       });
     }
     try {
-      await this.venueRepository.update({ id: venue.id }, details);
+      await this.venueRepository.update({ id: venue.id }, dto);
       return { message: 'Venue updated successfully', status: true };
     } catch (error) {
       throw new InternalServerErrorException({
@@ -667,55 +653,23 @@ export class VenueService {
         'subcat.id = entertainer.specific_category',
       )
 
-      // .leftJoin(
-      //   (qb) =>
-      //     qb
-      //       .select([
-      //         'media.userId',
-      //         `JSON_ARRAYAGG(
-      //       JSON_OBJECT(
-      //         "url", CONCAT(:serverUri, media.url),
-      //         "type", media.type
-      //       )
-      //     ) AS mediaDetails`,
-      //       ])
-      //       .from('media', 'media')
-      //       .groupBy('media.userId'),
-      //   'media',
-      //   'media.userId = user.id',
-      // )
-      // .leftJoin(
-      //   (qb) =>
-      //     qb
-      //       .select([
-      //         'wa.user AS user', // Alias this!
-      //         `JSON_ARRAYAGG(
-      //           JSON_OBJECT(
-      //             "dayOfWeek", wa.dayOfWeek,
-      //             "startTime", wa.startTime,
-      //             "endTime", wa.endTime
-      //           )
-      //         ) AS weeklyAvailability`,
-      //       ])
-      //       .from('weekly_availability', 'wa')
-      //       .groupBy('wa.user'),
-      //   'weekly',
-      //   'weekly.user = user.id', // Now this matches!
-      // )
-
-      // Unavailability Subquery
-      // .leftJoin(
-      //   (qb) =>
-      //     qb
-      //       .select([
-      //         'ua.user AS user', // ✅ alias the user column
-      //         `CONCAT("[", GROUP_CONCAT(CONCAT('"', ua.date, '"')), "]") AS unavailableDates`,
-      //       ])
-      //       .from('unavailability', 'ua')
-      //       .groupBy('ua.user'),
-      //   'unavail',
-      //   'unavail.user = user.id', // ✅ now this matches
-      // )
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'media.user_id AS media_user_id', // expose user_id
+              `JSON_ARRAYAGG(
+                JSON_OBJECT(
+                  "url", CONCAT(:serverUri, media.url),
+                  "type", media.type
+                )
+              ) AS mediaDetails`,
+            ])
+            .from('media', 'media')
+            .groupBy('media.user_id'),
+        'media', // alias for the subquery
+        'media.media_user_id = entertainer.id', // now using the alias correctly
+      )
 
       .select([
         'entertainer.id AS eid',
@@ -736,7 +690,7 @@ export class VenueService {
         'entertainer.bio AS bio',
         'entertainer.vaccinated AS vaccinated',
 
-        // 'COALESCE(media.mediaDetails, "[]") AS media',
+        'COALESCE(media.mediaDetails, "[]") AS media',
         `CASE
         WHEN wish.ent_id IS NOT NULL THEN 1
         ELSE 0
@@ -749,23 +703,16 @@ export class VenueService {
 
     console.log('Response of Entertainer', res);
     // Parse JSON fields
-    const {
-      // availability,
-      // unavailability,
-      services,
-      media,
-      isWishlisted,
-      ...details
-    } = res;
+    const { services, media, vaccinated, isWishlisted, ...details } = res;
     return {
       message: 'Entertainer Details returned Successfully',
       data: {
         ...details,
         isWishlisted: Boolean(isWishlisted),
+        vaccination_status:
+          vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
         services: JSON.parse(services),
-        // availability: JSON.parse(availability),
-        // unavailability: JSON.parse(unavailability),
-        // media: JSON.parse(media),
+        media: JSON.parse(media),
       },
       status: true,
     };
@@ -992,16 +939,6 @@ export class VenueService {
     await this.wishRepository.remove(wishlistItem);
     return { message: 'Wishlist item removed successfully', status: true };
   }
-
-  // async getEventDetails() {
-  //   try {
-  //   } catch (error) {
-  //     throw new InternalServerErrorException({
-  //       status: false,
-  //       error: error.message,
-  //     });
-  //   }
-  // }
 
   // Is Booking Allowed
 

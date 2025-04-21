@@ -22,6 +22,7 @@ import { UploadUrlDto } from './Dto/UploadUrlDto.dto';
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
+import { typeMap } from 'src/common/constants/media.constants';
 
 @ApiTags('admin')
 @Controller('admin/media')
@@ -78,6 +79,7 @@ export class MediaController {
         'At least one media file (images, videos, or headshot) is required.',
       );
     }
+    // New Code
 
     // Process Images
     if (files.images) {
