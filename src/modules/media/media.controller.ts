@@ -103,13 +103,14 @@ export class MediaController {
     // );
   }
 
-  @Get('uploads/:id')
+  @Get('uploads')
   @ApiOperation({
     summary: 'Get all the multimedia of the logged in User.',
   })
   @ApiResponse({ status: 200, description: 'Multimedia fetched Successfully.' })
-  getAllMedia(@Param('id') id: number) {
-    return this.mediaService.findAllMedia(id);
+  getAllMedia( @Request() req) {
+    const { refId } = req.user;
+    return this.mediaService.findAllMedia(refId);
   }
   @Roles('findAll')
   @Put(':mediaId')
