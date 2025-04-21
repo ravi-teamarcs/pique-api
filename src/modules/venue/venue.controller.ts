@@ -207,6 +207,26 @@ export class VenueController {
     this.venueService.saveVenueDetails(userId);
   }
 
+  // Update Controllers
+  // @Patch('address')
+  // @UseGuards(JwtAuthGuard)
+  // async updateVenueAddress(@Body() dto: AddressDto, @Request() req) {
+  //   const { userId } = req.user;
+  //   return this.venueService.updateVenueAddress(userId, dto);
+  // }
+  @Patch()
+  @UseGuards(JwtAuthGuard)
+  async updatePrimaryDetails(@Body() dto: AddressDto, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.updateVenueAddress(userId, dto);
+  }
+  @Patch('address')
+  @UseGuards(JwtAuthGuard)
+  async updateVenueAddress(@Body() dto: AddressDto, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.updateVenueAddress(userId, dto);
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll') // Restrict access to the 'venue' role

@@ -24,7 +24,7 @@ export class CreateVenueDto {
   addressLine2?: string;
 
   @IsString()
-  @IsOptional()
+  @IsNotEmpty()
   description: string;
 
   @IsNumber()

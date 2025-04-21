@@ -18,6 +18,7 @@ import { UpdateNeighbourhoodDto } from './Dto/update-neighbourhood';
 import { MediaService } from '../media/media.service';
 import { UploadedFile } from 'src/common/types/media.type';
 import * as bcrypt from 'bcryptjs';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class VenueService {
@@ -29,6 +30,7 @@ export class VenueService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly dataSource: DataSource,
     private readonly mediaService: MediaService,
+    private readonly config: ConfigService,
   ) {}
 
   // async getAllVenue({
@@ -176,6 +178,23 @@ export class VenueService {
       .leftJoin('cities', 'city', 'city.id = venue.city')
       .leftJoin('states', 'state', 'state.id = venue.state')
       .leftJoin('countries', 'country', 'country.id = venue.country')
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'media.user_id AS media_user_id', // expose user_id
+              `JSON_ARRAYAGG(
+                JSON_OBJECT(
+                  "url", CONCAT(:serverUri, media.url),
+                  "type", media.type
+                )
+              ) AS mediaDetails`,
+            ])
+            .from('media', 'media')
+            .groupBy('media.user_id'),
+        'media', // alias for the subquery
+        'media.media_user_id = venue.id', // now using the alias correctly
+      )
       .select([
         'venue.id AS id',
         'venue.name AS name',
@@ -186,20 +205,26 @@ export class VenueService {
         'state.name AS state',
         'country.name AS country',
         'user.email AS email',
+        'COALESCE(media.mediaDetails, "[]") AS media',
       ])
 
       .where('venue.id=:venueId', { venueId })
+      .setParameter('serverUri', this.config.get<string>('BASE_URL'))
       .getRawOne();
 
     const neighbourhood = await this.neighbourRepository.find({
       where: { venueId },
     });
-
-    venueDetails['neighbourhoods'] = neighbourhood;
+    const { media, ...rest } = venueDetails;
+    const response = {
+      ...rest,
+      media: JSON.parse(media),
+      neighbourhoods: neighbourhood,
+    };
 
     return {
       message: 'Venue Details fetched Successfully',
-      data: venueDetails,
+      data: response,
       status: true,
     };
   }
