@@ -20,6 +20,7 @@ import { MediaModule } from '../media/media.module';
 import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.entity';
 import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
 import { NotificationModule } from '../notification/notification.module';
+import { Neighbourhood } from './entities/neighbourhood.entity';
 
 @Module({
   imports: [
@@ -35,8 +36,7 @@ import { NotificationModule } from '../notification/notification.module';
       Category,
       Wishlist,
       VenueDetails,
-      WeeklyAvailability,
-      UnavailableDate,
+      Neighbourhood,
     ]),
     BookingModule,
     MediaModule,

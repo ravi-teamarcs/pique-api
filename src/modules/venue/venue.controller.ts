@@ -47,6 +47,7 @@ import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { AddressDto } from './dto/address.dto';
 import { PrimaryInfoDto } from './dto/primary-info.dto';
 import { BookingQueryDto } from './dto/get-venue-booking.dto';
+import { NeighbourhoodDto } from './dto/neighbourhood.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -57,7 +58,6 @@ export class VenueController {
     private readonly bookingService: BookingService,
   ) {}
 
-  // @Post()
   // @UseGuards(JwtAuthGuard)
   // @UseInterceptors(
   //   AnyFilesInterceptor({
@@ -140,44 +140,22 @@ export class VenueController {
     console.log(req.user, 'Inside Controller');
     return this.venueService.createVenue(userId, dto);
   }
+
   @Post('address')
   @UseGuards(JwtAuthGuard)
   async addVenueAddress(@Body() dto: AddressDto, @Request() req) {
     const { userId } = req.user;
     return this.venueService.updateVenueAddress(userId, dto);
   }
+
+  @Post('neighbourhood')
+  @UseGuards(JwtAuthGuard)
+  createNeighbourhood(@Body() dto: NeighbourhoodDto, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.createNeighbourhood(userId, dto);
+  }
   @Post('media')
-  @UseInterceptors(
-    AnyFilesInterceptor({
-      fileFilter: (req, file, callback) => {
-        // Check file type from typeMap
-        const fileType = typeMap[file.fieldname];
-
-        if (!fileType) {
-          return callback(
-            new BadRequestException({
-              message: 'Invalid file field name',
-              status: false,
-            }),
-            false,
-          );
-        }
-
-        // Restrict video file size to 500MB
-        if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
-          return callback(
-            new BadRequestException({
-              message: 'Video file size cannot exceed 500 MB',
-              status: false,
-            }),
-            false,
-          );
-        }
-
-        callback(null, true);
-      },
-    }),
-  )
+  @UseInterceptors(AnyFilesInterceptor())
   @UseGuards(JwtAuthGuard)
   @Roles('findAll')
   async addVenueMedia(
@@ -188,6 +166,26 @@ export class VenueController {
 
     let uploadedFiles: UploadedFile[] = [];
 
+    const mimeTypeMap = {
+      image: ['image/jpeg', 'image/png', 'image/webp'],
+      video: ['video/mp4', 'video/webm', 'video/quicktime'],
+      headshot: ['image/jpeg', 'image/png'], // optional, if you want to distinguish
+      event_headshot: ['image/jpeg', 'image/png'], // optional
+    } as const;
+    type FileType = keyof typeof mimeTypeMap;
+
+    function getFileType(mimetype: string): FileType | null {
+      for (const [key, mimeList] of Object.entries(mimeTypeMap) as [
+        FileType,
+        readonly string[],
+      ][]) {
+        if (mimeList.includes(mimetype)) {
+          return key;
+        }
+      }
+      return null;
+    }
+
     if (files.length > 0) {
       uploadedFiles = await Promise.all(
         files.map(async (file) => {
@@ -195,7 +193,7 @@ export class VenueController {
           return {
             url: filePath,
             name: file.originalname,
-            type: typeMap[file.fieldname],
+            type: getFileType(file.mimetype),
           };
         }),
       );
