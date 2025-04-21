@@ -134,7 +134,7 @@ export class MediaService {
     // Delete the found media
     await this.mediaRepository.delete({ id: media.id });
 
-    return { message: 'Media deleted successfully' };
+    return { message: 'Media deleted successfully', status: true };
   }
 
   async uploadUrl(uploadUrlDto: UploadUrlDto): Promise<Media> {

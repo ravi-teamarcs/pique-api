@@ -222,7 +222,7 @@ export class MediaController {
   @Roles('super-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Delete('deleteMedia')
+  @Delete(':Id')
   async deleteMedia(@Query('Id') Id?: number) {
     // Ensure the Id parameter is provided
     if (!Id) {

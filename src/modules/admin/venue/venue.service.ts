@@ -292,18 +292,42 @@ export class VenueService {
     }
   }
 
-  async updateVenue(updateVenueDto: UpdateVenueDto) {
-    const { id, fieldsToUpdate } = updateVenueDto;
+  async updateVenue(
+    dto: UpdateVenueDto,
+    venueId: number,
+    uploadedFiles: UploadedFile[] = [],
+  ) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      const venue = await queryRunner.manager.findOne(Venue, {
+        where: { id: venueId },
+      });
 
-    const venue = await this.venueRepository.findOne({ where: { id } });
+      if (!venue) {
+        throw new NotFoundException({
+          message: 'Venue Not Found',
+          status: false,
+        });
+      }
 
-    if (!venue) {
-      throw new NotFoundException(`Venue with ID ${id} not found`);
+      await queryRunner.manager.update(Venue, { id: venue.id }, dto);
+
+      if (uploadedFiles?.length > 0) {
+        await this.mediaService.handleMediaUpload(venue.id, uploadedFiles);
+      }
+      await queryRunner.commitTransaction();
+      return { message: 'Venue updated with media Sucessfully ', status: true };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    } finally {
+      await queryRunner.release();
     }
-
-    await this.venueRepository.update({ id }, fieldsToUpdate);
-
-    return { message: 'Venue updated successfully', status: true };
   }
 
   async deleteVenue(id: number): Promise<any> {
