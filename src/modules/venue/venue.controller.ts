@@ -200,6 +200,13 @@ export class VenueController {
     return this.venueService.uploadVenueMedia(userId, uploadedFiles);
   }
 
+  @Post('save')
+  @UseGuards(JwtAuthGuard)
+  async saveDetails(@Request() req) {
+    const { userId } = req.user;
+    this.venueService.saveVenueDetails(userId);
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll') // Restrict access to the 'venue' role

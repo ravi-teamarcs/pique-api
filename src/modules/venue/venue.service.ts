@@ -191,13 +191,32 @@ export class VenueService {
         { eventId: null },
       );
 
+      return {
+        message: 'Media uploaded Successfully',
+        data: data,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async saveVenueDetails(userId: number) {
+    try {
+      const venue = await this.venueRepository.findOne({
+        where: { user: { id: userId } },
+      });
+
       await this.venueRepository.update(
         { id: venue.id },
         { isProfileComplete: true, profileStep: 4 },
       );
+
       return {
-        message: 'Venue Signup completed. ',
-        data: data,
+        message: 'Venue is created sucessfully with media.',
         step: 4,
         status: true,
       };
