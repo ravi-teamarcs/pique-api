@@ -40,6 +40,8 @@ import { AddressDto } from './dto/address.dto';
 import { BookingQueryDto } from './dto/get-venue-booking.dto';
 import { Neighbourhood } from './entities/neighbourhood.entity';
 import { NeighbourhoodDto } from './dto/neighbourhood.dto';
+import { UpdatePrimaryInfoDto } from './dto/update-primary-info.dto';
+import { UpdateAddressDto } from './dto/update-address.dto';
 
 @Injectable()
 export class VenueService {
@@ -227,6 +229,19 @@ export class VenueService {
       });
     }
   }
+
+  // Update Logic
+
+  async updatePrimaryDetails(userId: number, dto: UpdatePrimaryInfoDto) {
+    const user = this.venueRepository.findOne({
+      where: { user: { id: userId , } },
+    });
+    try {
+    } catch (error) {
+      // throw
+    }
+  }
+  async updateSecondaryDetails(userId: number, dto: UpdateAddressDto) {}
 
   async findAllByUser(userId: number) {
     const venues = await this.venueRepository.find({

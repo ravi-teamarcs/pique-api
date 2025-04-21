@@ -48,6 +48,8 @@ import { AddressDto } from './dto/address.dto';
 import { PrimaryInfoDto } from './dto/primary-info.dto';
 import { BookingQueryDto } from './dto/get-venue-booking.dto';
 import { NeighbourhoodDto } from './dto/neighbourhood.dto';
+import { UpdateAddressDto } from './dto/update-address.dto';
+import { UpdatePrimaryInfoDto } from './dto/update-primary-info.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -156,7 +158,6 @@ export class VenueController {
   @Post('media')
   @UseInterceptors(AnyFilesInterceptor())
   @UseGuards(JwtAuthGuard)
-  @Roles('findAll')
   async addVenueMedia(
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
@@ -216,15 +217,18 @@ export class VenueController {
   // }
   @Patch()
   @UseGuards(JwtAuthGuard)
-  async updatePrimaryDetails(@Body() dto: AddressDto, @Request() req) {
+  async updatePrimaryDetails(
+    @Body() dto: UpdatePrimaryInfoDto,
+    @Request() req,
+  ) {
     const { userId } = req.user;
-    return this.venueService.updateVenueAddress(userId, dto);
+    // return this.venueService.updateVenueAddress(userId, dto);
   }
   @Patch('address')
   @UseGuards(JwtAuthGuard)
-  async updateVenueAddress(@Body() dto: AddressDto, @Request() req) {
+  async updateVenueAddress(@Body() dto: UpdateAddressDto, @Request() req) {
     const { userId } = req.user;
-    return this.venueService.updateVenueAddress(userId, dto);
+    // return this.venueService.updateVenueAddress(userId, dto);
   }
 
   @Get()
