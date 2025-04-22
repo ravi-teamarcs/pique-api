@@ -206,8 +206,9 @@ export class AuthService {
       );
     }
     // Getting Original Id (Venue or Entertainer)
-    const originalId = await this.getOriginalIdFromUser(user);
-    console.log;
+    const { originalId, profileStep, isProfileComplete } =
+      await this.getOriginalIdFromUser(user);
+
     const payload = {
       sub: user.id,
       email: user.email,
@@ -215,11 +216,9 @@ export class AuthService {
       status: user.status,
       refId: originalId,
     };
-    const token = this.jwtService.sign(payload);
 
-    // Checks for Profile Completion
-    const { isProfileComplete, profileStep } =
-      await this.isProfileCompleted(user);
+    console.log('Payload during Login', payload);
+    const token = this.jwtService.sign(payload);
 
     const deviceType = this.detectDevice(userAgent);
 
@@ -250,27 +249,27 @@ export class AuthService {
     return { message: 'Logged out successfully.', status: true };
   }
 
-  private async isProfileCompleted(user: User) {
-    if (user.role === 'venue') {
-      const venue = await this.venueRepository.findOne({
-        where: { user: { id: user.id } },
-      });
-      console.log('Venue Detaisl', venue);
-      return {
-        profileStep: venue?.profileStep ?? 0,
-        isProfileComplete: venue?.isProfileComplete ?? false,
-      };
-    }
+  // private async isProfileCompleted(user: User) {
+  //   if (user.role === 'venue') {
+  //     const venue = await this.venueRepository.findOne({
+  //       where: { user: { id: user.id } },
+  //     });
+  //     console.log('Venue Detaisl', venue);
+  //     return {
+  //       profileStep: venue?.profileStep ?? 0,
+  //       isProfileComplete: venue?.isProfileComplete ?? false,
+  //     };
+  //   }
 
-    // if (user.role === 'entertainer') {
-    //   const profileExists = await this.entertainerRepository.count({
-    //     where: { user: { id: user.id } },
-    //   });
-    //   return profileExists > 0;
-    // }
+  //   // if (user.role === 'entertainer') {
+  //   //   const profileExists = await this.entertainerRepository.count({
+  //   //     where: { user: { id: user.id } },
+  //   //   });
+  //   //   return profileExists > 0;
+  //   // }
 
-    // return false;
-  }
+  //   // return false;
+  // }
 
   detectDevice(userAgent: string): Device {
     if (/mobile|android|iphone|ipad|ipod/i.test(userAgent)) {
@@ -353,12 +352,21 @@ export class AuthService {
       const venue = await this.venueRepository.findOne({
         where: { user: { id } },
       });
-      return Number(venue?.id) ?? null;
+
+      return {
+        profileStep: venue?.profileStep ?? 0,
+        isProfileComplete: venue?.isProfileComplete ?? false,
+        originalId: venue ? Number(venue.id) : null,
+      };
     }
 
     const entertainer = await this.entertainerRepository.findOne({
       where: { user: { id } },
     });
-    return Number(entertainer.id) ?? null;
+    return {
+      profileStep: entertainer?.profileStep ?? 0,
+      isProfileComplete: entertainer?.isProfileComplete ?? false,
+      originalId: entertainer ? Number(entertainer.id) : null,
+    };
   }
 }

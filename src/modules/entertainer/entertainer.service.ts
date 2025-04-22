@@ -15,7 +15,18 @@ import {
   MoreThanOrEqual,
   Repository,
 } from 'typeorm';
-import { CreateEntertainerDto } from './dto/create-entertainer.dto';
+import {
+  // CreateEntertainerDto,
+  Step1Dto,
+  Step2Dto,
+  Step3Dto,
+  Step4Dto,
+  Step5Dto,
+  Step6Dto,
+  Step7Dto,
+  Step8Dto,
+  Step9Dto,
+} from './dto/create-entertainer.dto';
 import { UpdateEntertainerDto } from './dto/update-entertainer.dto';
 import { Entertainer } from './entities/entertainer.entity';
 import { User } from '../users/entities/users.entity';
@@ -57,89 +68,265 @@ export class EntertainerService {
     private readonly mediaService: MediaService,
   ) {}
 
-  // Old Method
-  async create(createEntertainerDto: CreateEntertainerDto, userId: number) {
-    const existingEntertainer = await this.entertainerRepository.findOne({
-      where: { user: { id: userId } },
-    });
-
-    if (existingEntertainer) {
-      throw new BadRequestException({
-        message: 'Entertainer already exists for the user',
+  // New Flow // Step1
+  async saveBasicDetails(dto: Step1Dto, userId: number) {
+    const { stageName, step, ...rest } = dto;
+    try {
+      const entertainer = this.entertainerRepository.create({
+        name: stageName,
+        user: { id: userId },
+        profileStep: 1,
+        ...rest,
+      });
+      await this.entertainerRepository.save(entertainer);
+      return {
+        message: 'Entertainer primary details saved successfully',
+        status: true,
+        step: 1,
+        nextStep: Number('02'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
         status: false,
       });
     }
-    // Create the entertainer
-    const entertainer = this.entertainerRepository.create({
-      ...createEntertainerDto,
-      user: { id: userId },
-    });
-
-    // await this.entertainerRepository.save(entertainer);
-
-    return {
-      message: 'Entertainer saved Successfully',
-      status: true,
-      entertainer,
-    };
   }
-
-  // New Method for  Create Entertainer
-  async createEntertainerWithMedia(
-    dto: CreateEntertainerDto,
-    userId: number,
-    uploadedFiles: UploadedFile[],
-  ) {
-    const { contactPerson, contactNumber, ...rest } = dto;
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
-
-    const existingEntertainer = await this.entertainerRepository.findOne({
+  async saveBio(dto: Step2Dto, userId: number) {
+    const { bio } = dto;
+    const entertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
-
-    if (existingEntertainer) {
+    if (!entertainer) {
       throw new BadRequestException({
-        message: 'Entertainer already exists for the user',
+        mesage: 'Entertainer not found',
+        status: false,
+      });
+    }
+    try {
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        { profileStep: 2, bio },
+      );
+      return {
+        message: 'Bio saved Successfully',
+        status: true,
+        step: 2,
+        nextStep: Number('03'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async vaccinationStatus(dto: Step3Dto, userId: number) {
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) {
+      throw new BadRequestException({
+        mesage: 'Entertainer not found',
+        status: false,
+      });
+    }
+    try {
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        { profileStep: 3, ...dto },
+      );
+      return {
+        message: 'Vaccination status saved Successfully',
+        status: true,
+        step: 3,
+        nextStep: Number('04'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async contactDetails(dto: Step4Dto, userId: number) {
+    const { contactPerson, contactNumber } = dto;
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) {
+      throw new BadRequestException({
+        mesage: 'Entertainer not found',
         status: false,
       });
     }
 
     try {
-      const entertainer = this.entertainerRepository.create({
-        ...rest,
-        user: { id: userId },
-        contact_number: contactNumber,
-        contact_person: contactPerson,
-      });
-
-      await this.entertainerRepository.save(entertainer);
-
-      // Step 2: Upload media (calls external service)
-      const mediaUploadResult = await this.mediaService.handleMediaUpload(
-        userId,
-        uploadedFiles,
-        { eventId: null },
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        {
+          profileStep: 4,
+          contact_person: contactPerson,
+          contact_number: contactNumber,
+        },
       );
-
-      // Step 3: Commit transaction if everything is successful
-      await queryRunner.commitTransaction();
-
       return {
-        message: 'Entertainer saved Successfully',
+        message: 'Contact Details saved Successfully',
         status: true,
-        entertainer,
+        step: 4,
+        nextStep: Number('05'),
       };
     } catch (error) {
-      // Step 4: Rollback transaction if anything fails
-      await queryRunner.rollbackTransaction();
       throw new InternalServerErrorException({
-        error: error.message,
+        message: error.message,
         status: false,
       });
-    } finally {
-      await queryRunner.release();
+    }
+  }
+  async socialLinks(dto: Step5Dto, userId: number) {
+    const { socialLinks } = dto;
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) {
+      throw new BadRequestException({
+        mesage: 'Entertainer not found',
+        status: false,
+      });
+    }
+    try {
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        { profileStep: 5, socialLinks },
+      );
+      return {
+        message: 'Social Links  saved Successfully',
+        status: true,
+        step: 5,
+        nextStep: Number('06'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async saveCategory(dto: Step6Dto, userId: number) {
+    const { category } = dto;
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) {
+      throw new BadRequestException({
+        mesage: 'Entertainer not found',
+        status: false,
+      });
+    }
+    try {
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        { profileStep: 6, category },
+      );
+      return {
+        message: 'Category saved Successfully',
+        status: true,
+        step: 6,
+        nextStep: Number('07'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async saveSpecificCategory(dto: Step7Dto, userId: number) {
+    const { specific_category } = dto;
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) {
+      throw new BadRequestException({
+        mesage: 'Entertainer not found',
+        status: false,
+      });
+    }
+    try {
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        { profileStep: 7, specific_category },
+      );
+      return {
+        message: 'Specific Category saved Successfully',
+        status: true,
+        step: 7,
+        nextStep: Number('08'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async performanceRole(dto: Step8Dto, userId: number) {
+    const { performanceRole } = dto;
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) {
+      throw new BadRequestException({
+        mesage: 'Entertainer not found',
+        status: false,
+      });
+    }
+    try {
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        { profileStep: 8, performanceRole },
+      );
+      return {
+        message: 'Specific Category saved Successfully',
+        status: true,
+        step: 8,
+        nextStep: Number('09'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async saveServices(dto: Step9Dto, userId: number) {
+    const { services } = dto;
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) {
+      throw new BadRequestException({
+        mesage: 'Entertainer not found',
+        status: false,
+      });
+    }
+    try {
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        { profileStep: 9, services },
+      );
+      return {
+        message: 'Specific Category saved Successfully',
+        status: true,
+        step: 9,
+        nextStep: Number('10'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
     }
   }
 
@@ -242,76 +429,76 @@ export class EntertainerService {
     };
   }
 
-  async update(
-    dto: UpdateEntertainerDto,
-    userId: number,
-    uploadedFiles: UploadedFile[],
-  ) {
-    const { contactNumber, contactPerson, ...rest } = dto;
+  // async update(
+  //   dto: UpdateEntertainerDto,
+  //   userId: number,
+  //   uploadedFiles: UploadedFile[],
+  // ) {
+  //   const { contactNumber, contactPerson, ...rest } = dto;
 
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-    await queryRunner.startTransaction();
+  //   const queryRunner = this.dataSource.createQueryRunner(dto:Step5Dto ,userId:number);
+  //   await queryRunner.connect(dto:Step5Dto ,userId:number);
+  //   await queryRunner.startTransaction(dto:Step5Dto ,userId:number);
 
-    const existingEntertainer = await this.entertainerRepository.findOne({
-      where: { user: { id: userId } },
-    });
+  //   const existingEntertainer = await this.entertainerRepository.findOne({
+  //     where: { user: { id: userId } },
+  //   });
 
-    if (!existingEntertainer) {
-      throw new BadRequestException({
-        message: 'Entertainer not Found',
-        status: false,
-      });
-    }
+  //   if (!existingEntertainer) {
+  //     throw new BadRequestException({
+  //       message: 'Entertainer not Found',
+  //       status: false,
+  //     });
+  //   }
 
-    const updatePayload: any = {
-      ...rest,
-    };
+  //   const updatePayload: any = {
+  //     ...rest,
+  //   };
 
-    if (contactNumber !== undefined) {
-      updatePayload.contact_number = contactNumber;
-    }
+  //   if (contactNumber !== undefined) {
+  //     updatePayload.contact_number = contactNumber;
+  //   }
 
-    if (contactPerson !== undefined) {
-      updatePayload.contact_person = contactPerson;
-    }
+  //   if (contactPerson !== undefined) {
+  //     updatePayload.contact_person = contactPerson;
+  //   }
 
-    try {
-      // Step 1: Update entertainer
-      await queryRunner.manager.update(
-        this.entertainerRepository.target,
-        { user: { id: userId } },
-        updatePayload,
-      );
+  //   try {
+  //     // Step 1: Update entertainer
+  //     await queryRunner.manager.update(
+  //       this.entertainerRepository.target,
+  //       { user: { id: userId } },
+  //       updatePayload,
+  //     );
 
-      // Step 2: If media is present, upload it — or else skip
-      if (uploadedFiles && uploadedFiles.length > 0) {
-        const mediaUploadResult = await this.mediaService.handleMediaUpload(
-          userId,
-          uploadedFiles,
-          { eventId: null },
-        );
+  //     // Step 2: If media is present, upload it — or else skip
+  //     if (uploadedFiles && uploadedFiles.length > 0) {
+  //       const mediaUploadResult = await this.mediaService.handleMediaUpload(
+  //         userId,
+  //         uploadedFiles,
+  //         { eventId: null },
+  //       );
 
-        // You can add validation here to check if upload failed, if needed
-      }
+  //       // You can add validation here to check if upload failed, if needed
+  //     }
 
-      // Step 3: Commit transaction
-      await queryRunner.commitTransaction();
+  //     // Step 3: Commit transaction
+  //     await queryRunner.commitTransaction(dto:Step5Dto ,userId:number);
 
-      return {
-        message: 'Entertainer updated successfully',
-        status: true,
-      };
-    } catch (error) {
-      await queryRunner.rollbackTransaction();
-      throw new InternalServerErrorException({
-        error: error.message,
-        status: false,
-      });
-    } finally {
-      await queryRunner.release();
-    }
-  }
+  //     return {
+  //       message: 'Entertainer updated successfully',
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     await queryRunner.rollbackTransaction(dto:Step5Dto ,userId:number);
+  //     throw new InternalServerErrorException({
+  //       error: error.message,
+  //       status: false,
+  //     });
+  //   } finally {
+  //     await queryRunner.release(dto:Step5Dto ,userId:number);
+  //   }
+  // }
 
   async remove(id: number, userId: number) {
     const entertainer = await this.entertainerRepository.findOne({

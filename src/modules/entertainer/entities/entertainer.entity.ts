@@ -17,22 +17,25 @@ export class Entertainer {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   name: string;
 
-  @Column()
+  @Column({ name: 'entertainer_name', nullable: true })
+  entertainerName: string;
+
+  @Column({ nullable: true })
   category: number;
 
-  @Column()
+  @Column({ nullable: true })
   specific_category: number;
 
-  @Column()
+  @Column({ nullable: true })
   bio: string;
 
   @Column({
     type: 'enum',
     enum: ['soloist', 'duo', 'trio', 'ensemble'],
-    nullable: false,
+    nullable: true,
   })
   performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 
@@ -42,7 +45,7 @@ export class Entertainer {
   @Column()
   phone2: string;
 
-  @Column()
+  @Column({ nullable: true })
   pricePerEvent: number;
 
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
@@ -51,7 +54,10 @@ export class Entertainer {
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
   availability: 'yes' | 'no';
 
-  @OneToOne(() => User, (user) => user.entertainer, { onDelete: 'CASCADE' })
+  @OneToOne(() => User, (user) => user.entertainer, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
   @JoinColumn()
   user: User;
   @OneToMany(() => Tour, (tour) => tour.entertainer)
@@ -60,39 +66,45 @@ export class Entertainer {
   @OneToMany(() => Gig, (gig) => gig.entertainer)
   gigs: Gig[];
 
-  @Column()
+  @Column({ nullable: true })
   status: string;
-  @Column()
+  @Column({ nullable: true })
   city: number;
 
-  @Column()
+  @Column({ nullable: true })
   state: number;
 
-  @Column()
+  @Column({ nullable: true })
   country: number;
 
-  @Column()
+  @Column({ nullable: true })
   socialLinks: string;
 
   // New changes Introduced  (Latest Changes Both )  Can be Changed
 
-  @Column({ type: 'date' }) // Only stores YYYY-MM-DD, no time
+  @Column({ type: 'date', nullable: true }) // Only stores YYYY-MM-DD, no time
   dob: Date;
 
-  @Column()
+  @Column({ nullable: true })
   address: string;
 
-  @Column()
+  @Column({ nullable: true })
   zipCode: string;
 
-  @Column('simple-array')
+  @Column('simple-array', { nullable: true })
   services: string[];
 
-  @Column()
+  @Column({ nullable: true })
   contact_person: string;
 
-  @Column()
+  @Column({ nullable: true })
   contact_number: string;
+
+  @Column({ default: 0 }) // Step 0 = Not Started
+  profileStep: number; //
+
+  @Column({ default: false })
+  isProfileComplete: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

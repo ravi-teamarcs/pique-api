@@ -14,7 +14,6 @@ import { SetAvailabilityDto } from './dto/set-availability.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { Roles } from '../auth/roles.decorator';
 import { RolesGuard } from '../auth/roles.guard';
-import { UnavailableDate } from './entities/unavailable.entity';
 
 @Controller('availability')
 @UseGuards(JwtAuthGuard, RolesGuard)

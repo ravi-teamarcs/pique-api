@@ -239,7 +239,14 @@ export class VenueService {
 
     try {
       await this.venueRepository.update({ id: venue.id }, dto);
-      return { messsage: 'Details updates sucessfully', status: true };
+      const updatedVenue = await this.venueRepository.findOne({
+        where: { user: { id: userId } },
+      });
+      return {
+        messsage: 'Details updates sucessfully',
+        data: updatedVenue,
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,
@@ -254,7 +261,14 @@ export class VenueService {
 
     try {
       await this.venueRepository.update({ id: venue.id }, dto);
-      return { messsage: 'Details updates sucessfully', status: true };
+      const updatedVenue = await this.venueRepository.findOne({
+        where: { user: { id: userId } },
+      });
+      return {
+        messsage: 'Details updates sucessfully',
+        data: updatedVenue,
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,

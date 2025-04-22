@@ -31,7 +31,6 @@ import { Roles } from '../auth/roles.decorator';
 // import { Booking } from '../booking/entities/booking.entity';
 import { BookingService } from '../booking/booking.service';
 import { ResponseDto } from '../booking/dto/booking-response-dto';
-import { Category } from './entities/categories.entity';
 import { DashboardDto } from './dto/dashboard.dto';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { typeMap } from 'src/common/constants/media.constants';
@@ -40,6 +39,7 @@ import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { UpcomingEventDto } from './dto/upcoming-event.dto';
 import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
 import { BookingQueryDto } from './dto/booking-query-dto';
+import { instanceToPlain } from 'class-transformer';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -51,69 +51,47 @@ export class EntertainerController {
   ) {}
 
   @Post()
-  @UseInterceptors(
-    AnyFilesInterceptor({
-      fileFilter: (req, file, callback) => {
-        // Check file type from typeMap
-        const fileType = typeMap[file.fieldname];
-
-        if (!fileType) {
-          return callback(
-            new BadRequestException({
-              message: 'Invalid file field name',
-              status: false,
-            }),
-            false,
-          );
-        }
-
-        // Restrict video file size to 500MB
-        if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
-          return callback(
-            new BadRequestException({
-              message: 'Video file size cannot exceed 500 MB',
-              status: false,
-            }),
-            false,
-          );
-        }
-
-        callback(null, true);
-      },
-    }),
-  )
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create a entertainer' })
   @ApiResponse({
     status: 201,
     description: 'entertainer created.',
   })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  async create(
-    @Body() dto: CreateEntertainerDto,
-    @Req() req,
-    @UploadedFiles() files: Array<Express.Multer.File>,
-  ) {
+  async create(@Body() body: any, @Request() req) {
+    const { step } = body;
     const { userId } = req.user;
-    let uploadedFiles: UploadedFile[] = [];
 
-    if (files.length > 0) {
-      uploadedFiles = await Promise.all(
-        files.map(async (file) => {
-          const filePath = await uploadFile(file); // Wait for the upload
-          return {
-            url: filePath,
-            name: file.originalname,
-            type: typeMap[file.fieldname],
-          };
-        }),
-      );
+    switch (step) {
+      case 1:
+        return this.entertainerService.saveBasicDetails(body, userId);
+      case 2:
+        return this.entertainerService.saveBio(body, userId);
+      case 3:
+        return this.entertainerService.vaccinationStatus(body, userId);
+      case 4:
+        return this.entertainerService.contactDetails(body, userId);
+      case 5:
+        return this.entertainerService.socialLinks(body, userId);
+      case 6:
+        return this.entertainerService.saveCategory(body, userId);
+      case 7:
+        return this.entertainerService.socialLinks(body, userId);
+      case 8:
+        return this.entertainerService.saveSpecificCategory(body, userId);
+      case 9:
+        return this.entertainerService.saveServices(body, userId);
+
+      default:
+        throw new BadRequestException({
+          message: 'Invalid Step',
+          status: false,
+        });
     }
-    return this.entertainerService.createEntertainerWithMedia(
-      dto,
-      userId,
-      uploadedFiles,
-    );
   }
+
+  @Post('media')
+  entertainerMedia() {}
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -197,11 +175,11 @@ export class EntertainerController {
       );
     }
 
-    return this.entertainerService.update(
-      updateEntertainerDto,
-      userId,
-      uploadedFiles,
-    );
+    // return this.entertainerService.update(
+    //   updateEntertainerDto,
+    //   userId,
+    //   uploadedFiles,
+    // );
   }
 
   @Delete(':id')
