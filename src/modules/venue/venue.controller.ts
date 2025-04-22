@@ -50,6 +50,8 @@ import { BookingQueryDto } from './dto/get-venue-booking.dto';
 import { NeighbourhoodDto } from './dto/neighbourhood.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
 import { UpdatePrimaryInfoDto } from './dto/update-primary-info.dto';
+import { UpdateNeighbourhoodDto } from '../admin/venue/Dto/update-neighbourhood';
+import { CreateNeighbourhoodDto } from './dto/create-neighbourhood.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -462,5 +464,37 @@ export class VenueController {
   removeFromWishlist(@Request() req, @Param('id') id: number) {
     const { refId } = req.user;
     return this.venueService.removeFromWishlist(Number(id), refId);
+  }
+
+  @Get('neighbourhoods/all')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getNeighbourhoods(@Request() req) {
+    const { refId } = req.user;
+    return this.venueService.getVenueNeighbourhoods(refId);
+  }
+  @Post('neighbourhood')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  create(@Body() dto: CreateNeighbourhoodDto, @Request() req) {
+    const { refId } = req.user;
+    return this.venueService.create(dto, refId);
+  }
+
+  @Patch('neighbourhood/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateNeighbourhoodDto,
+  ) {
+    return this.venueService.update(id, dto);
+  }
+
+  @Delete('neighbourhood/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  removeNeighbourhood(@Param('id', ParseIntPipe) id: number) {
+    return this.venueService.removeNeighbourhood(id);
   }
 }

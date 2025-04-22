@@ -42,6 +42,8 @@ import { Neighbourhood } from './entities/neighbourhood.entity';
 import { NeighbourhoodDto } from './dto/neighbourhood.dto';
 import { UpdatePrimaryInfoDto } from './dto/update-primary-info.dto';
 import { UpdateAddressDto } from './dto/update-address.dto';
+import { CreateNeighbourhoodDto } from './dto/create-neighbourhood.dto';
+import { UpdateNeighbourhoodDto } from './dto/update-neighbourhood.dto';
 
 @Injectable()
 export class VenueService {
@@ -972,7 +974,7 @@ export class VenueService {
     return { message: 'Wishlist item removed successfully', status: true };
   }
 
-  // Is Booking Allowed
+  
 
   // async isBookingAllowed(
   //   userId: number,
@@ -1032,4 +1034,35 @@ export class VenueService {
   //     });
   //   }
   // }
+
+  // Creation Logic Neighbourhood
+  async create(dto: CreateNeighbourhoodDto, venueId: number) {
+    const neighbourhood = this.neighbourRepository.create({ ...dto, venueId });
+    await this.neighbourRepository.save(neighbourhood);
+    return { message: 'Neighbourhood added successfully', status: true };
+  }
+
+  async update(id: number, dto: UpdateNeighbourhoodDto) {
+    await this.neighbourRepository.update(id, dto);
+    return { message: 'Neighbourhood updated successfully', status: true };
+  }
+
+  async getVenueNeighbourhoods(id: number) {
+    const res = await this.neighbourRepository.find({
+      where: { venueId: id },
+    });
+    return {
+      message: 'Neighbourhood fetched successfully',
+      data: res,
+      status: true,
+    };
+  }
+
+  async removeNeighbourhood(id: number) {
+    const result = await this.neighbourRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException('Neighbourhood not found');
+    }
+    return { message: 'Neighbourhood deleted successfully', status: true };
+  }
 }
