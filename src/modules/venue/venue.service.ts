@@ -265,7 +265,7 @@ export class VenueService {
         where: { user: { id: userId } },
       });
       return {
-        messsage: 'Details updates sucessfully',
+        message: 'Details updates sucessfully',
         data: updatedVenue,
         status: true,
       };
