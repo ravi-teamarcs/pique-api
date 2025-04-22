@@ -166,6 +166,7 @@ export class VenueService {
         data: neighbourhood,
         step: 3,
         nextStep: Number('04'),
+        status: true,
       };
     } catch (error) {
       throw new InternalServerErrorException({
@@ -973,8 +974,6 @@ export class VenueService {
     await this.wishRepository.remove(wishlistItem);
     return { message: 'Wishlist item removed successfully', status: true };
   }
-
-  
 
   // async isBookingAllowed(
   //   userId: number,

@@ -33,68 +33,6 @@ export class VenueService {
     private readonly config: ConfigService,
   ) {}
 
-  // async getAllVenue({
-  //   page,
-  //   pageSize,
-  //   search,
-  // }: {
-  //   page: number;
-  //   pageSize: number;
-  //   search: string;
-  // }) {
-  //   const skip = (page - 1) * pageSize;
-
-  //   const queryBuilder = this.venueRepository
-  //     .createQueryBuilder('venue')
-  //     .leftJoin('cities', 'city', 'city.id = venue.city')
-  //     .leftJoin('states', 'state', 'state.id = venue.state')
-  //     .leftJoin('countries', 'country', 'country.id = venue.country')
-  //     .leftJoin('neighbourhood', 'hood', 'hood.venue_id = venue.id')
-  //     .orderBy('venue.id', 'DESC')
-  //     .skip(skip)
-  //     .take(pageSize);
-
-  //   if (search) {
-  //     queryBuilder.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
-  //       search: `%${search}%`,
-  //     });
-  //   }
-
-  //   const records = await queryBuilder
-  //     .select([
-  //       // Customize this select as needed
-  //       'venue.name AS name',
-  //       'venue.addressLine1 AS addressLine1',
-  //       'venue.addressLine2 AS addressLine2',
-  //       'venue.zipCode AS zipCode',
-  //       'city.name AS city',
-  //       'state.name AS state',
-  //       'country.name AS country',
-  //       'hood.name AS name',
-  //       'hood.contactPerson AS contactPerson',
-  //       'hood.contactNumber AS contactNumber',
-  //     ])
-  //     .getRawMany();
-
-  //   const countQuery = this.venueRepository.createQueryBuilder('venue');
-
-  //   if (search) {
-  //     countQuery.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
-  //       search: `%${search}%`,
-  //     });
-  //   }
-
-  //   const total = await countQuery.getCount();
-
-  //   return {
-  //     records,
-  //     total,
-  //     page,
-  //     pageSize,
-  //     pageCount: Math.ceil(total / pageSize),
-  //   };
-  // }
-
   async getAllVenue({
     page,
     pageSize,
@@ -106,57 +44,88 @@ export class VenueService {
   }) {
     const skip = (page - 1) * pageSize;
 
-    const queryBuilder = this.venueRepository
+    const res = this.venueRepository
       .createQueryBuilder('venue')
+      .leftJoinAndSelect('venue.user', 'user')
       .leftJoin('cities', 'city', 'city.id = venue.city')
       .leftJoin('states', 'state', 'state.id = venue.state')
       .leftJoin('countries', 'country', 'country.id = venue.country')
-      .leftJoin('neighbourhood', 'hood', 'hood.venue_id = venue.id')
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'media.user_id AS media_user_id',
+              `JSON_ARRAYAGG(
+            JSON_OBJECT(
+              "url", CONCAT(:serverUri, media.url),
+              "type", media.type
+            )
+          ) AS mediaDetails`,
+            ])
+            .from('media', 'media')
+            .groupBy('media.user_id'),
+        'media',
+        'media.media_user_id = venue.id',
+      )
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'neighbourhood.venueId AS nh_venue_id',
+              `JSON_ARRAYAGG(
+            JSON_OBJECT(
+              "id", neighbourhood.id,
+              "name", neighbourhood.name
+            )
+          ) AS neighbourhoodDetails`,
+            ])
+            .from('neighbourhood', 'neighbourhood')
+            .groupBy('neighbourhood.venueId'),
+        'neighbourhoods',
+        'neighbourhoods.nh_venue_id = venue.id',
+      )
       .select([
         'venue.id AS id',
         'venue.name AS name',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
+        'venue.description AS description',
+        'venue.city AS city_code',
+        'venue.state AS state_code',
+        'venue.country AS country_code',
         'venue.zipCode AS zipCode',
         'city.name AS city',
         'state.name AS state',
         'country.name AS country',
-        'hood.name AS hoodName',
-        'hood.contactPerson AS contactPerson',
-        'hood.contactNumber AS contactNumber',
-        'COUNT(*) OVER() AS total',
+        'user.email AS email',
+        'COALESCE(media.mediaDetails, "[]") AS media',
+        'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods',
       ])
       .orderBy('venue.id', 'DESC')
-      .skip(skip)
-      .take(pageSize);
+      .setParameter('serverUri', this.config.get<string>('BASE_URL'));
 
     if (search) {
-      queryBuilder.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
+      res.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
         search: `%${search}%`,
       });
     }
 
-    const rawRecords = await queryBuilder.getRawMany();
-    const total = rawRecords[0]?.total ? Number(rawRecords[0].total) : 0;
-    console.log('Raw Record', rawRecords);
+    const totalCount = await res.getCount();
+
+    // Paginate
+    const venues = await res.skip(skip).take(pageSize).getRawMany();
+    const parsedVenues = venues.map((v) => ({
+      ...v,
+      media: JSON.parse(v.media),
+      neighbourhoods: JSON.parse(v.neighbourhoods),
+    }));
     return {
-      records: rawRecords.map((row) => ({
-        id: row.id,
-        name: row.name,
-        addressLine1: row.addressLine1,
-        addressLine2: row.addressLine2,
-        zipCode: row.zipCode,
-        city: row.city,
-        state: row.state,
-        country: row.country,
-        neighbourhoodName: row.hoodName,
-        contactPerson: row.contactPerson,
-        contactNumber: row.contactNumber,
-      })),
-      total,
+      message: 'Venue Details fetched Successfully',
+      records: parsedVenues,
+      total: totalCount,
       page,
       pageSize,
-      pageCount: Math.ceil(total / pageSize),
+      pageCount: Math.ceil(totalCount / pageSize),
     };
   }
 
@@ -202,7 +171,7 @@ export class VenueService {
         'venue.addressLine2 AS addressLine2',
         'venue.description AS description',
         'venue.city AS city_code',
-        'venue.state AS state_code', 
+        'venue.state AS state_code',
         'venue.country AS country_code',
         'venue.zipCode AS zipCode',
         'city.name AS city',
