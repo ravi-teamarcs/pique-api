@@ -233,15 +233,35 @@ export class VenueService {
   // Update Logic
 
   async updatePrimaryDetails(userId: number, dto: UpdatePrimaryInfoDto) {
-    const user = this.venueRepository.findOne({
-      where: { user: { id: userId , } },
+    const venue = await this.venueRepository.findOne({
+      where: { user: { id: userId } },
     });
+
     try {
+      await this.venueRepository.update({ id: venue.id }, dto);
+      return { messsage: 'Details updates sucessfully', status: true };
     } catch (error) {
-      // throw
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
     }
   }
-  async updateSecondaryDetails(userId: number, dto: UpdateAddressDto) {}
+  async updateSecondaryDetails(userId: number, dto: UpdateAddressDto) {
+    const venue = await this.venueRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    try {
+      await this.venueRepository.update({ id: venue.id }, dto);
+      return { messsage: 'Details updates sucessfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 
   async findAllByUser(userId: number) {
     const venues = await this.venueRepository.find({

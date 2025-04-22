@@ -222,13 +222,13 @@ export class VenueController {
     @Request() req,
   ) {
     const { userId } = req.user;
-    // return this.venueService.updateVenueAddress(userId, dto);
+    return this.venueService.updatePrimaryDetails(userId, dto);
   }
   @Patch('address')
   @UseGuards(JwtAuthGuard)
   async updateVenueAddress(@Body() dto: UpdateAddressDto, @Request() req) {
     const { userId } = req.user;
-    // return this.venueService.updateVenueAddress(userId, dto);
+    return this.venueService.updateSecondaryDetails(userId, dto);
   }
 
   @Get()

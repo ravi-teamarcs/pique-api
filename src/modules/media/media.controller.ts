@@ -96,11 +96,7 @@ export class MediaController {
       );
     }
 
-    // return this.mediaService.handleMediaUpload(
-    //   userId,
-    //   uploadedFiles,
-    //   uploaddto,
-    // );
+    return this.mediaService.handleMediaUpload(refId, uploadedFiles, uploaddto);
   }
 
   @Get('uploads')
@@ -108,7 +104,7 @@ export class MediaController {
     summary: 'Get all the multimedia of the logged in User.',
   })
   @ApiResponse({ status: 200, description: 'Multimedia fetched Successfully.' })
-  getAllMedia( @Request() req) {
+  getAllMedia(@Request() req) {
     const { refId } = req.user;
     return this.mediaService.findAllMedia(refId);
   }
