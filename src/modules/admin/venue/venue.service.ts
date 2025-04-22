@@ -75,7 +75,9 @@ export class VenueService {
               `JSON_ARRAYAGG(
             JSON_OBJECT(
               "id", neighbourhood.id,
-              "name", neighbourhood.name
+              "name", neighbourhood.name,
+              "contactPerson", neighbourhood.contact_person,
+              "contactNumber", neighbourhood.contact_number
             )
           ) AS neighbourhoodDetails`,
             ])
