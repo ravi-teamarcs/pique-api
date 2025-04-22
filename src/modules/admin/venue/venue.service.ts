@@ -202,7 +202,7 @@ export class VenueService {
         'venue.addressLine2 AS addressLine2',
         'venue.description AS description',
         'venue.city AS city_code',
-        'venue.state AS state_code',
+        'venue.state AS state_code', 
         'venue.country AS country_code',
         'venue.zipCode AS zipCode',
         'city.name AS city',

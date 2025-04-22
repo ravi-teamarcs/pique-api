@@ -122,6 +122,7 @@ export class EntertainerService {
     }
   }
   async vaccinationStatus(dto: Step3Dto, userId: number) {
+    const { vaccinated } = dto;
     const entertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
@@ -134,7 +135,7 @@ export class EntertainerService {
     try {
       await this.entertainerRepository.update(
         { id: entertainer.id },
-        { profileStep: 3, ...dto },
+        { profileStep: 3, vaccinated },
       );
       return {
         message: 'Vaccination status saved Successfully',
@@ -288,7 +289,7 @@ export class EntertainerService {
         { profileStep: 8, performanceRole },
       );
       return {
-        message: 'Specific Category saved Successfully',
+        message: 'Performance role saved Successfully',
         status: true,
         step: 8,
         nextStep: Number('09'),
@@ -302,6 +303,7 @@ export class EntertainerService {
   }
   async saveServices(dto: Step9Dto, userId: number) {
     const { services } = dto;
+    console.log(services);
     const entertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
@@ -317,10 +319,65 @@ export class EntertainerService {
         { profileStep: 9, services },
       );
       return {
-        message: 'Specific Category saved Successfully',
+        message: 'Services  saved Successfully',
         status: true,
         step: 9,
         nextStep: Number('10'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async uploadMedia(userId: number, uploadedFiles: UploadedFile[]) {
+    const ent = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    if (!ent) {
+      throw new BadRequestException({
+        message: 'Venue Not Found',
+        status: false,
+      });
+    }
+    try {
+      const { data } = await this.mediaService.handleMediaUpload(
+        ent.id,
+        uploadedFiles,
+        { eventId: null },
+      );
+
+      return {
+        message: 'Media uploaded Successfully',
+        data: data,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async saveEntertainerDetails(userId: number) {
+    try {
+      const ent = await this.entertainerRepository.findOne({
+        where: { user: { id: userId } },
+      });
+
+      await this.entertainerRepository.update(
+        { id: ent.id },
+        { isProfileComplete: true, profileStep: 10 },
+      );
+
+      return {
+        message: 'Entertainer  is created sucessfully with media.',
+        step: 10,
+        status: true,
       };
     } catch (error) {
       throw new InternalServerErrorException({

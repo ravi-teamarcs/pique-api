@@ -205,16 +205,11 @@ export class VenueController {
   @UseGuards(JwtAuthGuard)
   async saveDetails(@Request() req) {
     const { userId } = req.user;
-    this.venueService.saveVenueDetails(userId);
+    return this.venueService.saveVenueDetails(userId);
   }
 
   // Update Controllers
-  // @Patch('address')
-  // @UseGuards(JwtAuthGuard)
-  // async updateVenueAddress(@Body() dto: AddressDto, @Request() req) {
-  //   const { userId } = req.user;
-  //   return this.venueService.updateVenueAddress(userId, dto);
-  // }
+
   @Patch()
   @UseGuards(JwtAuthGuard)
   async updatePrimaryDetails(
@@ -237,8 +232,8 @@ export class VenueController {
   @ApiOperation({ summary: 'Get all venues for logged-in user' })
   @ApiResponse({ status: 200, description: 'List of venues.', type: Venue })
   async findAll(@Request() req) {
-    const { userId } = req.user;
-    return this.venueService.findAllByUser(userId);
+    const { userId, refId } = req.user;
+    return this.venueService.findAllByUser(userId, refId);
   }
 
   @Get(':id')

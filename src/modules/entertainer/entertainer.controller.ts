@@ -76,9 +76,9 @@ export class EntertainerController {
       case 6:
         return this.entertainerService.saveCategory(body, userId);
       case 7:
-        return this.entertainerService.socialLinks(body, userId);
-      case 8:
         return this.entertainerService.saveSpecificCategory(body, userId);
+      case 8:
+        return this.entertainerService.performanceRole(body, userId);
       case 9:
         return this.entertainerService.saveServices(body, userId);
 
@@ -91,7 +91,57 @@ export class EntertainerController {
   }
 
   @Post('media')
-  entertainerMedia() {}
+  @UseInterceptors(AnyFilesInterceptor())
+  @UseGuards(JwtAuthGuard)
+  async addMedia(
+    @UploadedFiles() files: Array<Express.Multer.File>,
+    @Request() req,
+  ) {
+    const { userId, refId } = req.user;
+
+    let uploadedFiles: UploadedFile[] = [];
+
+    const mimeTypeMap = {
+      image: ['image/jpeg', 'image/png', 'image/webp'],
+      video: ['video/mp4', 'video/webm', 'video/quicktime'],
+      headshot: ['image/jpeg', 'image/png'], // optional, if you want to distinguish
+      event_headshot: ['image/jpeg', 'image/png'], // optional
+    } as const;
+    type FileType = keyof typeof mimeTypeMap;
+
+    function getFileType(mimetype: string): FileType | null {
+      for (const [key, mimeList] of Object.entries(mimeTypeMap) as [
+        FileType,
+        readonly string[],
+      ][]) {
+        if (mimeList.includes(mimetype)) {
+          return key;
+        }
+      }
+      return null;
+    }
+
+    if (files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: getFileType(file.mimetype),
+          };
+        }),
+      );
+    }
+    return this.entertainerService.uploadMedia(userId, uploadedFiles);
+  }
+
+  @Post('save')
+  @UseGuards(JwtAuthGuard)
+  async saveDetails(@Request() req) {
+    const { userId } = req.user;
+    return this.entertainerService.saveEntertainerDetails(userId);
+  }
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)

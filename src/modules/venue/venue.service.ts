@@ -277,50 +277,64 @@ export class VenueService {
     }
   }
 
-  async findAllByUser(userId: number) {
-    const venues = await this.venueRepository.find({
-      where: { user: { id: userId } },
-      select: [
-        'id',
-        'name',
-        'phone',
-        'email',
-        'addressLine1',
-        'addressLine2',
-        'description',
-        'city',
-        'state',
-        'zipCode',
-        'country',
-        'parentId',
-        'isParent',
-      ],
+  async findAllByUser(userId: number, venueId: number) {
+    const venueDetails = await this.venueRepository
+      .createQueryBuilder('venue')
+      .leftJoinAndSelect('venue.user', 'user')
+      .leftJoin('cities', 'city', 'city.id = venue.city')
+      .leftJoin('states', 'state', 'state.id = venue.state')
+      .leftJoin('countries', 'country', 'country.id = venue.country')
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'media.user_id AS media_user_id', // expose user_id
+              `JSON_ARRAYAGG(
+              JSON_OBJECT(
+                "url", CONCAT(:serverUri, media.url),
+                "type", media.type
+              )
+            ) AS mediaDetails`,
+            ])
+            .from('media', 'media')
+            .groupBy('media.user_id'),
+        'media', // alias for the subquery
+        'media.media_user_id = venue.id', // now using the alias correctly
+      )
+      .select([
+        'venue.id AS id',
+        'venue.name AS name',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+        'venue.description AS description',
+        'venue.city AS city_code',
+        'venue.state AS state_code',
+        'venue.country AS country_code',
+        'venue.zipCode AS zipCode',
+        'city.name AS city',
+        'state.name AS state',
+        'country.name AS country',
+        'user.email AS email',
+        'COALESCE(media.mediaDetails, "[]") AS media',
+      ])
+
+      .where('venue.id=:venueId', { venueId })
+      .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+      .getRawOne();
+
+    const neighbourhood = await this.neighbourRepository.find({
+      where: { venueId },
     });
+    const { media, ...rest } = venueDetails;
+    const response = {
+      ...rest,
+      media: JSON.parse(media),
+      neighbourhoods: neighbourhood,
+    };
 
-    const resultingVenue = await Promise.all(
-      venues.map(async (item) => {
-        const venueId = item.id;
-        const media = await this.mediaRepository
-          .createQueryBuilder('media')
-          .select([
-            'media.id AS id',
-            `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
-            'media.type AS type',
-            'media.name  AS name',
-          ])
-          .where('media.userId = :userId', { venueId }) // Changed to venueId basis
-          .getRawMany();
-
-        return {
-          ...item,
-          media,
-        };
-      }),
-    );
     return {
-      message: 'Venues returned successfully',
-      count: venues.length,
-      venues: resultingVenue,
+      message: 'Venue Details fetched Successfully',
+      venue: response,
       status: true,
     };
   }
