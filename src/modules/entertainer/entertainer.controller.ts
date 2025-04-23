@@ -141,7 +141,12 @@ export class EntertainerController {
     const { userId } = req.user;
     return this.entertainerService.saveEntertainerDetails(userId);
   }
-
+  // Update Entertainers Api
+  @Patch()
+  @UseGuards(JwtAuthGuard)
+  updateEntertainer(@Body() body: any, @Request() req) {
+    const { userId } = req.user;
+  }
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
@@ -164,72 +169,72 @@ export class EntertainerController {
     return this.entertainerService.getDashboardStatistics(userId, query);
   }
 
-  @Patch()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('findAll')
-  @UseInterceptors(
-    AnyFilesInterceptor({
-      fileFilter: (req, file, callback) => {
-        // Check file type from typeMap
-        const fileType = typeMap[file.fieldname];
+  // @Patch()
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles('findAll')
+  // @UseInterceptors(
+  //   AnyFilesInterceptor({
+  //     fileFilter: (req, file, callback) => {
+  //       // Check file type from typeMap
+  //       const fileType = typeMap[file.fieldname];
 
-        if (!fileType) {
-          return callback(
-            new BadRequestException({
-              message: 'Invalid file field name',
-              status: false,
-            }),
-            false,
-          );
-        }
+  //       if (!fileType) {
+  //         return callback(
+  //           new BadRequestException({
+  //             message: 'Invalid file field name',
+  //             status: false,
+  //           }),
+  //           false,
+  //         );
+  //       }
 
-        // Restrict video file size to 500MB
-        if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
-          return callback(
-            new BadRequestException({
-              message: 'Video file size cannot exceed 500 MB',
-              status: false,
-            }),
-            false,
-          );
-        }
+  //       // Restrict video file size to 500MB
+  //       if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
+  //         return callback(
+  //           new BadRequestException({
+  //             message: 'Video file size cannot exceed 500 MB',
+  //             status: false,
+  //           }),
+  //           false,
+  //         );
+  //       }
 
-        callback(null, true);
-      },
-    }),
-  )
-  @ApiOperation({ summary: 'Update a specific entertainer by ID' })
-  @ApiResponse({
-    status: 200,
-    description: 'Entertainer updated sucessfully.',
-  })
-  async update(
-    @Body() updateEntertainerDto: UpdateEntertainerDto,
-    @UploadedFiles() files: Array<Express.Multer.File>,
-    @Request() req,
-  ) {
-    const { userId } = req.user;
-    let uploadedFiles: UploadedFile[] = [];
+  //       callback(null, true);
+  //     },
+  //   }),
+  // )
+  // @ApiOperation({ summary: 'Update a specific entertainer by ID' })
+  // @ApiResponse({
+  //   status: 200,
+  //   description: 'Entertainer updated sucessfully.',
+  // })
+  // async update(
+  //   @Body() updateEntertainerDto: UpdateEntertainerDto,
+  //   @UploadedFiles() files: Array<Express.Multer.File>,
+  //   @Request() req,
+  // ) {
+  //   const { userId } = req.user;
+  //   let uploadedFiles: UploadedFile[] = [];
 
-    if (files.length > 0) {
-      uploadedFiles = await Promise.all(
-        files.map(async (file) => {
-          const filePath = await uploadFile(file); // Wait for the upload
-          return {
-            url: filePath,
-            name: file.originalname,
-            type: typeMap[file.fieldname],
-          };
-        }),
-      );
-    }
+  //   if (files.length > 0) {
+  //     uploadedFiles = await Promise.all(
+  //       files.map(async (file) => {
+  //         const filePath = await uploadFile(file); // Wait for the upload
+  //         return {
+  //           url: filePath,
+  //           name: file.originalname,
+  //           type: typeMap[file.fieldname],
+  //         };
+  //       }),
+  //     );
+  //   }
 
-    // return this.entertainerService.update(
-    //   updateEntertainerDto,
-    //   userId,
-    //   uploadedFiles,
-    // );
-  }
+  //   // return this.entertainerService.update(
+  //   //   updateEntertainerDto,
+  //   //   userId,
+  //   //   uploadedFiles,
+  //   // );
+  // }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a specific entertainer by ID' })

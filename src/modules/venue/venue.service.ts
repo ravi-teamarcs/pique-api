@@ -434,6 +434,7 @@ export class VenueService {
       .select([
         'entertainer.id AS eid',
         'entertainer.name AS name',
+        'entertainer.entertainer_name AS entertainer_name',
         'entertainer.category AS category',
         'entertainer.specific_category AS specific_category',
         'entertainer.performanceRole AS performanceRole',

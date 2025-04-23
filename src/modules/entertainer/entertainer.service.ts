@@ -70,10 +70,11 @@ export class EntertainerService {
 
   // New Flow // Step1
   async saveBasicDetails(dto: Step1Dto, userId: number) {
-    const { stageName, step, ...rest } = dto;
+    const { step, ...rest } = dto;
     try {
       const entertainer = this.entertainerRepository.create({
-        name: stageName,
+        name: dto.stageName,
+        entertainerName: dto.entertainerName,
         user: { id: userId },
         profileStep: 1,
         ...rest,

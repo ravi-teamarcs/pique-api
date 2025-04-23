@@ -276,11 +276,14 @@ export class VenueService {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
+
+    const { user, createLogin } = dto;
     try {
       const venue = await queryRunner.manager.findOne(Venue, {
         where: { id: venueId },
+        relations: ['user'],
       });
-
+      console.log('venue during update', venue);
       if (!venue) {
         throw new NotFoundException({
           message: 'Venue Not Found',
@@ -288,7 +291,31 @@ export class VenueService {
         });
       }
 
-      await queryRunner.manager.update(Venue, { id: venue.id }, dto);
+      const userId = venue?.user ? venue.user.id : null;
+      const alreadyHaveLoginCredentials = venue?.user ? true : false;
+
+      if (createLogin) {
+        if (alreadyHaveLoginCredentials) {
+          // If already have login credentials then update them.
+          await this.userRepository.update(
+            { id: userId },
+            { email: user.email, password: user.password },
+          );
+        } else {
+          const newUser = this.userRepository.create({
+            email: user.email,
+            password: user.password,
+            role: 'venue',
+          });
+          const savedUser = await this.userRepository.save(newUser);
+          await this.venueRepository.update(
+            { id: venue.id },
+            { user: { id: savedUser.id } },
+          );
+        }
+      }
+
+      await queryRunner.manager.update(Venue, { id: venue.id }, dto.venue);
 
       if (uploadedFiles?.length > 0) {
         await this.mediaService.handleMediaUpload(venue.id, uploadedFiles);

@@ -91,6 +91,7 @@ export class EntertainerService {
       .select([
         'entertainer.id AS id',
         'entertainer.name AS name',
+        'entertainer.entertainer_name AS entertainer_name',
         'entertainer.dob AS dob',
         'entertainer.bio AS bio',
         'entertainer.performanceRole AS performanceRole',

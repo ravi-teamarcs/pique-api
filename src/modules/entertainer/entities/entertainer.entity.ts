@@ -17,7 +17,7 @@ export class Entertainer {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   id: number;
 
-  @Column({ nullable: true })
+  @Column({ name: 'name', nullable: true })
   name: string;
 
   @Column({ name: 'entertainer_name', nullable: true })
