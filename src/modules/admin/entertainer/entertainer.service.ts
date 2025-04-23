@@ -65,43 +65,59 @@ export class EntertainerService {
   }) {
     const skip = (page - 1) * pageSize; // Calculate records to skip
 
-    const query = this.entertainerRepository
+    const baseQuery = this.entertainerRepository
       .createQueryBuilder('entertainer')
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
       .leftJoin('states', 'state', 'state.id = entertainer.state')
       .leftJoin('cities', 'city', 'city.id = entertainer.city')
-      .leftJoin('categories', 'cat', 'cat.id = entertainer.category ')
+      .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
       .leftJoin(
         'categories',
         'subcat',
-        'subcat.id = entertainer.specific_category ',
-      )
+        'subcat.id = entertainer.specific_category',
+      );
+
+    if (search) {
+      baseQuery.where('entertainer.name LIKE :search', {
+        search: `%${search}%`,
+      });
+    }
+
+    // Clone for count
+    const total = await baseQuery.clone().getCount();
+
+    // Add selects for main query
+    const records = await baseQuery
       .select([
         'entertainer.id AS id',
         'entertainer.name AS name',
         'entertainer.dob AS dob',
         'entertainer.bio AS bio',
         'entertainer.performanceRole AS performanceRole',
-        'entertainer.socialLinks AS SocialLinks',
+        'entertainer.socialLinks AS socialLinks',
         'entertainer.zipCode AS ZipCode',
-        'entertainer.services AS services',
+        "COALESCE(entertainer.services, '') AS services",
         'entertainer.contact_person AS contactPerson',
         'entertainer.contact_number AS ContactNumber',
         'entertainer.address AS address',
         'city.name AS city',
         'country.name AS country',
         'state.name AS state',
-      ]);
+      ])
+      .skip(skip)
+      .take(pageSize)
+      .getRawMany();
 
-    if (search) {
-      query.where('entertainer.name LIKE :search', { search: `%${search}%` });
-    }
-    const total = await query.getCount();
-    const records = await query.skip(skip).take(pageSize).getMany();
+    const parsedRecords = records.map(({ services, ...rest }) => ({
+      services: services
+        ? JSON.parse(services.split(',').filter((s) => s))
+        : [],
+      ...rest,
+    }));
 
     return {
       message: 'Entertainers fetched Sucessfully.',
-      records, // Paginated entertainers
+      records: parsedRecords,
       total,
       pageSize,
       currentPage: page, // Total count of entertainers

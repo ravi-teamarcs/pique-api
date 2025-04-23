@@ -83,6 +83,7 @@ export class EntertainerService {
         message: 'Entertainer primary details saved successfully',
         status: true,
         step: 1,
+        data: rest,
         nextStep: Number('02'),
       };
     } catch (error) {
@@ -112,6 +113,7 @@ export class EntertainerService {
         message: 'Bio saved Successfully',
         status: true,
         step: 2,
+        data: bio,
         nextStep: Number('03'),
       };
     } catch (error) {
@@ -141,6 +143,7 @@ export class EntertainerService {
         message: 'Vaccination status saved Successfully',
         status: true,
         step: 3,
+        data: vaccinated,
         nextStep: Number('04'),
       };
     } catch (error) {
@@ -175,6 +178,7 @@ export class EntertainerService {
       return {
         message: 'Contact Details saved Successfully',
         status: true,
+        data: { contact_person: contactPerson, contact_number: contactNumber },
         step: 4,
         nextStep: Number('05'),
       };
@@ -204,6 +208,7 @@ export class EntertainerService {
       return {
         message: 'Social Links  saved Successfully',
         status: true,
+        data: socialLinks,
         step: 5,
         nextStep: Number('06'),
       };
@@ -233,6 +238,7 @@ export class EntertainerService {
       return {
         message: 'Category saved Successfully',
         status: true,
+        data: category,
         step: 6,
         nextStep: Number('07'),
       };
@@ -263,6 +269,7 @@ export class EntertainerService {
         message: 'Specific Category saved Successfully',
         status: true,
         step: 7,
+        data: specific_category,
         nextStep: Number('08'),
       };
     } catch (error) {
@@ -292,6 +299,7 @@ export class EntertainerService {
         message: 'Performance role saved Successfully',
         status: true,
         step: 8,
+        data: performanceRole,
         nextStep: Number('09'),
       };
     } catch (error) {
@@ -321,6 +329,7 @@ export class EntertainerService {
       return {
         message: 'Services  saved Successfully',
         status: true,
+        data: services,
         step: 9,
         nextStep: Number('10'),
       };

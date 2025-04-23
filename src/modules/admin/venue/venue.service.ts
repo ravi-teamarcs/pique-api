@@ -58,7 +58,8 @@ export class VenueService {
               `JSON_ARRAYAGG(
             JSON_OBJECT(
               "url", CONCAT(:serverUri, media.url),
-              "type", media.type
+              "type", media.type,
+              "id", media.id
             )
           ) AS mediaDetails`,
             ])

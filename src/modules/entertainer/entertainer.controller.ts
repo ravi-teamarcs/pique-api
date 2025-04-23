@@ -39,7 +39,6 @@ import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { UpcomingEventDto } from './dto/upcoming-event.dto';
 import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
 import { BookingQueryDto } from './dto/booking-query-dto';
-import { instanceToPlain } from 'class-transformer';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
