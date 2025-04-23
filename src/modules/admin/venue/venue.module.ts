@@ -9,6 +9,7 @@ import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../auth/entities/capability.entity';
 import { Neighbourhood } from './entities/neighbourhood.entity';
 import { MediaModule } from '../media/media.module';
+import { AdminCreatedUser } from '../users/entities/admin.created.entity';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { MediaModule } from '../media/media.module';
       RoleCapability,
       Capability,
       Neighbourhood,
+      AdminCreatedUser,
     ]),
     MediaModule,
   ],

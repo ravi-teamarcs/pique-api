@@ -19,6 +19,7 @@ import { MediaService } from '../media/media.service';
 import { UploadedFile } from 'src/common/types/media.type';
 import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
+import { AdminCreatedUser } from '../users/entities/admin.created.entity';
 
 @Injectable()
 export class VenueService {
@@ -28,6 +29,8 @@ export class VenueService {
     @InjectRepository(Neighbourhood)
     private readonly neighbourRepository: Repository<Neighbourhood>,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(AdminCreatedUser)
+    private readonly tempRepository: Repository<AdminCreatedUser>,
     private readonly dataSource: DataSource,
     private readonly mediaService: MediaService,
     private readonly config: ConfigService,
@@ -122,6 +125,7 @@ export class VenueService {
       media: JSON.parse(v.media),
       neighbourhoods: JSON.parse(v.neighbourhoods),
     }));
+
     return {
       message: 'Venue Details fetched Successfully',
       records: parsedVenues,
@@ -181,6 +185,8 @@ export class VenueService {
         'state.name AS state',
         'country.name AS country',
         'user.email AS email',
+        'user.id AS user_id',
+        'user.createdByAdmin AS createdByAdmin',
         'COALESCE(media.mediaDetails, "[]") AS media',
       ])
 
@@ -191,9 +197,18 @@ export class VenueService {
     const neighbourhood = await this.neighbourRepository.find({
       where: { venueId },
     });
-    const { media, ...rest } = venueDetails;
+    const password = null;
+    if (venueDetails.createdByAdmin === 1) {
+      const data = await this.tempRepository.findOne({
+        where: { email: venueDetails.email },
+      });
+      venueDetails['password'] = data?.password;
+    }
+
+    const { media, createdByAdmin, ...rest } = venueDetails;
     const response = {
       ...rest,
+      createdByAdmin: createdByAdmin === 0 ? false : true,
       media: JSON.parse(media),
       neighbourhoods: neighbourhood,
     };
@@ -226,6 +241,12 @@ export class VenueService {
           createdByAdmin: true,
         });
         savedUser = await queryRunner.manager.save(newUser);
+        // saving password in temp repo
+        const temp = this.tempRepository.create({
+          email: savedUser.email,
+          password,
+        });
+        await this.tempRepository.save(temp);
       }
 
       // 2. Create venue with reference to user (if present)
@@ -297,14 +318,22 @@ export class VenueService {
       if (createLogin) {
         if (alreadyHaveLoginCredentials) {
           // If already have login credentials then update them.
+          const hashedPassword = await bcrypt.hash(user.password, 10);
           await this.userRepository.update(
             { id: userId },
+            { email: user.email, password: hashedPassword },
+          );
+          await this.tempRepository.update(
+            { email: venue.user.email },
             { email: user.email, password: user.password },
           );
         } else {
+          const hashedPassword = await bcrypt.hash(user.password, 10);
           const newUser = this.userRepository.create({
             email: user.email,
-            password: user.password,
+            password: hashedPassword,
+            isVerified: true,
+            createdByAdmin: true,
             role: 'venue',
           });
           const savedUser = await this.userRepository.save(newUser);

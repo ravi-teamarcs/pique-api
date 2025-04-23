@@ -97,7 +97,7 @@ export class VenueController {
       return null;
     }
 
-    if (files.length > 0) {
+    if (files?.length > 0) {
       uploadedFiles = await Promise.all(
         files.map(async (file) => {
           const filePath = await uploadFile(file);
