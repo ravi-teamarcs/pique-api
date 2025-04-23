@@ -208,41 +208,113 @@ export class UsersService {
     const { page = 1, pageSize = 10, role } = query;
     const skip = (Number(page) - 1) * Number(pageSize);
 
-    if (!['venue', 'entertainer'].includes(role)) {
-      throw new BadRequestException('Invalid role');
+    if (role === 'venue') {
+      const res = this.userRepository
+        .createQueryBuilder('user')
+        .leftJoin('venue', 'venue', 'venue.userId = user.id') // Join the 'venue' table
+        .leftJoin('cities', 'city', 'city.id = venue.city') // Join 'cities' table based on 'venue.city'
+        .leftJoin('states', 'state', 'state.id = venue.state') // Join 'states' table based on 'venue.state'
+        .leftJoin('countries', 'country', 'country.id = venue.country') // Join 'countries' table based on 'venue.country'
+        .leftJoin(
+          (qb) =>
+            qb
+              .select([
+                'neighbourhood.venueId AS nh_venue_id', // Selecting 'venueId' from 'neighbourhood' as 'nh_venue_id'
+                `JSON_ARRAYAGG(
+            JSON_OBJECT(
+              "id", neighbourhood.id,
+              "name", neighbourhood.name,
+              "contactPerson", neighbourhood.contact_person,
+              "contactNumber", neighbourhood.contact_number
+            )
+          ) AS neighbourhoodDetails`, // Aggregate neighbourhoods into JSON array
+              ])
+              .from('neighbourhood', 'neighbourhood') // From 'neighbourhood' table
+              .groupBy('neighbourhood.venueId'), // Group by 'venueId' to match venues with neighbourhoods
+          'neighbourhoods', // Alias for the subquery
+          'neighbourhoods.nh_venue_id = venue.id', // Join condition for neighbourhoods based on venue id
+        )
+        .select([
+          'venue.id AS id',
+          'venue.name AS name',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'venue.description AS description',
+          'venue.city AS city_code',
+          'venue.state AS state_code',
+          'venue.country AS country_code',
+          'venue.zipCode AS zipCode',
+          'city.name AS city',
+          'state.name AS state',
+          'country.name AS country',
+          'user.email AS email',
+          'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods', // Handle empty neighbourhoods array with COALESCE
+        ])
+        .orderBy('user.id', 'DESC') // Sort by user ID
+        .where(
+          'user.createdByAdmin = false AND user.role = :role AND user.status = :status',
+          { role, status: 'pending' }, // Filter by user role and status
+        );
+
+      const totalCount = await res.getCount();
+      const results = await res
+        .orderBy(`user.id`, 'DESC')
+        .skip(skip)
+        .take(Number(pageSize))
+        .getRawMany();
+      const parsedResult = results.map(({ neighbourhoods, ...rest }) => ({
+        ...rest,
+        neighbourhoods: JSON.parse(neighbourhoods),
+      }));
+
+      return {
+        message: `Venue approval list fetched successfully`,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        data: parsedResult,
+        status: true,
+      };
+    } else {
+      const res = this.userRepository
+        .createQueryBuilder('user')
+        .leftJoin('entertainers', 'ent', `ent.userId = user.id`)
+        .leftJoin('cities', 'city', `city.id = ent.city`)
+        .leftJoin('states', 'state', `state.id = ent.state`)
+        .leftJoin('countries', 'country', `country.id = ent.country`)
+
+        .select([
+          `ent.*`, // select all fields from venue/entertainer
+          'user.id AS user_id',
+          'user.email AS user_email',
+          'user.status AS user_status',
+          'user.isVerified AS user_is_verified',
+          'city.name As city_name',
+          'country.name As country_name',
+          'state.name As state_name',
+        ])
+        .where(
+          'user.createdByAdmin = false AND user.role = :role AND user.status = :status',
+          { role, status: 'pending' },
+        );
+
+      const totalCount = await res.getCount();
+      const results = await res
+        .orderBy(`user.id`, 'DESC')
+        .skip(skip)
+        .take(Number(pageSize))
+        .getRawMany();
+
+      return {
+        message: `Entertainer approval list fetched successfully`,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        data: results,
+        status: true,
+      };
     }
-    const newRole = role === 'entertainer' ? 'entertainers' : role;
-    const alias = role; // dynamic table alias
-    const res = this.userRepository
-      .createQueryBuilder('user')
-      .leftJoin(newRole, alias, `${alias}.userId = user.id`)
-      .select([
-        `${alias}.*`, // select all fields from venue/entertainer
-        'user.id AS user_id',
-        'user.email AS user_email',
-        'user.status AS user_status',
-        'user.isVerified AS user_is_verified',
-      ])
-      .where(
-        'user.createdByAdmin = false AND user.role = :role AND user.status = :status',
-        { role, status: 'pending' },
-      );
-
-    const totalCount = await res.getCount();
-    const results = await res
-      .orderBy(`${alias}.name`, 'DESC')
-      .skip(skip)
-      .take(Number(pageSize))
-      .getRawMany();
-
-    return {
-      message: `${role.charAt(0).toUpperCase() + role.slice(1)} approval list fetched successfully`,
-      totalCount,
-      page,
-      pageSize,
-      totalPages: Math.ceil(totalCount / Number(pageSize)),
-      data: results,
-      status: true,
-    };
   }
 }
