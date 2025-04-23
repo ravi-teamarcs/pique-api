@@ -10,6 +10,7 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -25,6 +26,7 @@ import { User } from './entities/users.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { ApprovalQuery } from '../admin/users/Dto/query.dto';
 
 @ApiTags('Users')
 @Controller('users')
@@ -81,4 +83,6 @@ export class UsersController {
     const { userId, role } = req.user;
     return this.usersService.handleGetUserProfile(userId, role);
   }
+
+ 
 }

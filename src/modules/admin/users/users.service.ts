@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -12,11 +13,18 @@ import { UpdateStatusDto } from './Dto/update-status.dto';
 import { UpdateUserDto } from './Dto/update-user.dto';
 import { CreateUserDto } from './Dto/create-user.dto';
 import * as bcrypt from 'bcryptjs';
+import { Venue } from '../venue/entities/venue.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { ApprovalQuery } from './Dto/query.dto';
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Venue)
+    private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(Entertainer)
+    private readonly entertainerRepository: Repository<Entertainer>,
   ) {}
 
   async getAllUser({
@@ -194,5 +202,47 @@ export class UsersService {
     } catch (error) {
       throw new Error(`Failed to update users: ${error.message}`);
     }
+  }
+
+  async getApprovalList(query: ApprovalQuery) {
+    const { page = 1, pageSize = 10, role } = query;
+    const skip = (Number(page) - 1) * Number(pageSize);
+
+    if (!['venue', 'entertainer'].includes(role)) {
+      throw new BadRequestException('Invalid role');
+    }
+    const newRole = role === 'entertainer' ? 'entertainers' : role;
+    const alias = role; // dynamic table alias
+    const res = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin(newRole, alias, `${alias}.userId = user.id`)
+      .select([
+        `${alias}.*`, // select all fields from venue/entertainer
+        'user.id AS user_id',
+        'user.email AS user_email',
+        'user.status AS user_status',
+        'user.isVerified AS user_is_verified',
+      ])
+      .where(
+        'user.createdByAdmin = false AND user.role = :role AND user.status = :status',
+        { role, status: 'pending' },
+      );
+
+    const totalCount = await res.getCount();
+    const results = await res
+      .orderBy(`${alias}.name`, 'DESC')
+      .skip(skip)
+      .take(Number(pageSize))
+      .getRawMany();
+
+    return {
+      message: `${role.charAt(0).toUpperCase() + role.slice(1)} approval list fetched successfully`,
+      totalCount,
+      page,
+      pageSize,
+      totalPages: Math.ceil(totalCount / Number(pageSize)),
+      data: results,
+      status: true,
+    };
   }
 }

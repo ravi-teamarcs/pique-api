@@ -28,6 +28,7 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CreateUserDto } from './Dto/create-user.dto';
+import { ApprovalQuery } from './Dto/query.dto';
 
 @ApiTags('admin')
 @Controller('admin/users')
@@ -66,7 +67,6 @@ export class UsersController {
     @Body() createUserDto: CreateUserDto,
     @Request() req,
   ): Promise<any> {
-   
     return this.userService.createUser(createUserDto);
   }
 
@@ -92,5 +92,12 @@ export class UsersController {
   async updateStatus(@Body() dto: UpdateStatusDto) {
     // return this.userService.updateUserStatus(dto);
     return this.userService.updateStatus(dto);
+  }
+  // To get List of all User who need approval
+  @Get('approval-request')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin')
+  getUserApprovalList(@Query() query: ApprovalQuery) {
+    return this.userService.getApprovalList(query);
   }
 }
