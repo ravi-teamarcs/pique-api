@@ -5,6 +5,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -93,7 +94,7 @@ export class EntertainerController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Get('entertainerbyId/:id')
-  async getEntertainerByUserId(@Param('id') id: number) {
+  async getEntertainerByUserId(@Param('id', ParseIntPipe) id: number) {
     return this.EntertainerService.getEntertainerByentertainerId(id);
   }
 

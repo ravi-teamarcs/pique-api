@@ -84,4 +84,10 @@ export class BookingController {
   modifyBooking(@Body() dto: ModifyBookingDto) {
     return this.bookingService.modifyBooking(dto);
   }
+
+  @Get('listing')
+  @Roles('super-admin')
+  getBookingListing() {
+    return this.bookingService.getBookingListing();
+  }
 }

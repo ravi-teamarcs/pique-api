@@ -155,4 +155,15 @@ export class BookingService {
       });
     }
   }
+
+  async getBookingListing() {
+    try {
+      return { message: 'Booking Listing Fetched Successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 }

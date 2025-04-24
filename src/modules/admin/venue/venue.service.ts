@@ -104,6 +104,7 @@ export class VenueService {
         'state.name AS state',
         'country.name AS country',
         'user.email AS email',
+        'user.status AS status',
         'COALESCE(media.mediaDetails, "[]") AS media',
         'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods',
       ])

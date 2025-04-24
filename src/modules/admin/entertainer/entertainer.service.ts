@@ -14,6 +14,7 @@ import { CreateEntertainerDto } from './Dto/create-entertainer.dto';
 import { UpdateStatusDto } from './Dto/update-status.dto';
 import { UpdateEntertainerDto } from './Dto/update-entertainer.dto';
 import slugify from 'slugify';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EntertainerService {
@@ -22,6 +23,7 @@ export class EntertainerService {
     private readonly entertainerRepository: Repository<Entertainer>,
     @InjectRepository(Categories)
     private readonly CategoryRepository: Repository<Categories>,
+    private readonly config: ConfigService,
   ) {}
 
   // * Vimal Sharma Version
@@ -126,41 +128,77 @@ export class EntertainerService {
   }
 
   async getEntertainerByentertainerId(entertainerId: number) {
-    const res = this.entertainerRepository
-      .createQueryBuilder('entertainer')
-      .leftJoin('countries', 'country', 'country.id = entertainer.country')
-      .leftJoin('states', 'state', 'state.id = entertainer.state')
-      .leftJoin('cities', 'city', 'city.id = entertainer.city')
-      .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
-      .leftJoin(
-        'categories',
-        'subcat',
-        'subcat.id = entertainer.specific_category',
-      )
-      .select([
-        'entertainer.id AS id',
-        'entertainer.name AS name',
-        'entertainer.entertainer_name AS entertainer_name',
-        'entertainer.dob AS dob',
-        'entertainer.bio AS bio',
-        'entertainer.performanceRole AS performanceRole',
-        'entertainer.socialLinks AS socialLinks',
-        'entertainer.zipCode AS ZipCode',
-        "COALESCE(entertainer.services, '') AS services",
-        'entertainer.contact_person AS contactPerson',
-        'entertainer.contact_number AS ContactNumber',
-        'entertainer.address AS address',
-        'city.name AS city',
-        'country.name AS country',
-        'state.name AS state',
-      ])
-      .where('entertainer.id=:entertainerId', { entertainerId });
-
-    return {
-      messaage:"Entertainer Detail fetched Succe"
-      // records,
-      // total: records.length,
-    };
+    try {
+      const res = await this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
+        .leftJoin(
+          'categories',
+          'subcat',
+          'subcat.id = entertainer.specific_category',
+        )
+        .leftJoin(
+          (qb) =>
+            qb
+              .select([
+                'media.user_id AS media_user_id',
+                `IFNULL(
+                  JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                      'url', CONCAT(:serverUri, media.url),
+                      'type', media.type
+                    )
+                  ), 
+                  JSON_ARRAY()
+                ) AS mediaDetails`,
+              ])
+              .from('media', 'media')
+              .groupBy('media.user_id'),
+          'media',
+          'media.media_user_id = entertainer.id',
+        )
+        .select([
+          'entertainer.id AS id',
+          'entertainer.name AS name',
+          'entertainer.entertainer_name AS entertainer_name',
+          'entertainer.dob AS dob',
+          'entertainer.bio AS bio',
+          'entertainer.performanceRole AS performanceRole',
+          'entertainer.socialLinks AS socialLinks',
+          'entertainer.zipCode AS ZipCode',
+          "COALESCE(entertainer.services, '') AS services",
+          'entertainer.contact_person AS contactPerson',
+          'entertainer.contact_number AS ContactNumber',
+          'entertainer.address AS address',
+          'city.name AS city',
+          'country.name AS country',
+          'state.name AS state',
+          'COALESCE(media.mediaDetails, "[]") AS media',
+        ])
+        .where('entertainer.id=:entertainerId', { entertainerId })
+        .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+        .getRawOne();
+      return {
+        message: 'Entertainer Detail fetched Succe',
+        records: {
+          ...res,
+          media: JSON.parse(res.media),
+          services:
+            typeof res.services === null
+              ? res.services
+              : JSON.parse(res.services),
+        },
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: true,
+      });
+    }
   }
 
   async create(createEntertainerDto: CreateEntertainerDto): Promise<any> {

@@ -32,8 +32,7 @@ import { UpdateLocationDto } from './Dto/update-location.dto';
 import { CreateNeighbourhoodDto } from './Dto/create-neighbourhood.dto';
 import { UpdateNeighbourhoodDto } from './Dto/update-neighbourhood';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
-import { typeMap } from 'src/common/constants/media.constants';
-import { UploadedFile } from 'src/common/types/media.type';
+import { getFileType, UploadedFile } from 'src/common/types/media.type';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('admin')
@@ -77,25 +76,6 @@ export class VenueController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     let uploadedFiles: UploadedFile[] = [];
-    const mimeTypeMap = {
-      image: ['image/jpeg', 'image/png', 'image/webp'],
-      video: ['video/mp4', 'video/webm', 'video/quicktime'],
-      headshot: ['image/jpeg', 'image/png'], // optional, if you want to distinguish
-      event_headshot: ['image/jpeg', 'image/png'], // optional
-    } as const;
-    type FileType = keyof typeof mimeTypeMap;
-
-    function getFileType(mimetype: string): FileType | null {
-      for (const [key, mimeList] of Object.entries(mimeTypeMap) as [
-        FileType,
-        readonly string[],
-      ][]) {
-        if (mimeList.includes(mimetype)) {
-          return key;
-        }
-      }
-      return null;
-    }
 
     if (files?.length > 0) {
       uploadedFiles = await Promise.all(
@@ -125,25 +105,6 @@ export class VenueController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ): Promise<any> {
     let uploadedFiles: UploadedFile[] = [];
-    const mimeTypeMap = {
-      image: ['image/jpeg', 'image/png', 'image/webp'],
-      video: ['video/mp4', 'video/webm', 'video/quicktime'],
-      headshot: ['image/jpeg', 'image/png'], // optional, if you want to distinguish
-      event_headshot: ['image/jpeg', 'image/png'], // optional
-    } as const;
-    type FileType = keyof typeof mimeTypeMap;
-
-    function getFileType(mimetype: string): FileType | null {
-      for (const [key, mimeList] of Object.entries(mimeTypeMap) as [
-        FileType,
-        readonly string[],
-      ][]) {
-        if (mimeList.includes(mimetype)) {
-          return key;
-        }
-      }
-      return null;
-    }
 
     if (files && files.length > 0) {
       uploadedFiles = await Promise.all(
