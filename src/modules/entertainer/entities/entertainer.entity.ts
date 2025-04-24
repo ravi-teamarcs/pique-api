@@ -66,8 +66,9 @@ export class Entertainer {
   @OneToMany(() => Gig, (gig) => gig.entertainer)
   gigs: Gig[];
 
-  @Column({ nullable: true })
-  status: string;
+  @Column({ default: 'pending' })
+  status: 'active' | 'inactive' | 'pending';
+
   @Column({ nullable: true })
   city: number;
 

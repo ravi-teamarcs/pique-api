@@ -24,8 +24,8 @@ export class Notification {
   @Column({ type: 'varchar', length: 50 })
   type: string; // e.g., 'booking_request', 'payment_alert', etc.
 
-  // @Column({ type: 'text', nullable: true })
-  // data: Record<string, any>; // Additional metadata, like bookingId, etc.
+  @Column({ type: 'text', nullable: true })
+  data: Record<string, any>; // Additional metadata, like bookingId, etc.
 
   @Column({ default: false })
   isRead: boolean;

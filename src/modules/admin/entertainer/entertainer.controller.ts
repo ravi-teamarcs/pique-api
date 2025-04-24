@@ -47,13 +47,6 @@ export class EntertainerController {
     });
   }
 
-  // @Roles('super-admin', 'entertainer-admin')
-  // @ApiBearerAuth()
-  // @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  // @Post('createent')
-  // create(@Body() createEntertainerDto: CreateEntertainerDto): Promise<any> {
-  //   return this.EntertainerService.create(createEntertainerDto);
-  // }
   // New Flow for Creating Entertainer
 
   @Post('createent')
@@ -64,15 +57,14 @@ export class EntertainerController {
 
     // switch (step) {
     //   case 1:
-    //     return this.EntertainerService.saveBasicDetails(body, userId);
+    //     return this.EntertainerService.savePrimaryDetails(body, userId);
     //   case 2:
     //     return this.EntertainerService.saveBio(body, userId);
     //   case 3:
     //     return this.EntertainerService.vaccinationStatus(body, userId);
     //   case 4:
     //     return this.EntertainerService.contactDetails(body, userId);
-    //   case 5:
-    //     return this.EntertainerService.socialLinks(body, userId);
+
     //   default:
     //     throw new BadRequestException({
     //       message: 'Invalid Step',

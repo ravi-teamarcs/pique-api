@@ -118,7 +118,54 @@ export class CreateEntertainerDto {
   dob: string;
 }
 
-class GeneralInfoDto {}
+class GeneralInfoDto {
+  @IsString()
+  @IsNotEmpty()
+  stageName: string;
+
+  @IsString()
+  @IsNotEmpty()
+  entertainerName: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
+  category: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
+  specific_category: number;
+
+  @IsString()
+  @IsNotEmpty()
+  bio: string;
+
+  @IsIn(['solo', 'duo', 'trio', 'ensemble'])
+  @IsNotEmpty()
+  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
+  @IsString()
+  @IsNotEmpty()
+  contactPerson: string;
+
+  @IsString()
+  @IsNotEmpty()
+  contactNumber: string;
+  @IsNotEmpty()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    // If it's already an array (e.g., services[]=A&services[]=B), return as-is
+    if (Array.isArray(value)) return value;
+    // If it's a comma-separated string: "A,B,C"
+    if (typeof value === 'string')
+      return value.split(',').map((item) => item.trim());
+    return [];
+  })
+  services: string[];
+}
 class Step2Dto {}
 class SocialMediaDto {}
 class Step4Dto {}
+
+export { GeneralInfoDto };

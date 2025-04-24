@@ -10,7 +10,10 @@ import { In, Like, Not, Repository } from 'typeorm';
 import { Categories } from './entities/Category.entity';
 import { CreateCategoryDto } from './Dto/create-category.dto';
 import { UpdateCategoryDto } from './Dto/update-category.dto';
-import { CreateEntertainerDto } from './Dto/create-entertainer.dto';
+import {
+  CreateEntertainerDto,
+  GeneralInfoDto,
+} from './Dto/create-entertainer.dto';
 import { UpdateStatusDto } from './Dto/update-status.dto';
 import { UpdateEntertainerDto } from './Dto/update-entertainer.dto';
 import slugify from 'slugify';
@@ -26,36 +29,6 @@ export class EntertainerService {
     private readonly config: ConfigService,
   ) {}
 
-  // * Vimal Sharma Version
-  // async getAllEntertainers({
-  //   page,
-  //   pageSize,
-  //   search,
-  // }: {
-  //   page: number;
-  //   pageSize: number;
-  //   search: string;
-  // }): Promise<{ records: Entertainer[]; total: number }> {
-  //   const skip = (page - 1) * pageSize; // Calculate records to skip
-
-  //   const [records, total] = await this.entertainerRepository.findAndCount({
-  //     where: {
-  //       ...(search ? { name: Like(`%${search}%`) } : {}), // Filter by name if
-  //       status: In(['pending']),
-  //     },
-  //     relations: ['entertainer'], // Include the related `entertainer` entity
-  //     skip, // Pagination: records to skip
-  //     take: pageSize,
-  //     order: { id: 'DESC' },
-  //   });
-
-  //   return {
-  //     records, // Paginated entertainers
-  //     total, // Total count of entertainers
-  //   };
-  // }
-
-  // * Bhawani Thakur version  (Successfull 100 % Passed)
   async getAllEntertainers({
     page,
     pageSize,
@@ -112,9 +85,9 @@ export class EntertainerService {
       .getRawMany();
 
     const parsedRecords = records.map(({ services, ...rest }) => ({
-      services: services
-        ? JSON.parse(services.split(',').filter((s) => s))
-        : [],
+      // services: services
+      //   ? JSON.parse(services.split(',').filter((s) => s))
+      //   : [],
       ...rest,
     }));
 
@@ -201,18 +174,9 @@ export class EntertainerService {
     }
   }
 
-  async create(createEntertainerDto: CreateEntertainerDto): Promise<any> {
-    const { contactPerson, contactNumber, ...entertainerData } =
-      createEntertainerDto;
+  async savePrimaryDetails(createEntertainerDto: GeneralInfoDto) {
 
-    // Create the entertainer
-    const entertainer = this.entertainerRepository.create({
-      ...entertainerData,
-      contact_number: contactNumber,
-      contact_person: contactPerson,
-    });
-
-    return this.entertainerRepository.save(entertainer);
+    
   }
 
   async update(updateEntertainerDto: UpdateEntertainerDto): Promise<any> {

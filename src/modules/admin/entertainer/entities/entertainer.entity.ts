@@ -67,8 +67,6 @@ export class Entertainer {
   gigs: Gig[];
 
   @Column({ nullable: true })
-  status: string;
-  @Column({ nullable: true })
   city: number;
 
   @Column({ nullable: true })
@@ -105,6 +103,9 @@ export class Entertainer {
 
   @Column({ default: false })
   isProfileComplete: boolean;
+
+  @Column({ default: 'pending' })
+  status: 'active' | 'inactive' | 'pending';
 
   @CreateDateColumn()
   createdAt: Date;

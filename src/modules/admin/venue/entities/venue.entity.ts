@@ -66,6 +66,9 @@ export class Venue {
   @Column({ default: false })
   isProfileComplete: boolean;
 
+  @Column({ default: 'pending' })
+  status: 'active' | 'inactive' | 'pending';
+
   @Column({ type: 'boolean', default: false })
   @Transform(({ value }) => Boolean(value))
   isParent: boolean;
