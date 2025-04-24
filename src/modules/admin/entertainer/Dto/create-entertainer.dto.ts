@@ -48,7 +48,7 @@ export class CreateEntertainerDto {
   })
   @IsIn(['solo', 'duo', 'trio', 'ensemble'])
   @IsNotEmpty()
-  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble'
+  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 
   @ApiProperty({
     example: 3000,
@@ -117,3 +117,8 @@ export class CreateEntertainerDto {
   @IsNotEmpty()
   dob: string;
 }
+
+class Step1Dto {}
+class Step2Dto {}
+class Step3Dto {}
+class Step4Dto {}

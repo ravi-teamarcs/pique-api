@@ -716,12 +716,17 @@ export class EntertainerService {
   async getCategories() {
     const categories = await this.categoryRepository.find({
       where: { parentId: 0 },
-      select: ['id', 'name'],
+      select: ['id', 'name', 'iconUrl'],
     });
 
+    const data = categories.map(({ iconUrl, ...rest }) => ({
+      ...rest,
+      activeIcon: iconUrl,
+      inactiveIcon: iconUrl.replace(/(\.\w+)$/, '_grey$1'), // Adds "_gray" before file extension
+    }));
     return {
       message: 'categories returned Successfully ',
-      categories,
+      categories: data,
       status: true,
     };
   }
@@ -732,9 +737,15 @@ export class EntertainerService {
     if (categories.length === 0) {
       return { message: 'Sub-categories not found', categories: null };
     }
+
+    const data = categories.map(({ iconUrl, ...rest }) => ({
+      ...rest,
+      activeIcon: iconUrl,
+      inactiveIcon: iconUrl.replace(/(\.\w+)$/, '_grey$1'), // Adds "_gray" before file extension
+    }));
     return {
       message: ' Sub-categories returned Successfully ',
-      categories,
+      categories: data,
       status: true,
     };
   }

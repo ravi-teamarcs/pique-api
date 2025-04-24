@@ -148,10 +148,10 @@ export class EntertainerController {
     const { userId } = req.user;
   }
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard)
   @Roles('findAll')
-  @ApiOperation({ summary: 'Get all entertainers for the logged-in user' })
-  findAll(@Request() req) {
+  @ApiOperation({ summary: 'Get details of  the logged-in user' })
+  findOne(@Request() req) {
     const { userId } = req.user;
     return this.entertainerService.findEntertainer(userId);
   }
@@ -297,13 +297,11 @@ export class EntertainerController {
     description: 'Categories fetched Successfully.',
   })
   @Get('categories/all')
-  @Roles('findAll')
   async getCategories() {
     return this.entertainerService.getCategories();
   }
 
   @Get('categories/subcategories')
-  @Roles('findAll')
   getSubCategories(@Query('id') id: number) {
     return this.entertainerService.getSubCategories(id);
   }

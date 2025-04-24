@@ -209,9 +209,9 @@ export class UsersService {
     const skip = (Number(page) - 1) * Number(pageSize);
 
     if (role === 'venue') {
-      const res = this.userRepository
-        .createQueryBuilder('user')
-        .leftJoin('venue', 'venue', 'venue.userId = user.id') // Join the 'venue' table
+      const res = this.venueRepository
+        .createQueryBuilder('venue')
+        .leftJoin('users', 'user', ' user.id = venue.userId ') // Join the 'venue' table
         .leftJoin('cities', 'city', 'city.id = venue.city') // Join 'cities' table based on 'venue.city'
         .leftJoin('states', 'state', 'state.id = venue.state') // Join 'states' table based on 'venue.state'
         .leftJoin('countries', 'country', 'country.id = venue.country') // Join 'countries' table based on 'venue.country'
@@ -219,7 +219,7 @@ export class UsersService {
           (qb) =>
             qb
               .select([
-                'neighbourhood.venueId AS nh_venue_id', // Selecting 'venueId' from 'neighbourhood' as 'nh_venue_id'
+                'neighbourhood.venue_id AS nh_venue_id', // Selecting 'venueId' from 'neighbourhood' as 'nh_venue_id'
                 `JSON_ARRAYAGG(
             JSON_OBJECT(
               "id", neighbourhood.id,
@@ -230,7 +230,7 @@ export class UsersService {
           ) AS neighbourhoodDetails`, // Aggregate neighbourhoods into JSON array
               ])
               .from('neighbourhood', 'neighbourhood') // From 'neighbourhood' table
-              .groupBy('neighbourhood.venueId'), // Group by 'venueId' to match venues with neighbourhoods
+              .groupBy('neighbourhood.venue_id'), // Group by 'venueId' to match venues with neighbourhoods
           'neighbourhoods', // Alias for the subquery
           'neighbourhoods.nh_venue_id = venue.id', // Join condition for neighbourhoods based on venue id
         )
