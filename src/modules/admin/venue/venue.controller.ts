@@ -34,6 +34,7 @@ import { UpdateNeighbourhoodDto } from './Dto/update-neighbourhood';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { getFileType, UploadedFile } from 'src/common/types/media.type';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { UpdateVenueUserStatus } from './Dto/update-venue-user-status.dto';
 
 @ApiTags('admin')
 @Controller('admin/venue')
@@ -125,6 +126,11 @@ export class VenueController {
       venueId,
       uploadedFiles,
     );
+  }
+  // API For Venue Approval
+  @Patch('approval')
+  async updateVenueStatus(@Body() dto: UpdateVenueUserStatus) {
+    return this.venueService.approveVenue(dto);
   }
 
   @Roles('super-admin', 'venue-admin')

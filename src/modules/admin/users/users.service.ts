@@ -250,12 +250,8 @@ export class UsersService {
           'user.email AS email',
           'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods', // Handle empty neighbourhoods array with COALESCE
         ])
-        .orderBy('user.id', 'DESC') // Sort by user ID
-        .where(
-          'user.createdByAdmin = false AND user.role = :role AND user.status = :status',
-          { role, status: 'pending' }, // Filter by user role and status
-        );
-
+        .orderBy('venue.id', 'DESC') // Sort by venue ID
+        .where("venue.status = 'pending' AND venue.userId IS NOT NULL");
       const totalCount = await res.getCount();
       const results = await res
         .orderBy(`user.id`, 'DESC')
@@ -277,9 +273,9 @@ export class UsersService {
         status: true,
       };
     } else {
-      const res = this.userRepository
-        .createQueryBuilder('user')
-        .leftJoin('entertainers', 'ent', `ent.userId = user.id`)
+      const res = this.entertainerRepository
+        .createQueryBuilder('ent')
+        .leftJoin('users', 'user', ` user.id = ent.userId`)
         .leftJoin('cities', 'city', `city.id = ent.city`)
         .leftJoin('states', 'state', `state.id = ent.state`)
         .leftJoin('countries', 'country', `country.id = ent.country`)
@@ -294,10 +290,7 @@ export class UsersService {
           'country.name As country_name',
           'state.name As state_name',
         ])
-        .where(
-          'user.createdByAdmin = false AND user.role = :role AND user.status = :status',
-          { role, status: 'pending' },
-        );
+        .where("ent.status = 'pending' AND ent.userId IS NOT NULL");
 
       const totalCount = await res.getCount();
       const results = await res

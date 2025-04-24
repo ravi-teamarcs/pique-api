@@ -20,6 +20,7 @@ import { UploadedFile } from 'src/common/types/media.type';
 import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
 import { AdminCreatedUser } from '../users/entities/admin.created.entity';
+import { UpdateVenueUserStatus } from './Dto/update-venue-user-status.dto';
 
 @Injectable()
 export class VenueService {
@@ -108,6 +109,10 @@ export class VenueService {
         'COALESCE(media.mediaDetails, "[]") AS media',
         'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods',
       ])
+      .where('venue.status IN (:...statuses)', {
+        statuses: ['active', 'inactive'],
+      })
+
       .orderBy('venue.id', 'DESC')
       .setParameter('serverUri', this.config.get<string>('BASE_URL'));
 
@@ -497,5 +502,29 @@ export class VenueService {
       throw new NotFoundException('Neighbourhood not found');
     }
     return { message: 'Neighbourhood deleted successfully', status: true };
+  }
+
+  // Update user status Logic
+
+  async approveVenue(dto: UpdateVenueUserStatus) {
+    const { id, status } = dto;
+    try {
+      const venue = await this.venueRepository.findOne({
+        where: { id },
+        relations: ['user'],
+      });
+
+      if (venue.user) {
+        await this.userRepository.update({ id: venue.user.id }, { status });
+      }
+
+      await this.venueRepository.update({ id }, { status });
+      return { message: 'Venue Status updated Successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 }

@@ -18,12 +18,16 @@ import { UpdateStatusDto } from './Dto/update-status.dto';
 import { UpdateEntertainerDto } from './Dto/update-entertainer.dto';
 import slugify from 'slugify';
 import { ConfigService } from '@nestjs/config';
+import { ApproveEntertainer } from './Dto/approve-entertainer.dto';
+import { User } from '../users/entities/users.entity';
 
 @Injectable()
 export class EntertainerService {
   constructor(
     @InjectRepository(Entertainer)
     private readonly entertainerRepository: Repository<Entertainer>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     @InjectRepository(Categories)
     private readonly CategoryRepository: Repository<Categories>,
     private readonly config: ConfigService,
@@ -50,7 +54,10 @@ export class EntertainerService {
         'categories',
         'subcat',
         'subcat.id = entertainer.specific_category',
-      );
+      )
+      .where('entertainer.status IN (:...statuses)', {
+        statuses: ['active', 'inactive'],
+      });
 
     if (search) {
       baseQuery.where('entertainer.name LIKE :search', {
@@ -80,14 +87,12 @@ export class EntertainerService {
         'country.name AS country',
         'state.name AS state',
       ])
+
       .skip(skip)
       .take(pageSize)
       .getRawMany();
 
     const parsedRecords = records.map(({ services, ...rest }) => ({
-      // services: services
-      //   ? JSON.parse(services.split(',').filter((s) => s))
-      //   : [],
       ...rest,
     }));
 
@@ -174,10 +179,7 @@ export class EntertainerService {
     }
   }
 
-  async savePrimaryDetails(createEntertainerDto: GeneralInfoDto) {
-
-    
-  }
+  async savePrimaryDetails(createEntertainerDto: GeneralInfoDto) {}
 
   async update(updateEntertainerDto: UpdateEntertainerDto): Promise<any> {
     const { id, fieldsToUpdate } = updateEntertainerDto;
@@ -210,6 +212,34 @@ export class EntertainerService {
     return categories;
   }
 
+  // Approve Entertainer
+  async approveEntertainer(dto: ApproveEntertainer) {
+    const { id, status } = dto;
+    try {
+      const entertainer = await this.entertainerRepository.findOne({
+        where: { id },
+        relations: ['user'],
+      });
+
+      if (entertainer.user) {
+        await this.userRepository.update(
+          { id: entertainer.user.id },
+          { status },
+        );
+      }
+      await this.entertainerRepository.update({ id }, { status });
+
+      return {
+        message: 'Entertainer Status updated Successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
   async getSubCategory(parentId: number) {
     const res = await this.CategoryRepository.find({
       where: { parentId },

@@ -24,6 +24,7 @@ import { UpdateEntertainerDto } from './Dto/update-entertainer.dto';
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
+import { ApproveEntertainer } from './Dto/approve-entertainer.dto';
 
 @ApiTags('admin')
 @Controller('admin/entertainer')
@@ -80,6 +81,11 @@ export class EntertainerController {
   @Post('update')
   async updateEntertainer(@Body() updateEntertainerDto: UpdateEntertainerDto) {
     return this.EntertainerService.update(updateEntertainerDto);
+  }
+
+  @Patch('approval')
+  async updateEntertainerStatus(@Body() dto: ApproveEntertainer) {
+    return this.EntertainerService.approveEntertainer(dto);
   }
 
   @Roles('super-admin', 'entertainer-admin')
