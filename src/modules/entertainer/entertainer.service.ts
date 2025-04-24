@@ -27,7 +27,16 @@ import {
   Step8Dto,
   Step9Dto,
 } from './dto/create-entertainer.dto';
-import { UpdateEntertainerDto } from './dto/update-entertainer.dto';
+import {
+  UpdateEntertainerDto,
+  UpdateStep1Dto,
+  UpdateStep2Dto,
+  UpdateStep3Dto,
+  UpdateStep4Dto,
+  UpdateStep5Dto,
+  UpdateStep6Dto,
+  UpdateStep8Dto,
+} from './dto/update-entertainer.dto';
 import { Entertainer } from './entities/entertainer.entity';
 import { User } from '../users/entities/users.entity';
 import { Venue } from '../venue/entities/venue.entity';
@@ -396,7 +405,208 @@ export class EntertainerService {
       });
     }
   }
+  // Update Logic Lies Here
 
+  async updateBasicDetails(dto: UpdateStep1Dto, userId: number) {
+    const { step, ...rest } = dto;
+    try {
+      this.entertainerRepository.update({ user: { id: userId } }, rest);
+      return {
+        message: 'Entertainer primary details updated successfully',
+        status: true,
+        step: 1,
+        data: rest,
+        nextStep: Number('02'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async updateBio(dto: UpdateStep2Dto, userId: number) {
+    const { bio } = dto;
+
+    try {
+      await this.entertainerRepository.update(
+        {
+          user: { id: userId },
+        },
+        { bio },
+      );
+      return {
+        message: 'Bio updated Successfully',
+        status: true,
+        step: 2,
+        data: bio,
+        nextStep: Number('03'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async updateVaccinationStatus(dto: UpdateStep3Dto, userId: number) {
+    const { vaccinated } = dto;
+
+    try {
+      await this.entertainerRepository.update(
+        { user: { id: userId } },
+        { vaccinated },
+      );
+      return {
+        message: 'Vaccination status updated Successfully',
+        status: true,
+        step: 3,
+        data: vaccinated,
+        nextStep: Number('04'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async updateContactDetails(dto: UpdateStep4Dto, userId: number) {
+    const { contactPerson, contactNumber } = dto;
+
+    try {
+      await this.entertainerRepository.update(
+        { user: { id: userId } },
+        {
+          contact_person: contactPerson,
+          contact_number: contactNumber,
+        },
+      );
+      return {
+        message: 'Contact Details updated Successfully',
+        status: true,
+        data: { contact_person: contactPerson, contact_number: contactNumber },
+        step: 4,
+        nextStep: Number('05'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async updateSocialLinks(dto: UpdateStep5Dto, userId: number) {
+    const { socialLinks } = dto;
+
+    try {
+      await this.entertainerRepository.update(
+        { user: { id: userId } },
+        { socialLinks },
+      );
+      return {
+        message: 'Social Links updated Successfully',
+        status: true,
+        data: socialLinks,
+        step: 5,
+        nextStep: Number('06'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async updateCategory(dto: UpdateStep6Dto, userId: number) {
+    const { category } = dto;
+
+    try {
+      await this.entertainerRepository.update(
+        { user: { id: userId } },
+        { category },
+      );
+      return {
+        message: 'Category saved Successfully',
+        status: true,
+        data: category,
+        step: 6,
+        nextStep: Number('07'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async updateSpecificCategory(dto: Step7Dto, userId: number) {
+    const { specific_category } = dto;
+
+    try {
+      await this.entertainerRepository.update(
+        { user: { id: userId } },
+        { specific_category },
+      );
+      return {
+        message: 'Specific Category updated Successfully',
+        status: true,
+        step: 7,
+        data: specific_category,
+        nextStep: Number('08'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async updatePerformanceRole(dto: UpdateStep8Dto, userId: number) {
+    const { performanceRole } = dto;
+
+    try {
+      await this.entertainerRepository.update(
+        { user: { id: userId } },
+        { performanceRole },
+      );
+      return {
+        message: 'Performance role updated Successfully',
+        status: true,
+        step: 8,
+        data: performanceRole,
+        nextStep: Number('09'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async updateServices(dto: Step9Dto, userId: number) {
+    const { services } = dto;
+
+    try {
+      await this.entertainerRepository.update(
+        { user: { id: userId } },
+        { services },
+      );
+      return {
+        message: 'Services updated Successfully',
+        status: true,
+        data: services,
+        step: 9,
+        nextStep: Number('10'),
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
   async findEntertainer(userId: number) {
     const URL = this.config.get<string>('DEFAULT_MEDIA');
 
@@ -741,7 +951,7 @@ export class EntertainerService {
     const data = categories.map(({ iconUrl, ...rest }) => ({
       ...rest,
       activeIcon: iconUrl,
-      inactiveIcon: iconUrl.replace(/(\.\w+)$/, '_grey$1'), // Adds "_gray" before file extension
+      inactiveIcon: iconUrl?.replace(/(\.\w+)$/, '_grey$1'), // Adds "_gray" before file extension
     }));
     return {
       message: ' Sub-categories returned Successfully ',

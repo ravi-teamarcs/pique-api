@@ -118,7 +118,7 @@ export class CreateEntertainerDto {
   dob: string;
 }
 
-class Step1Dto {}
+class GeneralInfoDto {}
 class Step2Dto {}
-class Step3Dto {}
+class SocialMediaDto {}
 class Step4Dto {}

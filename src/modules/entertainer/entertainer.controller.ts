@@ -14,6 +14,7 @@ import {
   BadRequestException,
   UseInterceptors,
   UploadedFiles,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -146,6 +147,33 @@ export class EntertainerController {
   @UseGuards(JwtAuthGuard)
   updateEntertainer(@Body() body: any, @Request() req) {
     const { userId } = req.user;
+    const { step } = body;
+    switch (step) {
+      case 1:
+        return this.entertainerService.updateBasicDetails(body, userId);
+      case 2:
+        return this.entertainerService.updateBio(body, userId);
+      case 3:
+        return this.entertainerService.updateVaccinationStatus(body, userId);
+      case 4:
+        return this.entertainerService.updateContactDetails(body, userId);
+      case 5:
+        return this.entertainerService.updateSocialLinks(body, userId);
+      case 6:
+        return this.entertainerService.updateCategory(body, userId);
+      case 7:
+        return this.entertainerService.updateSpecificCategory(body, userId);
+      case 8:
+        return this.entertainerService.updatePerformanceRole(body, userId);
+      case 9:
+        return this.entertainerService.updateServices(body, userId);
+
+      default:
+        throw new BadRequestException({
+          message: 'Invalid Step',
+          status: false,
+        });
+    }
   }
   @Get()
   @UseGuards(JwtAuthGuard)
@@ -168,73 +196,6 @@ export class EntertainerController {
     const { userId } = req.user;
     return this.entertainerService.getDashboardStatistics(userId, query);
   }
-
-  // @Patch()
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Roles('findAll')
-  // @UseInterceptors(
-  //   AnyFilesInterceptor({
-  //     fileFilter: (req, file, callback) => {
-  //       // Check file type from typeMap
-  //       const fileType = typeMap[file.fieldname];
-
-  //       if (!fileType) {
-  //         return callback(
-  //           new BadRequestException({
-  //             message: 'Invalid file field name',
-  //             status: false,
-  //           }),
-  //           false,
-  //         );
-  //       }
-
-  //       // Restrict video file size to 500MB
-  //       if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
-  //         return callback(
-  //           new BadRequestException({
-  //             message: 'Video file size cannot exceed 500 MB',
-  //             status: false,
-  //           }),
-  //           false,
-  //         );
-  //       }
-
-  //       callback(null, true);
-  //     },
-  //   }),
-  // )
-  // @ApiOperation({ summary: 'Update a specific entertainer by ID' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'Entertainer updated sucessfully.',
-  // })
-  // async update(
-  //   @Body() updateEntertainerDto: UpdateEntertainerDto,
-  //   @UploadedFiles() files: Array<Express.Multer.File>,
-  //   @Request() req,
-  // ) {
-  //   const { userId } = req.user;
-  //   let uploadedFiles: UploadedFile[] = [];
-
-  //   if (files.length > 0) {
-  //     uploadedFiles = await Promise.all(
-  //       files.map(async (file) => {
-  //         const filePath = await uploadFile(file); // Wait for the upload
-  //         return {
-  //           url: filePath,
-  //           name: file.originalname,
-  //           type: typeMap[file.fieldname],
-  //         };
-  //       }),
-  //     );
-  //   }
-
-  //   // return this.entertainerService.update(
-  //   //   updateEntertainerDto,
-  //   //   userId,
-  //   //   uploadedFiles,
-  //   // );
-  // }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a specific entertainer by ID' })
@@ -302,7 +263,7 @@ export class EntertainerController {
   }
 
   @Get('categories/subcategories')
-  getSubCategories(@Query('id') id: number) {
+  getSubCategories(@Query('id', ParseIntPipe) id: number) {
     return this.entertainerService.getSubCategories(id);
   }
 

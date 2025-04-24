@@ -126,13 +126,40 @@ export class EntertainerService {
   }
 
   async getEntertainerByentertainerId(entertainerId: number) {
-    const records = await this.entertainerRepository.find({
-      where: { id: entertainerId },
-    });
+    const res = this.entertainerRepository
+      .createQueryBuilder('entertainer')
+      .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .leftJoin('states', 'state', 'state.id = entertainer.state')
+      .leftJoin('cities', 'city', 'city.id = entertainer.city')
+      .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
+      .leftJoin(
+        'categories',
+        'subcat',
+        'subcat.id = entertainer.specific_category',
+      )
+      .select([
+        'entertainer.id AS id',
+        'entertainer.name AS name',
+        'entertainer.entertainer_name AS entertainer_name',
+        'entertainer.dob AS dob',
+        'entertainer.bio AS bio',
+        'entertainer.performanceRole AS performanceRole',
+        'entertainer.socialLinks AS socialLinks',
+        'entertainer.zipCode AS ZipCode',
+        "COALESCE(entertainer.services, '') AS services",
+        'entertainer.contact_person AS contactPerson',
+        'entertainer.contact_number AS ContactNumber',
+        'entertainer.address AS address',
+        'city.name AS city',
+        'country.name AS country',
+        'state.name AS state',
+      ])
+      .where('entertainer.id=:entertainerId', { entertainerId });
 
     return {
-      records,
-      total: records.length,
+      messaage:"Entertainer Detail fetched Succe"
+      // records,
+      // total: records.length,
     };
   }
 
