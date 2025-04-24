@@ -38,45 +38,28 @@ export class EventService {
   }
 
   // New code of Venue Creation with Media
-  async createEventWithMedia(
-    dto: CreateEventDto,
-    uploadedFiles: UploadedFile[],
-  ) {
-    const { userId, venueId } = dto;
-    const queryRunner = this.dataSource.createQueryRunner();
-    await queryRunner.connect();
-
-    await queryRunner.startTransaction();
+  async createEvent(dto: CreateEventDto) {
+    const { neighbourhoodId, ...rest } = dto;
 
     try {
-      const event = this.eventRepository.create(dto);
-      const savedEvent = await queryRunner.manager.save(event);
+      const event = this.eventRepository.create({
+        sub_venue_id: neighbourhoodId,
+        ...rest,
+      });
 
-      // Step 2: Upload media (calls external service Need some changes in Admin Api)
-      const mediaUploadResult = await this.mediaService.handleMediaUpload(
-        userId,
-        uploadedFiles,
-        venueId,
-        Number(savedEvent.id),
-      );
-
-      // Step 3: Commit transaction if everything is successful
-      await queryRunner.commitTransaction();
+      console.log(event, 'Newly creatyed ');
+      await this.eventRepository.save(event);
 
       return {
-        message: 'Event is Successfully created with media',
+        message: 'Event created Successfully',
         data: event,
         status: true,
       };
     } catch (error) {
-      // Step 4: Rollback transaction if anything fails
-      await queryRunner.rollbackTransaction();
       throw new InternalServerErrorException({
         error: error.message,
         status: false,
       });
-    } finally {
-      await queryRunner.release();
     }
   }
 

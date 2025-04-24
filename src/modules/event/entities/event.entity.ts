@@ -14,11 +14,8 @@ export class VenueEvent {
   @Column()
   title: string;
 
-  @Column()
-  location: string;
-
   @Column({ nullable: true })
-  userId: number;
+  location: string;
 
   @Column()
   venueId: number;
@@ -29,14 +26,15 @@ export class VenueEvent {
   @Column()
   description: string;
 
-  @Column()
+  @Column({ type: 'time' })
   startTime: Date;
 
-  @Column()
+  @Column({ type: 'time' })
   endTime: Date;
 
-  @Column()
-  // duration: number;
+  @Column({ type: 'date' })
+  eventDate: Date;
+
   @Column({
     type: 'enum',
     enum: ['none', 'daily', 'weekly', 'monthly'],

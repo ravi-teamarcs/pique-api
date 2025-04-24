@@ -34,64 +34,13 @@ import { EventsQueryDto } from './dto/query.dto';
 export class EventController {
   constructor(private readonly eventService: EventService) {}
 
+  // Event Created
   @Roles('super-admin')
-  @UseInterceptors(
-    AnyFilesInterceptor({
-      fileFilter: (req, file, callback) => {
-        // Check file type from typeMap
-        const fileType = typeMap[file.fieldname];
-
-        if (!fileType) {
-          return callback(
-            new BadRequestException({
-              message: 'Invalid file field name',
-              status: false,
-            }),
-            false,
-          );
-        }
-
-        // Restrict video file size to 500MB
-        if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
-          return callback(
-            new BadRequestException({
-              message: 'Video file size cannot exceed 500 MB',
-              status: false,
-            }),
-            false,
-          );
-        }
-
-        callback(null, true);
-      },
-    }),
-  )
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Post('create')
-  async create(
-    @Body() createEventDto: CreateEventDto,
-    @UploadedFiles() files: Array<Express.Multer.File>,
-  ) {
-    let uploadedFiles: UploadedFile[] = [];
-
-    if (files.length > 0) {
-      uploadedFiles = await Promise.all(
-        files.map(async (file) => {
-          const filePath = await uploadFile(file); // Wait for the upload
-          return {
-            url: filePath,
-            name: file.originalname,
-            type: typeMap[file.fieldname],
-          };
-        }),
-      );
-    }
-
-    return this.eventService.createEventWithMedia(
-      createEventDto,
-      uploadedFiles,
-    );
+  async create(@Body() createEventDto: CreateEventDto) {
+    return this.eventService.createEvent(createEventDto);
   }
 
   @Roles('super-admin')

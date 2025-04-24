@@ -17,29 +17,26 @@ export class Event {
   @Column()
   title: string;
 
-  @Column()
-  location: string;
-
   @Column({ nullable: true })
-  userId: number;
+  location: string;
 
   @Column()
   venueId: number;
- 
+
   @Column({ nullable: true })
   sub_venue_id: number;
 
   @Column()
   description: string;
 
-  // @Column()
-  // duration: number;
-
-  @Column({ type: 'datetime', nullable: false })
+  @Column({ type: 'time' })
   startTime: Date;
 
-  @Column({ type: 'datetime', nullable: false })
+  @Column({ type: 'time' })
   endTime: Date;
+
+  @Column({ type: 'date' })
+  eventDate: Date;
 
   @Column({
     type: 'enum',

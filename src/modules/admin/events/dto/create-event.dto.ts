@@ -17,11 +17,6 @@ export class CreateEventDto {
   @Transform(({ value }) => Number(value))
   venueId: number;
 
-  @IsOptional()
-  @IsNumber()
-  @Transform(({ value }) => Number(value))
-  userId: number;
-
   @ApiProperty({
     example: 'singing concert',
     description: 'Title of the event',
@@ -39,40 +34,23 @@ export class CreateEventDto {
   startTime: string;
 
   @ApiProperty({
-    example: '2025-02-13T14:30:00Z',
+    example: '14:30:00',
     description: 'End dateTime of the event',
   })
   @IsNotEmpty()
   @IsString()
   endTime: string;
 
-  @ApiProperty({ example: 'Noida', description: 'Type of event' })
   @IsNotEmpty()
   @IsString()
-  location: string;
+  eventDate: string;
 
   @ApiProperty({ description: 'Description of event' })
   @IsNotEmpty()
   @IsString()
   description: string;
 
-  @IsEnum(['none', 'daily', 'weekly', 'monthly'])
   @IsNotEmpty()
-  recurring: 'none' | 'daily' | 'weekly' | 'monthly' = 'none';
-
-  @IsEnum(['unpublished', 'scheduled', 'confirmed', 'cancelled', 'completed'])
-  @IsNotEmpty()
-  status:
-    | 'unpublished'
-    | 'scheduled'
-    | 'confirmed'
-    | 'cancelled'
-    | 'completed'
-    | 'scheduled';
-
-  @ApiProperty({ example: false, description: 'Is Event creator Admin ?' })
-  @IsBoolean()
-  @IsNotEmpty()
-  @Transform(({ value }) => value === 'true')
-  isAdmin: boolean;
+  @Transform(({ value }) => Number(value))
+  neighbourhoodId: number;
 }
