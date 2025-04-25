@@ -177,6 +177,10 @@ export class EventService {
 
   // Update an event by id
   async update(id: number, dto: UpdateEventDto) {
+    const { neighbourhoodId, ...rest } = dto;
+    const payload = { ...rest };
+    if (neighbourhoodId) payload['sub_venue_id'] = neighbourhoodId;
+
     const event = await this.eventRepository.findOne({ where: { id } });
     if (!event) {
       throw new BadRequestException({
@@ -186,7 +190,7 @@ export class EventService {
     }
 
     try {
-      await this.eventRepository.update({ id: event.id }, dto);
+      await this.eventRepository.update({ id: event.id }, payload);
       return { message: 'Event updated successfully', data: dto, status: true };
     } catch (error) {
       throw new InternalServerErrorException({

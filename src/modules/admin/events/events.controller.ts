@@ -77,11 +77,8 @@ export class EventController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Put('updatebyid/:id')
-  async update(
-    @Param('id') id: number,
-    @Body() createEventDto: UpdateEventDto,
-  ) {
-    return this.eventService.update(Number(id), createEventDto);
+  async update(@Param('id') id: number, @Body() dto: UpdateEventDto) {
+    return this.eventService.update(Number(id), dto);
   }
 
   @Roles('super-admin')
