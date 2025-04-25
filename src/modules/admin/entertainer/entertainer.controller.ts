@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  InternalServerErrorException,
   Param,
   ParseIntPipe,
   Patch,
@@ -11,7 +12,9 @@ import {
   Query,
   Req,
   Request,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { EntertainerService } from './entertainer.service';
 
@@ -25,6 +28,10 @@ import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
 import { ApproveEntertainer } from './Dto/approve-entertainer.dto';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { getFileType, UploadedFile } from 'src/common/types/media.type';
+import { uploadFile } from 'src/common/middlewares/multer.middleware';
+import { typeMap } from 'src/common/constants/media.constants';
 
 @ApiTags('admin')
 @Controller('admin/entertainer')
@@ -52,26 +59,51 @@ export class EntertainerController {
 
   @Post('createent')
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  async create(@Body() body: any, @Request() req) {
-    const { step } = body;
-    const { userId } = req.user;
+  @Roles('super-admin', 'entertainer-admin')
+  async create(
+    @Body() dto: CreateEntertainerDto,
 
-    // switch (step) {
-    //   case 1:
-    //     return this.EntertainerService.savePrimaryDetails(body, userId);
-    //   case 2:
-    //     return this.EntertainerService.saveBio(body, userId);
-    //   case 3:
-    //     return this.EntertainerService.vaccinationStatus(body, userId);
-    //   case 4:
-    //     return this.EntertainerService.contactDetails(body, userId);
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    let uploadedFiles: UploadedFile[] = [];
 
-    //   default:
-    //     throw new BadRequestException({
-    //       message: 'Invalid Step',
-    //       status: false,
-    //     });
-    // }
+    if (files?.length && files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: typeMap[file.fieldname],
+          };
+        }),
+      );
+    }
+    return this.EntertainerService.createEntertainer(dto, uploadedFiles);
+  }
+
+  @Post('media/:id')
+  @UseInterceptors(AnyFilesInterceptor())
+  @UseGuards(JwtAuthGuard)
+  async addMedia(
+    @UploadedFiles() files: Array<Express.Multer.File>,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    let uploadedFiles: UploadedFile[] = [];
+
+    if (files?.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: getFileType(file.mimetype),
+          };
+        }),
+      );
+    }
+    return this.EntertainerService.uploadMedia(id, uploadedFiles);
   }
 
   // This need to be  changed

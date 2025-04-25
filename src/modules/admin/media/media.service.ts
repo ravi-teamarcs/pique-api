@@ -19,7 +19,7 @@ export class MediaService {
     userId: number,
     uploadedFiles: UploadedFile[],
     venueId?: number,
-    eventId?: number,
+    eventId?: number | null,
   ) {
     try {
       for (const file of uploadedFiles) {
@@ -54,10 +54,14 @@ export class MediaService {
           eventId: eventId ?? null,
         });
 
-        await this.mediaRepository.save(media);
+        const savedMedia = await this.mediaRepository.save(media);
       }
 
-      return { message: 'Files Saved Successfully' };
+      return {
+        message: 'Files Saved Successfully',
+
+        status: true,
+      };
     } catch (error) {
       console.error('Error uploading media:', error);
       throw new Error('Media upload failed');

@@ -105,7 +105,7 @@ export class VenueService {
         'state.name AS state',
         'country.name AS country',
         'user.email AS email',
-        'user.status AS status',
+        'venue.status AS status',
         'COALESCE(media.mediaDetails, "[]") AS media',
         'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods',
       ])
@@ -244,6 +244,7 @@ export class VenueService {
           ...rest,
           password: hashedPassword,
           isVerified: true,
+          status: 'active',
           createdByAdmin: true,
         });
         savedUser = await queryRunner.manager.save(newUser);
@@ -259,6 +260,7 @@ export class VenueService {
       const newVenue = this.venueRepository.create({
         ...venue,
         user: savedUser ? { id: savedUser.id } : null,
+        status: 'active',
         profileStep: 3,
         isProfileComplete: true,
       });

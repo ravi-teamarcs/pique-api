@@ -8,6 +8,8 @@ import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../auth/entities/capability.entity';
 import { User } from '../users/entities/users.entity';
+import { AdminCreatedUser } from '../users/entities/admin.created.entity';
+import { MediaModule } from '../media/media.module';
 
 @Module({
   imports: [
@@ -18,7 +20,9 @@ import { User } from '../users/entities/users.entity';
       Role,
       Capability,
       User,
+      AdminCreatedUser,
     ]),
+    MediaModule,
   ],
   controllers: [EntertainerController],
   providers: [EntertainerService],

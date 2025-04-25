@@ -6,20 +6,21 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Entertainer } from './entities/entertainer.entity';
-import { In, Like, Not, Repository } from 'typeorm';
+import { DataSource, In, Like, Not, Repository } from 'typeorm';
 import { Categories } from './entities/Category.entity';
 import { CreateCategoryDto } from './Dto/create-category.dto';
 import { UpdateCategoryDto } from './Dto/update-category.dto';
-import {
-  CreateEntertainerDto,
-  GeneralInfoDto,
-} from './Dto/create-entertainer.dto';
+import { CreateEntertainerDto } from './Dto/create-entertainer.dto';
 import { UpdateStatusDto } from './Dto/update-status.dto';
 import { UpdateEntertainerDto } from './Dto/update-entertainer.dto';
 import slugify from 'slugify';
 import { ConfigService } from '@nestjs/config';
 import { ApproveEntertainer } from './Dto/approve-entertainer.dto';
 import { User } from '../users/entities/users.entity';
+import { UploadedFile } from 'src/common/types/media.type';
+import * as bcrypt from 'bcryptjs';
+import { MediaService } from '../media/media.service';
+import { AdminCreatedUser } from '../users/entities/admin.created.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -30,7 +31,11 @@ export class EntertainerService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(Categories)
     private readonly CategoryRepository: Repository<Categories>,
+    @InjectRepository(AdminCreatedUser)
+    private readonly tempRepository: Repository<AdminCreatedUser>,
     private readonly config: ConfigService,
+    private readonly dataSource: DataSource,
+    private readonly mediaService: MediaService,
   ) {}
 
   async getAllEntertainers({
@@ -83,6 +88,7 @@ export class EntertainerService {
         'entertainer.contact_person AS contactPerson',
         'entertainer.contact_number AS ContactNumber',
         'entertainer.address AS address',
+        'entertainer.status AS status',
         'city.name AS city',
         'country.name AS country',
         'state.name AS state',
@@ -179,7 +185,85 @@ export class EntertainerService {
     }
   }
 
-  async savePrimaryDetails(createEntertainerDto: GeneralInfoDto) {}
+  async createEntertainer(
+    dto: CreateEntertainerDto,
+    uploadedFiles: UploadedFile[],
+  ) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    const { createLogin, user, entertainer } = dto;
+    const { contactPerson, contactNumber, stageName } = entertainer;
+    try {
+      let savedUser = null;
+
+      // 1. Create user if checkbox is checked
+      if (createLogin) {
+        const { password, ...rest } = user;
+        const hashedPassword = await bcrypt.hash(password, 10);
+        const newUser = this.userRepository.create({
+          ...rest,
+          password: hashedPassword,
+          isVerified: true,
+          status: 'active',
+          createdByAdmin: true,
+        });
+        savedUser = await queryRunner.manager.save(newUser);
+        // saving password in temp repo
+        const temp = this.tempRepository.create({
+          email: savedUser.email,
+          password,
+        });
+        await this.tempRepository.save(temp);
+      }
+
+      // 2. Create venue with reference to user (if present)
+      const newVenue = this.entertainerRepository.create({
+        name: stageName,
+        contact_person: contactPerson,
+        contact_number: contactNumber,
+        user: savedUser ? { id: savedUser.id } : null,
+        status: 'active',
+        profileStep: 3,
+        isProfileComplete: true,
+      });
+      const savedVenue = await queryRunner.manager.save(newVenue);
+
+      if (uploadedFiles?.length > 0) {
+        await this.mediaService.handleMediaUpload(savedVenue.id, uploadedFiles);
+      }
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Enterainer Created Successfully with media .',
+        status: true,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException({
+        message: error.mesage,
+        status: false,
+      });
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  async uploadMedia(id: number, uploadedFiles: UploadedFile[]) {
+    try {
+      await this.mediaService.handleMediaUpload(id, uploadedFiles);
+
+      return {
+        message: 'Media uploaded Successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 
   async update(updateEntertainerDto: UpdateEntertainerDto): Promise<any> {
     const { id, fieldsToUpdate } = updateEntertainerDto;

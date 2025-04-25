@@ -929,10 +929,12 @@ export class EntertainerService {
       select: ['id', 'name', 'iconUrl'],
     });
 
-    const data = categories.map(({ iconUrl, ...rest }) => ({
+     const baseUrl= this.config.get<string>('BASE_URL')
+
+     const data = categories.map(({ iconUrl, ...rest }) => ({
       ...rest,
-      activeIcon: iconUrl,
-      inactiveIcon: iconUrl.replace(/(\.\w+)$/, '_grey$1'), // Adds "_gray" before file extension
+      activeIcon: `${baseUrl}${iconUrl}`,
+      inactiveIcon: `${baseUrl}${iconUrl.replace(/(\.\w+)$/, '_grey$1')}`,
     }));
     return {
       message: 'categories returned Successfully ',
@@ -947,11 +949,11 @@ export class EntertainerService {
     if (categories.length === 0) {
       return { message: 'Sub-categories not found', categories: null };
     }
-
+    const baseUrl= this.config.get<string>('BASE_URL')
     const data = categories.map(({ iconUrl, ...rest }) => ({
       ...rest,
-      activeIcon: iconUrl,
-      inactiveIcon: iconUrl?.replace(/(\.\w+)$/, '_grey$1'), // Adds "_gray" before file extension
+      activeIcon: `${baseUrl}${iconUrl}`,
+      inactiveIcon: `${baseUrl}${iconUrl.replace(/(\.\w+)$/, '_grey$1')}`,
     }));
     return {
       message: ' Sub-categories returned Successfully ',
