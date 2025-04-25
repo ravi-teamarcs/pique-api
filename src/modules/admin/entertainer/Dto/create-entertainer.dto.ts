@@ -71,11 +71,19 @@ export class CreateEntertainerDto {
     return false;
   })
   createLogin: boolean;
-  @Transform(({ value }) => JSON.parse(value))
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') return JSON.parse(value);
+    return value;
+  })
+  @Type(() => CreateUserDto)
   user?: CreateUserDto;
 
-  @Transform(({ value }) => JSON.parse(value))
   @IsNotEmpty()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') return JSON.parse(value);
+    return value;
+  })
+  @Type(() => GeneralInfoDto)
   entertainer: GeneralInfoDto;
 }
