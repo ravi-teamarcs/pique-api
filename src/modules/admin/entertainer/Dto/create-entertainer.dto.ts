@@ -5,7 +5,6 @@ import {
   IsOptional,
   IsString,
   IsNumber,
-  IsDateString,
   IsArray,
   IsIn,
   IsBoolean,
@@ -72,11 +71,11 @@ export class CreateEntertainerDto {
     return false;
   })
   createLogin: boolean;
-  @Type(() => CreateUserDto)
+  @Transform(({ value }) => JSON.parse(value))
   @IsOptional()
   user?: CreateUserDto;
 
-  @Type(() => GeneralInfoDto)
+  @Transform(({ value }) => JSON.parse(value))
   @IsNotEmpty()
   entertainer: GeneralInfoDto;
 }
