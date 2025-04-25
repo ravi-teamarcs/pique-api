@@ -118,7 +118,7 @@ export class EntertainerController {
   ) {
     return this.EntertainerService.updateAddress(id, dto);
   }
-  @Patch('adddress/:id')
+  @Patch('socialLinks/:id')
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Roles('super-admin', 'entertainer-admin')
   async updateSocialLinks(

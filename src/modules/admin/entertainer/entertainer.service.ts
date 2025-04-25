@@ -118,6 +118,7 @@ export class EntertainerService {
     try {
       const res = await this.entertainerRepository
         .createQueryBuilder('entertainer')
+        .leftJoin('users', 'user', 'user.id =entertainer.userId')
         .leftJoin('countries', 'country', 'country.id = entertainer.country')
         .leftJoin('states', 'state', 'state.id = entertainer.state')
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
@@ -160,23 +161,30 @@ export class EntertainerService {
           'entertainer.contact_person AS contactPerson',
           'entertainer.contact_number AS ContactNumber',
           'entertainer.address AS address',
+          'entertainer.status AS status',
+          'user.email AS email',
           'city.name AS city',
           'country.name AS country',
           'state.name AS state',
           'COALESCE(media.mediaDetails, "[]") AS media',
+          'user.createdByAdmin AS createdByAdmin',
         ])
         .where('entertainer.id=:entertainerId', { entertainerId })
         .setParameter('serverUri', this.config.get<string>('BASE_URL'))
         .getRawOne();
+
+      if (res.createdByAdmin === 1) {
+        const data = await this.tempRepository.findOne({
+          where: { email: res.email },
+        });
+        res['password'] = data?.password;
+      }
       return {
-        message: 'Entertainer Detail fetched Succe',
+        message: 'Entertainer Details fetched Successfully',
         records: {
           ...res,
           media: JSON.parse(res.media),
-          services:
-            typeof res.services === null
-              ? res.services
-              : JSON.parse(res.services),
+          services: res.services ? res.services.split(',') : [],
         },
         status: true,
       };
