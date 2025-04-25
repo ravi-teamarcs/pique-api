@@ -28,6 +28,7 @@ import { typeMap } from 'src/common/constants/media.constants';
 import { UploadedFile } from 'src/common/types/media.type';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { EventsQueryDto } from './dto/query.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
 
 @ApiTags('admin')
 @Controller('admin/events')
@@ -78,7 +79,7 @@ export class EventController {
   @Put('updatebyid/:id')
   async update(
     @Param('id') id: number,
-    @Body() createEventDto: CreateEventDto,
+    @Body() createEventDto: UpdateEventDto,
   ) {
     return this.eventService.update(Number(id), createEventDto);
   }

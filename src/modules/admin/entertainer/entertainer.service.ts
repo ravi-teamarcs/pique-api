@@ -12,7 +12,10 @@ import { CreateCategoryDto } from './Dto/create-category.dto';
 import { UpdateCategoryDto } from './Dto/update-category.dto';
 import { CreateEntertainerDto } from './Dto/create-entertainer.dto';
 import { UpdateStatusDto } from './Dto/update-status.dto';
-import { UpdateEntertainerDto } from './Dto/update-entertainer.dto';
+import {
+  UpdateAddressDto,
+  UpdateEntertainerDto,
+} from './Dto/update-entertainer.dto';
 import slugify from 'slugify';
 import { ConfigService } from '@nestjs/config';
 import { ApproveEntertainer } from './Dto/approve-entertainer.dto';
@@ -193,7 +196,8 @@ export class EntertainerService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     const { createLogin, user, entertainer } = dto;
-    const { contactPerson, contactNumber, stageName } = entertainer;
+    const { contactPerson, contactNumber, stageName, ...restDetails } =
+      entertainer;
     try {
       let savedUser = null;
 
@@ -218,19 +222,24 @@ export class EntertainerService {
       }
 
       // 2. Create venue with reference to user (if present)
-      const newVenue = this.entertainerRepository.create({
+      const newEntertainer = this.entertainerRepository.create({
         name: stageName,
         contact_person: contactPerson,
         contact_number: contactNumber,
+        ...restDetails,
         user: savedUser ? { id: savedUser.id } : null,
         status: 'active',
-        profileStep: 3,
+        profileStep: 10,
         isProfileComplete: true,
       });
-      const savedVenue = await queryRunner.manager.save(newVenue);
+      console.log(newEntertainer);
+      const savedEntertainer = await queryRunner.manager.save(newEntertainer);
 
       if (uploadedFiles?.length > 0) {
-        await this.mediaService.handleMediaUpload(savedVenue.id, uploadedFiles);
+        await this.mediaService.handleMediaUpload(
+          savedEntertainer.id,
+          uploadedFiles,
+        );
       }
       await queryRunner.commitTransaction();
 
@@ -249,6 +258,21 @@ export class EntertainerService {
     }
   }
 
+  async updateAddress(id: number, dto: UpdateAddressDto) {
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { id },
+    });
+    if (!entertainer) {
+      throw new BadRequestException({ message: 'Entertainer not found' });
+    }
+
+    try {
+      await this.entertainerRepository.update({ id: entertainer.id }, dto);
+    } catch (error) {
+      throw new InternalServerErrorException({ message: error.message });
+    }
+  }
+
   async uploadMedia(id: number, uploadedFiles: UploadedFile[]) {
     try {
       await this.mediaService.handleMediaUpload(id, uploadedFiles);
@@ -262,6 +286,24 @@ export class EntertainerService {
         message: error.message,
         status: false,
       });
+    }
+  }
+
+  async updateSocialLinks(id: number, socialLinks: string) {
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { id },
+    });
+    if (!entertainer) {
+      throw new BadRequestException({ message: 'Entertainer not found' });
+    }
+
+    try {
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        { socialLinks },
+      );
+    } catch (error) {
+      throw new InternalServerErrorException({ message: error.message });
     }
   }
 

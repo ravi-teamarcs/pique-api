@@ -156,7 +156,7 @@ export class BookingService {
     }
   }
 
-  async getBookingListing() {
+  async getBookingListing(fromDate, toDate) {
     try {
       return { message: 'Booking Listing Fetched Successfully', status: true };
     } catch (error) {

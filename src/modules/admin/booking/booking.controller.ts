@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Get,
@@ -88,6 +89,25 @@ export class BookingController {
   @Get('listing')
   @Roles('super-admin')
   getBookingListing() {
-    return this.bookingService.getBookingListing();
+    const now = new Date();
+
+    let fromDate: Date;
+    let toDate: Date;
+
+    try {
+      // fromDate = from
+      //   ? new Date(from)
+      //   : dayjs(now).subtract(1, 'year').startOf('month').toDate();
+      // toDate = to ? new Date(to) : dayjs(now).endOf('month').toDate();
+      // Validate max range (1 year)
+      // const maxRange = dayjs(fromDate).add(1, 'year');
+      // if (dayjs(toDate).isAfter(maxRange)) {
+      //   throw new Error('Range cannot be more than 1 year.');
+      // }
+    } catch (e) {
+      throw new BadRequestException('Invalid date range.');
+    }
+
+    return this.bookingService.getBookingListing(fromDate, toDate);
   }
 }

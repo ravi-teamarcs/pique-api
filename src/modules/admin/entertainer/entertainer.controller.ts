@@ -23,7 +23,10 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { UpdateCategoryDto } from './Dto/update-category.dto';
 import { CreateEntertainerDto } from './Dto/create-entertainer.dto';
 import { UpdateStatusDto } from './Dto/update-status.dto';
-import { UpdateEntertainerDto } from './Dto/update-entertainer.dto';
+import {
+  UpdateAddressDto,
+  UpdateEntertainerDto,
+} from './Dto/update-entertainer.dto';
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
@@ -104,6 +107,25 @@ export class EntertainerController {
       );
     }
     return this.EntertainerService.uploadMedia(id, uploadedFiles);
+  }
+
+  @Patch('adddress/:id')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin', 'entertainer-admin')
+  async updateAddress(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UpdateAddressDto,
+  ) {
+    return this.EntertainerService.updateAddress(id, dto);
+  }
+  @Patch('adddress/:id')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin', 'entertainer-admin')
+  async updateSocialLinks(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('socialLinks') socialLinks: string,
+  ) {
+    return this.EntertainerService.updateSocialLinks(id, socialLinks);
   }
 
   // This need to be  changed

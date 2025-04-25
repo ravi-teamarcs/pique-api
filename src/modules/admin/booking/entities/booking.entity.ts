@@ -30,7 +30,7 @@ export class Booking {
 
   @Column({ nullable: false })
   venueId: number;
- 
+
   @Column({ nullable: false })
   entId: number;
 

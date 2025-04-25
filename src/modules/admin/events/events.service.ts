@@ -16,6 +16,7 @@ import { UploadedFile } from 'src/common/types/media.type';
 import { Media } from '../media/entities/media.entity';
 import { MediaService } from '../media/media.service';
 import { EventsQueryDto } from './dto/query.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
 
 @Injectable()
 export class EventService {
@@ -175,7 +176,7 @@ export class EventService {
   }
 
   // Update an event by id
-  async update(id: number, dto: CreateEventDto) {
+  async update(id: number, dto: UpdateEventDto) {
     const event = await this.eventRepository.findOne({ where: { id } });
     if (!event) {
       throw new BadRequestException({
@@ -185,8 +186,8 @@ export class EventService {
     }
 
     try {
-      await this.eventRepository.update({ id: event.id }, dto); // Update event with provided data
-      return { message: 'Event updated successfully', status: true };
+      await this.eventRepository.update({ id: event.id }, dto);
+      return { message: 'Event updated successfully', data: dto, status: true };
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,
