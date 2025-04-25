@@ -858,10 +858,11 @@ export class VenueService {
     });
     const plainCat = instanceToPlain(categories);
 
-    const Data = plainCat.map(({ iconUrl, ...rest }) => ({
+    const baseUrl = this.config.get<string>('BASE_URL');
+    const Data = categories.map(({ iconUrl, ...rest }) => ({
       ...rest,
-      activeIcon: iconUrl,
-      inactiveIcon: iconUrl.replace(/(\.\w+)$/, '_grey$1'), // Adds "_gray" before file extension
+      activeIcon: `${baseUrl}${iconUrl}`,
+      inactiveIcon: `${baseUrl}${iconUrl.replace(/(\.\w+)$/, '_grey$1')}`,
     }));
 
     const filter = plainCat.map((item) => ({

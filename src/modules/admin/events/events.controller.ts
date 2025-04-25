@@ -43,10 +43,10 @@ export class EventController {
     return this.eventService.createEvent(createEventDto);
   }
 
-  @Roles('super-admin')
+  @Get('getall')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get('getall')
+  @Roles('super-admin')
   async findAll(
     @Req() req,
     @Query('page') page: number = 1,

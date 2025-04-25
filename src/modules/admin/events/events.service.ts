@@ -90,23 +90,28 @@ export class EventService {
 
     const query = this.eventRepository
       .createQueryBuilder('event')
-      .leftJoin('venue', 'venue', 'venue.id = event.venueId') // Explicit join on venue
+      .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+      .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
       .select([
+        // Event Details
+
         'event.id AS id',
         'event.title  AS title',
-        'event.location  AS location',
         'event.startTime AS startTime',
         'event.endTime AS endTime',
         'event.status AS status',
-        'event.recurring  AS recurring',
+        'event.eventDate  AS eventDate',
         'event.description  AS description',
+
         'event.venueId AS venueId',
-        'event.userId AS userId',
-        'event.isAdmin AS isAdmin',
+        'hood.name AS neighbourhood_name',
+        'hood.name AS neighbourhood_name',
+        'hood.contactPerson AS neighbourhood_contact_person',
+        'hood.contactNumber AS neighbourhood_contact_number',
+        'hood.id AS neighbourhood_id',
         'venue.name AS venueName',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
-        'venue.phone AS phone',
       ])
       .where(search ? 'event.title LIKE :search' : '1=1', {
         search: `%${search}%`,
