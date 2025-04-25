@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsNotEmpty,
   IsOptional,
@@ -72,9 +72,11 @@ export class CreateEntertainerDto {
     return false;
   })
   createLogin: boolean;
-
+  @Type(() => CreateUserDto)
   @IsOptional()
   user?: CreateUserDto;
+
+  @Type(() => GeneralInfoDto)
   @IsNotEmpty()
   entertainer: GeneralInfoDto;
 }
