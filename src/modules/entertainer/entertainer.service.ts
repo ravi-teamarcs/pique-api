@@ -929,9 +929,9 @@ export class EntertainerService {
       select: ['id', 'name', 'iconUrl'],
     });
 
-     const baseUrl= this.config.get<string>('BASE_URL')
+    const baseUrl = this.config.get<string>('BASE_URL');
 
-     const data = categories.map(({ iconUrl, ...rest }) => ({
+    const data = categories.map(({ iconUrl, ...rest }) => ({
       ...rest,
       activeIcon: `${baseUrl}${iconUrl}`,
       inactiveIcon: `${baseUrl}${iconUrl.replace(/(\.\w+)$/, '_grey$1')}`,
@@ -945,16 +945,18 @@ export class EntertainerService {
   async getSubCategories(catId: number) {
     const categories = await this.categoryRepository.find({
       where: { parentId: catId },
+      select: ['id', 'name', 'iconUrl'],
     });
     if (categories.length === 0) {
       return { message: 'Sub-categories not found', categories: null };
     }
-    const baseUrl= this.config.get<string>('BASE_URL')
+    const baseUrl = this.config.get<string>('BASE_URL');
     const data = categories.map(({ iconUrl, ...rest }) => ({
       ...rest,
       activeIcon: `${baseUrl}${iconUrl}`,
-      inactiveIcon: `${baseUrl}${iconUrl.replace(/(\.\w+)$/, '_grey$1')}`,
+      inactiveIcon: `${baseUrl}${iconUrl?.replace(/(\.\w+)$/, '_grey$1')}`,
     }));
+
     return {
       message: ' Sub-categories returned Successfully ',
       categories: data,
