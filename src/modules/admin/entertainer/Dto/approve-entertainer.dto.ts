@@ -5,6 +5,6 @@ export class ApproveEntertainer {
   @IsNotEmpty()
   id: number;
   @IsNotEmpty()
-  @IsIn(['active', 'pending'])
+  @IsIn(['active', 'inactive'])
   status: 'active' | 'inactive';
 }
