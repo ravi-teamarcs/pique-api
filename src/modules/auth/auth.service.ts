@@ -217,7 +217,6 @@ export class AuthService {
       refId: originalId,
     };
 
-    console.log('Payload during Login', payload);
     const token = this.jwtService.sign(payload);
 
     const deviceType = this.detectDevice(userAgent);

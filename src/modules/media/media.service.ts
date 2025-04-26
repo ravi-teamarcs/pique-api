@@ -58,7 +58,7 @@ export class MediaService {
           eventId,
         });
 
-        console.log('On save', await this.mediaRepository.save(media));
+        await this.mediaRepository.save(media);
       }
 
       return {

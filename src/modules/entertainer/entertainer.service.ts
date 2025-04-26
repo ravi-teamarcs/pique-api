@@ -321,7 +321,6 @@ export class EntertainerService {
   }
   async saveServices(dto: Step9Dto, userId: number) {
     const { services } = dto;
-    console.log(services);
     const entertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
@@ -1178,7 +1177,6 @@ export class EntertainerService {
 
   async getUpcomingEvent(userId: number, query: UpcomingEventDto) {
     const { page = 1, pageSize = 10, status = [], search = '' } = query;
-    console.log('Status', status, 'Search', search);
     const skip = (Number(page) - 1) * Number(pageSize);
     try {
       const URL =

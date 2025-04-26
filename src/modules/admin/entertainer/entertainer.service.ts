@@ -240,7 +240,7 @@ export class EntertainerService {
         profileStep: 10,
         isProfileComplete: true,
       });
-      console.log(newEntertainer);
+
       const savedEntertainer = await queryRunner.manager.save(newEntertainer);
 
       if (uploadedFiles?.length > 0) {
@@ -258,7 +258,7 @@ export class EntertainerService {
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw new InternalServerErrorException({
-        message: error.mesage,
+        message: error.message,
         status: false,
       });
     } finally {

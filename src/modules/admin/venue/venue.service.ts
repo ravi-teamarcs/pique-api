@@ -228,7 +228,7 @@ export class VenueService {
 
   async createVenue(dto: CreateVenueRequestDto, uploadedFiles: UploadedFile[]) {
     const { createLogin, user, venue, neighbourhood } = dto;
-
+    console.log('User', typeof user, 'Venue', typeof venue);
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();

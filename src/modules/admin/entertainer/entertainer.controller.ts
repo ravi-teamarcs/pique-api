@@ -61,11 +61,11 @@ export class EntertainerController {
   // New Flow for Creating Entertainer
 
   @Post('createent')
+  @UseInterceptors(AnyFilesInterceptor())
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Roles('super-admin', 'entertainer-admin')
   async create(
     @Body() dto: CreateEntertainerDto,
-
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     let uploadedFiles: UploadedFile[] = [];

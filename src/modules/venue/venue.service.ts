@@ -517,7 +517,7 @@ export class VenueService {
     if (startDate && endDate) {
       const start = new Date(startDate);
       const end = new Date(endDate);
-      console.log('Inside start Date');
+
       if (end < start) {
         throw new BadRequestException({
           message: 'endDate cannot be earlier than startDate',

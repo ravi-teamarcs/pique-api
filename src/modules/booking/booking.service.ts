@@ -132,11 +132,7 @@ export class BookingService {
       .createQueryBuilder('booking')
       .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
       .leftJoin('users', 'vuser', 'vuser.id = venue.userId') // venue's user
-      .leftJoin(
-        'entertainers',
-        'entertainer',
-        'entertainer.id = booking.entId',
-      )
+      .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
       .leftJoin('users', 'euser', 'euser.id = entertainer.userId') // entertainer's user
 
       // Join venue table
@@ -244,8 +240,6 @@ export class BookingService {
       ])
       .where('booking.id = :id', { id: bookingId })
       .getRawOne();
-
-    console.log('Booking', booking);
 
     if (!booking) {
       throw new NotFoundException({

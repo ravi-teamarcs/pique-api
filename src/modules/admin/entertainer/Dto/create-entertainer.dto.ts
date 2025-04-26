@@ -8,6 +8,7 @@ import {
   IsArray,
   IsIn,
   IsBoolean,
+  ValidateNested,
 } from 'class-validator';
 import { CreateUserDto } from 'src/modules/users/dto/users.dto';
 
@@ -71,9 +72,16 @@ export class CreateEntertainerDto {
     return false;
   })
   createLogin: boolean;
+
   @IsOptional()
   @Transform(({ value }) => {
-    if (typeof value === 'string') return JSON.parse(value);
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        return value;
+      }
+    }
     return value;
   })
   @Type(() => CreateUserDto)
@@ -81,7 +89,14 @@ export class CreateEntertainerDto {
 
   @IsNotEmpty()
   @Transform(({ value }) => {
-    if (typeof value === 'string') return JSON.parse(value);
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        console.error('Failed to parse value:', value);
+        return value;
+      }
+    }
     return value;
   })
   @Type(() => GeneralInfoDto)

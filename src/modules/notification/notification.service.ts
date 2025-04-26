@@ -159,7 +159,7 @@ export class NotificationService {
       where: { userId },
       select: ['token'],
     });
-    console.log(tokensData, 'Token Data');
+
     const tokenList = tokensData.map((t) => t.token);
     return {
       message: 'Token fetched Successfully',
@@ -176,7 +176,6 @@ export class NotificationService {
 
       const where: any = { userId };
       if (onlyUnread) where.isRead = false;
-      console.log('Where Query', where);
       const [data, total] = await this.notificationRepo.findAndCount({
         where,
         order: { createdAt: 'DESC' },

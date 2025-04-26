@@ -77,7 +77,6 @@ export class VenueController {
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
     let uploadedFiles: UploadedFile[] = [];
-
     if (files?.length > 0) {
       uploadedFiles = await Promise.all(
         files.map(async (file) => {

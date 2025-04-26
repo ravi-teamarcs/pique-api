@@ -577,7 +577,7 @@ export class ReportService {
     // Create a readable stream from the buffer
     const readStream = new stream.PassThrough();
     readStream.end(buffer);
-    console.log('Grouped Data', groupedData);
+
     // Set response headers for file download
     res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
     res.setHeader(

@@ -48,7 +48,6 @@ export class EventService {
         ...rest,
       });
 
-      console.log(event, 'Newly creatyed ');
       await this.eventRepository.save(event);
 
       return {
