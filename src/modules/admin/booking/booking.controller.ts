@@ -25,6 +25,8 @@ import { BookingQueryDto } from './dto/booking-query.dto';
 import { AdminBookingDto } from './dto/admin-booking.dto';
 import { AdminBookingResponseDto } from './dto/admin-booking-response.dto';
 import { ModifyBookingDto } from './dto/modify.booking.dto';
+import dayjs from 'dayjs';
+import { format, startOfYear, subYears } from 'date-fns';
 
 @ApiTags('Booking')
 @ApiBearerAuth()
@@ -89,25 +91,42 @@ export class BookingController {
   @Get('listing')
   @Roles('super-admin')
   getBookingListing(@Query('from') from: string, @Query('to') to: string) {
-    const now = new Date();
+    const parsedFromDate = from ? new Date(from) : undefined;
+    const parsedToDate = to ? new Date(to) : undefined;
 
-    let fromDate: Date = new Date(from);
-    let toDate: Date = new Date(to);
+    // If fromDate and toDate are not provided, calculate the default range
+    let finalFromDate: Date;
+    let finalToDate: Date;
 
-    try {
-      // fromDate = from
-      //   ? new Date(from)
-      //   : dayjs(now).subtract(1, 'year').startOf('month').toDate();
-      // toDate = to ? new Date(to) : dayjs(now).endOf('month').toDate();
-      // Validate max range (1 year)
-      // const maxRange = dayjs(fromDate).add(1, 'year');
-      // if (dayjs(toDate).isAfter(maxRange)) {
-      //   throw new Error('Range cannot be more than 1 year.');
-      // }
-    } catch (e) {
-      throw new BadRequestException('Invalid date range.');
+    if (parsedFromDate && parsedToDate) {
+      // If both fromDate and toDate are provided, use them
+      finalFromDate = parsedFromDate;
+      finalToDate = parsedToDate;
+    } else {
+      // If no dates are provided, use the default range (start of previous year to today)
+      const today = new Date();
+      finalToDate = today; // Set finalToDate as today
+
+      // Calculate the start of the previous year (January 1st of the previous year)
+      finalFromDate = startOfYear(subYears(today, 1));
+    }
+    if (!(finalFromDate instanceof Date) || !(finalToDate instanceof Date)) {
+      throw new Error('Invalid date format');
     }
 
-    return this.bookingService.getBookingListing(fromDate, toDate);
+    // Format the dates for the SQL query
+    const formattedFromDate = format(finalFromDate, 'yyyy-MM-dd');
+    const formattedToDate = format(finalToDate, 'yyyy-MM-dd');
+
+    return this.bookingService.getBookingListing(
+      formattedFromDate,
+      formattedToDate,
+    );
+  }
+
+  @Patch('rescheduled')
+  @Roles('super-admin')
+  modifybooking(@Body() dto: ModifyBookingDto) {
+    return this.bookingService.handleChangeRequest(dto);
   }
 }

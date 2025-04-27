@@ -164,7 +164,6 @@ export class BookingService {
   // }
 
   async getBookingListing(fromDate, toDate) {
-    console.log('From Date:', fromDate, 'To Date:', toDate);
     try {
       const res = await this.bookingRepository
         .createQueryBuilder('booking')
@@ -231,12 +230,11 @@ export class BookingService {
 
   async handleChangeRequest(bookingdto: ModifyBookingDto) {
     const { bookingId, reqShowDate, reqShowTime } = bookingdto;
-
     const booking = await this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
       .leftJoin('event', 'event', 'event.id = booking.eventId')
-      .leftJoin('entertainer', 'entertainer', 'entertainer.id = booking.entId')
+      .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
       .leftJoin('users', 'user', 'user.id = booking.entId')
       .select([
         'booking.id AS id',

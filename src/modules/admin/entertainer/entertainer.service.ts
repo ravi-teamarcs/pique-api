@@ -342,19 +342,8 @@ export class EntertainerService {
     const { contactPerson, contactNumber, stageName, ...restDetails } =
       entertainer;
 
-    const payload = {
-      ...restDetails,
-      contact_person: contactPerson ?? undefined,
-      name: stageName ?? undefined,
-      contact_number: contactNumber ?? undefined,
-    };
-
     // Remove any undefined properties
-    Object.keys(payload).forEach(
-      (key) => payload[key] === undefined && delete payload[key],
-    );
 
-    console.log('Payload:', payload);
     try {
       const entertainer = await queryRunner.manager.findOne(Entertainer, {
         where: { id: entertainerId },
@@ -367,6 +356,13 @@ export class EntertainerService {
           status: false,
         });
       }
+
+      const payload = {
+        ...restDetails,
+        contact_person: contactPerson ?? entertainer.contact_person,
+        name: stageName ?? entertainer.name,
+        contact_number: contactNumber ?? entertainer.contact_number,
+      };
 
       const userId = entertainer?.user ? entertainer.user.id : null;
       const alreadyHaveLoginCredentials = entertainer?.user ? true : false;
