@@ -683,11 +683,10 @@ export class EntertainerService {
         'specific_category',
         'bio',
         'performanceRole',
-        'phone1',
-        'phone2',
+
         'pricePerEvent',
         'vaccinated',
-        'availability',
+
         'status',
         'socialLinks',
       ],

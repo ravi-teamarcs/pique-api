@@ -39,20 +39,11 @@ export class Entertainer {
   })
   performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 
-  @Column()
-  phone1: string;
-
-  @Column()
-  phone2: string;
-
   @Column({ nullable: true })
   pricePerEvent: number;
 
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
   vaccinated: 'yes' | 'no';
-
-  @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
-  availability: 'yes' | 'no';
 
   @OneToOne(() => User, (user) => user.entertainer, {
     onDelete: 'CASCADE',

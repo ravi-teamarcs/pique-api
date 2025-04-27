@@ -43,13 +43,6 @@ export class User {
   })
   status: 'active' | 'inactive' | 'pending';
 
-  // @Column()
-  // completed: boolean;
-  // @OneToMany(() => Venue, (venue) => venue.user)
-  // venues: Venue[];
-  // @OneToMany(() => Invoice, (invoice) => invoice.customer)
-  // invoice: Invoice[];
-
   @OneToOne(() => Entertainer, (entertainer) => entertainer.user, {
     cascade: true,
   })
@@ -57,20 +50,6 @@ export class User {
 
   @OneToMany(() => Venue, (venue) => venue.user, { cascade: true })
   venue: Venue[];
-
-  // Booking
-  @OneToMany(() => Booking, (booking) => booking.venueUser, { cascade: true })
-  venueBookings: Booking[];
-
-  @OneToMany(() => Booking, (booking) => booking.entertainerUser, {
-    cascade: true,
-  })
-  entertainerBookings: Booking[];
-  // Relation with Media
-
-  // Media
-  @OneToMany(() => Media, (media) => media.user, { cascade: true })
-  media: Media[];
 
   @Column({ default: false })
   isVerified: boolean;

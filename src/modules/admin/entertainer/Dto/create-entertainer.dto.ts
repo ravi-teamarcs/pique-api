@@ -102,3 +102,5 @@ export class CreateEntertainerDto {
   @Type(() => GeneralInfoDto)
   entertainer: GeneralInfoDto;
 }
+
+export { GeneralInfoDto };

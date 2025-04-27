@@ -129,12 +129,30 @@ export class EntertainerController {
   }
 
   // This need to be  changed
-  @Roles('super-admin', 'entertainer-admin')
-  @ApiBearerAuth()
+  @Patch(':entertainerId')
+  @UseInterceptors(AnyFilesInterceptor())
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Post('update')
-  async updateEntertainer(@Body() updateEntertainerDto: UpdateEntertainerDto) {
-    return this.EntertainerService.update(updateEntertainerDto);
+  @Roles('super-admin', 'entertainer-admin')
+  async updateEntertainer(
+    @Body() dto: UpdateEntertainerDto,
+    @Param('entertainerId', ParseIntPipe) entertainerId: number,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    let uploadedFiles: UploadedFile[] = [];
+
+    if (files?.length && files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: typeMap[file.fieldname],
+          };
+        }),
+      );
+    }
+    return this.EntertainerService.update(dto, entertainerId, uploadedFiles);
   }
 
   @Patch('approval')

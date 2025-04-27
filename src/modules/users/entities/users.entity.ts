@@ -52,18 +52,6 @@ export class User {
   @OneToMany(() => Venue, (venue) => venue.user, { cascade: true })
   venue: Venue[];
 
-  // Booking
-  @OneToMany(() => Booking, (booking) => booking.venueUser)
-  venueBookings: Booking[];
-
-  @OneToMany(() => Booking, (booking) => booking.entertainerUser)
-  entertainerBookings: Booking[];
-  // Relation with Media
-
-  // Media
-  @OneToMany(() => Media, (media) => media.user, { cascade: true })
-  media: Media[];
-
   // Invoice
 
   @Column({ default: false })

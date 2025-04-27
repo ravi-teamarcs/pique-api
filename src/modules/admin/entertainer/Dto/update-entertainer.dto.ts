@@ -1,22 +1,41 @@
 import { Transform } from 'class-transformer';
 import {
+  IsBoolean,
   IsNotEmpty,
   IsNumber,
   IsObject,
   IsOptional,
   IsString,
 } from 'class-validator';
+import { GeneralInfoDto } from './create-entertainer.dto';
+import { PartialType } from '@nestjs/swagger';
 
-export class UpdateEntertainerDto {
-  @IsNumber()
+class UpdateGeneralInfoDto extends PartialType(GeneralInfoDto) {}
+class UserDto {
+  @IsString()
   @IsNotEmpty()
-  id: number;
-
-  @IsObject()
+  email: string;
+  @IsString()
   @IsNotEmpty()
-  fieldsToUpdate: Record<string, any>;
+  password: string;
 }
- class UpdateAddressDto {
+export class UpdateEntertainerDto {
+  @IsBoolean()
+  @IsNotEmpty()
+  @Transform(({ value }) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value.toLowerCase() === 'true';
+    return false;
+  })
+  createLogin: boolean;
+
+  @IsOptional()
+  user?: UserDto;
+  @IsOptional()
+  entertainer?: UpdateGeneralInfoDto;
+}
+
+class UpdateAddressDto {
   @IsString()
   @IsOptional()
   address: string;

@@ -24,16 +24,12 @@ export class Media {
   type: 'image' | 'video' | 'headshot' | 'event_headshot';
 
   @Column({ nullable: true })
-  refId: number;
-
-  @Column({ nullable: true })
   user_id: number;
 
   @Column({ nullable: true })
   eventId: number;
   // Relation to userId
-  @ManyToOne(() => User, (user) => user.media, { onDelete: 'CASCADE' })
-  user: User;
+
   @CreateDateColumn()
   createdAt: Date;
   @UpdateDateColumn()

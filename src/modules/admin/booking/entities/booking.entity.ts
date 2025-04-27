@@ -13,14 +13,6 @@ export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.venueBookings, { onDelete: 'CASCADE' })
-  venueUser: User;
-
-  @ManyToOne(() => User, (user) => user.entertainerBookings, {
-    onDelete: 'CASCADE',
-  })
-  entertainerUser: User;
-
   @Column({
     type: 'enum',
     enum: ['soloist', 'duo', 'trio', 'ensemble'],

@@ -79,20 +79,20 @@ export class BookingController {
     return this.bookingService.bookingResponse(bookingdto);
   }
 
-  @Patch('details')
-  @HttpCode(200)
-  @Roles('super-admin')
-  modifyBooking(@Body() dto: ModifyBookingDto) {
-    return this.bookingService.modifyBooking(dto);
-  }
+  // @Patch('details')
+  // @HttpCode(200)
+  // @Roles('super-admin')
+  // modifyBooking(@Body() dto: ModifyBookingDto) {
+  //   return this.bookingService.modifyBooking(dto);
+  // }
 
   @Get('listing')
   @Roles('super-admin')
-  getBookingListing() {
+  getBookingListing(@Query('from') from: string, @Query('to') to: string) {
     const now = new Date();
 
-    let fromDate: Date;
-    let toDate: Date;
+    let fromDate: Date = new Date(from);
+    let toDate: Date = new Date(to);
 
     try {
       // fromDate = from

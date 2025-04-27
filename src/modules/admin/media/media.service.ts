@@ -18,7 +18,7 @@ export class MediaService {
   async handleMediaUpload(
     userId: number,
     uploadedFiles: UploadedFile[],
-    venueId?: number,
+
     eventId?: number | null,
   ) {
     try {
@@ -141,7 +141,7 @@ export class MediaService {
     return { message: 'Media deleted successfully', status: true };
   }
 
-  async uploadUrl(uploadUrlDto: UploadUrlDto): Promise<Media> {
+  async uploadUrl(uploadUrlDto: UploadUrlDto) {
     const { url, userId, refId, type } = uploadUrlDto;
 
     if (!userId && !refId) {
@@ -158,8 +158,7 @@ export class MediaService {
       url,
       name,
       type: mediaType,
-      user: userId ? ({ id: userId } as any) : null, // Associate user
-      refId,
+      user_id: userId ? ({ id: userId } as any) : null, // Associate user
     });
 
     return await this.mediaRepository.save(media);

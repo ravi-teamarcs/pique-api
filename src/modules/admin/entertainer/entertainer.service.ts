@@ -154,6 +154,11 @@ export class EntertainerService {
           'entertainer.entertainer_name AS entertainer_name',
           'entertainer.dob AS dob',
           'entertainer.bio AS bio',
+          'entertainer.pricePerEvent AS pricePerEvent',
+          'entertainer.category AS category',
+          'entertainer.specific_category AS specific_category',
+          'cat.name AS categoryName',
+          'subcat.name AS specificCategoryName',
           'entertainer.performanceRole AS performanceRole',
           'entertainer.socialLinks AS socialLinks',
           'entertainer.zipCode AS ZipCode',
@@ -254,6 +259,7 @@ export class EntertainerService {
       return {
         message: 'Enterainer Created Successfully with media .',
         status: true,
+        data: savedEntertainer,
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
@@ -276,6 +282,10 @@ export class EntertainerService {
 
     try {
       await this.entertainerRepository.update({ id: entertainer.id }, dto);
+      return {
+        message: 'Address updated Successfully',
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException({ message: error.message });
     }
@@ -310,32 +320,112 @@ export class EntertainerService {
         { id: entertainer.id },
         { socialLinks },
       );
+      return {
+        message: 'Social Links updated Successfully',
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException({ message: error.message });
     }
   }
 
-  async update(updateEntertainerDto: UpdateEntertainerDto): Promise<any> {
-    const { id, fieldsToUpdate } = updateEntertainerDto;
+  async update(
+    dto: UpdateEntertainerDto,
+    entertainerId: number,
+    uploadedFiles: UploadedFile[],
+  ) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    const existingEntertainer = await this.entertainerRepository.findOne({
-      where: { id }, // Use nested object for relations
-      relations: ['entertainer'], // Ensure the relation is loaded
-    });
+    const { user, createLogin, entertainer } = dto;
+    const { contactPerson, contactNumber, stageName, ...restDetails } =
+      entertainer;
 
-    if (!existingEntertainer) {
-      throw new BadRequestException('Entertainer not found');
-    }
+    const payload = {
+      ...restDetails,
+      contact_person: contactPerson ?? undefined,
+      name: stageName ?? undefined,
+      contact_number: contactNumber ?? undefined,
+    };
 
-    // Update only the fields provided
-    await this.entertainerRepository.update(
-      existingEntertainer.id,
-      fieldsToUpdate,
+    // Remove any undefined properties
+    Object.keys(payload).forEach(
+      (key) => payload[key] === undefined && delete payload[key],
     );
 
-    return this.entertainerRepository.findOne({
-      where: { id: existingEntertainer.id },
-    });
+    console.log('Payload:', payload);
+    try {
+      const entertainer = await queryRunner.manager.findOne(Entertainer, {
+        where: { id: entertainerId },
+        relations: ['user'],
+      });
+
+      if (!entertainer) {
+        throw new NotFoundException({
+          message: 'Entertainer Not Found',
+          status: false,
+        });
+      }
+
+      const userId = entertainer?.user ? entertainer.user.id : null;
+      const alreadyHaveLoginCredentials = entertainer?.user ? true : false;
+
+      if (createLogin) {
+        if (alreadyHaveLoginCredentials) {
+          // If already have login credentials then update them.
+          const hashedPassword = await bcrypt.hash(user.password, 10);
+          await this.userRepository.update(
+            { id: userId },
+            { email: user.email, password: hashedPassword },
+          );
+          await this.tempRepository.update(
+            { email: entertainer.user.email },
+            { email: user.email, password: user.password },
+          );
+        } else {
+          const hashedPassword = await bcrypt.hash(user.password, 10);
+          const newUser = this.userRepository.create({
+            email: user.email,
+            password: hashedPassword,
+            isVerified: true,
+            createdByAdmin: true,
+            role: 'entertainer',
+          });
+          const savedUser = await this.userRepository.save(newUser);
+          await this.entertainerRepository.update(
+            { id: entertainer.id },
+            { user: { id: savedUser.id } },
+          );
+        }
+      }
+
+      await queryRunner.manager.update(
+        Entertainer,
+        { id: entertainer.id },
+        payload,
+      );
+
+      if (uploadedFiles?.length > 0) {
+        await this.mediaService.handleMediaUpload(
+          entertainer.id,
+          uploadedFiles,
+        );
+      }
+      await queryRunner.commitTransaction();
+      return {
+        message: 'Entertainer updated   with media Sucessfully ',
+        status: true,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   async getMainCategory() {
