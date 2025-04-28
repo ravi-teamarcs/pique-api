@@ -171,7 +171,7 @@ export class BookingService {
           'event.id AS event_id',
           'event.title AS event_title',
           'event.description AS event_description',
-          'event.eventDate AS showDate',
+          // 'event.eventDate AS showDate',
           'event.startTime AS event_endTime',
           'event.endTime AS event_startTime',
           'event.status AS event_status',
@@ -184,6 +184,7 @@ export class BookingService {
 
           'booking.id AS booking_id',
           'booking.status AS booking_status',
+          'booking.showDate AS booking_showDate',
 
           'entertainer.id AS entertainer_id',
           'entertainer.name AS entertainer_name',

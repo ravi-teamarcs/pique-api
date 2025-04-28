@@ -75,6 +75,7 @@ class UpdateAddressDto {
   @IsOptional()
   @Transform(({ value }) => Number(value))
   state: number;
+
   @IsNumber()
   @IsOptional()
   @Transform(({ value }) => Number(value))
