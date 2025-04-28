@@ -38,7 +38,11 @@ export class UpdateEntertainerDto {
 class UpdateAddressDto {
   @IsString()
   @IsOptional()
-  address: string;
+  addressLine1: string;
+  @IsString()
+  @IsOptional()
+  addressLine2: string;
+ 
   @IsNumber()
   @IsOptional()
   @Transform(({ value }) => Number(value))

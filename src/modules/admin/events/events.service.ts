@@ -17,6 +17,8 @@ import { Media } from '../media/entities/media.entity';
 import { MediaService } from '../media/media.service';
 import { EventsQueryDto } from './dto/query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { format, parse } from 'date-fns';
+import { Venue } from '../venue/entities/venue.entity';
 
 @Injectable()
 export class EventService {
@@ -25,6 +27,8 @@ export class EventService {
     private readonly eventRepository: Repository<Event>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Venue)
+    private readonly venueRepository: Repository<Venue>,
 
     private readonly mediaService: MediaService,
     private readonly config: ConfigService,
@@ -41,10 +45,38 @@ export class EventService {
   // New code of Venue Creation with Media
   async createEvent(dto: CreateEventDto) {
     const { neighbourhoodId, ...rest } = dto;
+    const obj = structuredClone(dto);
+
+    const { title, venueId, eventDate, startTime } = obj;
+
+    const date = new Date(eventDate);
+    const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+    const parsedTime = parse(startTime, 'HH:mm', new Date());
+    const time12 = format(parsedTime, 'h:mm a');
+    const { name, neighbourhoodName, addressLine1, addressLine2 } =
+      await this.venueRepository
+        .createQueryBuilder('venue')
+        .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
+          neighbourhoodId,
+        })
+        .select([
+          'venue.id AS id',
+          'venue.name AS name',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'hood.name AS neighbourhoodName',
+          'hood.contactPerson AS neighbourhood_contact_person',
+          'hood.contactNumber AS neighbourhood_contact_number',
+        ])
+        .where('venue.id = :id', { id: venueId })
+        .getRawOne();
+
+    const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName}/${name} at ${addressLine1} ${addressLine2}`;
 
     try {
       const event = this.eventRepository.create({
         sub_venue_id: neighbourhoodId,
+        slug,
         ...rest,
       });
 
@@ -102,6 +134,7 @@ export class EventService {
         'event.status AS status',
         'event.eventDate  AS eventDate',
         'event.description  AS description',
+        'event.slug  AS slug',
 
         'event.venueId AS venueId',
         'hood.name AS neighbourhood_name',
@@ -153,6 +186,7 @@ export class EventService {
         'event.status AS status',
         'event.eventDate  AS eventDate',
         'event.description  AS description',
+        'event.slug  AS slug',
 
         'event.venueId AS venueId',
         'hood.name AS neighbourhood_name',
@@ -246,6 +280,7 @@ export class EventService {
           'event.id AS event_id',
           'event.title AS title',
           'event.location AS location',
+          'event.slug  AS slug',
           'event.userId AS userId',
           'event.description AS description',
           'event.startTime AS startTime',

@@ -206,7 +206,7 @@ class Step5Dto {
   })
   @IsString()
   @IsOptional()
-  socialLinks?: string;
+  socialLinks?: Record<string, string>;
 }
 class Step6Dto {
   @IsNumber()

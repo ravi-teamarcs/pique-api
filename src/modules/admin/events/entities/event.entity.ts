@@ -26,6 +26,8 @@ export class Event {
   @Column({ nullable: true })
   sub_venue_id: number;
 
+  @Column({ type: 'text' })
+  slug: string;
   @Column()
   description: string;
 

@@ -8,6 +8,7 @@ import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../auth/entities/capability.entity';
 import { MediaModule } from '../media/media.module';
+import { Venue } from 'src/modules/venue/entities/venue.entity';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { MediaModule } from '../media/media.module';
       RoleCapability,
       Role,
       Capability,
+      Venue,
     ]),
     MediaModule,
   ],

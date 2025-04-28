@@ -66,8 +66,8 @@ export class Entertainer {
   @Column({ nullable: true })
   country: number;
 
-  @Column({ nullable: true })
-  socialLinks: string;
+  @Column({ type: 'json', nullable: true })
+  socialLinks: Record<string, string>; //
 
   // New changes Introduced  (Latest Changes Both )  Can be Changed
 
@@ -76,6 +76,11 @@ export class Entertainer {
 
   @Column({ nullable: true })
   address: string;
+
+  @Column({ nullable: true })
+  addressLine1: string;
+  @Column({ nullable: true })
+  addressLine2: string;
 
   @Column({ nullable: true })
   zipCode: string;

@@ -213,7 +213,7 @@ export class EntertainerService {
     try {
       await this.entertainerRepository.update(
         { id: entertainer.id },
-        { profileStep: 5, socialLinks },
+        { profileStep: 5, socialLinks: { ...socialLinks } },
       );
       return {
         message: 'Social Links  saved Successfully',
@@ -500,10 +500,10 @@ export class EntertainerService {
     const { socialLinks } = dto;
 
     try {
-      await this.entertainerRepository.update(
-        { user: { id: userId } },
-        { socialLinks },
-      );
+      // await this.entertainerRepository.update(
+      //   { user: { id: userId } },
+      //   // socialLinks,
+      // );
       return {
         message: 'Social Links updated Successfully',
         status: true,

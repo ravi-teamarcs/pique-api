@@ -13,6 +13,9 @@ export class VenueEvent {
 
   @Column()
   title: string;
+  
+  @Column({ type: 'text' })
+  slug: string;
 
   @Column({ nullable: true })
   location: string;

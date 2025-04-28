@@ -123,7 +123,7 @@ export class EntertainerController {
   @Roles('super-admin', 'entertainer-admin')
   async updateSocialLinks(
     @Param('id', ParseIntPipe) id: number,
-    @Body('socialLinks') socialLinks: string,
+    @Body('socialLinks') socialLinks: Record<string, string>,
   ) {
     return this.EntertainerService.updateSocialLinks(id, socialLinks);
   }

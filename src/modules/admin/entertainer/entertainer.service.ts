@@ -153,7 +153,13 @@ export class EntertainerService {
           'entertainer.name AS name',
           'entertainer.entertainer_name AS entertainer_name',
           'entertainer.dob AS dob',
-          'entertainer.bio AS bio',
+          'entertainer.city AS cityCode',
+          'entertainer.state AS stateCode',
+          'entertainer.country AS countryCode',
+          'entertainer.country AS bio',
+          'entertainer.addressLine1 AS addressLine1',
+          'entertainer.addressLine2 AS addressLine2',
+          'entertainer.country AS bio',
           'entertainer.pricePerEvent AS pricePerEvent',
           'entertainer.category AS category',
           'entertainer.specific_category AS specific_category',
@@ -189,6 +195,7 @@ export class EntertainerService {
         records: {
           ...res,
           media: JSON.parse(res.media),
+          socialLinks: JSON.parse(res.socialLinks),
           services: res.services ? res.services.split(',') : [],
         },
         status: true,
@@ -307,7 +314,7 @@ export class EntertainerService {
     }
   }
 
-  async updateSocialLinks(id: number, socialLinks: string) {
+  async updateSocialLinks(id: number, socialLinks) {
     const entertainer = await this.entertainerRepository.findOne({
       where: { id },
     });
@@ -318,7 +325,7 @@ export class EntertainerService {
     try {
       await this.entertainerRepository.update(
         { id: entertainer.id },
-        { socialLinks },
+        { socialLinks: { ...socialLinks } },
       );
       return {
         message: 'Social Links updated Successfully',
