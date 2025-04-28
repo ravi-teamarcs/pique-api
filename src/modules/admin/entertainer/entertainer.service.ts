@@ -136,6 +136,7 @@ export class EntertainerService {
                 `IFNULL(
                   JSON_ARRAYAGG(
                     JSON_OBJECT(
+                      'id', media.id,
                       'url', CONCAT(:serverUri, media.url),
                       'type', media.type
                     )
