@@ -1,4 +1,4 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsBoolean,
   IsNotEmpty,
@@ -30,8 +30,32 @@ export class UpdateEntertainerDto {
   createLogin: boolean;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        console.error('Failed to parse value:', value);
+        return value;
+      }
+    }
+    return value;
+  })
+  @Type(() => UserDto)
   user?: UserDto;
   @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        console.error('Failed to parse value:', value);
+        return value;
+      }
+    }
+    return value;
+  })
+  @Type(() => UpdateGeneralInfoDto)
   entertainer?: UpdateGeneralInfoDto;
 }
 
@@ -42,7 +66,7 @@ class UpdateAddressDto {
   @IsString()
   @IsOptional()
   addressLine2: string;
- 
+
   @IsNumber()
   @IsOptional()
   @Transform(({ value }) => Number(value))
