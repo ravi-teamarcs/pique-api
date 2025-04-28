@@ -171,7 +171,7 @@ export class BookingService {
           'event.id AS event_id',
           'event.title AS event_title',
           'event.description AS event_description',
-          // 'event.eventDate AS showDate',
+          'event.slug AS event_slug',
           'event.startTime AS event_endTime',
           'event.endTime AS event_startTime',
           'event.status AS event_status',
@@ -181,10 +181,14 @@ export class BookingService {
           'venue.name AS venue_name',
           'venue.addressLine1 AS venue_addressLine1',
           'venue.addressLine1 AS venue_addressLine2',
+          'city.name AS city',
+          'country.name AS country',
+          'state.name AS state',
 
           'booking.id AS booking_id',
           'booking.status AS booking_status',
           'booking.showDate AS booking_showDate',
+          'booking.showTime AS booking_showTime',
 
           'entertainer.id AS entertainer_id',
           'entertainer.name AS entertainer_name',
@@ -197,7 +201,10 @@ export class BookingService {
           'invoice.payment_date AS ent_payment_date',
 
           'inv.id AS venue_invoice_id',
+          'inv.invoice_number AS venue_invoice_number',
           'inv.total_with_tax AS venue_total_amount',
+
+          'hood.name AS neighbourhood_name',
         ])
         .where('booking.showDate BETWEEN :from AND :to', {
           from: fromDate,
@@ -208,7 +215,11 @@ export class BookingService {
         })
 
         .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
         .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+        .leftJoin('countries', 'country', 'country.id = venue.country')
+        .leftJoin('states', 'state', 'state.id = venue.state')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
         .leftJoin(
           'entertainers',
           'entertainer',
