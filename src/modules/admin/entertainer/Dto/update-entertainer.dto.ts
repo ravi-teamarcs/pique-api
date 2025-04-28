@@ -79,6 +79,9 @@ class UpdateAddressDto {
   @IsOptional()
   @Transform(({ value }) => Number(value))
   country: number;
+  @IsString()
+  @IsOptional()
+  zipCode: string;
 }
 
 export { UpdateAddressDto };
