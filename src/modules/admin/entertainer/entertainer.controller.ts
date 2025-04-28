@@ -155,7 +155,7 @@ export class EntertainerController {
     return this.EntertainerService.update(dto, entertainerId, uploadedFiles);
   }
 
-  @Patch('approval')
+  @Patch('/approval/response')
   async updateEntertainerStatus(@Body() dto: ApproveEntertainer) {
     return this.EntertainerService.approveEntertainer(dto);
   }

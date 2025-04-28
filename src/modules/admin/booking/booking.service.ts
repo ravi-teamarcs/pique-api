@@ -202,7 +202,10 @@ export class BookingService {
           from: fromDate,
           to: toDate,
         })
-        .andWhere('booking.status = :status', { status: 'completed' })
+        .andWhere('booking.status IN (:...status)', {
+          status: ['completed', 'pending', 'cancelled', 'accepted', 'rejected'],
+        })
+
         .leftJoin('event', 'event', 'event.id = booking.eventId')
         .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
         .leftJoin(
@@ -210,8 +213,16 @@ export class BookingService {
           'entertainer',
           'entertainer.id = booking.entId',
         )
-        .leftJoin('invoices', 'invoice', 'invoice.user_id = booking.entId')
-        .leftJoin('invoices', 'inv', 'inv.user_id = booking.venueId')
+        .leftJoin(
+          'invoices',
+          'invoice',
+          'invoice.user_id = booking.entId AND invoice.booking_id = booking.id',
+        )
+        .leftJoin(
+          'invoices',
+          'inv',
+          'inv.user_id = booking.venueId  AND inv.booking_id = booking.id',
+        )
         .orderBy('booking.showDate', 'DESC')
         .getRawMany();
 
