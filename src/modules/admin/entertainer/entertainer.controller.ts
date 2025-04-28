@@ -109,7 +109,7 @@ export class EntertainerController {
     return this.EntertainerService.uploadMedia(id, uploadedFiles);
   }
 
-  @Patch('adddress/:id')
+  @Patch('address/:id')
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Roles('super-admin', 'entertainer-admin')
   async updateAddress(
