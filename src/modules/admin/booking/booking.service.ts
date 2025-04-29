@@ -66,7 +66,7 @@ export class BookingService {
       where: { entId: entertainerId, eventId: payload.eventId },
     });
 
-    if (!booking)
+    if (booking)
       throw new BadRequestException({
         message: 'Booking for event  already exists for this entertainer',
       });
