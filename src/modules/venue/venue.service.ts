@@ -367,14 +367,11 @@ export class VenueService {
 
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
     const {
-      availability = '',
       category = [],
       sub_category = null,
-      price = [],
       page = 1,
       pageSize = 10,
       city = null,
-      country = null,
       date = '',
       startDate,
       endDate,
@@ -384,20 +381,6 @@ export class VenueService {
     const skip = (Number(page) - 1) * Number(pageSize);
     const DEFAULT_MEDIA_URL =
       'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
-    const data = [
-      { label: '500-1000', value: 1 },
-      { label: '1000-2000', value: 2 },
-      { label: '2000-3000', value: 3 },
-      { label: '3000-4000', value: 4 },
-      { label: '4000-5000', value: 5 },
-    ];
-
-    const priceRange = data
-      .filter((item) => price.includes(item.value)) // Filter only matching values
-      .map((item) => {
-        const [min, max] = item.label.split('-').map(Number); // Extract min and max from label
-        return { min, max };
-      });
 
     const res = this.entertainerRepository
       .createQueryBuilder('entertainer')
@@ -440,7 +423,6 @@ export class VenueService {
         'entertainer.performanceRole AS performanceRole',
         'entertainer.pricePerEvent AS pricePerEvent',
         'entertainer.vaccinated AS vaccinated',
-        'entertainer.availability AS availability',
         'entertainer.status AS status',
         'entertainer.bio AS bio',
         'city.name AS city',
@@ -474,28 +456,7 @@ export class VenueService {
     }
 
     // **Price Range Filter (Supports Multiple Ranges)**
-    if (priceRange !== null && priceRange.length > 0) {
-      res.andWhere(
-        new Brackets((qb) => {
-          const conditions: string[] = [];
-          const params: Record<string, number> = {};
 
-          priceRange.forEach((range, index) => {
-            const minKey = `min${index}`;
-            const maxKey = `max${index}`;
-
-            conditions.push(
-              `entertainer.pricePerEvent BETWEEN :${minKey} AND :${maxKey}`,
-            );
-            params[minKey] = range.min;
-            params[maxKey] = range.max;
-          });
-
-          qb.where(conditions.join(' OR '), params);
-        }),
-      );
-    }
-    // **City Filter**
     if (city) {
       res.andWhere('entertainer.city = :city', { city });
     }

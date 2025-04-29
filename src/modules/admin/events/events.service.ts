@@ -282,27 +282,27 @@ export class EventService {
 
   //get booking using eventId
 
-  async findBooking(eventId: number): Promise<any[]> {
-    const bookings = await this.bookingRepository
-      .createQueryBuilder('booking')
-      .leftJoin('entertainers', 'ent', 'ent.userId = booking.entId') // Join Entertainers table using userId
-      .leftJoin('categories', 'cat', 'cat.id = ent.category') // Join categories table for main category
-      .leftJoin(
-        'categories',
-        'specific_cat',
-        'specific_cat.id = ent.specific_category',
-      ) // Join categories table for specific category
-      .select([
-        'booking.*', // All booking fields
-        'ent.*', // All columns from the entertainers table
-        'cat.name AS categoryName', // Select the category name from the categories table
-        'specific_cat.name AS specific_catName', // Select the specific category name from the categories table
-      ])
-      .where('booking.eventId = :eventId', { eventId })
-      .getRawMany(); // Get raw results (not entity instances)
+  // async findBooking(eventId: number): Promise<any[]> {
+  //   const bookings = await this.bookingRepository
+  //     .createQueryBuilder('booking')
+  //     .leftJoin('entertainers', 'ent', 'ent.userId = booking.entId') // Join Entertainers table using userId
+  //     .leftJoin('categories', 'cat', 'cat.id = ent.category') // Join categories table for main category
+  //     .leftJoin(
+  //       'categories',
+  //       'specific_cat',
+  //       'specific_cat.id = ent.specific_category',
+  //     ) // Join categories table for specific category
+  //     .select([
+  //       'booking.*', // All booking fields
+  //       'ent.*', // All columns from the entertainers table
+  //       'cat.name AS categoryName', // Select the category name from the categories table
+  //       'specific_cat.name AS specific_catName', // Select the specific category name from the categories table
+  //     ])
+  //     .where('booking.eventId = :eventId', { eventId })
+  //     .getRawMany(); // Get raw results (not entity instances)
 
-    return bookings;
-  }
+  //   return bookings;
+  // }
 
   async getUpcomingEvent(query: GetEventDto) {
     const { page = 1, pageSize = 10 } = query;
@@ -447,4 +447,36 @@ export class EventService {
   //   const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName}/${name} at ${addressLine1} ${addressLine2}`;
 
   // }
+
+  // Get Booking Where event id
+  async findBookings(eventId: number) {
+    try {
+      const events = this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+        .select([
+          'booking.id AS bookingId',
+          'booking.status AS bookingStatus',
+          'ent.name AS entertainerName',
+          'ent.contact_person AS contactPerson',
+          'ent.contact_number AS contactNumber',
+        ])
+        .where('booking.eventId = :eventId', { eventId })
+        .orderBy('booking.id', 'DESC');
+
+      const totalCount = await events.getCount();
+      const results = await events.getRawMany();
+      return {
+        message: `Booking for Event Id ${eventId} fetched successfully`,
+        data: results,
+        totalCount,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 }

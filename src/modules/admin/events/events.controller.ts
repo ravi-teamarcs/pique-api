@@ -65,12 +65,18 @@ export class EventController {
     return this.eventService.findAll({ page, pageSize, search, status });
   }
 
-  @Roles('super-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Get('eventbyid/:id')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin')
   async findOne(@Param('id') id: number): Promise<Event> {
     return this.eventService.findOne(id);
+  }
+
+  @Get('booking/:eventId')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin')
+  async findBooking(@Param('eventId') eventId: number) {
+    return this.eventService.findBookings(Number(eventId));
   }
 
   @Roles('super-admin')
@@ -89,15 +95,6 @@ export class EventController {
     return this.eventService.remove(Number(id));
   }
 
-  @Roles('super-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get('BookingsByEventId/:eventId')
-  async findBooking(
-    @Param('eventId', ParseIntPipe) eventId: number,
-  ): Promise<Booking[]> {
-    return this.eventService.findBooking(eventId);
-  }
   @Roles('super-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)

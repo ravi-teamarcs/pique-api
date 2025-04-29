@@ -207,8 +207,8 @@ export class EntertainerController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getdashboardStats(@Request() req, @Query() query: DashboardDto) {
-    const { userId } = req.user;
-    return this.entertainerService.getDashboardStatistics(userId, query);
+    const { refId } = req.user;
+    return this.entertainerService.getDashboardStatistics(refId, query);
   }
 
   @Delete(':id')

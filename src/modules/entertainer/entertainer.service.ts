@@ -1023,7 +1023,7 @@ export class EntertainerService {
           `COUNT(CASE WHEN booking.createdAt BETWEEN :prevStartDate AND :prevEndDate THEN booking.id ELSE NULL END)`,
           'previousCount',
         )
-        .where('booking.entertainerUserId = :userId', { userId })
+        .where('booking.entId = :userId', { userId })
         .groupBy('booking.status')
         .setParameters({ startDate, endDate, prevStartDate, prevEndDate })
         .getRawMany();
@@ -1035,7 +1035,7 @@ export class EntertainerService {
           `COUNT(CASE WHEN booking.createdAt BETWEEN :startDate AND :endDate THEN booking.id ELSE NULL END) AS currentTotalBookings`,
           `COUNT(CASE WHEN booking.createdAt BETWEEN :prevStartDate AND :prevEndDate THEN booking.id ELSE NULL END) AS previousTotalBookings`,
         ])
-        .where('booking.entertainerUserId = :userId', { userId })
+        .where('booking.entId = :userId', { userId })
         .setParameters({ startDate, endDate, prevStartDate, prevEndDate })
         .getRawOne();
 
