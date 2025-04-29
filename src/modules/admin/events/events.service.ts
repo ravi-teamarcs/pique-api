@@ -51,8 +51,11 @@ export class EventService {
 
     const date = new Date(eventDate);
     const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
-    const parsedTime = parse(startTime, 'HH:mm', new Date());
+    const timeWithoutSeconds = startTime.slice(0, 5);
+    const parsedTime = parse(timeWithoutSeconds, 'HH:mm', new Date());
+
     const time12 = format(parsedTime, 'h:mm a');
+
     const { name, neighbourhoodName, addressLine1, addressLine2 } =
       await this.venueRepository
         .createQueryBuilder('venue')

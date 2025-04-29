@@ -8,6 +8,7 @@ import {
 } from 'class-validator';
 
 export class CreateEventDto {
+ 
   @ApiProperty({ example: 1, description: 'Venue for  which event is created' })
   @IsNotEmpty()
   @IsNumber()
