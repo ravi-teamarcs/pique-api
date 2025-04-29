@@ -15,6 +15,7 @@ const allowedStatuses = [
   'completed',
   'confirmed',
   'cancelled',
+  'rescheduled',
 ];
 class BookingQueryDto {
   @IsNumber()
@@ -33,7 +34,13 @@ class BookingQueryDto {
   )
   @IsArray()
   @IsIn(allowedStatuses, { each: true })
-  status?: 'pending' | 'accepted' | 'completed' | 'confirmed' | 'cancelled';
+  status?:
+    | 'pending'
+    | 'accepted'
+    | 'completed'
+    | 'confirmed'
+    | 'cancelled'
+    | 'rescheduled';
 
   @IsString()
   @IsOptional()

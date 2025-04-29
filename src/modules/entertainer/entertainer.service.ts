@@ -704,76 +704,76 @@ export class EntertainerService {
     };
   }
 
-  // async update(
-  //   dto: UpdateEntertainerDto,
-  //   userId: number,
-  //   uploadedFiles: UploadedFile[],
-  // ) {
-  //   const { contactNumber, contactPerson, ...rest } = dto;
+  // Update Entertainer
+  async update(
+    dto: UpdateEntertainerDto,
+    userId: number,
+    uploadedFiles: UploadedFile[],
+  ) {
+    const { contactNumber, contactPerson, ...rest } = dto;
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-  //   const queryRunner = this.dataSource.createQueryRunner(dto:Step5Dto ,userId:number);
-  //   await queryRunner.connect(dto:Step5Dto ,userId:number);
-  //   await queryRunner.startTransaction(dto:Step5Dto ,userId:number);
+    const existingEntertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
 
-  //   const existingEntertainer = await this.entertainerRepository.findOne({
-  //     where: { user: { id: userId } },
-  //   });
+    if (!existingEntertainer) {
+      throw new BadRequestException({
+        message: 'Entertainer not Found',
+        status: false,
+      });
+    }
 
-  //   if (!existingEntertainer) {
-  //     throw new BadRequestException({
-  //       message: 'Entertainer not Found',
-  //       status: false,
-  //     });
-  //   }
+    const updatePayload: any = {
+      ...rest,
+    };
 
-  //   const updatePayload: any = {
-  //     ...rest,
-  //   };
+    if (contactNumber !== undefined) {
+      updatePayload.contact_number = contactNumber;
+    }
 
-  //   if (contactNumber !== undefined) {
-  //     updatePayload.contact_number = contactNumber;
-  //   }
+    if (contactPerson !== undefined) {
+      updatePayload.contact_person = contactPerson;
+    }
 
-  //   if (contactPerson !== undefined) {
-  //     updatePayload.contact_person = contactPerson;
-  //   }
+    try {
+      // Step 1: Update entertainer
+      await queryRunner.manager.update(
+        this.entertainerRepository.target,
+        { user: { id: userId } },
+        updatePayload,
+      );
 
-  //   try {
-  //     // Step 1: Update entertainer
-  //     await queryRunner.manager.update(
-  //       this.entertainerRepository.target,
-  //       { user: { id: userId } },
-  //       updatePayload,
-  //     );
+      // Step 2: If media is present, upload it — or else skip
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        const mediaUploadResult = await this.mediaService.handleMediaUpload(
+          userId,
+          uploadedFiles,
+          { eventId: null },
+        );
 
-  //     // Step 2: If media is present, upload it — or else skip
-  //     if (uploadedFiles && uploadedFiles.length > 0) {
-  //       const mediaUploadResult = await this.mediaService.handleMediaUpload(
-  //         userId,
-  //         uploadedFiles,
-  //         { eventId: null },
-  //       );
+        // You can add validation here to check if upload failed, if needed
+      }
 
-  //       // You can add validation here to check if upload failed, if needed
-  //     }
+      // Step 3: Commit transaction
+      await queryRunner.commitTransaction();
 
-  //     // Step 3: Commit transaction
-  //     await queryRunner.commitTransaction(dto:Step5Dto ,userId:number);
-
-  //     return {
-  //       message: 'Entertainer updated successfully',
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     await queryRunner.rollbackTransaction(dto:Step5Dto ,userId:number);
-  //     throw new InternalServerErrorException({
-  //       error: error.message,
-  //       status: false,
-  //     });
-  //   } finally {
-  //     await queryRunner.release(dto:Step5Dto ,userId:number);
-  //   }
-  // }
+      return {
+        message: 'Entertainer updated successfully',
+        status: true,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException({
+        error: error.message,
+        status: false,
+      });
+    } finally {
+      await queryRunner.release();
+    }
+  }
 
   async remove(id: number, userId: number) {
     const entertainer = await this.entertainerRepository.findOne({
@@ -784,7 +784,7 @@ export class EntertainerService {
   }
 
   async findAllBooking(userId: number, query: BookingQueryDto) {
-    const { page = 1, pageSize = 10, search = '', status = [] } = query;
+    const { page = 1, pageSize = 10, search = '', status = '' } = query;
 
     const skip = (Number(page) - 1) * Number(pageSize);
     try {
@@ -794,18 +794,9 @@ export class EntertainerService {
         .leftJoin('event', 'event', 'event.id = booking.eventId') // Manual join since there's no
         .leftJoin('cities', 'city', 'city.id = venue.city') // Manual join since there's no
         .leftJoin('states', 'state', 'state.id = venue.state') // Manual join since there's no
-        .leftJoin('countries', 'country', 'country.id = venue.country') // Manual join since there's no
-        .where('booking.entertainerUserId = :userId', { userId })
-        .andWhere('booking.status IN (:...statuses)', {
-          statuses: [
-            'pending',
-            'confirmed',
-            'cancelled',
-            'completed',
-            'accepted',
-            'rejected',
-          ],
-        })
+        .leftJoin('countries', 'country', 'country.id = venue.country') // Manual join since
+        .where('booking.entId = :userId', { userId })
+
         .select([
           'booking.id AS id',
           'booking.status AS status',
@@ -814,8 +805,6 @@ export class EntertainerService {
           'booking.specialNotes  As specialNotes',
           'booking.performanceRole AS performanceRole',
           'venue.name AS name',
-          'venue.phone AS phone',
-          'venue.email AS email',
           'event.id AS event_id',
           'event.title AS event_title',
           'event.location AS event_location',
@@ -840,21 +829,20 @@ export class EntertainerService {
         );
       }
 
-      if (status && status.length > 0) {
-        bookings.andWhere('booking.status IN (:...statuses)', {
-          statuses: status,
-        });
+      if (status) {
+        bookings.andWhere('booking.status = :status', { status });
       }
 
       const totalCount = await bookings.getCount();
 
       const results = await bookings
+        .orderBy('id', 'DESC')
         .skip(Number(skip))
         .take(Number(pageSize))
         .getRawMany();
 
       return {
-        message: 'Booking created Suceessfully',
+        message: 'Booking fetched  Suceessfully',
         bookings: results,
         totalCount,
         page,
@@ -879,7 +867,7 @@ export class EntertainerService {
         .leftJoin('cities', 'city', 'city.id = venue.city')
         .leftJoin('states', 'state', 'state.id = venue.state')
         .leftJoin('countries', 'country', 'country.id = venue.country')
-        .where('booking.entertainerUserId = :userId', { userId })
+        .where('booking.entId = :userId', { userId })
         .andWhere('booking.status = :status', { status: 'pending' })
         .select([
           'booking.id AS id',
@@ -889,8 +877,6 @@ export class EntertainerService {
           'booking.specialNotes AS specialNotes',
           'booking.performanceRole AS performanceRole',
           'venue.name AS name',
-          'venue.phone AS phone',
-          'venue.email AS email',
           'event.id AS event_id',
           'event.title AS event_title',
           'event.location AS event_location',

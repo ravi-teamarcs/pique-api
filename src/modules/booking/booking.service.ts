@@ -163,7 +163,10 @@ export class BookingService {
       });
     }
 
-    if (role === 'entertainer' && booking.status !== 'pending') {
+    if (
+      role === 'entertainer' &&
+      !['pending', 'rescheduled'].includes(booking.status)
+    ) {
       return {
         message: 'You have already responded to this booking',
         status: false,

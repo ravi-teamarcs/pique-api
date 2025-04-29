@@ -38,6 +38,7 @@ import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { UpcomingEventDto } from './dto/upcoming-event.dto';
 import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
 import { BookingQueryDto } from './dto/booking-query-dto';
+import { typeMap } from 'src/common/constants/media.constants';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -120,7 +121,7 @@ export class EntertainerController {
     const { userId } = req.user;
     return this.entertainerService.saveEntertainerDetails(userId);
   }
-  // Update Entertainers Api
+  // Update Entertainers Api  (Step Based Approach)
   @Patch()
   @UseGuards(JwtAuthGuard)
   updateEntertainer(@Body() body: any, @Request() req) {
@@ -153,6 +154,41 @@ export class EntertainerController {
         });
     }
   }
+
+  // Full Details Update
+
+  @Patch()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  @UseInterceptors(AnyFilesInterceptor())
+  async update(
+    @Body() updateEntertainerDto: UpdateEntertainerDto,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+    @Request() req,
+  ) {
+    const { userId } = req.user;
+    let uploadedFiles: UploadedFile[] = [];
+
+    if (files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: typeMap[file.fieldname],
+          };
+        }),
+      );
+    }
+
+    return this.entertainerService.update(
+      updateEntertainerDto,
+      userId,
+      uploadedFiles,
+    );
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard)
   @Roles('findAll')
@@ -210,9 +246,8 @@ export class EntertainerController {
     description: 'Booking fetched Successfully.',
   })
   getBooking(@Request() req, @Query() query: BookingQueryDto) {
-    const { userId } = req.user;
-
-    return this.entertainerService.findAllBooking(userId, query);
+    const { refId } = req.user;
+    return this.entertainerService.findAllBooking(refId, query);
   }
 
   @Get('/booking/request/pending')
@@ -224,8 +259,8 @@ export class EntertainerController {
     description: 'Pending bookings fetched successfully.',
   })
   getPendingBookings(@Request() req) {
-    const { userId } = req.user;
-    return this.entertainerService.findPendingBookings(userId);
+    const { refId } = req.user;
+    return this.entertainerService.findPendingBookings(refId);
   }
 
   @ApiOperation({
