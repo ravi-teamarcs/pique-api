@@ -224,8 +224,45 @@ export class EventService {
         status: false,
       });
     }
-
     try {
+      const updatedNeighbourhoodId = neighbourhoodId ?? event.sub_venue_id;
+      const updatedVenueId = dto.venueId ?? event.venueId;
+      const updatedTitle = dto.title ?? event.title;
+      const updatedEventDate = dto.eventDate ?? event.eventDate;
+      let updatedStartTime = dto.startTime ?? event.startTime;
+
+      if (!(updatedStartTime instanceof Date)) {
+        // Try to parse string to Date
+        updatedStartTime = new Date(`1970-01-01T${updatedStartTime}`);
+      }
+
+      updatedStartTime = format(updatedStartTime, 'HH:mm:ss');
+      const date = new Date(updatedEventDate);
+      const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+      const timeWithoutSeconds = updatedStartTime.slice(0, 5);
+      const parsedTime = parse(timeWithoutSeconds, 'HH:mm', new Date());
+      const time12 = format(parsedTime, 'h:mm a');
+
+      const { name, neighbourhoodName, addressLine1, addressLine2 } =
+        await this.venueRepository
+          .createQueryBuilder('venue')
+          .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
+            neighbourhoodId: updatedNeighbourhoodId,
+          })
+          .select([
+            'venue.id AS id',
+            'venue.name AS name',
+            'venue.addressLine1 AS addressLine1',
+            'venue.addressLine2 AS addressLine2',
+            'hood.name AS neighbourhoodName',
+            'hood.contactPerson AS neighbourhood_contact_person',
+            'hood.contactNumber AS neighbourhood_contact_number',
+          ])
+          .where('venue.id = :id', { id: updatedVenueId })
+          .getRawOne();
+      const slug = `${formattedDate} at ${time12} (${updatedTitle}) at ${neighbourhoodName}/${name} at ${addressLine1} ${addressLine2}`;
+      payload['slug'] = slug;
+
       await this.eventRepository.update({ id: event.id }, payload);
       return { message: 'Event updated successfully', data: dto, status: true };
     } catch (error) {
@@ -380,4 +417,34 @@ export class EventService {
       });
     }
   }
+
+  // private async generateSlug() {
+  //   const date = new Date(eventDate);
+  //   const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+  //   const timeWithoutSeconds = startTime.slice(0, 5);
+  //   const parsedTime = parse(timeWithoutSeconds, 'HH:mm', new Date());
+
+  //   const time12 = format(parsedTime, 'h:mm a');
+
+  //   const { name, neighbourhoodName, addressLine1, addressLine2 } =
+  //     await this.venueRepository
+  //       .createQueryBuilder('venue')
+  //       .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
+  //         neighbourhoodId,
+  //       })
+  //       .select([
+  //         'venue.id AS id',
+  //         'venue.name AS name',
+  //         'venue.addressLine1 AS addressLine1',
+  //         'venue.addressLine2 AS addressLine2',
+  //         'hood.name AS neighbourhoodName',
+  //         'hood.contactPerson AS neighbourhood_contact_person',
+  //         'hood.contactNumber AS neighbourhood_contact_number',
+  //       ])
+  //       .where('venue.id = :id', { id: venueId })
+  //       .getRawOne();
+
+  //   const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName}/${name} at ${addressLine1} ${addressLine2}`;
+
+  // }
 }

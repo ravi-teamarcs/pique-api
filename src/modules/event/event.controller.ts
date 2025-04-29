@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Req,
@@ -31,6 +32,7 @@ export class EventController {
   createEvent(@Body() createEventDto: CreateEventDto, @Req() req) {
     return this.eventService.createEvent(createEventDto);
   }
+  
 
   @ApiOperation({ summary: 'Get all Event for the Logged In User' })
   @ApiResponse({

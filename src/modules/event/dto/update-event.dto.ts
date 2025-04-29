@@ -26,6 +26,10 @@ export class UpdateEventDto {
   @IsNumber()
   venueId: number; //  //  Update eventId in the request body.
 
+  @IsNotEmpty()
+  @IsNumber()
+  evenDate: string; //  //  Update eventId in the request body.
+
   @ApiProperty({
     example: 'singing',
     description: 'title of the event .',
@@ -41,7 +45,6 @@ export class UpdateEventDto {
   @IsOptional()
   @IsString()
   endTime: string;
-  // Use IsString for time field and ensure it's in the correct 'HH:MM:SS' format
   @ApiProperty({
     example: '2025-02-13T14:30:00Z',
     description: 'Start dateTime of the event',
