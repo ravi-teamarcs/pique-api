@@ -10,6 +10,10 @@ import { Capability } from '../auth/entities/capability.entity';
 import { Neighbourhood } from './entities/neighbourhood.entity';
 import { MediaModule } from '../media/media.module';
 import { AdminCreatedUser } from '../users/entities/admin.created.entity';
+import { Not } from 'typeorm';
+import { NotificationModule } from 'src/modules/notification/notification.module';
+import { EmailModule } from 'src/modules/Email/email.module';
+import { Booking } from '../booking/entities/booking.entity';
 
 @Module({
   imports: [
@@ -21,8 +25,11 @@ import { AdminCreatedUser } from '../users/entities/admin.created.entity';
       Capability,
       Neighbourhood,
       AdminCreatedUser,
+      Booking
     ]),
     MediaModule,
+    NotificationModule,
+    EmailModule,
   ],
   controllers: [VenueController],
   providers: [VenueService],

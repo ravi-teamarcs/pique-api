@@ -35,6 +35,7 @@ import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { getFileType, UploadedFile } from 'src/common/types/media.type';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UpdateVenueUserStatus } from './Dto/update-venue-user-status.dto';
+import { UpdateBookingStatusDto } from './Dto/update-booking-status.dto';
 
 @ApiTags('admin')
 @Controller('admin/venue')
@@ -160,8 +161,6 @@ export class VenueController {
     return this.venueService.addVenueLocation(dto);
   }
 
-  
-
   @Roles('super-admin', 'venue-admin')
   @Put('location/:id')
   updateLocation(@Param('id') id: number, @Body() dto: UpdateLocationDto) {
@@ -198,5 +197,11 @@ export class VenueController {
   @Delete('neighbourhood/:id')
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.venueService.removeNeighbourhood(id);
+  }
+
+  @Patch('booking/venue-response')
+  @Roles('super-admin', 'venue-admin')
+  updateBookingStatus(@Body() dto: UpdateBookingStatusDto) {
+    return this.venueService.updateBookingStatus(dto);
   }
 }

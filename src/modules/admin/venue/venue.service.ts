@@ -21,6 +21,10 @@ import * as bcrypt from 'bcryptjs';
 import { ConfigService } from '@nestjs/config';
 import { AdminCreatedUser } from '../users/entities/admin.created.entity';
 import { UpdateVenueUserStatus } from './Dto/update-venue-user-status.dto';
+import { NotificationService } from 'src/modules/notification/notification.service';
+import { EmailService } from 'src/modules/Email/email.service';
+import { Booking } from '../booking/entities/booking.entity';
+import { format } from 'date-fns';
 
 @Injectable()
 export class VenueService {
@@ -29,11 +33,16 @@ export class VenueService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(Neighbourhood)
     private readonly neighbourRepository: Repository<Neighbourhood>,
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @InjectRepository(AdminCreatedUser)
     private readonly tempRepository: Repository<AdminCreatedUser>,
     private readonly dataSource: DataSource,
+
     private readonly mediaService: MediaService,
+    private readonly notifyService: NotificationService,
+    private readonly emailService: EmailService,
     private readonly config: ConfigService,
   ) {}
 
@@ -520,6 +529,96 @@ export class VenueService {
 
       await this.venueRepository.update({ id }, { status });
       return { message: 'Venue Status updated Successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async updateBookingStatus(dto) {
+    const updatedBookings = [];
+    const { bookingIds, status } = dto;
+    try {
+      for (const bookingId of dto.bookingIds) {
+        const booking = await this.bookingRepository
+          .createQueryBuilder('booking')
+          .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+          .leftJoin('users', 'vuser', 'vuser.id = venue.userId') // venue's user
+          .leftJoin(
+            'entertainers',
+            'entertainer',
+            'entertainer.id = booking.entId',
+          )
+          .leftJoin('users', 'euser', 'euser.id = entertainer.userId') // entertainer's user
+
+          // Join venue table
+          .select([
+            'booking.id AS id',
+            'booking.status AS status',
+            'booking.venueId AS vid',
+            'booking.showTime AS showTime',
+            'booking.showDate AS showDate',
+
+            'euser.email AS eEmail',
+            'euser.name AS ename',
+            'euser.id AS eid ',
+            'euser.phoneNumber AS ephone',
+
+            'venue.name  As  vname',
+            'vuser.email As vemail',
+            'vuser.phoneNumber As vphone',
+            'vuser.id As vid',
+          ])
+          .where('booking.id = :id', { id: bookingId })
+          .getRawOne();
+
+        if (!booking) {
+          throw new NotFoundException({
+            message: `Booking with ID ${bookingId} not found`,
+          });
+        }
+
+        await this.bookingRepository.update({ id: bookingId }, { status });
+
+        if (booking.eEmail) {
+          const formattedDate = format(booking.showDate, 'yyyy-MM-dd'); // e.g. '2025-05-01'
+
+          const emailPayload = {
+            to: booking.eEmail,
+            subject: `Booking Request ${status}`,
+            templateName:
+              status === 'confirmed' ? 'confirmed-booking.html' : '',
+            replacements: {
+              venueName: booking.vname,
+              entertainerName: booking.ename,
+              id: booking.id,
+              bookingTime: booking.showTime,
+              bookingDate: formattedDate,
+            },
+          };
+
+          this.emailService.handleSendEmail(emailPayload);
+
+          this.notifyService.sendPush(
+            {
+              title: 'Booking Response',
+              body: `venue has ${status} the booking request.`,
+              type: 'booking_response',
+            },
+
+            booking.eid,
+          );
+        }
+        updatedBookings.push(bookingId);
+      }
+
+      return {
+        message: 'Booking status updated successfully',
+        data: updatedBookings,
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,
