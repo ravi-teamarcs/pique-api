@@ -248,28 +248,6 @@ export class AuthService {
     return { message: 'Logged out successfully.', status: true };
   }
 
-  // private async isProfileCompleted(user: User) {
-  //   if (user.role === 'venue') {
-  //     const venue = await this.venueRepository.findOne({
-  //       where: { user: { id: user.id } },
-  //     });
-  //     console.log('Venue Detaisl', venue);
-  //     return {
-  //       profileStep: venue?.profileStep ?? 0,
-  //       isProfileComplete: venue?.isProfileComplete ?? false,
-  //     };
-  //   }
-
-  //   // if (user.role === 'entertainer') {
-  //   //   const profileExists = await this.entertainerRepository.count({
-  //   //     where: { user: { id: user.id } },
-  //   //   });
-  //   //   return profileExists > 0;
-  //   // }
-
-  //   // return false;
-  // }
-
   detectDevice(userAgent: string): Device {
     if (/mobile|android|iphone|ipad|ipod/i.test(userAgent)) {
       return 'mobile';

@@ -160,11 +160,7 @@ export class VenueController {
     return this.venueService.addVenueLocation(dto);
   }
 
-  // @Roles('super-admin', 'venue-admin')
-  // @Get('location/:id')
-  // getvenueLocation(@Param('id') id: number) {
-  //   return this.venueService.getVenueLocation(Number(id));
-  // }
+  
 
   @Roles('super-admin', 'venue-admin')
   @Put('location/:id')

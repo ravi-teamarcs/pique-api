@@ -46,35 +46,10 @@ export class EventService {
   async createEvent(dto: CreateEventDto) {
     const { neighbourhoodId, ...rest } = dto;
     const obj = structuredClone(dto);
-
     const { title, venueId, eventDate, startTime } = obj;
+    const payload = { title, venueId, eventDate, startTime, neighbourhoodId };
 
-    const date = new Date(eventDate);
-    const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
-    const timeWithoutSeconds = startTime.slice(0, 5);
-    const parsedTime = parse(timeWithoutSeconds, 'HH:mm', new Date());
-
-    const time12 = format(parsedTime, 'h:mm a');
-
-    const { name, neighbourhoodName, addressLine1, addressLine2 } =
-      await this.venueRepository
-        .createQueryBuilder('venue')
-        .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
-          neighbourhoodId,
-        })
-        .select([
-          'venue.id AS id',
-          'venue.name AS name',
-          'venue.addressLine1 AS addressLine1',
-          'venue.addressLine2 AS addressLine2',
-          'hood.name AS neighbourhoodName',
-          'hood.contactPerson AS neighbourhood_contact_person',
-          'hood.contactNumber AS neighbourhood_contact_number',
-        ])
-        .where('venue.id = :id', { id: venueId })
-        .getRawOne();
-
-    const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName}/${name} at ${addressLine1} ${addressLine2}`;
+    const slug = await this.generateSlug(payload);
 
     try {
       const event = this.eventRepository.create({
@@ -235,32 +210,15 @@ export class EventService {
         // Try to parse string to Date
         updatedStartTime = new Date(`1970-01-01T${updatedStartTime}`);
       }
-
       updatedStartTime = format(updatedStartTime, 'HH:mm:ss');
-      const date = new Date(updatedEventDate);
-      const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
-      const timeWithoutSeconds = updatedStartTime.slice(0, 5);
-      const parsedTime = parse(timeWithoutSeconds, 'HH:mm', new Date());
-      const time12 = format(parsedTime, 'h:mm a');
-
-      const { name, neighbourhoodName, addressLine1, addressLine2 } =
-        await this.venueRepository
-          .createQueryBuilder('venue')
-          .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
-            neighbourhoodId: updatedNeighbourhoodId,
-          })
-          .select([
-            'venue.id AS id',
-            'venue.name AS name',
-            'venue.addressLine1 AS addressLine1',
-            'venue.addressLine2 AS addressLine2',
-            'hood.name AS neighbourhoodName',
-            'hood.contactPerson AS neighbourhood_contact_person',
-            'hood.contactNumber AS neighbourhood_contact_number',
-          ])
-          .where('venue.id = :id', { id: updatedVenueId })
-          .getRawOne();
-      const slug = `${formattedDate} at ${time12} (${updatedTitle}) at ${neighbourhoodName}/${name} at ${addressLine1} ${addressLine2}`;
+      const slugPayload = {
+        title: updatedTitle,
+        neighbourhoodId: updatedNeighbourhoodId,
+        venueId: updatedVenueId,
+        eventDate: updatedEventDate,
+        startTime: updatedStartTime,
+      };
+      const slug = await this.generateSlug(slugPayload);
       payload['slug'] = slug;
 
       await this.eventRepository.update({ id: event.id }, payload);
@@ -279,30 +237,6 @@ export class EventService {
     await this.eventRepository.remove(event);
     return { message: 'Event deleted Successfully ', status: true };
   }
-
-  //get booking using eventId
-
-  // async findBooking(eventId: number): Promise<any[]> {
-  //   const bookings = await this.bookingRepository
-  //     .createQueryBuilder('booking')
-  //     .leftJoin('entertainers', 'ent', 'ent.userId = booking.entId') // Join Entertainers table using userId
-  //     .leftJoin('categories', 'cat', 'cat.id = ent.category') // Join categories table for main category
-  //     .leftJoin(
-  //       'categories',
-  //       'specific_cat',
-  //       'specific_cat.id = ent.specific_category',
-  //     ) // Join categories table for specific category
-  //     .select([
-  //       'booking.*', // All booking fields
-  //       'ent.*', // All columns from the entertainers table
-  //       'cat.name AS categoryName', // Select the category name from the categories table
-  //       'specific_cat.name AS specific_catName', // Select the specific category name from the categories table
-  //     ])
-  //     .where('booking.eventId = :eventId', { eventId })
-  //     .getRawMany(); // Get raw results (not entity instances)
-
-  //   return bookings;
-  // }
 
   async getUpcomingEvent(query: GetEventDto) {
     const { page = 1, pageSize = 10 } = query;
@@ -418,35 +352,38 @@ export class EventService {
     }
   }
 
-  // private async generateSlug() {
-  //   const date = new Date(eventDate);
-  //   const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
-  //   const timeWithoutSeconds = startTime.slice(0, 5);
-  //   const parsedTime = parse(timeWithoutSeconds, 'HH:mm', new Date());
+  private async generateSlug(payload) {
+    const { neighbourhoodId, title, venueId, eventDate, startTime } = payload;
 
-  //   const time12 = format(parsedTime, 'h:mm a');
+    const date = new Date(eventDate);
+    const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+    const timeWithoutSeconds = startTime.slice(0, 5);
+    const parsedTime = parse(timeWithoutSeconds, 'HH:mm', new Date());
 
-  //   const { name, neighbourhoodName, addressLine1, addressLine2 } =
-  //     await this.venueRepository
-  //       .createQueryBuilder('venue')
-  //       .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
-  //         neighbourhoodId,
-  //       })
-  //       .select([
-  //         'venue.id AS id',
-  //         'venue.name AS name',
-  //         'venue.addressLine1 AS addressLine1',
-  //         'venue.addressLine2 AS addressLine2',
-  //         'hood.name AS neighbourhoodName',
-  //         'hood.contactPerson AS neighbourhood_contact_person',
-  //         'hood.contactNumber AS neighbourhood_contact_number',
-  //       ])
-  //       .where('venue.id = :id', { id: venueId })
-  //       .getRawOne();
+    const time12 = format(parsedTime, 'h:mm a');
 
-  //   const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName}/${name} at ${addressLine1} ${addressLine2}`;
+    const { name, neighbourhoodName, addressLine1, addressLine2 } =
+      await this.venueRepository
+        .createQueryBuilder('venue')
+        .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
+          neighbourhoodId,
+        })
+        .select([
+          'venue.id AS id',
+          'venue.name AS name',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'hood.name AS neighbourhoodName',
+          'hood.contactPerson AS neighbourhood_contact_person',
+          'hood.contactNumber AS neighbourhood_contact_number',
+        ])
+        .where('venue.id = :id', { id: venueId })
+        .getRawOne();
 
-  // }
+    const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName}/${name} at ${addressLine1} ${addressLine2}`;
+
+    return slug;
+  }
 
   // Get Booking Where event id
   async findBookings(eventId: number) {

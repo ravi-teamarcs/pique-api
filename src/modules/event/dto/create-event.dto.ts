@@ -8,7 +8,6 @@ import {
 } from 'class-validator';
 
 export class CreateEventDto {
- 
   @ApiProperty({ example: 1, description: 'Venue for  which event is created' })
   @IsNotEmpty()
   @IsNumber()
@@ -49,6 +48,6 @@ export class CreateEventDto {
 
   @ApiProperty({ description: 'Description of event' })
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   neighbourhoodId: number;
 }

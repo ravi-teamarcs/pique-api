@@ -32,7 +32,6 @@ export class EventController {
   createEvent(@Body() createEventDto: CreateEventDto, @Req() req) {
     return this.eventService.createEvent(createEventDto);
   }
-  
 
   @ApiOperation({ summary: 'Get all Event for the Logged In User' })
   @ApiResponse({
@@ -53,9 +52,9 @@ export class EventController {
   })
   @Patch() // working fine
   @Roles('findAll')
-  updateEvent(@Body() updateEventDto: UpdateEventDto, @Req() req) {
-    const { venueId, ...rest } = updateEventDto;
-    return this.eventService.handleUpdateEvent(rest, venueId);
+  updateEvent(@Body() dto: UpdateEventDto, @Req() req) {
+    const { refId } = req.user;
+    return this.eventService.handleUpdateEvent(dto, refId);
   }
   @Delete(':id')
   @Roles('findAll')

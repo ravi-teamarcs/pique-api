@@ -551,9 +551,8 @@ export class VenueService {
         'entertainer.name AS name',
         'entertainer.category AS category',
         'entertainer.specific_category AS  specific_category',
-        'entertainer.phone1 AS phone1',
+       
         'entertainer.performanceRole AS performanceRole',
-        'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
         'event.id AS event_id',
         'event.title AS event_title',
@@ -698,7 +697,6 @@ export class VenueService {
       .setParameter('venueId', venueId)
       .getRawOne();
 
-    console.log('Response of Entertainer', res);
     // Parse JSON fields
     const { services, media, vaccinated, isWishlisted, ...details } = res;
     return {
@@ -937,65 +935,6 @@ export class VenueService {
     await this.wishRepository.remove(wishlistItem);
     return { message: 'Wishlist item removed successfully', status: true };
   }
-
-  // async isBookingAllowed(
-  //   userId: number,
-  //   bookingDate,
-  //   startTime: string,
-  //   endTime: string,
-  // ) {
-  //   const dayOfWeek = new Date(bookingDate).toLocaleString('en-US', {
-  //     weekday: 'long',
-  //   });
-
-  //   console.log('Day of Week ', dayOfWeek);
-
-  //   // Check if date lies is unavailability.
-  //   const isUnavailable = await this.unavailabilityRepo.findOne({
-  //     where: { user: userId, date: bookingDate },
-  //   });
-  //   if (isUnavailable) {
-  //     throw new BadRequestException({
-  //       message: 'The entertainer is unavailable on this date.',
-  //       status: false,
-  //     });
-  //   }
-
-  //   // Check if time slot is within availability
-  //   const availableSlot = await this.availabilityRepo.findOne({
-  //     where: {
-  //       user: userId,
-  //       dayOfWeek,
-  //       startTime: LessThanOrEqual(startTime),
-  //       endTime: MoreThanOrEqual(endTime),
-  //     },
-  //   });
-  //   if (!availableSlot) {
-  //     throw new BadRequestException({
-  //       message: "Requested time is outside of entertainer'\s availability.",
-  //       status: false,
-  //     });
-  //   }
-
-  //   // Check for booking overlap (assuming you have a Booking entity) (And for Slot )
-
-  //   const overlap = await this.bookingRepository.findOne({
-  //     where: {
-  //       entertainerUser: { id: userId },
-  //       showDate: bookingDate,
-  //       // startTime: LessThan(endTime),
-  //       // endTime: MoreThan(startTime),
-  //     },
-  //   });
-
-  //   if (overlap) {
-  //     throw new BadRequestException({
-  //       message:
-  //         'The entertainer already has a booking that overlaps with the requested time.',
-  //       status: false,
-  //     });
-  //   }
-  // }
 
   // Creation Logic Neighbourhood
   async create(dto: CreateNeighbourhoodDto, venueId: number) {

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -34,8 +35,17 @@ export class BookingService {
     private readonly notifyService: NotificationService,
   ) {}
 
-  async createBooking(createBookingDto: CreateBookingDto, venueId: number) {
-    const { entertainerId, ...bookingData } = createBookingDto;
+  async createBooking(dto: CreateBookingDto, venueId: number) {
+    const { entertainerId, ...bookingData } = dto;
+
+    const booking = await this.bookingRepository.findOne({
+      where: { entId: entertainerId, eventId: dto.eventId },
+    });
+
+    if (booking)
+      throw new BadRequestException({
+        message: 'Booking for event  already exists for this entertainer',
+      });
 
     // Create the booking
 

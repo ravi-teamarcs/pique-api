@@ -23,34 +23,10 @@ export class EventService {
 
   async createEvent(dto: CreateEventDto) {
     const { neighbourhoodId, ...rest } = dto;
-
     const obj = structuredClone(dto);
-
     const { title, venueId, eventDate, startTime } = obj;
-
-    const date = new Date(eventDate);
-    const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
-    const parsedTime = parse(startTime, 'HH:mm', new Date());
-    const time12 = format(parsedTime, 'h:mm a');
-    const { name, neighbourhoodName, addressLine1, addressLine2 } =
-      await this.venueRepository
-        .createQueryBuilder('venue')
-        .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
-          neighbourhoodId,
-        })
-        .select([
-          'venue.id AS id',
-          'venue.name AS name',
-          'venue.addressLine1 AS addressLine1',
-          'venue.addressLine2 AS addressLine2',
-          'hood.name AS neighbourhoodName',
-          'hood.contactPerson AS neighbourhood_contact_person',
-          'hood.contactNumber AS neighbourhood_contact_number',
-        ])
-        .where('venue.id = :id', { id: venueId })
-        .getRawOne();
-
-    const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName}/${name} at ${addressLine1} ${addressLine2}`;
+    const payload = { title, venueId, eventDate, startTime, neighbourhoodId };
+    const slug = await this.generateSlug(payload);
     const event = this.eventRepository.create({
       sub_venue_id: neighbourhoodId,
       slug,
@@ -58,6 +34,7 @@ export class EventService {
     });
 
     const savedEvent = await this.eventRepository.save(event);
+
     if (!savedEvent) {
       throw new InternalServerErrorException('Error while creating event');
     }
@@ -65,8 +42,11 @@ export class EventService {
     return { message: 'Event created Successfully', event, status: true };
   }
 
-  async handleUpdateEvent(updateEventDto: any, venueId: number) {
-    const { eventId, ...details } = updateEventDto;
+  async handleUpdateEvent(dto: any, venueId: number) {
+    const { eventId, neighbourhoodId, ...rest } = dto;
+    const payload = { ...rest };
+    if (neighbourhoodId) payload['sub_venue_id'] = neighbourhoodId;
+
     const event = await this.eventRepository.findOne({
       where: { id: eventId, venueId },
     });
@@ -76,12 +56,27 @@ export class EventService {
     }
 
     try {
-      await this.eventRepository.update(
-        { id: eventId },
-        {
-          ...details,
-        },
-      );
+      const updatedNeighbourhoodId = neighbourhoodId ?? event.sub_venue_id;
+      const updatedVenueId = dto.venueId ?? event.venueId;
+      const updatedTitle = dto.title ?? event.title;
+      const updatedEventDate = dto.eventDate ?? event.eventDate;
+      let updatedStartTime = dto.startTime ?? event.startTime;
+
+      if (!(updatedStartTime instanceof Date)) {
+        // Try to parse string to Date
+        updatedStartTime = new Date(`1970-01-01T${updatedStartTime}`);
+      }
+      updatedStartTime = format(updatedStartTime, 'HH:mm:ss');
+      const slugPayload = {
+        title: updatedTitle,
+        neighbourhoodId: updatedNeighbourhoodId,
+        venueId: updatedVenueId,
+        eventDate: updatedEventDate,
+        startTime: updatedStartTime,
+      };
+      const slug = await this.generateSlug(slugPayload);
+      payload['slug'] = slug;
+      await this.eventRepository.update({ id: eventId }, payload);
 
       return { message: 'Event updated successfully', status: true };
     } catch (error) {
@@ -142,5 +137,38 @@ export class EventService {
         status: false,
       });
     }
+  }
+
+  private async generateSlug(payload) {
+    const { neighbourhoodId, title, venueId, eventDate, startTime } = payload;
+
+    const date = new Date(eventDate);
+    const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+    const timeWithoutSeconds = startTime.slice(0, 5);
+    const parsedTime = parse(timeWithoutSeconds, 'HH:mm', new Date());
+
+    const time12 = format(parsedTime, 'h:mm a');
+
+    const { name, neighbourhoodName, addressLine1, addressLine2 } =
+      await this.venueRepository
+        .createQueryBuilder('venue')
+        .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
+          neighbourhoodId,
+        })
+        .select([
+          'venue.id AS id',
+          'venue.name AS name',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'hood.name AS neighbourhoodName',
+          'hood.contactPerson AS neighbourhood_contact_person',
+          'hood.contactNumber AS neighbourhood_contact_number',
+        ])
+        .where('venue.id = :id', { id: venueId })
+        .getRawOne();
+
+    const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName}/${name} at ${addressLine1} ${addressLine2}`;
+
+    return slug;
   }
 }

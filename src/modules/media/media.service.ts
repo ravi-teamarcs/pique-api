@@ -97,7 +97,6 @@ export class MediaService {
   }
 
   async updateMedia(mediaId: number, uploadedFile) {
-    // console.log('mediaId', typeof mediaId, mediaId);
     const media = await this.mediaRepository.findOne({
       where: { id: mediaId },
     });
