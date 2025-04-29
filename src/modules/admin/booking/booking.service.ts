@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -60,6 +61,16 @@ export class BookingService {
 
   async createBooking(payload: AdminBookingDto) {
     const { venueId, entertainerId, ...data } = payload;
+
+    const booking = await this.bookingRepository.findOne({
+      where: { entId: entertainerId, eventId: payload.eventId },
+    });
+
+    if (!booking)
+      throw new BadRequestException({
+        message: 'Booking for event  already exists for this entertainer',
+      });
+
     try {
       const newBooking = this.bookingRepository.create({
         ...data,
@@ -67,15 +78,16 @@ export class BookingService {
         entId: entertainerId,
       });
       await this.bookingRepository.save(newBooking);
-
-      // Generate Booking Log
       return {
         Message: 'Booking created Successfully',
-        status: true,
         data: newBooking,
+        status: true,
       };
     } catch (error) {
-      throw new InternalServerErrorException({ message: error.message });
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
     }
   }
 
@@ -137,31 +149,6 @@ export class BookingService {
       throw new InternalServerErrorException({ message: error.message });
     }
   }
-
-  // async modifyBooking(payload: ModifyBookingDto) {
-  //   const { bookingId, fieldsToUpdate } = payload;
-  //   const booking = await this.bookingRepository.findOne({
-  //     where: { id: bookingId },
-  //   });
-  //   if (!booking) {
-  //     throw new NotFoundException({
-  //       message: 'Booking not found',
-  //       status: false,
-  //     });
-  //   }
-  //   try {
-  //     await this.bookingRepository.update({ id: booking.id }, fieldsToUpdate);
-  //     return {
-  //       message: 'Booking updated successfully',
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException({
-  //       message: error.message,
-  //       status: error.status,
-  //     });
-  //   }
-  // }
 
   async getBookingListing(fromDate, toDate) {
     try {
@@ -332,6 +319,25 @@ export class BookingService {
       throw new InternalServerErrorException({
         message: err.message,
         status: true,
+      });
+    }
+  }
+
+  async removeBooking(bookingId: number) {
+    try {
+      const booking = await this.bookingRepository.findOne({
+        where: { id: bookingId },
+      });
+
+      await this.bookingRepository.delete({ id: booking.id });
+      return {
+        message: 'Booking deleted successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
       });
     }
   }

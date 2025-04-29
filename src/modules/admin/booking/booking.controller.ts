@@ -2,9 +2,11 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -25,7 +27,6 @@ import { BookingQueryDto } from './dto/booking-query.dto';
 import { AdminBookingDto } from './dto/admin-booking.dto';
 import { AdminBookingResponseDto } from './dto/admin-booking-response.dto';
 import { ModifyBookingDto } from './dto/modify.booking.dto';
-import dayjs from 'dayjs';
 import { format, startOfYear, subYears } from 'date-fns';
 
 @ApiTags('Booking')
@@ -81,13 +82,7 @@ export class BookingController {
     return this.bookingService.bookingResponse(bookingdto);
   }
 
-  // @Patch('details')
-  // @HttpCode(200)
-  // @Roles('super-admin')
-  // modifyBooking(@Body() dto: ModifyBookingDto) {
-  //   return this.bookingService.modifyBooking(dto);
-  // }
-
+  // To get Booking Listing
   @Get('listing')
   @Roles('super-admin')
   getBookingListing(@Query('from') from: string, @Query('to') to: string) {
@@ -124,9 +119,17 @@ export class BookingController {
     );
   }
 
+  // To Reschedule Booking Request
   @Patch('rescheduled')
   @Roles('super-admin')
   modifybooking(@Body() dto: ModifyBookingDto) {
     return this.bookingService.handleChangeRequest(dto);
+  }
+
+  // To Delete  Booking Request
+  @Delete(':id')
+  @Roles('super-admin')
+  removeBooking(@Param('id', ParseIntPipe) id: number) {
+    return this.bookingService.removeBooking(id);
   }
 }
