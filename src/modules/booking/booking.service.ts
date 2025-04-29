@@ -17,6 +17,7 @@ import { BookingLog } from './entities/booking-log.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailService } from '../Email/email.service';
 import { NotificationService } from '../notification/notification.service';
+import { format } from 'date-fns';
 
 @Injectable()
 export class BookingService {
@@ -272,12 +273,12 @@ export class BookingService {
 
       await this.bookingRepository.update(
         { id: booking.id },
-        { status: 'pending' },
+        { status: 'rescheduled' },
       );
 
       const payload = {
         bookingId: booking.id,
-        status: 'pending',
+        status: 'rescheduled',
         user: booking.vuid,
         performedBy: 'venue',
       };
@@ -396,5 +397,95 @@ export class BookingService {
     await this.logRepository.save(log);
 
     return { message: 'Log generated Successfully', status: true };
+  }
+
+  async updateBookingStatus(dto, userId: number) {
+    const updatedBookings = [];
+    const { bookingIds, status } = dto;
+    try {
+      for (const bookingId of dto.bookingIds) {
+        const booking = await this.bookingRepository
+          .createQueryBuilder('booking')
+          .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+          .leftJoin('users', 'vuser', 'vuser.id = venue.userId') // venue's user
+          .leftJoin(
+            'entertainers',
+            'entertainer',
+            'entertainer.id = booking.entId',
+          )
+          .leftJoin('users', 'euser', 'euser.id = entertainer.userId') // entertainer's user
+
+          // Join venue table
+          .select([
+            'booking.id AS id',
+            'booking.status AS status',
+            'booking.venueId AS vid',
+            'booking.showTime AS showTime',
+            'booking.showDate AS showDate',
+
+            'euser.email AS eEmail',
+            'euser.name AS ename',
+            'euser.id AS eid ',
+            'euser.phoneNumber AS ephone',
+
+            'venue.name  As  vname',
+            'vuser.email As vemail',
+            'vuser.phoneNumber As vphone',
+            'vuser.id As vid',
+          ])
+          .where('booking.id = :id', { id: bookingId })
+          .getRawOne();
+
+        if (!booking) {
+          throw new NotFoundException({
+            message: `Booking with ID ${bookingId} not found`,
+          });
+        }
+
+        await this.bookingRepository.update({ id: bookingId }, { status });
+
+        if (booking.eEmail) {
+          const formattedDate = format(booking.showDate, 'yyyy-MM-dd'); // e.g. '2025-05-01'
+
+          const emailPayload = {
+            to: booking.eEmail,
+            subject: `Booking Request ${status}`,
+            templateName:
+              status === 'confirmed' ? 'confirmed-booking.html' : '',
+            replacements: {
+              venueName: booking.vname,
+              entertainerName: booking.ename,
+              id: booking.id,
+              bookingTime: booking.showTime,
+              bookingDate: formattedDate,
+            },
+          };
+
+          this.emailService.handleSendEmail(emailPayload);
+
+          this.notifyService.sendPush(
+            {
+              title: 'Booking Response',
+              body: `venue has ${status} the booking request.`,
+              type: 'booking_response',
+            },
+
+            booking.eid,
+          );
+        }
+        updatedBookings.push(bookingId);
+      }
+
+      return {
+        message: 'Booking status updated successfully',
+        data: updatedBookings,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 }

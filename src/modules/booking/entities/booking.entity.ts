@@ -26,7 +26,7 @@ export class Booking {
   @Column({
     type: 'enum',
     enum: [
-      'pending',
+      'invited',
       'confirmed',
       'accepted',
       'cancelled',
@@ -34,14 +34,15 @@ export class Booking {
       'completed',
       'rescheduled',
     ],
-    default: 'pending',
+    default: 'invited',
   })
   status:
-    | 'pending'
+    | 'invited'
     | 'confirmed'
     | 'cancelled'
-    | 'rejected'
+    | 'declined'
     | 'completed'
+    | 'accepted'
     | 'rescheduled';
 
   @Column({ type: 'time' })

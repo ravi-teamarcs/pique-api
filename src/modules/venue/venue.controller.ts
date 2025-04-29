@@ -52,6 +52,7 @@ import { UpdateAddressDto } from './dto/update-address.dto';
 import { UpdatePrimaryInfoDto } from './dto/update-primary-info.dto';
 import { UpdateNeighbourhoodDto } from '../admin/venue/Dto/update-neighbourhood';
 import { CreateNeighbourhoodDto } from './dto/create-neighbourhood.dto';
+import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -305,6 +306,15 @@ export class VenueController {
   bookingResponse(@Body() resDto: ResponseDto, @Request() req) {
     const { role, refId } = req.user;
     return this.bookingService.handleBookingResponse(role, resDto, refId);
+  }
+
+  // Multiple at once
+  @Patch('booking/venue-response')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  updateBookingStatus(@Body() dto: UpdateBookingStatusDto, @Request() req) {
+    const { refId } = req.user;
+    return this.bookingService.updateBookingStatus(dto, refId);
   }
 
   // Api Status Working

@@ -551,7 +551,6 @@ export class VenueService {
         'entertainer.name AS name',
         'entertainer.category AS category',
         'entertainer.specific_category AS  specific_category',
-       
         'entertainer.performanceRole AS performanceRole',
         'entertainer.pricePerEvent AS pricePerEvent',
         'event.id AS event_id',
@@ -674,10 +673,10 @@ export class VenueService {
         'entertainer.specific_category AS specific_category',
         'category.name AS category_name',
         'subcat.name AS specific_category_name',
-        'entertainer.phone1 AS phone1',
         'entertainer.performanceRole AS performanceRole',
         'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
+
         `CASE 
        WHEN entertainer.services IS NULL OR entertainer.services = '' 
        THEN '[]' 

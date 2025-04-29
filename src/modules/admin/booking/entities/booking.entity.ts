@@ -32,23 +32,25 @@ export class Booking {
   @Column({
     type: 'enum',
     enum: [
-      'pending',
+      'invited',
       'confirmed',
       'accepted',
       'cancelled',
       'rejected',
       'completed',
       'rescheduled',
+      'declined',
     ],
-    default: 'pending',
+    default: 'invited',
   })
   status:
-    | 'pending'
+    | 'invited'
     | 'confirmed'
     | 'cancelled'
     | 'rejected'
     | 'completed'
-    | 'rescheduled';
+    | 'rescheduled'
+    | 'declined';
 
   @Column({ type: 'time' })
   showTime: Date;

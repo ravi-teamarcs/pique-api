@@ -15,7 +15,14 @@ class BookingQueryDto {
   pageSize?: number;
   @IsIn(['pending', 'confirmed', 'cancelled', 'rejected', 'accepted'])
   @IsOptional()
-  status: 'pending' | 'confirmed' | 'cancelled' | 'rejected' | 'accepted';
+  status:
+    | 'pending'
+    | 'confirmed'
+    | 'cancelled'
+    | 'rejected'
+    | 'accepted'
+    | 'completed'
+    | 'rescheduled';
 }
 
 export { BookingQueryDto };

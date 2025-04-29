@@ -29,10 +29,10 @@ export class BookingRequest {
   reqEventId: number;
   @Column({
     type: 'enum',
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending',
+    enum: ['invited', 'approved', 'rejected'],
+    default: 'invited',
   })
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'invited' | 'approved' | 'rejected';
 
   @CreateDateColumn()
   createdAt: Date;
