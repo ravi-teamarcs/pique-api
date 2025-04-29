@@ -291,30 +291,30 @@ export class EntertainerController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getEventDetails(@Req() req) {
-    const { userId } = req.user;
-    return this.entertainerService.getEventDetails(userId);
+    const { refId } = req.user;
+    return this.entertainerService.getEventDetails(refId);
   }
   @Get('events/upcoming')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   upcomingEvent(@Req() req, @Query() query: UpcomingEventDto) {
-    const { userId } = req.user;
-    return this.entertainerService.getUpcomingEvent(userId, query);
+    const { refId } = req.user;
+    return this.entertainerService.getUpcomingEvent(refId, query);
   }
 
   @Get('events/details/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getEventDetail(@Req() req, @Param('id') id: number) {
-    const { userId } = req.user;
-    return this.entertainerService.getEventDetailsById(userId, Number(id));
+    const { refId } = req.user;
+    return this.entertainerService.getEventDetailsById(refId, Number(id));
   }
 
   @Get('calendar/events')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   async getUpcomingEvents(@Request() req, @Query() query: EventsByMonthDto) {
-    const { userId } = req.user;
-    return this.entertainerService.getEventDetailsByMonth(userId, query);
+    const { refId } = req.user;
+    return this.entertainerService.getEventDetailsByMonth(refId, query);
   }
 }

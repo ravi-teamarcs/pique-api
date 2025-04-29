@@ -1176,14 +1176,14 @@ export class EntertainerService {
           { now: new Date() },
         )
         .leftJoin('media', 'media', 'media.eventId = event.id')
-        .where('booking.entertainerUserId = :userId', { userId })
+        .where('booking.entId = :userId', { userId })
         .andWhere('booking.status = :status', { status: 'confirmed' })
 
         .select([
           'event.id AS event_id',
           'event.title AS title',
           'event.location AS location',
-          'event.userId AS userId',
+
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
@@ -1255,7 +1255,7 @@ export class EntertainerService {
       const qb = this.bookingRepository
         .createQueryBuilder('booking')
         .innerJoin('event', 'event', 'event.id = booking.eventId')
-        .where('booking.entertainerUserId = :userId', { userId })
+        .where('booking.entId = :userId', { userId })
         .andWhere('YEAR(event.startTime) = :year', { year })
         .andWhere('MONTH(event.startTime) = :month', { month })
         .select([
@@ -1306,7 +1306,7 @@ export class EntertainerService {
           'event.id AS event_id',
           'event.title AS title',
           'event.location AS location',
-          'event.userId AS userId',
+
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
