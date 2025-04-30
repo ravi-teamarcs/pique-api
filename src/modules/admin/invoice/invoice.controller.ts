@@ -34,7 +34,7 @@ export class InvoiceController {
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Post('create')
   async create(@Body() createInvoiceDto: CreateInvoiceDto): Promise<any> {
-    return await this.invoiceService.create(createInvoiceDto);
+    // return await this.invoiceService.create(createInvoiceDto);
   }
 
   @Roles('super-admin')

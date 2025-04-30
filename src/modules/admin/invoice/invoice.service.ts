@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Invoice, InvoiceStatus, UserType } from './entities/invoices.entity';
 import { Like, Repository } from 'typeorm';
@@ -6,50 +6,16 @@ import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { InvoiceQueryDto } from './Dto/invoice-query.dto';
+import { Booking } from '../booking/entities/booking.entity';
 
 @Injectable()
 export class InvoiceService {
   constructor(
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>,
   ) {}
-  // Create a new invoice
-
-  async create(createInvoiceDto: CreateInvoiceDto): Promise<Invoice> {
-    // Ensure all values are valid decimal numbers
-    const totalAmount = parseFloat(createInvoiceDto.total_amount.toString());
-    const taxRate = parseFloat(createInvoiceDto.tax_rate.toString());
-
-    // Validate totalAmount and taxRate to avoid NaN issues
-    if (isNaN(totalAmount) || isNaN(taxRate)) {
-      throw new Error('Invalid total_amount or tax_rate');
-    }
-
-    // Calculate tax
-    const recalculatedTaxAmount = this.calculateTaxAmount(totalAmount, taxRate);
-    const recalculatedTotalWithTax = totalAmount + recalculatedTaxAmount;
-
-    // Use recalculated values if the provided ones are not valid
-    const taxAmount = createInvoiceDto.tax_amount
-      ? parseFloat(createInvoiceDto.tax_amount.toString())
-      : recalculatedTaxAmount;
-
-    const totalWithTax = createInvoiceDto.total_with_tax
-      ? parseFloat(createInvoiceDto.total_with_tax.toString())
-      : recalculatedTotalWithTax;
-
-    // Create invoice object
-    const invoice = this.invoiceRepository.create({
-      ...createInvoiceDto,
-      total_amount: totalAmount,
-      tax_rate: taxRate,
-      tax_amount: taxAmount,
-      total_with_tax: totalWithTax,
-      user_id: 12,
-    });
-
-    return await this.invoiceRepository.save(invoice);
-  }
 
   async findAll(dto: InvoiceQueryDto) {
     const { page = 1, pageSize = 10, search = '', role } = dto;
@@ -154,5 +120,68 @@ export class InvoiceService {
 
     invoice.status = status;
     return await this.invoiceRepository.save(invoice);
+  }
+
+  // Latest Code of Generate Invoive (@Bhawani Thakur)
+  async generateInvoice(dto: CreateInvoiceDto) {
+    const { bookingId } = dto;
+    try {
+      const booking = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .select([
+          'booking.eventId AS eventId',
+          'booking.entId AS entertainerId',
+          'booking.venueId AS venueId',
+          'event.startTime AS eventStartTime',
+          'event.endTime AS eventEndTime',
+          'event.name AS eventName',
+        ])
+        .getRawOne();
+
+      const lastInvoice = await this.invoiceRepository
+        .createQueryBuilder('invoices')
+        .orderBy('invoices.id', 'DESC')
+        .limit(1)
+        .getOne();
+
+      // checks last invoice number and  increment it by one.
+      const lastInvoiceNumber = lastInvoice
+        ? parseInt(lastInvoice.invoice_number.split('-')[1])
+        : 1000;
+
+      const newInvoiceNumber = `INV-${lastInvoiceNumber + 1}`;
+      const taxRate = 10.0;
+      const taxAmount = (10000 * taxRate) / 100;
+      const totalWithTax = 1000 + taxAmount;
+
+      // Invoice Generated On and Due Date
+      const issueDate = new Date();
+      const dueDate = new Date(issueDate);
+      dueDate.setDate(dueDate.getDate() + 60);
+
+      const newInvoice = this.invoiceRepository.create({
+        invoice_number: newInvoiceNumber,
+        user_id: Number(booking.venueId), // can also be generated for admin created entertainer but need to add
+        event_id: Number(booking.eventId),
+        issue_date: issueDate.toISOString().split('T')[0],
+        due_date: new Date(dueDate).toISOString().split('T')[0],
+        total_amount: 122,
+        tax_rate: parseFloat(taxRate.toFixed(2)),
+        tax_amount: parseFloat(taxAmount.toFixed(2)),
+        total_with_tax: parseFloat(totalWithTax.toFixed(2)),
+        status: InvoiceStatus.PENDING,
+        payment_method: '',
+        payment_date: null,
+        booking_id: Number(bookingId),
+      });
+      await this.invoiceRepository.save(newInvoice);
+      return { message: 'Invoice generated successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 }

@@ -397,6 +397,7 @@ export class EventService {
           'ent.name AS entertainerName',
           'ent.contact_person AS contactPerson',
           'ent.contact_number AS contactNumber',
+          'ent.pricePerEvent AS pricePerHour',
         ])
         .where('booking.eventId = :eventId', { eventId })
         .orderBy('booking.id', 'DESC');

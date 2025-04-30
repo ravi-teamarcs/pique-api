@@ -198,7 +198,14 @@ export class BookingService {
           to: toDate,
         })
         .andWhere('booking.status IN (:...status)', {
-          status: ['completed', 'pending', 'cancelled', 'accepted', 'rejected'],
+          status: [
+            'completed',
+            'invited',
+            'cancelled',
+            'accepted',
+            'declined',
+            'confirmed',
+          ],
         })
 
         .leftJoin('event', 'event', 'event.id = booking.eventId')
