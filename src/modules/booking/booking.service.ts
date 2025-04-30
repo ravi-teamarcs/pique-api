@@ -240,19 +240,28 @@ export class BookingService {
   }
 
   async handleChangeRequest(bookingdto: ChangeBooking, userId: number) {
-    const { bookingId } = bookingdto;
-
+    const { bookingId, reqShowDate, reqShowTime } = bookingdto;
     const booking = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoinAndSelect('booking.euser', 'ent')
-      .leftJoinAndSelect('booking.venueUser', 'vuser')
+      .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+      .leftJoin('event', 'event', 'event.id = booking.eventId')
+      .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
+      .leftJoin('users', 'user', 'user.id = booking.entId')
       .select([
         'booking.id AS id',
         'booking.status AS status',
-        'ent.id AS eid',
-        'vuser.id AS vuid',
+        'entertainer.id AS eid',
+        'entertainer.entertainerName AS entertainer_name',
+        'venue.id AS vuid',
+        'user.id AS entertainer_user_id',
+        'user.email AS entertainer_email',
+        'event.id AS event_id',
+        'event.title AS event_title',
       ])
-      .where('booking.id = :id', { id: bookingId })
+      .where('booking.id = :id AND booking.venueId=:userId', {
+        id: bookingId,
+        userId,
+      })
       .getRawOne();
 
     if (!booking) {
@@ -265,42 +274,46 @@ export class BookingService {
     try {
       const bookReq = this.reqRepository.create({
         ...bookingdto,
-        reqEventId: booking.eventId,
-        vuid: userId,
+        vuid: booking.vuid,
         euid: booking.eid,
+        reqEventId: booking.eventId,
       });
 
       await this.reqRepository.save(bookReq);
 
+      // This updates the booking
       await this.bookingRepository.update(
         { id: booking.id },
-        { status: 'rescheduled' },
+        { status: 'rescheduled', showDate: reqShowDate, showTime: reqShowTime },
       );
 
-      const payload = {
-        bookingId: booking.id,
-        status: 'rescheduled',
-        user: booking.vuid,
-        performedBy: 'venue',
-      };
+      if (booking.entertainer_email) {
+        // Send Email to Entertainer
+        const emailPayload = {
+          to: booking.entertainer_email,
+          subject: `Event Date and Time Change`,
+          templateName: 'modify-booking.html',
+          replacements: {
+            recipientName: booking.entertainer_name,
+            bookingId: booking.id,
+            newStartTime: booking.reqShowTime,
+            newDate: booking.reqShowDate,
+          },
+        };
+        this.emailService.handleSendEmail(emailPayload);
 
-      // Email
+        // Send Notification to Entertainer
 
-      // Notification
-      this.notifyService.sendPush(
-        {
-          title: 'Modify Booking Request',
-          body: 'The venue has requested to change the date and time of the booking.',
-          type: 'booking_modify_request', // more specific and consistent
-        },
-        booking.eId,
-      );
+        this.notifyService.sendPush(
+          {
+            title: 'Event Date and Time Change',
+            body: `Your booking with ID ${booking.id} has been rescheduled to ${booking.reqShowDate} at ${booking.reqShowTime}`,
+            type: 'booking_date_time_change',
+          },
+          booking.entertainer_user_id,
+        );
+      }
 
-      this.generateBookingLog(payload);
-
-      // Notification
-
-      // Booking Request
       return {
         message:
           'Your Request for Time and Date  have registered Successfully.',
@@ -308,7 +321,7 @@ export class BookingService {
       };
     } catch (err) {
       throw new InternalServerErrorException({
-        message: 'Failed to create request',
+        message: err.message,
         status: true,
       });
     }

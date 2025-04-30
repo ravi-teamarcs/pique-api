@@ -348,8 +348,8 @@ export class VenueController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   requestChange(@Body() dateTimeChangeDto: ChangeBooking, @Request() req) {
-    const { userId } = req.user;
-    return this.bookingService.handleChangeRequest(dateTimeChangeDto, userId);
+    const { refId } = req.user;
+    return this.bookingService.handleChangeRequest(dateTimeChangeDto, refId);
   }
 
   // Working
