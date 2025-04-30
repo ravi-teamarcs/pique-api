@@ -14,6 +14,7 @@ export class InvoiceService {
     private readonly invoiceRepository: Repository<Invoice>,
   ) {}
   // Create a new invoice
+
   async create(createInvoiceDto: CreateInvoiceDto): Promise<Invoice> {
     // Ensure all values are valid decimal numbers
     const totalAmount = parseFloat(createInvoiceDto.total_amount.toString());

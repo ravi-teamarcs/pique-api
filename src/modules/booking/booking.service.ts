@@ -265,6 +265,7 @@ export class BookingService {
     try {
       const bookReq = this.reqRepository.create({
         ...bookingdto,
+        reqEventId: booking.eventId,
         vuid: userId,
         euid: booking.eid,
       });

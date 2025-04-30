@@ -79,18 +79,20 @@ export class GenerateInvoiceService {
       const taxAmount = (entertainer.pricePerEvent * taxRate) / 100;
       const totalWithTax = entertainer.pricePerEvent + taxAmount;
 
-      // Get the latest invoice (ensure sequential number generation)
+      // Check for latest Invoice Number (e.g., INV-1001)
       const lastInvoice = await this.invoiceRepo
         .createQueryBuilder('invoices')
         .orderBy('invoices.id', 'DESC')
         .limit(1)
         .getOne();
 
+      // Generate invoice Number
       const lastInvoiceNumber = lastInvoice
         ? parseInt(lastInvoice.invoice_number.split('-')[1])
         : 1000;
       const newInvoiceNumber = `INV-${lastInvoiceNumber + 1}`;
 
+      // Create Invoice Object
       const newInvoice = this.invoiceRepo.create({
         invoice_number: newInvoiceNumber,
         event_id: Number(event.id),
