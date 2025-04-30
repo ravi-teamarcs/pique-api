@@ -176,7 +176,7 @@ export class BookingService {
 
     if (
       role === 'entertainer' &&
-      !['pending', 'rescheduled'].includes(booking.status)
+      !['invited', 'rescheduled'].includes(booking.status)
     ) {
       return {
         message: 'You have already responded to this booking',
