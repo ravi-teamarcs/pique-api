@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Invoice, InvoiceStatus, UserType } from './entities/invoices.entity';
 import { Like, Repository } from 'typeorm';
@@ -7,6 +11,11 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { InvoiceQueryDto } from './Dto/invoice-query.dto';
 import { Booking } from '../booking/entities/booking.entity';
+import { differenceInMinutes, parse } from 'date-fns';
+import { loadEmailTemplate } from 'src/common/email-templates/utils/email.utils';
+import puppeteer from 'puppeteer';
+import { EmailService } from 'src/modules/Email/email.service';
+import { eventNames } from 'process';
 
 @Injectable()
 export class InvoiceService {
@@ -15,6 +24,7 @@ export class InvoiceService {
     private readonly invoiceRepository: Repository<Invoice>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    private readonly emailService: EmailService,
   ) {}
 
   async findAll(dto: InvoiceQueryDto) {
@@ -44,59 +54,44 @@ export class InvoiceService {
     const total = await countQuery.getCount();
 
     return {
+      message: 'Invoices fetched successfully',
       records,
       total,
       page,
       pageSize,
       totalPages: Math.ceil(total / pageSize),
+      status: true,
     };
   }
 
   // Get a specific invoice by ID
-  async findOne(id: number): Promise<Invoice> {
-    return await this.invoiceRepository.findOne({ where: { id } });
+  async findOne(id: number) {
+    const invoice = await this.invoiceRepository.findOne({ where: { id } });
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    return {
+      message: 'Invoice fetched successfully',
+      data: invoice,
+      status: true,
+    };
   }
 
   // Update an existing invoice
-  async update(id: number, updateInvoiceDto: UpdateInvoiceDto): Promise<any> {
-    // const invoice = await this.invoiceRepository.findOne({ where: { id } });
-    // if (!invoice) {
-    //     throw new Error('Invoice not found');
-    // }
-    // // Merge existing invoice data with updated values
-    // const updatedInvoice = { ...invoice, ...updateInvoiceDto };
-    // // Recalculate totals if tax-related fields are updated
-    // if (updateInvoiceDto.total_amount || updateInvoiceDto.tax_rate) {
-    //     updatedInvoice.total_amount = updateInvoiceDto.total_amount
-    //         ? parseFloat(updateInvoiceDto.total_amount)
-    //         : invoice.total_amount;
-    //     updatedInvoice.tax_rate = updateInvoiceDto.tax_rate
-    //         ? parseFloat(updateInvoiceDto.tax_rate)
-    //         : invoice.tax_rate;
-    //     updatedInvoice.tax_amount = parseFloat(
-    //         this.calculateTaxAmount(updatedInvoice.total_amount, updatedInvoice.tax_rate).toFixed(2)
-    //     );
-    //     updatedInvoice.total_with_tax = parseFloat((updatedInvoice.total_amount + updatedInvoice.tax_amount).toFixed(2));
-    // }
-    // // Ensure `payment_date` is properly formatted if provided
-    // if (updateInvoiceDto.payment_date) {
-    //     updatedInvoice.payment_date = new Date(updateInvoiceDto.payment_date).toISOString().split('T')[0];
-    // }
-    // return await this.invoiceRepository.save(updatedInvoice);
-  }
+  async update(id: number, updateInvoiceDto: UpdateInvoiceDto): Promise<any> {}
 
   // Delete an invoice
-  async remove(id: number): Promise<void> {
+  async remove(id: number) {
     const invoice = await this.findOne(id);
     if (!invoice) {
-      throw new Error('Invoice not found');
+      throw new NotFoundException('Invoice not found');
     }
     await this.invoiceRepository.delete(id);
-  }
-
-  // Calculate tax amount based on total amount and tax rate
-  private calculateTaxAmount(totalAmount: number, taxRate: number): number {
-    return (totalAmount * taxRate) / 100;
+    return {
+      message: 'Invoice deleted successfully',
+      status: true,
+    };
   }
 
   // Get invoices by user type (entertainer or venue)
@@ -106,38 +101,24 @@ export class InvoiceService {
     });
   }
 
-  // Get invoices by status (pending, paid, overdue)
-  async findByStatus(status: InvoiceStatus): Promise<Invoice[]> {
-    return await this.invoiceRepository.find({ where: { status } });
-  }
-
-  // Update invoice status (e.g., mark as paid)
-  async updateStatus(id: number, status: InvoiceStatus): Promise<Invoice> {
-    const invoice = await this.findOne(id);
-    if (!invoice) {
-      throw new Error('Invoice not found');
-    }
-
-    invoice.status = status;
-    return await this.invoiceRepository.save(invoice);
-  }
-
   // Latest Code of Generate Invoive (@Bhawani Thakur)
   async generateInvoice(dto: CreateInvoiceDto) {
-    const { bookingId } = dto;
+    const { bookingId, pricePerHour, platformFee, isFixed, discountInPercent } =
+      dto;
     try {
-      const booking = await this.bookingRepository
-        .createQueryBuilder('booking')
-        .leftJoin('event', 'event', 'event.id = booking.eventId')
-        .select([
-          'booking.eventId AS eventId',
-          'booking.entId AS entertainerId',
-          'booking.venueId AS venueId',
-          'event.startTime AS eventStartTime',
-          'event.endTime AS eventEndTime',
-          'event.name AS eventName',
-        ])
-        .getRawOne();
+      const { venueId, startTime, endTime, eventId } =
+        await this.bookingRepository
+          .createQueryBuilder('booking')
+          .leftJoin('event', 'event', 'event.id = booking.eventId')
+          .select([
+            'booking.eventId AS eventId',
+            'booking.entId AS entertainerId',
+            'booking.venueId AS venueId',
+            'event.startTime AS eventStartTime',
+            'event.endTime AS eventEndTime',
+            'event.name AS eventName',
+          ])
+          .getRawOne();
 
       const lastInvoice = await this.invoiceRepository
         .createQueryBuilder('invoices')
@@ -151,9 +132,22 @@ export class InvoiceService {
         : 1000;
 
       const newInvoiceNumber = `INV-${lastInvoiceNumber + 1}`;
-      const taxRate = 10.0;
-      const taxAmount = (10000 * taxRate) / 100;
-      const totalWithTax = 1000 + taxAmount;
+      // Logic to calculate the total amount based on the booking details
+
+      const durationInHours = this.getDurationInHours(startTime, endTime); // (duartion)
+      const totalAmount = pricePerHour * durationInHours;
+
+      const discountAmount = (totalAmount * discountInPercent) / 100;
+      const discountedTotal = totalAmount - discountAmount;
+
+      let totalWithPlatformFee = 0;
+
+      if (isFixed) {
+        totalWithPlatformFee = discountedTotal + platformFee;
+      } else {
+        totalWithPlatformFee =
+          discountedTotal + (discountedTotal * platformFee) / 100;
+      }
 
       // Invoice Generated On and Due Date
       const issueDate = new Date();
@@ -162,19 +156,20 @@ export class InvoiceService {
 
       const newInvoice = this.invoiceRepository.create({
         invoice_number: newInvoiceNumber,
-        user_id: Number(booking.venueId), // can also be generated for admin created entertainer but need to add
-        event_id: Number(booking.eventId),
+        user_id: Number(venueId), // can also be generated for admin created entertainer but need to add
+        event_id: Number(eventId),
         issue_date: issueDate.toISOString().split('T')[0],
         due_date: new Date(dueDate).toISOString().split('T')[0],
-        total_amount: 122,
-        tax_rate: parseFloat(taxRate.toFixed(2)),
-        tax_amount: parseFloat(taxAmount.toFixed(2)),
-        total_with_tax: parseFloat(totalWithTax.toFixed(2)),
-        status: InvoiceStatus.PENDING,
+        total_amount: totalAmount,
+        tax_rate: 0,
+        tax_amount: parseFloat(discountedTotal.toFixed(2)),
+        total_with_tax: parseFloat(totalWithPlatformFee.toFixed(2)),
+        status: InvoiceStatus.UNPAID,
         payment_method: '',
         payment_date: null,
         booking_id: Number(bookingId),
       });
+
       await this.invoiceRepository.save(newInvoice);
       return { message: 'Invoice generated successfully', status: true };
     } catch (error) {
@@ -183,5 +178,93 @@ export class InvoiceService {
         status: false,
       });
     }
+  }
+
+  // send Invoice
+  async sendInvoice(id: number) {
+    const invoice = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
+      .leftJoin('users', 'user', 'user.id = venue.userId')
+      .leftJoin('event', 'event', 'event.id = invoices.event_id')
+      .select([
+        'invoices.invoice_number AS invoiceNumber',
+        'invoices.issue_date AS issueDate',
+        'invoices.due_date AS dueDate',
+        'invoices.total_amount AS totalAmount',
+        'invoices.tax_rate AS taxRate',
+        'invoices.tax_amount AS taxAmount',
+        'invoices.total_with_tax AS totalWithTax',
+        'venue.name AS venueName',
+        'user.email AS userEmail',
+        'event.title AS eventName',
+      ])
+      .where('invoices.id = :id', { id })
+      .getRawOne();
+
+    if (!invoice) {
+      throw new NotFoundException({ message: 'Invoice not found' });
+    }
+
+    try {
+      const invoicePayload = {
+        invoiceNumber: invoice.invoiceNumber,
+        issueDate: invoice.issueDate,
+        dueDate: invoice.dueDate,
+        totalAmount: invoice.totalAmount,
+        totalWithTax: invoice.totalWithTax,
+        venueName: invoice.venueName,
+        venueEmail: invoice.userEmail,
+        eventName: invoice.eventName,
+      };
+      const html = loadEmailTemplate('invoice.html', invoicePayload);
+      const pdfBuffer = await this.generatePDF(html);
+      const buffer = Buffer.from(pdfBuffer); // Ensure it's a Node.js Buffer
+
+      const emailPayload = {
+        to: invoice.userEmail,
+        subject: 'Invoice For Event',
+        templateName: 'invoice-email.html',
+        replacements: { totalAmount: 200 },
+        attachments: [
+          {
+            filename: `${invoice.eventName}_invoice.pdf`,
+            content: buffer, // a Buffer from Puppeteer
+            contentType: 'application/pdf',
+          },
+        ],
+      };
+      await this.emailService.handleSendEmail(emailPayload);
+      return { message: 'Invoice sent Successfully ', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  private getDurationInHours(startTime: string, endTime: string): number {
+    const today = new Date().toISOString().split('T')[0]; // get current date as "YYYY-MM-DD"
+    const start = parse(
+      `${today} ${startTime}`,
+      'yyyy-MM-dd HH:mm:ss',
+      new Date(),
+    );
+    const end = parse(`${today} ${endTime}`, 'yyyy-MM-dd HH:mm:ss', new Date());
+
+    const diffInMinutes = differenceInMinutes(end, start);
+    const diffInHours = diffInMinutes / 60;
+
+    return diffInHours;
+  }
+
+  private async generatePDF(htmlContent) {
+    const browser = await puppeteer.launch();
+    const page = await browser.newPage();
+    await page.setContent(htmlContent);
+    const pdfBuffer = await page.pdf({ format: 'A4' });
+    await browser.close();
+    return pdfBuffer;
   }
 }

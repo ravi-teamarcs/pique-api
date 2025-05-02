@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class EmailDto {
   @ApiProperty({ description: 'Email address to send the email to' })
@@ -26,4 +26,11 @@ export class EmailDto {
 
   @ApiProperty({ description: 'Replacements for the template' })
   replacements: Record<string, any>;
+
+  @IsOptional()
+  attachments?: {
+    filename: string;
+    content: Buffer | string;
+    contentType?: string;
+  }[];
 }

@@ -24,7 +24,7 @@ import { UpdateVenueUserStatus } from './Dto/update-venue-user-status.dto';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import { EmailService } from 'src/modules/Email/email.service';
 import { Booking } from '../booking/entities/booking.entity';
-import { format } from 'date-fns';
+import { format, sub } from 'date-fns';
 
 @Injectable()
 export class VenueService {
@@ -528,6 +528,20 @@ export class VenueService {
       }
 
       await this.venueRepository.update({ id }, { status });
+
+      const currentYear = new Date().getFullYear();
+      // Send Email to the User
+      const emailPayload = {
+        to: venue.user.email,
+        subject: 'Account Status',
+        templateName:
+          status === 'active'
+            ? 'account-approved.html'
+            : 'account-rejected.html',
+        replacements: { name: venue.user.name, year: currentYear },
+      };
+
+      this.emailService.handleSendEmail(emailPayload);
       return { message: 'Venue Status updated Successfully', status: true };
     } catch (error) {
       throw new InternalServerErrorException({

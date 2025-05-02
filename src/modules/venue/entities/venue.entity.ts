@@ -47,7 +47,7 @@ export class Venue {
   @Column({ nullable: true })
   country: number;
   @Column({ default: 'pending' })
-  status: 'active' | 'inactive' | 'pending';
+  status: 'active' | 'inactive' | 'pending' | 'rejected';
 
   @CreateDateColumn()
   createdAt: Date;

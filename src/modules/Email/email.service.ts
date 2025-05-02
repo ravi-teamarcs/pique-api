@@ -20,7 +20,7 @@ export class EmailService {
     });
   }
   async handleSendEmail(emailDto: EmailDto) {
-    const { to, subject, templateName, replacements } = emailDto;
+    const { to, subject, templateName, replacements, attachments } = emailDto;
     const html = loadEmailTemplate(templateName, replacements);
 
     const mailOptions = {
@@ -30,6 +30,10 @@ export class EmailService {
       // text: message,  Plain text body
       html,
     };
+
+    if (attachments?.length) {
+      mailOptions['attachments'] = attachments;
+    }
     try {
       const res = await this.transporter.sendMail(mailOptions);
 

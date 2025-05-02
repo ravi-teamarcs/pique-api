@@ -39,10 +39,10 @@ export class User {
 
   @Column({
     type: 'enum',
-    enum: ['active', 'inactive', 'pending'],
+    enum: ['active', 'inactive', 'pending' ,'rejected'],
     default: 'pending',
   })
-  status: 'active' | 'inactive' | 'pending';
+  status: 'active' | 'inactive' | 'pending' | 'rejected';
 
   @OneToOne(() => Entertainer, (entertainer) => entertainer.user, {
     cascade: true,

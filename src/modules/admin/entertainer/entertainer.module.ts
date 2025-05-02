@@ -10,6 +10,7 @@ import { Capability } from '../auth/entities/capability.entity';
 import { User } from '../users/entities/users.entity';
 import { AdminCreatedUser } from '../users/entities/admin.created.entity';
 import { MediaModule } from '../media/media.module';
+import { EmailModule } from 'src/modules/Email/email.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { MediaModule } from '../media/media.module';
       AdminCreatedUser,
     ]),
     MediaModule,
+    EmailModule
   ],
   controllers: [EntertainerController],
   providers: [EntertainerService],

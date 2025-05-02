@@ -19,6 +19,7 @@ import { EventsQueryDto } from './dto/query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { format, parse } from 'date-fns';
 import { Venue } from '../venue/entities/venue.entity';
+import { BookingService } from '../booking/booking.service';
 
 @Injectable()
 export class EventService {
@@ -31,6 +32,7 @@ export class EventService {
     private readonly venueRepository: Repository<Venue>,
 
     private readonly mediaService: MediaService,
+    private readonly bookingService: BookingService,
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
   ) {}
@@ -220,8 +222,14 @@ export class EventService {
       };
       const slug = await this.generateSlug(slugPayload);
       payload['slug'] = slug;
-
       await this.eventRepository.update({ id: event.id }, payload);
+
+      if (dto.eventDate || dto.startTime) {
+        this.bookingService.handleChangeRequest(Number(event.id), {
+          reqShowDate: new Date(updatedEventDate).toISOString().split('T')[0],
+          reqShowTime: updatedStartTime,
+        });
+      }
       return { message: 'Event updated successfully', data: dto, status: true };
     } catch (error) {
       throw new InternalServerErrorException({

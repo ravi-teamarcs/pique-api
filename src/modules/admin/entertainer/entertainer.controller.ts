@@ -35,6 +35,8 @@ import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { getFileType, UploadedFile } from 'src/common/types/media.type';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { typeMap } from 'src/common/constants/media.constants';
+import { Vaccinated } from 'src/common/enums/entertainer.enum';
+import { GetEntertainerDto } from './Dto/search-entertainer-query.dto';
 
 @ApiTags('admin')
 @Controller('admin/entertainer')
@@ -45,17 +47,8 @@ export class EntertainerController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Get('all')
-  async getEntertainer(
-    @Req() req,
-    @Query('page') page: number = 1,
-    @Query('pageSize') pageSize: number = 10,
-    @Query('search') search: string = '',
-  ) {
-    return await this.EntertainerService.getAllEntertainers({
-      page,
-      pageSize,
-      search,
-    });
+  async getEntertainer(@Req() req, @Query() query: GetEntertainerDto) {
+    return await this.EntertainerService.getAllEntertainers(query);
   }
 
   // New Flow for Creating Entertainer

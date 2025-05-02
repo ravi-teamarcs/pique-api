@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   Query,
@@ -29,20 +30,13 @@ export class InvoiceController {
   ) {}
 
   // Create a new invoice
-  @Roles('super-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Post('create')
-  async create(@Body() createInvoiceDto: CreateInvoiceDto): Promise<any> {
-    // return await this.invoiceService.create(createInvoiceDto);
-  }
 
-  @Roles('super-admin')
+  @Post('create')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get('generateinvoices')
-  async generateInvoices(): Promise<void> {
-    return await this.geninvoiceService.generateInvoices();
+  @Roles('super-admin')
+  async create(@Body() dto: CreateInvoiceDto) {
+    // return await this.invoiceService.create(createInvoiceDto);
   }
 
   @Roles('super-admin')
@@ -72,11 +66,11 @@ export class InvoiceController {
     return await this.invoiceService.update(id, updateInvoiceDto);
   }
 
-  @Roles('super-admin')
+  @Delete(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Delete(':id')
-  async remove(@Param('id') id: number): Promise<void> {
+  @Roles('super-admin')
+  async remove(@Param('id') id: number) {
     return await this.invoiceService.remove(id);
   }
 
@@ -94,20 +88,13 @@ export class InvoiceController {
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Get('status/:status')
-  async findByStatus(
-    @Param('status') status: InvoiceStatus,
-  ): Promise<Invoice[]> {
-    return await this.invoiceService.findByStatus(status);
+  async findByStatus(@Param('status') status: InvoiceStatus) {
+    // return await this.invoiceService.findByStatus(status);
   }
 
-  @Roles('super-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Put('status/:id')
-  async updateStatus(
-    @Param('id') id: number,
-    @Body('status') status: InvoiceStatus,
-  ): Promise<any> {
-    return await this.invoiceService.updateStatus(id, status);
+  @Post('/send/:id')
+  @Roles('super-admin', 'venue-admin')
+  sendInvoice(@Param('id', ParseIntPipe) id: number) {
+    return this.invoiceService.sendInvoice(id);
   }
 }

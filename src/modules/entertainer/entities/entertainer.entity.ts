@@ -58,7 +58,7 @@ export class Entertainer {
   gigs: Gig[];
 
   @Column({ default: 'pending' })
-  status: 'active' | 'inactive' | 'pending';
+  status: 'active' | 'inactive' | 'pending' | 'rejected';
 
   @Column({ nullable: true })
   city: number;
@@ -70,7 +70,7 @@ export class Entertainer {
   country: number;
 
   @Column({ type: 'json', nullable: true })
-  socialLinks: Record<string, string>; 
+  socialLinks: Record<string, string>;
 
   // New changes Introduced  (Latest Changes Both )  Can be Changed
 
@@ -79,7 +79,7 @@ export class Entertainer {
 
   @Column({ nullable: true })
   address: string;
-  
+
   @Column({ nullable: true })
   addressLine1: string;
   @Column({ nullable: true })

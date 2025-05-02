@@ -120,11 +120,11 @@ export class BookingController {
   }
 
   // To Reschedule Booking Request
-  @Patch('rescheduled')
-  @Roles('super-admin')
-  modifybooking(@Body() dto: ModifyBookingDto) {
-    return this.bookingService.handleChangeRequest(dto);
-  }
+  // @Patch('rescheduled')
+  // @Roles('super-admin')
+  // modifybooking(@Body() dto: ModifyBookingDto) {
+  //   return this.bookingService.handleChangeRequest(dto);
+  // }
 
   // To Delete  Booking Request
   @Delete(':id')

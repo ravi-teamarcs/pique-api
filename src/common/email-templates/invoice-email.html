@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Your Invoice</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f4;
+        padding: 20px;
+        color: #333;
+      }
+      .email-wrapper {
+        max-width: 600px;
+        margin: auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 6px;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        color: #4caf50;
+      }
+      .info {
+        margin: 10px 0;
+      }
+      .download-link {
+        display: inline-block;
+        margin-top: 20px;
+        background: #4caf50;
+        color: white;
+        text-decoration: none;
+        padding: 10px 15px;
+        border-radius: 4px;
+      }
+      .footer {
+        margin-top: 30px;
+        font-size: 0.9em;
+        color: #777;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-wrapper">
+      <h2>Hello {{venueName}},</h2>
+      <p>
+        Here is your invoice for the event <strong>{{eventName}}</strong> held
+        on <strong>{{eventDate}}</strong>.
+      </p>
+
+      <div class="info">
+        <p><strong>Invoice #:</strong> {{invoiceNumber}}</p>
+        <p><strong>Total Amount:</strong> ₹{{totalAmount}}</p>
+      </div>
+
+      <a href="{{downloadLink}}" class="download-link" target="_blank"
+        >View / Download Invoice</a
+      >
+
+      <div class="footer">
+        If you have any questions, reply to this email.<br />
+        &copy; {{year}} Your Company Name
+      </div>
+    </div>
+  </body>
+</html>

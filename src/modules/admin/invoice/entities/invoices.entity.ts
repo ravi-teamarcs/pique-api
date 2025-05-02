@@ -11,7 +11,7 @@ export enum UserType {
   VENUE = 'venue',
 }
 export enum InvoiceStatus {
-  PENDING = 'pending',
+  UNPAID = 'unpaid',
   PAID = 'paid',
   PAYMENTSENT = 'paymentsent',
   INVOICE_TO_BE_SENT = 'invoice to be send',
@@ -29,7 +29,7 @@ export class Invoice {
   @Column()
   user_id: number;
 
-  @Column()
+  @Column({ nullable: true })
   event_id: number;
 
   @Column({ type: 'enum', enum: UserType })
@@ -56,20 +56,21 @@ export class Invoice {
   @Column({
     type: 'enum',
     enum: [
-      'pending',
+      'unpaid',
       'paid',
       'paymentsent',
       'invoice to be send',
       'awaiting payment',
     ],
-    default: 'pending',
+    default: 'unpaid',
   })
   status:
     | 'pending'
     | 'paid'
     | 'paymentsent'
     | 'invoice to be send'
-    | 'awaiting payment';
+    | 'awaiting payment'
+    | 'unpaid';
 
   @Column({ type: 'varchar', length: 255 })
   payment_method: string;
@@ -77,8 +78,11 @@ export class Invoice {
   @Column({ type: 'date', nullable: true })
   payment_date: string;
 
-  @Column({ nullable: false })
+  @Column({ nullable: true })
   booking_id: number;
+
+  @Column({ nullable: true })
+  overdue: number;
 
   @CreateDateColumn()
   created_at: Date;

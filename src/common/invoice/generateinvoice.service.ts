@@ -103,7 +103,7 @@ export class GenerateInvoiceService {
         tax_rate: parseFloat(taxRate.toFixed(2)),
         tax_amount: parseFloat(taxAmount.toFixed(2)),
         total_with_tax: parseFloat(totalWithTax.toFixed(2)),
-        status: InvoiceStatus.PENDING,
+        // status: InvoiceStatus.PENDING,
         payment_method: '',
         payment_date: null,
         user_id: Number(booking.venueId),

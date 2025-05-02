@@ -24,6 +24,8 @@ import { UploadedFile } from 'src/common/types/media.type';
 import * as bcrypt from 'bcryptjs';
 import { MediaService } from '../media/media.service';
 import { AdminCreatedUser } from '../users/entities/admin.created.entity';
+import { EmailService } from 'src/modules/Email/email.service';
+import { GetEntertainerDto } from './Dto/search-entertainer-query.dto';
 
 @Injectable()
 export class EntertainerService {
@@ -39,17 +41,11 @@ export class EntertainerService {
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
     private readonly mediaService: MediaService,
+    private readonly emailService: EmailService,
   ) {}
 
-  async getAllEntertainers({
-    page,
-    pageSize,
-    search,
-  }: {
-    page: number;
-    pageSize: number;
-    search: string;
-  }) {
+  async getAllEntertainers(query: GetEntertainerDto) {
+    const { page = 1, pageSize = 10, search = '', vaccinated, date } = query; // Default values for pagination
     const skip = (page - 1) * pageSize; // Calculate records to skip
 
     const baseQuery = this.entertainerRepository
@@ -65,19 +61,7 @@ export class EntertainerService {
       )
       .where('entertainer.status IN (:...statuses)', {
         statuses: ['active', 'inactive'],
-      });
-
-    if (search) {
-      baseQuery.where('entertainer.name LIKE :search', {
-        search: `%${search}%`,
-      });
-    }
-
-    // Clone for count
-    const total = await baseQuery.clone().getCount();
-
-    // Add selects for main query
-    const records = await baseQuery
+      })
       .select([
         'entertainer.id AS id',
         'entertainer.name AS name',
@@ -92,16 +76,48 @@ export class EntertainerService {
         'entertainer.contact_number AS ContactNumber',
         'entertainer.address AS address',
         'entertainer.status AS status',
+        'entertainer.vaccinated AS vaccinated',
         'city.name AS city',
         'country.name AS country',
         'state.name AS state',
-      ])
+      ]);
 
+    if (search) {
+      baseQuery.where('entertainer.name LIKE :search', {
+        search: `%${search}%`,
+      });
+    }
+    if (vaccinated) {
+      baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+        vaccinated,
+      });
+    }
+
+    if (date) {
+      baseQuery.andWhere(
+        (qb) => {
+          return `NOT EXISTS (
+            SELECT 1 FROM booking b
+            WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
+          )`;
+        },
+        { blockedDate: date },
+      );
+    }
+
+    // Clone for count
+    const total = await baseQuery.getCount();
+
+    // Add selects for main query
+    const records = await baseQuery
+      .orderBy('entertainer.name', 'DESC')
       .skip(skip)
       .take(pageSize)
       .getRawMany();
 
-    const parsedRecords = records.map(({ services, ...rest }) => ({
+    const parsedRecords = records.map(({ services, id, ...rest }) => ({
+      // services: services ? services.split(',') : [],
+      id: Number(id),
       ...rest,
     }));
 
@@ -456,7 +472,19 @@ export class EntertainerService {
         );
       }
       await this.entertainerRepository.update({ id }, { status });
+      const currentYear = new Date().getFullYear();
+      // Send Email to the User
+      const emailPayload = {
+        to: entertainer.user.email,
+        subject: 'Account Status',
+        templateName:
+          status === 'active'
+            ? 'account-approved.html'
+            : 'account-rejected.html',
+        replacements: { name: entertainer.user.name, year: currentYear },
+      };
 
+      this.emailService.handleSendEmail(emailPayload);
       return {
         message: 'Entertainer Status updated Successfully',
         status: true,

@@ -9,6 +9,7 @@ import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../auth/entities/capability.entity';
 import { MediaModule } from '../media/media.module';
 import { Venue } from 'src/modules/venue/entities/venue.entity';
+import { BookingModule } from '../booking/booking.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { Venue } from 'src/modules/venue/entities/venue.entity';
       Venue,
     ]),
     MediaModule,
+    BookingModule,
   ],
   controllers: [EventController],
   providers: [EventService],

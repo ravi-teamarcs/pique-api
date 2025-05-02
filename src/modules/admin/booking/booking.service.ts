@@ -245,9 +245,9 @@ export class BookingService {
     }
   }
 
-  async handleChangeRequest(bookingdto: ModifyBookingDto) {
-    const { bookingId, reqShowDate, reqShowTime } = bookingdto;
-    const booking = await this.bookingRepository
+  async handleChangeRequest(id: number, bookingdto: ModifyBookingDto) {
+    const { reqShowDate, reqShowTime } = bookingdto;
+    const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
       .leftJoin('event', 'event', 'event.id = booking.eventId')
@@ -264,59 +264,57 @@ export class BookingService {
         'event.id AS event_id',
         'event.title AS event_title',
       ])
-      .where('booking.id = :id', { id: bookingId })
-      .getRawOne();
-
-    if (!booking) {
-      throw new NotFoundException({
-        message: 'Booking not found',
-        status: false,
-      });
-    }
+      .where('booking.eventId = :id', { id })
+      .getRawMany();
 
     try {
-      const bookReq = this.reqRepository.create({
-        ...bookingdto,
-        vuid: booking.vuid,
-        euid: booking.eid,
-        reqEventId: booking.eventId,
-      });
+      for (const booking of bookings) {
+        const bookReq = this.reqRepository.create({
+          ...bookingdto,
+          vuid: booking.vuid,
+          euid: booking.eid,
+          reqEventId: booking.eventId,
+        });
 
-      await this.reqRepository.save(bookReq);
+        await this.reqRepository.save(bookReq);
 
-      // This updates the booking
-      await this.bookingRepository.update(
-        { id: booking.id },
-        { status: 'rescheduled', showDate: reqShowDate, showTime: reqShowTime },
-      );
-
-      if (booking.entertainer_email) {
-        // Send Email to Entertainer
-        const emailPayload = {
-          to: booking.entertainer_email,
-          subject: `Event Date and Time Change`,
-          templateName: 'modify-booking.html',
-          replacements: {
-            recipientName: booking.entertainer_name,
-            bookingId: booking.id,
-            newStartTime: booking.reqShowTime,
-            newDate: booking.reqShowDate,
-          },
-        };
-        this.emailService.handleSendEmail(emailPayload);
-
-        // Send Notification to Entertainer
-
-        this.notifyService.sendPush(
+        // This updates the booking
+        await this.bookingRepository.update(
+          { id: booking.id },
           {
-            title: 'Event Date and Time Change',
-            body: `Your booking with ID ${booking.id} has been rescheduled to ${booking.reqShowDate} at ${booking.reqShowTime}`,
-            type: 'booking_date_time_change',
+            status: 'rescheduled',
+            showDate: reqShowDate,
+            showTime: reqShowTime,
           },
-          booking.entertainer_user_id,
         );
-      }
 
+        if (booking.entertainer_email) {
+          // Send Email to Entertainer
+          const emailPayload = {
+            to: booking.entertainer_email,
+            subject: `Event Date and Time Change`,
+            templateName: 'modify-booking.html',
+            replacements: {
+              recipientName: booking.entertainer_name,
+              bookingId: booking.id,
+              newStartTime: booking.reqShowTime,
+              newDate: booking.reqShowDate,
+            },
+          };
+          this.emailService.handleSendEmail(emailPayload);
+
+          // Send Notification to Entertainer
+
+          this.notifyService.sendPush(
+            {
+              title: 'Event Date and Time Change',
+              body: `Your booking with ID ${booking.id} has been rescheduled to ${booking.reqShowDate} at ${booking.reqShowTime}`,
+              type: 'booking_date_time_change',
+            },
+            booking.entertainer_user_id,
+          );
+        }
+      }
       return {
         message:
           'Your Request for Time and Date  have registered Successfully.',
@@ -329,6 +327,91 @@ export class BookingService {
       });
     }
   }
+  // @Duplicate version
+  // async handleChangeRequest(bookingdto: ModifyBookingDto) {
+  //   const { bookingId, reqShowDate, reqShowTime } = bookingdto;
+  //   const booking = await this.bookingRepository
+  //     .createQueryBuilder('booking')
+  //     .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+  //     .leftJoin('event', 'event', 'event.id = booking.eventId')
+  //     .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
+  //     .leftJoin('users', 'user', 'user.id = booking.entId')
+  //     .select([
+  //       'booking.id AS id',
+  //       'booking.status AS status',
+  //       'entertainer.id AS eid',
+  //       'entertainer.entertainerName AS entertainer_name',
+  //       'venue.id AS vuid',
+  //       'user.id AS entertainer_user_id',
+  //       'user.email AS entertainer_email',
+  //       'event.id AS event_id',
+  //       'event.title AS event_title',
+  //     ])
+  //     .where('booking.id = :id', { id: bookingId })
+  //     .getRawOne();
+
+  //   if (!booking) {
+  //     throw new NotFoundException({
+  //       message: 'Booking not found',
+  //       status: false,
+  //     });
+  //   }
+
+  //   try {
+  //     const bookReq = this.reqRepository.create({
+  //       ...bookingdto,
+  //       vuid: booking.vuid,
+  //       euid: booking.eid,
+  //       reqEventId: booking.eventId,
+  //     });
+
+  //     await this.reqRepository.save(bookReq);
+
+  //     // This updates the booking
+  //     await this.bookingRepository.update(
+  //       { id: booking.id },
+  //       { status: 'rescheduled', showDate: reqShowDate, showTime: reqShowTime },
+  //     );
+
+  //     if (booking.entertainer_email) {
+  //       // Send Email to Entertainer
+  //       const emailPayload = {
+  //         to: booking.entertainer_email,
+  //         subject: `Event Date and Time Change`,
+  //         templateName: 'modify-booking.html',
+  //         replacements: {
+  //           recipientName: booking.entertainer_name,
+  //           bookingId: booking.id,
+  //           newStartTime: booking.reqShowTime,
+  //           newDate: booking.reqShowDate,
+  //         },
+  //       };
+  //       this.emailService.handleSendEmail(emailPayload);
+
+  //       // Send Notification to Entertainer
+
+  //       this.notifyService.sendPush(
+  //         {
+  //           title: 'Event Date and Time Change',
+  //           body: `Your booking with ID ${booking.id} has been rescheduled to ${booking.reqShowDate} at ${booking.reqShowTime}`,
+  //           type: 'booking_date_time_change',
+  //         },
+  //         booking.entertainer_user_id,
+  //       );
+  //     }
+
+  //     return {
+  //       message:
+  //         'Your Request for Time and Date  have registered Successfully.',
+  //       status: true,
+  //     };
+  //   } catch (err) {
+  //     throw new InternalServerErrorException({
+  //       message: err.message,
+  //       status: true,
+  //     });
+  //   }
+  // }
 
   async removeBooking(bookingId: number) {
     try {

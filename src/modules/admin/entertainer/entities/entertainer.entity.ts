@@ -101,7 +101,7 @@ export class Entertainer {
   isProfileComplete: boolean;
 
   @Column({ default: 'pending' })
-  status: 'active' | 'inactive' | 'pending';
+  status: 'active' | 'inactive' | 'pending' | 'rejected';
 
   @CreateDateColumn()
   createdAt: Date;

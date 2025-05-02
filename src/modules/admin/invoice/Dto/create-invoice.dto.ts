@@ -5,6 +5,7 @@ import {
   IsString,
   IsDateString,
   IsOptional,
+  IsBoolean,
 } from 'class-validator';
 import { InvoiceStatus, UserType } from '../entities/invoices.entity';
 
@@ -20,6 +21,14 @@ export class CreateInvoiceDto {
   @IsNumber()
   @IsNotEmpty()
   discountInPercent: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  platformFee: number;
+
+  @IsBoolean()
+  @IsNotEmpty()
+  isFixed: boolean;
 }
 
 export class UpdateInvoiceDto {

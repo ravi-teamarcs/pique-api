@@ -204,4 +204,6 @@ export class VenueController {
   updateBookingStatus(@Body() dto: UpdateBookingStatusDto) {
     return this.venueService.updateBookingStatus(dto);
   }
+
+  
 }
