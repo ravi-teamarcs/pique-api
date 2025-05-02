@@ -15,7 +15,7 @@ import { differenceInMinutes, format, parse } from 'date-fns';
 import { loadEmailTemplate } from 'src/common/email-templates/utils/email.utils';
 // import puppeteer from 'puppeteer';
 import { EmailService } from 'src/modules/Email/email.service';
-import { generatePdf } from 'html-pdf-node';
+import * as pdf from 'html-pdf-node';
 
 @Injectable()
 export class InvoiceService {
@@ -286,9 +286,11 @@ export class InvoiceService {
   }
 
   private async generatePDF(htmlContent) {
+    console.log('HTML Content');
     const file = { content: htmlContent };
     const options = { format: 'A3' };
-    const pdfBuffer = await generatePdf(file, options);
+    const pdfBuffer = await pdf.generatePdf(file, options);
+    console.log('PDF Buffer Inside Fn', pdfBuffer);
     // Save to disk or attach to email
     return pdfBuffer;
   }
