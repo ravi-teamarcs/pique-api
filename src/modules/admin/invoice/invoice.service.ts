@@ -15,6 +15,7 @@ import { differenceInMinutes, format, parse } from 'date-fns';
 import { loadEmailTemplate } from 'src/common/email-templates/utils/email.utils';
 // import puppeteer from 'puppeteer';
 import { EmailService } from 'src/modules/Email/email.service';
+import { generatePdf } from 'html-pdf-node';
 
 @Injectable()
 export class InvoiceService {
@@ -219,50 +220,50 @@ export class InvoiceService {
       throw new NotFoundException({ message: 'Invoice not found' });
     }
 
-    // try {
-    //   const invoicePayload = {
-    //     invoiceNumber: invoice.invoiceNumber,
-    //     issueDate: format(invoice.issueDate, 'd MMMM yyyy'),
-    //     dueDate: format(invoice.dueDate, 'd MMMM yyyy'),
-    //     totalAmount: invoice.totalAmount,
-    //     totalWithTax: invoice.totalWithTax,
-    //     venueName: invoice.venueName,
-    //     venueEmail: invoice.userEmail,
-    //     eventName: invoice.eventName,
-    //     description: invoice.description,
-    //   };
-    //   const html = loadEmailTemplate('invoice.html', invoicePayload);
-    //   // const pdfBuffer = await this.generatePDF(html);
-    //   // const pdfbuffer = new Buffer('utf-8'); // Convert HTML to PDF buffer using Puppeteer
-    //   // const buffer = Buffer.from(pdfBuffer); // Ensure it's a Node.js Buffer
+    try {
+      const invoicePayload = {
+        invoiceNumber: invoice.invoiceNumber,
+        issueDate: format(invoice.issueDate, 'd MMMM yyyy'),
+        dueDate: format(invoice.dueDate, 'd MMMM yyyy'),
+        totalAmount: invoice.totalAmount,
+        totalWithTax: invoice.totalWithTax,
+        venueName: invoice.venueName,
+        venueEmail: invoice.userEmail,
+        eventName: invoice.eventName,
+        description: invoice.description,
+      };
+      const html = loadEmailTemplate('invoice.html', invoicePayload);
+      const pdfBuffer = await this.generatePDF(html);
+      // Convert HTML to PDF buffer using Puppeteer
+      const buffer = Buffer.from(pdfBuffer); // Ensure it's a Node.js Buffer
 
-    //   const emailPayload = {
-    //     to: invoice.userEmail,
-    //     subject: 'Invoice For Event',
-    //     templateName: 'invoice-email.html',
-    //     replacements: {
-    //       eventDate: format(invoice.eventDate, 'd MMMM yyyy'),
-    //       venueName: invoice.venueName,
-    //       invoiceNumber: invoice.invoiceNumber,
-    //       totalAmount: invoice.totalAmount,
-    //       evevntName: invoice.eventName,
-    //     },
-    //     attachments: [
-    //       {
-    //         filename: `${invoice.eventName}_invoice.pdf`,
-    //         content: buffer, // a Buffer from Puppeteer
-    //         contentType: 'application/pdf',
-    //       },
-    //     ],
-    //   };
-    //   await this.emailService.handleSendEmail(emailPayload);
-    //   return { message: 'Invoice sent Successfully ', status: true };
-    // } catch (error) {
-    //   throw new InternalServerErrorException({
-    //     message: error.message,
-    //     status: false,
-    //   });
-    // }
+      const emailPayload = {
+        to: invoice.userEmail,
+        subject: 'Invoice For Event',
+        templateName: 'invoice-email.html',
+        replacements: {
+          eventDate: format(invoice.eventDate, 'd MMMM yyyy'),
+          venueName: invoice.venueName,
+          invoiceNumber: invoice.invoiceNumber,
+          totalAmount: invoice.totalAmount,
+          evevntName: invoice.eventName,
+        },
+        attachments: [
+          {
+            filename: `${invoice.eventName}_invoice.pdf`,
+            content: buffer, // a Buffer from Puppeteer
+            contentType: 'application/pdf',
+          },
+        ],
+      };
+      await this.emailService.handleSendEmail(emailPayload);
+      return { message: 'Invoice sent Successfully ', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 
   private getDurationInHours(startTime: string, endTime: string): number {
@@ -280,17 +281,13 @@ export class InvoiceService {
     return diffInHours;
   }
 
-  // private async generatePDF(htmlContent) {
-  //   const browser = await puppeteer.launch();
-  //   const page = await browser.newPage();
-  //   await page.setContent(htmlContent);
-  //   const pdfBuffer = await page.pdf({
-  //     format: 'A3',
-  //     printBackground: true,
-  //   });
-  //   await browser.close();
-  //   return pdfBuffer;
-  // }
+  private async generatePDF(htmlContent) {
+    const file = { content: htmlContent };
+    const options = { format: 'A3' };
+    const pdfBuffer = await generatePdf(file, options);
+    // Save to disk or attach to email
+    return pdfBuffer;
+  }
 
   private roundToTwo(num: number): number {
     return Math.round(num * 100) / 100;
