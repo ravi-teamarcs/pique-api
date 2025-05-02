@@ -194,6 +194,7 @@ export class InvoiceService {
 
   // send Invoice
   async sendInvoice(id: number) {
+    console.log('send invoice called');
     const invoice = await this.invoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
@@ -233,10 +234,12 @@ export class InvoiceService {
         description: invoice.description,
       };
       const html = loadEmailTemplate('invoice.html', invoicePayload);
+      console.log('Before Calling pdf fn ');
       const pdfBuffer = await this.generatePDF(html);
+      console.log('After Calling pdf fn ', pdfBuffer);
       // Convert HTML to PDF buffer using Puppeteer
       const buffer = Buffer.from(pdfBuffer); // Ensure it's a Node.js Buffer
-
+      console.log('Buffer ', buffer);
       const emailPayload = {
         to: invoice.userEmail,
         subject: 'Invoice For Event',
@@ -257,6 +260,7 @@ export class InvoiceService {
         ],
       };
       await this.emailService.handleSendEmail(emailPayload);
+      console.log('Email sent successfully', emailPayload);
       return { message: 'Invoice sent Successfully ', status: true };
     } catch (error) {
       throw new InternalServerErrorException({
