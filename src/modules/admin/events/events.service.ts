@@ -263,7 +263,7 @@ export class EventService {
           'event.title AS title',
           'event.location AS location',
           'event.slug  AS slug',
-          'event.userId AS userId',
+
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
