@@ -12,7 +12,7 @@ import { InvoiceStatus, UserType } from '../entities/invoices.entity';
 export class CreateInvoiceDto {
   @IsNumber()
   @IsNotEmpty()
-  bookingId: number;
+  eventId: number;
 
   @IsNumber()
   @IsNotEmpty()

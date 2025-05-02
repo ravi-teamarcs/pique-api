@@ -608,7 +608,6 @@ export class EntertainerService {
   }
   async findEntertainer(userId: number) {
     const URL = this.config.get<string>('DEFAULT_MEDIA');
-
     try {
       const entertainer = await this.entertainerRepository
         .createQueryBuilder('entertainer')
@@ -622,7 +621,7 @@ export class EntertainerService {
           'subcat',
           'subcat.id = entertainer.specific_category ',
         )
-        .where('entertainer.userId = :userId', { userId })
+        .where('entertainer.id = :userId', { userId })
         .select([
           'user.id AS uid',
           'entertainer.name AS stageName',
@@ -653,7 +652,7 @@ export class EntertainerService {
           'entertainer.specific_category AS specific_category',
         ])
         .addSelect(
-          `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM media m WHERE m.userId = user.id AND m.type = 'headshot' LIMIT 1)`,
+          `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM media m WHERE m.user_id= entertainer.id AND m.type = 'headshot' LIMIT 1)`,
           'headshotUrl',
         )
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))

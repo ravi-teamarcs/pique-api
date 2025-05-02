@@ -11,9 +11,11 @@ export enum UserType {
   VENUE = 'venue',
 }
 export enum InvoiceStatus {
-  PENDING = 'pending',
+  UNPAID = 'unpaid',
   PAID = 'paid',
   PAYMENTSENT = 'paymentsent',
+  INVOICE_TO_BE_SENT = 'invoice to be send',
+  AWAITING_PAYMENT = 'awaiting payment',
 }
 
 @Entity('invoices')
@@ -54,16 +56,16 @@ export class Invoice {
   @Column({
     type: 'enum',
     enum: [
-      'pending',
+      'unpaid',
       'paid',
       'paymentsent',
       'invoice to be send',
       'awaiting payment',
     ],
-    default: 'pending',
+    default: 'unpaid',
   })
   status:
-    | 'pending'
+    | 'unpaid'
     | 'paid'
     | 'paymentsent'
     | 'invoice to be send'

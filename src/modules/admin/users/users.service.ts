@@ -205,7 +205,7 @@ export class UsersService {
   }
 
   async getApprovalList(query: ApprovalQuery) {
-    const { page = 1, pageSize = 10, role } = query;
+    const { page = 1, pageSize = 10, role, search } = query;
     const skip = (Number(page) - 1) * Number(pageSize);
 
     if (role === 'venue') {
@@ -252,6 +252,13 @@ export class UsersService {
         ])
         .orderBy('venue.id', 'DESC') // Sort by venue ID
         .where("venue.status = 'pending' AND venue.userId IS NOT NULL");
+
+      if (search) {
+        res.andWhere('(venue.name LIKE :search OR user.email LIKE :search)', {
+          search: `%${search}%`,
+        });
+      }
+
       const totalCount = await res.getCount();
       const results = await res
         .orderBy(`user.id`, 'DESC')
@@ -291,6 +298,11 @@ export class UsersService {
           'state.name As state_name',
         ])
         .where("ent.status = 'pending' AND ent.userId IS NOT NULL");
+      if (search) {
+        res.andWhere('(ent.name LIKE :search OR user.email LIKE :search)', {
+          search: `%${search}%`,
+        });
+      }
 
       const totalCount = await res.getCount();
       const results = await res

@@ -11,11 +11,10 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { InvoiceQueryDto } from './Dto/invoice-query.dto';
 import { Booking } from '../booking/entities/booking.entity';
-import { differenceInMinutes, parse } from 'date-fns';
+import { differenceInMinutes, format, parse } from 'date-fns';
 import { loadEmailTemplate } from 'src/common/email-templates/utils/email.utils';
 import puppeteer from 'puppeteer';
 import { EmailService } from 'src/modules/Email/email.service';
-import { eventNames } from 'process';
 
 @Injectable()
 export class InvoiceService {
@@ -24,6 +23,8 @@ export class InvoiceService {
     private readonly invoiceRepository: Repository<Invoice>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Event)
+    private readonly eventRepository: Repository<Event>,
     private readonly emailService: EmailService,
   ) {}
 
@@ -103,21 +104,20 @@ export class InvoiceService {
 
   // Latest Code of Generate Invoive (@Bhawani Thakur)
   async generateInvoice(dto: CreateInvoiceDto) {
-    const { bookingId, pricePerHour, platformFee, isFixed, discountInPercent } =
+    const { eventId, pricePerHour, platformFee, isFixed, discountInPercent } =
       dto;
     try {
-      const { venueId, startTime, endTime, eventId } =
-        await this.bookingRepository
-          .createQueryBuilder('booking')
-          .leftJoin('event', 'event', 'event.id = booking.eventId')
+      const { venueId, eventStartTime, eventEndTime, eventName } =
+        await this.eventRepository
+          .createQueryBuilder('event')
           .select([
-            'booking.eventId AS eventId',
-            'booking.entId AS entertainerId',
-            'booking.venueId AS venueId',
+            'event.id AS eventId',
             'event.startTime AS eventStartTime',
             'event.endTime AS eventEndTime',
-            'event.name AS eventName',
+            'event.title AS eventName',
+            'event.venueId AS venueId',
           ])
+          .where('event.id = :eventId', { eventId })
           .getRawOne();
 
       const lastInvoice = await this.invoiceRepository
@@ -134,19 +134,25 @@ export class InvoiceService {
       const newInvoiceNumber = `INV-${lastInvoiceNumber + 1}`;
       // Logic to calculate the total amount based on the booking details
 
-      const durationInHours = this.getDurationInHours(startTime, endTime); // (duartion)
-      const totalAmount = pricePerHour * durationInHours;
+      const durationInHours = this.getDurationInHours(
+        eventStartTime,
+        eventEndTime,
+      ); // (duartion)
+      const totalAmount = this.roundToTwo(pricePerHour * durationInHours);
 
-      const discountAmount = (totalAmount * discountInPercent) / 100;
-      const discountedTotal = totalAmount - discountAmount;
+      const discountAmount = this.roundToTwo(
+        (totalAmount * discountInPercent) / 100,
+      );
+      const discountedTotal = this.roundToTwo(totalAmount - discountAmount);
 
       let totalWithPlatformFee = 0;
 
       if (isFixed) {
-        totalWithPlatformFee = discountedTotal + platformFee;
+        totalWithPlatformFee = this.roundToTwo(discountedTotal + platformFee);
       } else {
-        totalWithPlatformFee =
-          discountedTotal + (discountedTotal * platformFee) / 100;
+        totalWithPlatformFee = this.roundToTwo(
+          discountedTotal + (discountedTotal * platformFee) / 100,
+        );
       }
 
       // Invoice Generated On and Due Date
@@ -156,7 +162,8 @@ export class InvoiceService {
 
       const newInvoice = this.invoiceRepository.create({
         invoice_number: newInvoiceNumber,
-        user_id: Number(venueId), // can also be generated for admin created entertainer but need to add
+        user_id: Number(venueId),
+        user_type: UserType.VENUE,
         event_id: Number(eventId),
         issue_date: issueDate.toISOString().split('T')[0],
         due_date: new Date(dueDate).toISOString().split('T')[0],
@@ -167,11 +174,15 @@ export class InvoiceService {
         status: InvoiceStatus.UNPAID,
         payment_method: '',
         payment_date: null,
-        booking_id: Number(bookingId),
+        booking_id: null,
       });
 
       await this.invoiceRepository.save(newInvoice);
-      return { message: 'Invoice generated successfully', status: true };
+      return {
+        message: 'Invoice generated successfully',
+        data: newInvoice,
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,
@@ -198,6 +209,8 @@ export class InvoiceService {
         'venue.name AS venueName',
         'user.email AS userEmail',
         'event.title AS eventName',
+        'event.description AS description',
+        'event.eventDate AS eventDate',
       ])
       .where('invoices.id = :id', { id })
       .getRawOne();
@@ -209,13 +222,14 @@ export class InvoiceService {
     try {
       const invoicePayload = {
         invoiceNumber: invoice.invoiceNumber,
-        issueDate: invoice.issueDate,
-        dueDate: invoice.dueDate,
+        issueDate: format(invoice.issueDate, 'd MMMM yyyy'),
+        dueDate: format(invoice.dueDate, 'd MMMM yyyy'),
         totalAmount: invoice.totalAmount,
         totalWithTax: invoice.totalWithTax,
         venueName: invoice.venueName,
         venueEmail: invoice.userEmail,
         eventName: invoice.eventName,
+        description: invoice.description,
       };
       const html = loadEmailTemplate('invoice.html', invoicePayload);
       const pdfBuffer = await this.generatePDF(html);
@@ -225,7 +239,13 @@ export class InvoiceService {
         to: invoice.userEmail,
         subject: 'Invoice For Event',
         templateName: 'invoice-email.html',
-        replacements: { totalAmount: 200 },
+        replacements: {
+          eventDate: format(invoice.eventDate, 'd MMMM yyyy'),
+          venueName: invoice.venueName,
+          invoiceNumber: invoice.invoiceNumber,
+          totalAmount: invoice.totalAmount,
+          evevntName: invoice.eventName,
+        },
         attachments: [
           {
             filename: `${invoice.eventName}_invoice.pdf`,
@@ -254,7 +274,7 @@ export class InvoiceService {
     const end = parse(`${today} ${endTime}`, 'yyyy-MM-dd HH:mm:ss', new Date());
 
     const diffInMinutes = differenceInMinutes(end, start);
-    const diffInHours = diffInMinutes / 60;
+    const diffInHours = Math.round((diffInMinutes / 60) * 100) / 100; // returns a number with 2 decimals
 
     return diffInHours;
   }
@@ -263,8 +283,15 @@ export class InvoiceService {
     const browser = await puppeteer.launch();
     const page = await browser.newPage();
     await page.setContent(htmlContent);
-    const pdfBuffer = await page.pdf({ format: 'A4' });
+    const pdfBuffer = await page.pdf({
+      format: 'A3',
+      printBackground: true,
+    });
     await browser.close();
     return pdfBuffer;
+  }
+
+  private roundToTwo(num: number): number {
+    return Math.round(num * 100) / 100;
   }
 }

@@ -81,9 +81,10 @@ export class InvoiceService {
         tax_rate: parseFloat(taxRate.toFixed(2)),
         tax_amount: parseFloat(taxAmount.toFixed(2)),
         total_with_tax: parseFloat(totalWithTax.toFixed(2)),
-        status: InvoiceStatus.PENDING,
+        status: InvoiceStatus.UNPAID,
         payment_method: '',
         payment_date: null,
+        overdue: null,
         booking_id: Number(bookingId),
       });
       await this.invoiceRepository.save(newInvoice);

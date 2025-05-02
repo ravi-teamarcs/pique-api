@@ -20,6 +20,9 @@ class ApprovalQuery {
   @IsIn(['venue', 'entertainer'])
   @IsOptional()
   role?: string;
+
+  @IsOptional()
+  search: string;
 }
 
 export { ApprovalQuery };

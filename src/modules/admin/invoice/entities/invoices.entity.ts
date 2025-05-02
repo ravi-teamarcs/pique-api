@@ -65,7 +65,6 @@ export class Invoice {
     default: 'unpaid',
   })
   status:
-    | 'pending'
     | 'paid'
     | 'paymentsent'
     | 'invoice to be send'

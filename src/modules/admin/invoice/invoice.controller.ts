@@ -31,12 +31,12 @@ export class InvoiceController {
 
   // Create a new invoice
 
-  @Post('create')
+  @Post()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Roles('super-admin')
   async create(@Body() dto: CreateInvoiceDto) {
-    // return await this.invoiceService.create(createInvoiceDto);
+    return await this.invoiceService.generateInvoice(dto);
   }
 
   @Roles('super-admin')
