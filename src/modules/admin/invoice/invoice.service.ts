@@ -13,7 +13,6 @@ import { InvoiceQueryDto } from './Dto/invoice-query.dto';
 import { Booking } from '../booking/entities/booking.entity';
 import { differenceInMinutes, format, parse } from 'date-fns';
 import { loadEmailTemplate } from 'src/common/email-templates/utils/email.utils';
-// import puppeteer from 'puppeteer';
 import { EmailService } from 'src/modules/Email/email.service';
 import * as pdf from 'html-pdf-node';
 
