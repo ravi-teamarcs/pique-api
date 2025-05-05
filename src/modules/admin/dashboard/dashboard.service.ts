@@ -127,4 +127,90 @@ export class DashboardService {
       });
     }
   }
+
+  async getBookingsByMonth(): Promise<
+    { name: string; y: number; color: string }[]
+  > {
+    const rawData = await this.bookingRepo
+      .createQueryBuilder('booking')
+      .select('MONTH(booking.createdAt)', 'month')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('month')
+      .getRawMany();
+
+    const monthMap: Record<number, string> = {
+      1: 'Jan',
+      2: 'Feb',
+      3: 'Mar',
+      4: 'Apr',
+      5: 'May',
+      6: 'Jun',
+      7: 'Jul',
+      8: 'Aug',
+      9: 'Sep',
+      10: 'Oct',
+      11: 'Nov',
+      12: 'Dec',
+    };
+
+    // Initialize an array with zero bookings for each month
+    const data = Array.from({ length: 12 }, (_, i) => ({
+      name: monthMap[i + 1],
+      y: 0, // Set initial count to 0 for all months
+      color: '#00e0d7',
+    }));
+
+    // Update the data array with the actual booking counts
+    rawData.forEach(({ month, count }) => {
+      const monthIndex = Number(month) - 1; // Adjust index to match 0-based array
+      data[monthIndex].y = Number(count); // Update the count for the respective month
+    });
+
+    return data;
+  }
+
+  async getMonthlyRevenueStats(): Promise<{
+    series: { name: string; data: number[] }[];
+  }> {
+    const rawData = await this.invoiceRepo
+      .createQueryBuilder('invoice')
+      .select('MONTH(invoice.created_at)', 'month') // use your timestamp column name
+      .addSelect('SUM(invoice.total_amount)', 'revenue')
+      .where('YEAR(invoice.created_at) = :year', {
+        year: new Date().getFullYear(),
+      })
+      .groupBy('month')
+      .orderBy('month', 'ASC')
+      .getRawMany();
+
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    const monthlyRevenueData = months.map((name, index) => {
+      const found = rawData.find((r) => parseInt(r.month) === index + 1);
+      return found ? parseFloat(found.revenue) : 0;
+    });
+
+    // Wrap the data in a 'series' format
+    return {
+      series: [
+        {
+          name: 'Revenue',
+          data: monthlyRevenueData,
+        },
+      ],
+    };
+  }
 }

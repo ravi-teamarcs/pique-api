@@ -109,7 +109,8 @@ export class ReminderService {
           booking.entertainerUser,
         );
       }
-
+      this.notifyService.saveAdminNotification(notificationPayload);
+      this.notifyService.sendAdminPush(notificationPayload);
       // Optional: track that the reminder was sent
     }
   }

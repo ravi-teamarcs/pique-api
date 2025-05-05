@@ -376,4 +376,24 @@ export class NotificationService {
       throw new InternalServerErrorException({ message: error.message });
     }
   }
+
+  async saveAdminNotification(payload) {
+    const { title, body, type } = payload;
+    const adminId = this.configService.get<number>('ADMIN_ID');
+    try {
+      const notify = this.notificationRepo.create({
+        userId: adminId,
+        title,
+        body,
+        type,
+        isAdmin: true,
+      });
+      await this.notificationRepo.save(notify);
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 }

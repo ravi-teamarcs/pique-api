@@ -29,4 +29,19 @@ export class DashboardController {
   upcomingEvents() {
     return this.dashboardService.upcomingEvents();
   }
+
+  //controller
+  @Get('monthly-bookings')
+  @Roles('super-admin')
+  async getMonthlyStats() {
+    const data = await this.dashboardService.getBookingsByMonth();
+    return { data };
+  }
+
+  @Get('monthly-revenue')
+  @Roles('super-admin')
+  async getMonthlyRevenue() {
+    const data = await this.dashboardService.getMonthlyRevenueStats();
+    return { data };
+  }
 }
