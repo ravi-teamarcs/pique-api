@@ -18,6 +18,8 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailService } from '../Email/email.service';
 import { NotificationService } from '../notification/notification.service';
 import { format } from 'date-fns';
+import { GoogleCalendarServices } from '../google-calendar/google-calendar.service';
+import { BookingCalendarSync } from './entities/booking-sync.entity';
 
 @Injectable()
 export class BookingService {
@@ -30,10 +32,13 @@ export class BookingService {
     private readonly reqRepository: Repository<BookingRequest>,
     @InjectRepository(BookingLog)
     private readonly logRepository: Repository<BookingLog>,
+    @InjectRepository(BookingLog)
+    private readonly syncRepository: Repository<BookingCalendarSync>,
     @InjectRepository(Entertainer)
     private readonly entRepository: Repository<Entertainer>,
     private readonly emailService: EmailService,
     private readonly notifyService: NotificationService,
+    private readonly googleCalService: GoogleCalendarServices,
   ) {}
 
   async createBooking(dto: CreateBookingDto, venueId: number) {
@@ -142,6 +147,7 @@ export class BookingService {
     const booking = await this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+      .leftJoin('event', 'event', 'event.id = booking.eventId')
       .leftJoin('users', 'vuser', 'vuser.id = venue.userId') // venue's user
       .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
       .leftJoin('users', 'euser', 'euser.id = entertainer.userId') // entertainer's user
@@ -163,6 +169,12 @@ export class BookingService {
         'vuser.email As vemail',
         'vuser.phoneNumber As vphone',
         'vuser.id As vid',
+
+        'event.title AS  eventTitle',
+        'event.description AS  eventDescription',
+        'event.startTime AS startTime',
+        'event.endTime AS endTime',
+        'event.eventDate AS eventDate',
       ])
       .where('booking.id = :id', { id: bookingId })
       .getRawOne();
@@ -184,17 +196,42 @@ export class BookingService {
       };
     }
 
-    const updatedBooking = await this.bookingRepository.update(
-      { id: booking.id },
-      { status },
-    );
-    if (!updatedBooking.affected) {
-      throw new NotFoundException({
-        message: 'Booking not found',
-        status: false,
-      });
-    }
+    await this.bookingRepository.update({ id: booking.id }, { status });
 
+    // New Logic starts
+    if (status === 'confirmed') {
+      const participants = [booking.venueId, booking.entId];
+
+      for (const id of participants) {
+        const data = await this.googleCalService.checkUserhasSyncCalendar(
+          Number(id),
+        );
+        if (!data) continue;
+
+        const GoogleEventPayload = {
+          title: booking.eventTitle,
+          description: booking.eventDescription,
+          eventDate: booking.eventDate,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+        };
+
+        const bookingRecord = await this.syncRepository.findOne({
+          where: { bookingId: bookingId, userId: id },
+        });
+
+        if (!bookingRecord) {
+          // save event to google calendar
+          const res = await this.googleCalService.createCalendarEvent(
+            data,
+            GoogleEventPayload,
+          );
+          // save synced booking
+          this.googleCalService.saveSyncedBooking(booking.id, id, res.id);
+        }
+      }
+    }
+    // Ends Here
     const emailPayload = {
       to: role === 'entertainer' ? booking.vemail : booking.eEmail,
       subject: `Booking Request ${status}`,
@@ -226,7 +263,7 @@ export class BookingService {
       role === 'entertainer' ? booking.vid : booking.eid,
     );
 
-    const log = await this.generateBookingLog({
+    const log = this.generateBookingLog({
       bookingId,
       status: status,
       user: userId,

@@ -23,6 +23,7 @@ import { ToursModule } from './modules/tours/tours.module';
 import { SeriesModule } from './modules/series/series.module';
 import { InvoiceCronModule } from './modules/cron/invoice/invoice-cron.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ReminderModule } from './modules/reminders/reminder.module';
 
 @Module({
   imports: [
@@ -45,7 +46,7 @@ import { ScheduleModule } from '@nestjs/schedule';
         entities: [join(process.cwd(), 'dist/**/*.entity.js')],
         // logging: true,
         // logger: 'advanced-console',
-        // synchronize: true, // Set this to false in production
+        synchronize: true, // Set this to false in production
       }),
     }),
 
@@ -70,6 +71,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     ToursModule,
     SeriesModule,
     InvoiceCronModule,
+    ReminderModule,
   ],
   controllers: [AppController],
   providers: [AppService],

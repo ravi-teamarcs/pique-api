@@ -13,6 +13,7 @@ import { BookingLog } from './entities/booking-log.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailModule } from '../Email/email.module';
 import { NotificationModule } from '../notification/notification.module';
+import { GoogleCalendarModule } from '../google-calendar/google-calendar.module';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { NotificationModule } from '../notification/notification.module';
       Entertainer,
     ]),
     EmailModule,
-    NotificationModule
+    NotificationModule,
+    GoogleCalendarModule,
   ],
   controllers: [BookingController],
   providers: [BookingService],

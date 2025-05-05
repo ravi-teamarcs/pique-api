@@ -10,6 +10,7 @@ import { Repository } from 'typeorm';
 import { FcmToken } from './entities/fcm-token.entity';
 import { Notification } from './entities/notification.entity';
 import { NotificationQueryDto } from './dto/notification-query-dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class NotificationService {
@@ -18,6 +19,7 @@ export class NotificationService {
     private readonly fcmTokenRepo: Repository<FcmToken>,
     @InjectRepository(Notification)
     private readonly notificationRepo: Repository<Notification>,
+    private readonly configService: ConfigService,
   ) {}
 
   async sendPush(notification: sendNotificationDTO, userId: number) {
@@ -169,7 +171,7 @@ export class NotificationService {
   }
 
   async getNotifications(userId: number, query: NotificationQueryDto) {
-    const { unread, page = 1, pageSize = 20 } = query;
+    const { unread, page = 1, pageSize = 10 } = query;
 
     try {
       const onlyUnread = unread;
@@ -224,5 +226,154 @@ export class NotificationService {
     );
 
     return { message: 'All notifications marked as read', status: true };
+  }
+
+  async saveNotification(userId: number, payload) {
+    const { title, body, type } = payload;
+    try {
+      const notify = this.notificationRepo.create({
+        userId,
+        title,
+        body,
+        type,
+      });
+      await this.notificationRepo.save(notify);
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  // Admin Related Tasks
+  async storeAdminFcmToken(userId: number, token: string) {
+    const existingToken = await this.fcmTokenRepo.findOne({
+      where: { userId, token, isAdmin: true },
+    });
+
+    // If the token exists, no need to save again
+    if (existingToken)
+      return {
+        message: 'Token exists Already',
+        data: existingToken,
+        status: true,
+      };
+
+    const newToken = this.fcmTokenRepo.create({
+      userId,
+      token,
+      deviceType: 'web',
+      isAdmin: true,
+    });
+    await this.fcmTokenRepo.save(newToken);
+    return { message: 'Token saved successfully', status: true };
+  }
+
+  async getAdminFcmToken(userId: number) {
+    const tokensData = await this.fcmTokenRepo.findOne({
+      where: { userId, isAdmin: true },
+      select: ['token'],
+    });
+    return tokensData;
+  }
+
+  async sendAdminPush(notification: sendNotificationDTO) {
+    const { title, body, type, data } = notification;
+
+    const adminId = this.configService.get<number>('ADMIN_ID');
+    // 1. Store notification in DB
+    const notify = this.notificationRepo.create({
+      userId: adminId,
+      title,
+      body,
+      type,
+      isAdmin: true,
+    });
+    await this.notificationRepo.save(notify);
+
+    // 2. Get admin token (only 1 expected, web-only)
+    const tokenRecord = await this.getAdminFcmToken(adminId);
+
+    if (!tokenRecord) {
+      throw new NotFoundException({ message: 'No FCM token found for admin.' });
+    }
+
+    const message = {
+      token: tokenRecord.token, // single token for admin
+
+      notification: { title, body },
+
+      android: {
+        ttl: 3600 * 1000,
+        notification: {
+          icon: 'ic_launcher',
+          color: '#f45342',
+          sound: 'default',
+          clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+      },
+
+      apns: {
+        payload: {
+          aps: {
+            alert: { title, body },
+            sound: 'default',
+            contentAvailable: true,
+          },
+        },
+        headers: { 'apns-priority': '10' },
+      },
+
+      webpush: {
+        notification: {
+          title,
+          body,
+          icon: 'https://your-site.com/icon.png',
+          click_action: 'https://your-site.com/notifications',
+          vibrate: [100, 50, 100],
+          badge: 'https://your-site.com/badge.png',
+        },
+        fcmOptions: {
+          link: 'https://your-site.com/notifications',
+        },
+      },
+
+      fcmOptions: {
+        analyticsLabel: 'admin-push',
+      },
+    };
+
+    try {
+      const response = await admin.messaging().send(message);
+      console.log('Admin Push Response:', response);
+      return { message: 'Notification sent to admin', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async getAdminNotification(adminId: number) {
+    try {
+      const notifications = await this.notificationRepo.find({
+        where: {
+          userId: adminId,
+          isAdmin: true,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+        take: 10,
+      });
+      return {
+        message: 'Notification returned successfully',
+        data: notifications,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({ message: error.message });
+    }
   }
 }

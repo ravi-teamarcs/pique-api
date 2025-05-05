@@ -9,6 +9,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserGoogleToken } from './entities/google-token.entity';
 import { GoogleTokenDto } from './dto/save-token.dto';
+import { ConfigService } from '@nestjs/config';
+import { Venue } from '../venue/entities/venue.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { Booking } from '../booking/entities/booking.entity';
+import { BookingCalendarSync } from '../booking/entities/booking-sync.entity';
 
 @Injectable()
 export class GoogleCalendarServices {
@@ -17,24 +22,34 @@ export class GoogleCalendarServices {
   constructor(
     @InjectRepository(UserGoogleToken)
     private readonly tokenRepository: Repository<UserGoogleToken>,
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Venue)
+    private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(Entertainer)
+    private readonly enteratinerRepository: Repository<Entertainer>,
+    @InjectRepository(BookingCalendarSync)
+    private readonly syncCalendarRepo: Repository<BookingCalendarSync>,
+    private readonly configService: ConfigService,
   ) {
     this.oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI,
+      this.configService.get<'string'>('GOOGLE_CLIENT_ID'),
+      this.configService.get<'string'>('GOOGLE_CLIENT_SECRET'),
+      this.configService.get<'string'>('GOOGLE_REDIRECT_URI'),
     );
   }
 
   // Get Google OAuth URL  required for getting tokens so you dont have to authenticate everytime
-  getAuthUrl(userId: number) {
+  getAuthUrl(user) {
+    const { role, userId } = user;
     try {
       const scopes = ['https://www.googleapis.com/auth/calendar'];
       const authUrl = this.oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: scopes,
         prompt: 'consent',
-        redirect_uri: process.env.GOOGLE_REDIRECT_URI,
-        state: JSON.stringify({ id: userId }),
+        redirect_uri: this.configService.get<'string'>('GOOGLE_REDIRECT_URI'),
+        state: JSON.stringify({ id: userId, role }),
       });
       return {
         message: 'Auth Url return Successfully',
@@ -43,7 +58,7 @@ export class GoogleCalendarServices {
       };
     } catch (error) {
       throw new InternalServerErrorException({
-        message: 'Failed to create auth Url',
+        message: error.message,
         status: false,
       });
     }
@@ -62,7 +77,7 @@ export class GoogleCalendarServices {
       };
     } catch (error) {
       throw new InternalServerErrorException({
-        message: 'Failed to get access token',
+        message: error.message,
         status: false,
       });
     }
@@ -70,6 +85,7 @@ export class GoogleCalendarServices {
 
   // Add a booking to Google Calendar
   async createCalendarEvent(accessToken: string, eventDetails: CreateEventDto) {
+    const { eventDate, startTime, endTime, title, description } = eventDetails;
     this.oauth2Client.setCredentials({ access_token: accessToken });
 
     const calendar = google.calendar({
@@ -78,12 +94,14 @@ export class GoogleCalendarServices {
     });
 
     const event = {
-      summary: eventDetails.title,
-      description: eventDetails.description,
+      summary: title,
+      description: description,
       start: {
-        dateTime: eventDetails.startTime,
+        dateTime: new Date(`${eventDate}T${startTime}`).toISOString(),
       },
-      end: { dateTime: eventDetails.endTime },
+      end: {
+        dateTime: new Date(`${eventDate}T${endTime}`).toISOString(),
+      },
     };
 
     const response = await calendar.events.insert({
@@ -160,5 +178,82 @@ export class GoogleCalendarServices {
       data: userToken.accessToken,
       status: true,
     };
+  }
+
+  // To get confirmed Booking
+  async getConfirmedBooking(userId: number, role: string) {
+    let conditionField = '';
+    let conditionId = null;
+
+    if (role === 'entertainer') {
+      const entertainer = await this.enteratinerRepository.findOne({
+        where: { user: { id: userId } },
+      });
+      conditionField = 'booking.entId';
+      conditionId = entertainer.id;
+    } else {
+      const venue = await this.venueRepository.findOne({
+        where: { user: { id: userId } },
+      });
+      conditionField = 'booking.venueId';
+      conditionId = venue.id;
+    }
+
+    const now = new Date();
+
+    const bookings = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoin('event', 'event', 'event.id = booking.eventId')
+      .select([
+        'booking.id AS bookingId',
+        'event.title AS title',
+        'event.eventDate AS eventDate',
+        'event.startTime AS startTime',
+        'event.endTime AS endTime',
+      ])
+      .where(conditionField + ' = :id', { id: conditionId }) // dynamic condition
+      .andWhere('booking.status = :status', { status: 'confirmed' })
+      .andWhere('event.eventDate > :now', { now }) // filter future events
+      .getRawMany();
+
+    return bookings;
+  }
+
+  // To keep track which booking has alraedy synce (to prevent duplication)
+  async checkAlreadySynced(bookings, userId: number) {
+    const alreadySynced = await this.syncCalendarRepo.find({
+      where: { userId },
+    });
+    // Get Synced booking Id in Array
+    const syncedBookingIds = alreadySynced.map((s) => s.bookingId);
+
+    const unsyncedBookings = bookings.filter(
+      (b) => !syncedBookingIds.includes(b.id),
+    );
+    return unsyncedBookings;
+  }
+
+  // To keep track which booking is synced for which user ()
+  async saveSyncedBooking(bookingId: number, userId: number, eventId: string) {
+    const booking = this.syncCalendarRepo.create({
+      bookingId,
+      userId,
+      isSynced: true,
+      syncedAt: new Date(),
+      calendarEventId: eventId,
+    });
+
+    await this.syncCalendarRepo.save(booking);
+    return { message: 'Booking Saved Successfully', status: true };
+  }
+
+  async checkUserhasSyncCalendar(userId) {
+    const user = await this.tokenRepository.findOne({
+      where: { user: userId },
+    });
+    if (user) {
+      const { data } = await this.getValidAccessToken(userId);
+      return data;
+    }
   }
 }

@@ -19,6 +19,9 @@ export class FcmToken {
   @Column()
   userId: number;
 
+  @Column({ nullable: true })
+  isAdmin: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 }

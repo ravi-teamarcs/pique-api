@@ -15,6 +15,9 @@ export class Notification {
   @Column()
   userId: number;
 
+  @Column({ nullable: true })
+  isAdmin: boolean;
+
   @Column()
   title: string;
 

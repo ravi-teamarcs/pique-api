@@ -14,7 +14,8 @@ import { Booking } from '../booking/entities/booking.entity';
 import { differenceInMinutes, format, parse } from 'date-fns';
 import { loadEmailTemplate } from 'src/common/email-templates/utils/email.utils';
 import { EmailService } from 'src/modules/Email/email.service';
-import * as pdf from 'html-pdf-node';
+// import * as pdf from 'html-pdf-node';
+import * as pdf from 'html-pdf';
 
 @Injectable()
 export class InvoiceService {
@@ -234,10 +235,9 @@ export class InvoiceService {
       };
       const html = loadEmailTemplate('invoice.html', invoicePayload);
       console.log('Before Calling pdf fn ');
-      const pdfBuffer = await this.generatePDF(html);
-      console.log('After Calling pdf fn ', pdfBuffer);
+      const buffer = await this.generatePDF(html);
       // Convert HTML to PDF buffer using Puppeteer
-      const buffer = Buffer.from(pdfBuffer); // Ensure it's a Node.js Buffer
+      // const buffer = Buffer.from(pdfBuffer); // Ensure it's a Node.js Buffer
       console.log('Buffer ', buffer);
       const emailPayload = {
         to: invoice.userEmail,
@@ -284,14 +284,22 @@ export class InvoiceService {
     return diffInHours;
   }
 
-  private async generatePDF(htmlContent) {
+  private async generatePDF(htmlContent): Promise<Buffer> {
     console.log('HTML Content');
-    const file = { content: htmlContent };
+    // const file = { content: htmlContent };
+    // const options = { format: 'A3' };
+    // const pdfBuffer = await pdf.generatePdf(file, options);
+    // console.log('PDF Buffer Inside Fn', pdfBuffer);
+    // // Save to disk or attach to email
+    // return pdfBuffer;
+
     const options = { format: 'A3' };
-    const pdfBuffer = await pdf.generatePdf(file, options);
-    console.log('PDF Buffer Inside Fn', pdfBuffer);
-    // Save to disk or attach to email
-    return pdfBuffer;
+    return new Promise((resolve, reject) => {
+      pdf.create(htmlContent, options).toBuffer((err, buffer) => {
+        if (err) return reject(err);
+        resolve(buffer);
+      });
+    });
   }
 
   private roundToTwo(num: number): number {

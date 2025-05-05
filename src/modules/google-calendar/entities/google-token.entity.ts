@@ -20,6 +20,9 @@ export class UserGoogleToken {
 
   @Column({ type: 'text' })
   refreshToken: string;
+  // user.entity.ts
+  @Column({ nullable: true })
+  calendarSyncedAt: Date;
 
   @Column({ type: 'datetime' })
   expiresAt: Date;
