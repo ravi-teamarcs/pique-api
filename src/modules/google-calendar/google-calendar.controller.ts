@@ -23,7 +23,7 @@ export class GoogleCalendarController {
   constructor(private readonly googleCalendarService: GoogleCalendarServices) {}
 
   @Get('google')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard)
   @Roles('findAll')
   @ApiOperation({ summary: 'Use To get Google O-Auth Url' })
   @ApiResponse({
@@ -40,74 +40,84 @@ export class GoogleCalendarController {
   async handleGoogleCallback(
     @Query('code') code: string,
     @Query('state') state: string,
-    @Res() res,
+    @Res() response_object,
   ) {
     const userState = JSON.parse(state); // Extract user ID
     const { id: userId, role } = userState;
-    console.log(`UserId: ${userId} and Role: ${role}`);
-
-    // console.log(`Callback By google: ${userId} and typeof ${typeof userId}`);
-    const response = await this.googleCalendarService.getAccessToken(code);
-    // Store Token in DB (linked to user)
-    await this.googleCalendarService.saveToken(
-      {
-        userId,
-        accessToken: response.data.access_token,
-        refreshToken: response.data.refresh_token,
-        expiresAt: new Date(Date.now() + response.data.expiry_date),
-      }, // Set expiration date for the token
-    );
-    //   Use Booking Service Here
-    const bookings = await this.googleCalendarService.getConfirmedBooking(
-      Number(userId),
-      role,
-    );
-
-    const unsyncedBookings =
-      await this.googleCalendarService.checkAlreadySynced(
-        bookings,
-        Number(userId),
-      );
-    if (unsyncedBookings.length === 0) {
-      return {
-        status: true,
-        message: 'All bookings are already synced with Google Calendar.',
-      };
-    }
-
-    if (unsyncedBookings && unsyncedBookings.length > 0) {
-      for (const booking of unsyncedBookings) {
-        const payload = {
-          title: booking.title,
-          description: booking.description,
-          eventDate: booking.eventDate.toISOString().split('T')[0],
-          startTime: booking.startTime,
-          endTime: booking.endTime,
-        };
-
-        const { id } = await this.googleCalendarService.createCalendarEvent(
-          response.data.access_token,
-          payload,
-        );
-        await this.googleCalendarService.saveSyncedBooking(
-          booking.id,
+    if (role === 'admin') {
+      const res = await this.googleCalendarService.getAdminAccessToken(code);
+      await this.googleCalendarService.saveToken(
+        {
           userId,
-          id,
+          accessToken: res.data.access_token,
+          refreshToken: res.data.refresh_token,
+          expiresAt: new Date(Date.now() + res.data.expiry_date),
+        }, // Set expiration date for the token
+      );
+
+      await this.googleCalendarService.syncAdminCalendar(
+        userId,
+        res.data.access_token,
+      );
+
+      return response_object.redirect('https://your-frontend.com/success');
+    } else {
+      // console.log(`Callback By google: ${userId} and typeof ${typeof userId}`);
+      const response = await this.googleCalendarService.getAccessToken(code);
+      // Store Token in DB (linked to user)
+      await this.googleCalendarService.saveToken(
+        {
+          userId,
+          accessToken: response.data.access_token,
+          refreshToken: response.data.refresh_token,
+          expiresAt: new Date(Date.now() + response.data.expiry_date),
+        }, // Set expiration date for the token
+      );
+      //   Use Booking Service Here
+      const bookings = await this.googleCalendarService.getConfirmedBooking(
+        Number(userId),
+        role,
+      );
+
+      const unsyncedBookings =
+        await this.googleCalendarService.checkAlreadySynced(
+          bookings,
+          Number(userId),
         );
+      if (unsyncedBookings.length === 0) {
+        return {
+          status: true,
+          message: 'All bookings are already synced with Google Calendar.',
+        };
       }
+
+      if (unsyncedBookings && unsyncedBookings.length > 0) {
+        for (const booking of unsyncedBookings) {
+          const payload = {
+            title: booking.title,
+            description: booking.description,
+            eventDate: booking.eventDate.toISOString().split('T')[0],
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+          };
+
+          const { id } = await this.googleCalendarService.createCalendarEvent(
+            response.data.access_token,
+            payload,
+          );
+          await this.googleCalendarService.saveSyncedBooking(
+            booking.bookingId,
+            userId,
+            id,
+          );
+        }
+      }
+      return response_object.redirect('https://your-frontend.com/success');
     }
-
-    // save event Id to prevent duplication
-
-    return {
-      mesage: 'Booking synced Successfully',
-      status: true,
-      syncedCount: unsyncedBookings.length,
-      redirect: '',
-    };
   }
 
   // @ApiOperation({ summary: 'Allow User to Add Events to Google Calendar' })
+  
   // @ApiResponse({
   //   status: 201,
   //   description: 'Event Created Succssfully.',

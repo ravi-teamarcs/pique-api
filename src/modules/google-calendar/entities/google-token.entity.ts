@@ -14,6 +14,8 @@ export class UserGoogleToken {
 
   @Column()
   user: number;
+  @Column({ nullable: true, default: false })
+  isAdmin: boolean;
 
   @Column({ type: 'text' })
   accessToken: string;

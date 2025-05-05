@@ -52,14 +52,15 @@ export class GoogleCalendarServices {
 
   // Get Google OAuth URL  required for getting tokens so you dont have to authenticate everytime
   getAuthUrl(user) {
-    const { role, userId } = user;
+    let { role, userId } = user;
+    const actualRole = role === '1' ? 'admin' : role;
     try {
       const scopes = ['https://www.googleapis.com/auth/calendar'];
       const authUrl = this.oauth2Client.generateAuthUrl({
         access_type: 'offline',
         scope: scopes,
         prompt: 'consent',
-        state: JSON.stringify({ id: userId, role }),
+        state: JSON.stringify({ id: userId, role: actualRole }),
       });
       return {
         message: 'Auth Url return Successfully',
@@ -219,6 +220,7 @@ export class GoogleCalendarServices {
       .select([
         'booking.id AS bookingId',
         'event.title AS title',
+        'event.description AS description',
         'event.eventDate AS eventDate',
         'event.startTime AS startTime',
         'event.endTime AS endTime',
@@ -271,8 +273,10 @@ export class GoogleCalendarServices {
     }
   }
 
+  // Admin logic Here
   async adminConfirmedEvents() {
     const now = new Date();
+    const nowString = now.toISOString().split('T')[0];
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('event', 'event', 'event.id = booking.eventId')
@@ -285,7 +289,7 @@ export class GoogleCalendarServices {
         'event.endTime AS endTime',
       ])
       .where('booking.status = :status', { status: 'confirmed' })
-      .andWhere('event.eventDate > :now', { now })
+      .andWhere('event.eventDate > :nowString', { nowString })
       .getRawMany();
 
     return bookings;
@@ -324,7 +328,7 @@ export class GoogleCalendarServices {
         const payload = {
           title: booking.title,
           description: booking.description,
-          eventDate: booking.eventDate,
+          eventDate: booking.eventDate.toISOString().split('T')[0],
           startTime: booking.startTime,
           endTime: booking.endTime,
         };
@@ -332,7 +336,7 @@ export class GoogleCalendarServices {
         const { id } = await this.createCalendarEvent(accessToken, payload);
 
         const save = this.syncCalendarRepo.create({
-          bookingId: booking.id,
+          bookingId: booking.bookingId,
           userId,
           isSynced: true,
           syncedAt: new Date(),
@@ -343,5 +347,62 @@ export class GoogleCalendarServices {
       }
     }
     return { message: 'Admin Calendar Synced Successfully ' };
+  }
+
+  async getAdminAccessToken(code: string) {
+    try {
+      const { tokens } = await this.oauth2Client.getToken(code);
+      this.oauth2Client.setCredentials(tokens);
+
+      return {
+        message: 'Token returned Successfully',
+        data: tokens,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async saveAdminToken(tokenDto: GoogleTokenDto) {
+    try {
+      const { userId, accessToken, refreshToken, expiresAt } = tokenDto;
+
+      const user = await this.tokenRepository.findOne({
+        where: { user: userId },
+      });
+
+      if (user) {
+        user.accessToken = accessToken;
+        user.refreshToken = refreshToken;
+        user.expiresAt = expiresAt;
+        user.isAdmin = true;
+        this.tokenRepository.save(user);
+        return {
+          message: 'Token saved Successfully',
+          status: true,
+        };
+      } else {
+        const newToken = this.tokenRepository.create({
+          user: userId, // Set user reference
+          accessToken,
+          refreshToken,
+          expiresAt,
+          isAdmin: true,
+        });
+        this.tokenRepository.save(newToken);
+        return {
+          message: 'Token saved Successfully',
+          status: true,
+        };
+      }
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 }
