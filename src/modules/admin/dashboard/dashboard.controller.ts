@@ -24,8 +24,8 @@ export class DashboardController {
     status: 200,
     description: 'Events Fetched Successfully.',
   })
-  @Roles('super-admin')
   @Get('upcoming-events')
+  @Roles('super-admin')
   upcomingEvents() {
     return this.dashboardService.upcomingEvents();
   }
