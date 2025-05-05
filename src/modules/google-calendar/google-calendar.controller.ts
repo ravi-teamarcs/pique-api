@@ -59,8 +59,6 @@ export class GoogleCalendarController {
         userId,
         res.data.access_token,
       );
-
-      return response_object.redirect('https://your-frontend.com/success');
     } else {
       // console.log(`Callback By google: ${userId} and typeof ${typeof userId}`);
       const response = await this.googleCalendarService.getAccessToken(code);
@@ -112,32 +110,32 @@ export class GoogleCalendarController {
           );
         }
       }
-      return response_object.redirect('https://your-frontend.com/success');
     }
+    return response_object.redirect('https://digidemo.in//successSync');
   }
-
-  // @ApiOperation({ summary: 'Allow User to Add Events to Google Calendar' })
-  
-  // @ApiResponse({
-  //   status: 201,
-  //   description: 'Event Created Succssfully.',
-  // })
-  // @Post('google/calendar/add-event')
-  // @UseGuards(JwtAuthGuard)
-  // async addBookingToCalendar(@Req() req, @Body() eventDetails: CreateEventDto) {
-  //   try {
-  //     const { userId } = req.user;
-  //     const { data } =
-  //       await this.googleCalendarService.getValidAccessToken(userId);
-  //     return await this.googleCalendarService.createCalendarEvent(
-  //       data,
-  //       eventDetails,
-  //     );
-  //   } catch (error) {
-  //     throw new InternalServerErrorException({
-  //       message: 'Something went wrong ',
-  //       status: false,
-  //     });
-  //   }
-  // }
 }
+
+// @ApiOperation({ summary: 'Allow User to Add Events to Google Calendar' })
+
+// @ApiResponse({
+//   status: 201,
+//   description: 'Event Created Succssfully.',
+// })
+// @Post('google/calendar/add-event')
+// @UseGuards(JwtAuthGuard)
+// async addBookingToCalendar(@Req() req, @Body() eventDetails: CreateEventDto) {
+//   try {
+//     const { userId } = req.user;
+//     const { data } =
+//       await this.googleCalendarService.getValidAccessToken(userId);
+//     return await this.googleCalendarService.createCalendarEvent(
+//       data,
+//       eventDetails,
+//     );
+//   } catch (error) {
+//     throw new InternalServerErrorException({
+//       message: 'Something went wrong ',
+//       status: false,
+//     });
+//   }
+// }

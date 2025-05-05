@@ -341,6 +341,7 @@ export class GoogleCalendarServices {
           isSynced: true,
           syncedAt: new Date(),
           calendarEventId: id,
+          isAdmin: true,
         });
 
         await this.syncCalendarRepo.save(save);
