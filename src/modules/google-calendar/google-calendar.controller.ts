@@ -111,7 +111,7 @@ export class GoogleCalendarController {
         }
       }
     }
-    return response_object.redirect('https://digidemo.in//successSync');
+    return response_object.redirect('https://digidemo.in/successSync');
   }
 }
 
