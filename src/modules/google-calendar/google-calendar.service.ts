@@ -241,12 +241,14 @@ export class GoogleCalendarServices {
     const alreadySynced = await this.syncCalendarRepo.find({
       where: { userId },
     });
+    console.log(alreadySynced, 'Already Synced');
     // Get Synced booking Id in Array
     const syncedBookingIds = alreadySynced.map((s) => s.bookingId);
-
+    console.log(syncedBookingIds, 'Synced Booking');
     const unsyncedBookings = bookings.filter(
-      (b) => !syncedBookingIds.includes(b.id),
+      (b) => !syncedBookingIds.includes(b.bookingId),
     );
+    console.log(unsyncedBookings, 'unsynced bookings');
     return unsyncedBookings;
   }
 
@@ -304,7 +306,7 @@ export class GoogleCalendarServices {
     const syncedBookingIds = alreadySynced.map((s) => s.bookingId);
 
     const unsyncedBookings = bookings.filter(
-      (b) => !syncedBookingIds.includes(b.id),
+      (b) => !syncedBookingIds.includes(b.bookingId),
     );
     return unsyncedBookings;
   }
