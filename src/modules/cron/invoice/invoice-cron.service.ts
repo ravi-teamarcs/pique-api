@@ -24,4 +24,6 @@ export class InvoiceCronService {
   async unrespondedBookingReminder() {
     await this.reminderService.remindUnrespondedInvites();
   }
+  @Cron('0 * * * *') // Runs at minute 0 of every hour
+  async syncAdminLatestBooking() {}
 }

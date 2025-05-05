@@ -367,6 +367,7 @@ export class GoogleCalendarServices {
       });
     }
   }
+
   async saveAdminToken(tokenDto: GoogleTokenDto) {
     try {
       const { userId, accessToken, refreshToken, expiresAt } = tokenDto;
@@ -405,5 +406,9 @@ export class GoogleCalendarServices {
         status: false,
       });
     }
+  }
+
+  async getLatestBooking() {
+    
   }
 }
