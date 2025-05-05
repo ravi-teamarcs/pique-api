@@ -38,6 +38,7 @@ export class GoogleCalendarServices {
       this.configService.get<'string'>('GOOGLE_CLIENT_SECRET'),
       this.getRedirectUri(),
     );
+    console.log('Redirect Uri', this.getRedirectUri());
   }
 
   private getRedirectUri(): string {
@@ -408,7 +409,5 @@ export class GoogleCalendarServices {
     }
   }
 
-  async getLatestBooking() {
-    
-  }
+  async getLatestBooking() {}
 }
