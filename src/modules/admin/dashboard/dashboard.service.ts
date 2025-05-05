@@ -7,6 +7,7 @@ import { ConfigService } from '@nestjs/config';
 import { Invoice } from '../invoice/entities/invoices.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Venue } from '../venue/entities/venue.entity';
+import { EventsByMonthDto } from 'src/modules/entertainer/dto/get-events-bymonth.dto';
 
 @Injectable()
 export class DashboardService {
@@ -212,5 +213,64 @@ export class DashboardService {
         },
       ],
     };
+  }
+
+  async getEventDetailsByMonth(query: EventsByMonthDto) {
+    const {
+      date = '', // e.g., '2025-04'
+      page = 1,
+      pageSize = 10,
+      status = '',
+    } = query;
+
+    // If date is not provided, use current year and month
+    const current = new Date();
+    const year = date ? Number(date.split('-')[0]) : current.getFullYear();
+    const month = date ? Number(date.split('-')[1]) : current.getMonth() + 1;
+
+    const skip = (page - 1) * pageSize;
+
+    try {
+      const qb = this.bookingRepo
+        .createQueryBuilder('booking')
+        .innerJoin('event', 'event', 'event.id = booking.eventId')
+        .andWhere('YEAR(event.eventDate) = :year', { year })
+        .andWhere('MONTH(event.eventDate) = :month', { month })
+        .select([
+          'event.id AS event_id',
+          'event.title AS title',
+          'event.location AS location',
+          'event.eventDate AS eventDate',
+          'event.description AS description',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'event.recurring AS recurring',
+          'event.status AS status',
+          'event.isAdmin AS isAdmin',
+        ])
+        .orderBy('event.eventDate', 'ASC');
+
+      if (status) {
+        qb.andWhere('event.status=:status', { status });
+      }
+
+      const totalCount = await qb.getCount();
+      const results = await qb.skip(skip).take(pageSize).getRawMany();
+
+      return {
+        message: 'Events returned successfully',
+        data: results,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / pageSize),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 }

@@ -37,6 +37,7 @@ import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { typeMap } from 'src/common/constants/media.constants';
 import { Vaccinated } from 'src/common/enums/entertainer.enum';
 import { GetEntertainerDto } from './Dto/search-entertainer-query.dto';
+import { EventsByMonthDto } from 'src/modules/entertainer/dto/get-events-bymonth.dto';
 
 @ApiTags('admin')
 @Controller('admin/entertainer')
@@ -210,4 +211,6 @@ export class EntertainerController {
   async deleteEntertainer(@Param('id') id: string) {
     return this.EntertainerService.deleteEntertainer(Number(id));
   }
+
+ 
 }

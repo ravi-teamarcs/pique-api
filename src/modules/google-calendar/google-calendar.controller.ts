@@ -80,7 +80,7 @@ export class GoogleCalendarController {
         const payload = {
           title: booking.title,
           description: booking.description,
-          eventDate: booking.eventDate,
+          eventDate: booking.eventDate.toISOString().split('T')[0],
           startTime: booking.startTime,
           endTime: booking.endTime,
         };

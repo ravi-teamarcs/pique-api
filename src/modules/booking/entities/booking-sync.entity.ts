@@ -19,6 +19,9 @@ export class BookingCalendarSync {
   @Column()
   userId: number;
 
+  @Column({ nullable: true, default: false })
+  isAdmin: boolean;
+
   @Column({ default: false })
   isSynced: boolean;
 

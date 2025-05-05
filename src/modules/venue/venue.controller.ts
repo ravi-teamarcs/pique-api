@@ -53,6 +53,7 @@ import { UpdatePrimaryInfoDto } from './dto/update-primary-info.dto';
 import { UpdateNeighbourhoodDto } from '../admin/venue/Dto/update-neighbourhood';
 import { CreateNeighbourhoodDto } from './dto/create-neighbourhood.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
+import { EventsByMonthDto } from '../entertainer/dto/get-events-bymonth.dto';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -486,5 +487,13 @@ export class VenueController {
   @Roles('findAll')
   removeNeighbourhood(@Param('id', ParseIntPipe) id: number) {
     return this.venueService.removeNeighbourhood(id);
+  }
+
+  @Get('calendar/events')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async getUpcomingEvents(@Request() req, @Query() query: EventsByMonthDto) {
+    const { refId } = req.user;
+    return this.venueService.getEventDetailsByMonth(refId, query);
   }
 }

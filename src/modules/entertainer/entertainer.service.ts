@@ -1255,12 +1255,13 @@ export class EntertainerService {
         .createQueryBuilder('booking')
         .innerJoin('event', 'event', 'event.id = booking.eventId')
         .where('booking.entId = :userId', { userId })
-        .andWhere('YEAR(event.startTime) = :year', { year })
-        .andWhere('MONTH(event.startTime) = :month', { month })
+        .andWhere('YEAR(event.eventDate) = :year', { year })
+        .andWhere('MONTH(event.eventDate) = :month', { month })
         .select([
           'event.id AS event_id',
           'event.title AS title',
           'event.location AS location',
+          'event.eventDate AS eventDate',
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
@@ -1268,7 +1269,7 @@ export class EntertainerService {
           'event.status AS status',
           'event.isAdmin AS isAdmin',
         ])
-        .orderBy('event.startTime', 'ASC');
+        .orderBy('event.eventDate', 'ASC');
 
       if (status) {
         qb.andWhere('event.status=:status', { status });

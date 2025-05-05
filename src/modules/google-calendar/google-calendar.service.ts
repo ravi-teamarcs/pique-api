@@ -33,19 +33,21 @@ export class GoogleCalendarServices {
     private readonly syncCalendarRepo: Repository<BookingCalendarSync>,
     private readonly configService: ConfigService,
   ) {
-    const rawUris = this.configService.get<string>('GOOGLE_REDIRECT_URIS');
-    const redirectUris: string[] = rawUris ? JSON.parse(rawUris) : [];
-
-    this.selectedRedirectUri =
-      process.env.NODE_ENV === 'development'
-        ? redirectUris.find((uri) => uri.includes('localhost:8080'))
-        : redirectUris.find((uri) => uri.includes('digidemo.in')); // Change to match your domain
-
     this.oauth2Client = new google.auth.OAuth2(
       this.configService.get<'string'>('GOOGLE_CLIENT_ID'),
       this.configService.get<'string'>('GOOGLE_CLIENT_SECRET'),
-      this.selectedRedirectUri,
+      this.getRedirectUri(),
     );
+  }
+
+  private getRedirectUri(): string {
+    const rawUris = this.configService.get<string>('GOOGLE_REDIRECT_URIS');
+    const redirectUris = JSON.parse(rawUris);
+    const isProd = this.configService.get<string>('NODE_ENV') === 'production';
+
+    return isProd
+      ? redirectUris.find((uri) => uri.includes('digidemo.in'))
+      : redirectUris.find((uri) => uri.includes('localhost'));
   }
 
   // Get Google OAuth URL  required for getting tokens so you dont have to authenticate everytime
@@ -208,6 +210,8 @@ export class GoogleCalendarServices {
     }
 
     const now = new Date();
+    const nowString = now.toISOString().split('T')[0];
+    console.log(typeof nowString);
 
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
@@ -221,7 +225,9 @@ export class GoogleCalendarServices {
       ])
       .where(conditionField + ' = :id', { id: conditionId }) // dynamic condition
       .andWhere('booking.status = :status', { status: 'confirmed' })
-      .andWhere('event.eventDate > :now', { now }) // filter future events
+      .andWhere('event.eventDate > :nowString', {
+        nowString,
+      }) // filter future events
       .getRawMany();
 
     return bookings;
@@ -263,5 +269,79 @@ export class GoogleCalendarServices {
       const { data } = await this.getValidAccessToken(userId);
       return data;
     }
+  }
+
+  async adminConfirmedEvents() {
+    const now = new Date();
+    const bookings = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoin('event', 'event', 'event.id = booking.eventId')
+      .select([
+        'booking.id AS bookingId',
+        'event.title AS title',
+        'event.description AS description',
+        'event.eventDate AS eventDate',
+        'event.startTime AS startTime',
+        'event.endTime AS endTime',
+      ])
+      .where('booking.status = :status', { status: 'confirmed' })
+      .andWhere('event.eventDate > :now', { now })
+      .getRawMany();
+
+    return bookings;
+  }
+
+  async checkAlreadySyncedAdminBooking(bookings, userId: number) {
+    const alreadySynced = await this.syncCalendarRepo.find({
+      where: { userId, isAdmin: true },
+    });
+    // Get Synced booking Id in Array
+    const syncedBookingIds = alreadySynced.map((s) => s.bookingId);
+
+    const unsyncedBookings = bookings.filter(
+      (b) => !syncedBookingIds.includes(b.id),
+    );
+    return unsyncedBookings;
+  }
+
+  async syncAdminCalendar(userId: number, accessToken: string) {
+    const bookings = await this.adminConfirmedEvents();
+    // check if bookings are not already synced or not
+    const unsyncedBookings = await this.checkAlreadySyncedAdminBooking(
+      bookings,
+      userId,
+    );
+
+    if (unsyncedBookings.length === 0) {
+      return {
+        status: true,
+        message: 'All bookings are already synced with Google Calendar.',
+      };
+    }
+
+    if (unsyncedBookings && unsyncedBookings.length > 0) {
+      for (const booking of unsyncedBookings) {
+        const payload = {
+          title: booking.title,
+          description: booking.description,
+          eventDate: booking.eventDate,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+        };
+
+        const { id } = await this.createCalendarEvent(accessToken, payload);
+
+        const save = this.syncCalendarRepo.create({
+          bookingId: booking.id,
+          userId,
+          isSynced: true,
+          syncedAt: new Date(),
+          calendarEventId: id,
+        });
+
+        await this.syncCalendarRepo.save(save);
+      }
+    }
+    return { message: 'Admin Calendar Synced Successfully ' };
   }
 }
