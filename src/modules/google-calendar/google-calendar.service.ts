@@ -18,6 +18,7 @@ import { BookingCalendarSync } from '../booking/entities/booking-sync.entity';
 @Injectable()
 export class GoogleCalendarServices {
   private oauth2Client;
+  private selectedRedirectUri: string;
 
   constructor(
     @InjectRepository(UserGoogleToken)
@@ -32,10 +33,18 @@ export class GoogleCalendarServices {
     private readonly syncCalendarRepo: Repository<BookingCalendarSync>,
     private readonly configService: ConfigService,
   ) {
+    const rawUris = this.configService.get<string>('GOOGLE_REDIRECT_URIS');
+    const redirectUris: string[] = rawUris ? JSON.parse(rawUris) : [];
+
+    this.selectedRedirectUri =
+      process.env.NODE_ENV === 'development'
+        ? redirectUris.find((uri) => uri.includes('localhost:8080'))
+        : redirectUris.find((uri) => uri.includes('digidemo.in')); // Change to match your domain
+
     this.oauth2Client = new google.auth.OAuth2(
       this.configService.get<'string'>('GOOGLE_CLIENT_ID'),
       this.configService.get<'string'>('GOOGLE_CLIENT_SECRET'),
-      this.configService.get<'string'>('GOOGLE_REDIRECT_URI'),
+      this.selectedRedirectUri,
     );
   }
 
@@ -48,7 +57,6 @@ export class GoogleCalendarServices {
         access_type: 'offline',
         scope: scopes,
         prompt: 'consent',
-        redirect_uri: this.configService.get<'string'>('GOOGLE_REDIRECT_URI'),
         state: JSON.stringify({ id: userId, role }),
       });
       return {
