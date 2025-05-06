@@ -246,6 +246,13 @@ export class EntertainerService {
       if (createLogin) {
         const { password, ...rest } = user;
         const hashedPassword = await bcrypt.hash(password, 10);
+        const alreadyExists = this.userRepository.find({
+          where: { email: rest.email },
+        });
+
+        if (alreadyExists)
+          throw new BadRequestException({ message: 'Email Already in Use' });
+
         const newUser = this.userRepository.create({
           ...rest,
           password: hashedPassword,
@@ -409,6 +416,14 @@ export class EntertainerService {
           );
         } else {
           const hashedPassword = await bcrypt.hash(user.password, 10);
+
+          const alreadyExists = this.userRepository.find({
+            where: { email: user.email },
+          });
+
+          if (alreadyExists)
+            throw new BadRequestException({ message: 'Email Already in Use' });
+
           const newUser = this.userRepository.create({
             email: user.email,
             password: hashedPassword,

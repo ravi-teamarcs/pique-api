@@ -41,9 +41,11 @@ export class GoogleCalendarController {
     @Query('code') code: string,
     @Query('state') state: string,
     @Res() response_object,
+    @Req() req,
   ) {
     const userState = JSON.parse(state); // Extract user ID
     const { id: userId, role } = userState;
+    console.log(req);
     if (role === 'admin') {
       const res = await this.googleCalendarService.getAdminAccessToken(code);
       await this.googleCalendarService.saveToken(

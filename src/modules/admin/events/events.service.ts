@@ -267,6 +267,7 @@ export class EventService {
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
+          'event.eventDate AS eventDate',
           'event.recurring AS recurring',
           'event.status AS status',
           'event.isAdmin AS isAdmin',

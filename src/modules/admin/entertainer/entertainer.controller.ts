@@ -38,6 +38,9 @@ import { typeMap } from 'src/common/constants/media.constants';
 import { Vaccinated } from 'src/common/enums/entertainer.enum';
 import { GetEntertainerDto } from './Dto/search-entertainer-query.dto';
 import { EventsByMonthDto } from 'src/modules/entertainer/dto/get-events-bymonth.dto';
+import { diskStorage } from 'multer';
+import * as path from 'path';
+import * as fs from 'fs';
 
 @ApiTags('admin')
 @Controller('admin/entertainer')
@@ -178,12 +181,41 @@ export class EntertainerController {
     return await this.EntertainerService.getSubCategory(parentId); // Pass parentId to the service
   }
 
-  @Roles('super-admin', 'entertainer-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Post('createcat')
-  async createMainCategory(@Body() createCategoryDto: CreateCategoryDto) {
-    return this.EntertainerService.createCategory(createCategoryDto);
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      storage: diskStorage({
+        destination: (req, file, cb) => {
+          const dir = './uploads/assets/cat_icons';
+          if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+          }
+          cb(null, dir);
+        },
+        filename: (req, file, cb) => {
+          const name =
+            req.body.name?.toLowerCase().replace(/\s+/g, '_') || 'category';
+          const suffix = file.fieldname === 'inactiveIcon' ? '_grey' : '';
+          const ext = path.extname(file.originalname);
+          cb(null, `${name}${suffix}${ext}`);
+        },
+      }),
+      limits: { fileSize: 5 * 1024 * 1024 }, // optional limit
+    }),
+  )
+  async createMainCategory(
+    @Body() body: CreateCategoryDto,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    const active = files.find((f) => f.fieldname === 'activeIcon');
+    const iconUrl = active
+      ? `uploads/assets/cat_icons/${active.filename}`
+      : undefined;
+
+    return this.EntertainerService.createCategory({
+      ...body,
+      iconUrl,
+    });
   }
 
   @Roles('super-admin')
@@ -211,6 +243,4 @@ export class EntertainerController {
   async deleteEntertainer(@Param('id') id: string) {
     return this.EntertainerService.deleteEntertainer(Number(id));
   }
-
- 
 }

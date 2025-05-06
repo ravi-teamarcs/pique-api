@@ -10,6 +10,8 @@ import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { Invoice } from './entities/invoice.entity';
+import { InvoiceBooking } from './entities/invoice-booking.entity';
+import { EmailModule } from '../Email/email.module';
 
 @Module({
   imports: [
@@ -22,7 +24,9 @@ import { Invoice } from './entities/invoice.entity';
       Role,
       Access,
       EndPoints,
+      InvoiceBooking,
     ]),
+    EmailModule,
   ],
   providers: [InvoiceService],
   controllers: [InvoiceController],

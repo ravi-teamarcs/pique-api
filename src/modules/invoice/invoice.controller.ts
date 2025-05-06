@@ -25,11 +25,19 @@ export class InvoiceController {
     description: 'Invoice  created  Successfully.',
   })
   // Route to Generate the Invoice for specific  Booking
-  @Roles('findAll')
   @Post()
-  createInvoice(@Request() req) {
-    const { userId } = req.user;
-    return this.invoiceService.generateInvoice(userId);
+  @Roles('findAll')
+  createInvoice(@Request() req, @Body() invoicePayload: InvoiceDto) {
+    const { refId } = req.user;
+    const { eventIds, monthStr } = invoicePayload;
+    return this.invoiceService.generateInvoice(refId, eventIds, monthStr);
+  }
+
+  @Post('/pdf')
+  @Roles('findAll')
+  generateInvoicePdf(@Request() req, @Body('invoiceId') invoiceId: number) {
+    const { refId } = req.user;
+    return this.invoiceService.generateInvoicePdf(invoiceId);
   }
 
   @ApiOperation({ summary: 'Get All Invoices' })
@@ -41,6 +49,6 @@ export class InvoiceController {
   @Get()
   getAllInvoices(@Request() req) {
     const { refId } = req.user;
-    return this.invoiceService.findAllInvoice(refId);
+    // return this.invoiceService.findAllInvoice(refId);
   }
 }

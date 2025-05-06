@@ -8,4 +8,8 @@ export class CreateCategoryDto {
   @IsOptional()
   @IsNumber()
   parentId?: number;
+
+  @IsOptional()
+  @IsString()
+  iconUrl?: string;
 }

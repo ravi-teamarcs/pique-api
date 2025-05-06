@@ -12,6 +12,7 @@ async function bootstrap() {
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.use(compression());
+
   const config = new DocumentBuilder()
     .setTitle('API Documentation')
     .setDescription('The API description')

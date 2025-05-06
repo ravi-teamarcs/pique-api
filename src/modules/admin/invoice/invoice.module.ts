@@ -28,5 +28,6 @@ import { EmailModule } from 'src/modules/Email/email.module';
   ],
   providers: [InvoiceService, GenerateInvoiceService],
   controllers: [InvoiceController],
+  exports: [InvoiceService],
 })
 export class InvoiceMod {}

@@ -97,4 +97,12 @@ export class InvoiceController {
   sendInvoice(@Param('id', ParseIntPipe) id: number) {
     return this.invoiceService.sendInvoice(id);
   }
+
+  @Put(':invoiceId/status')
+  async updateInvoiceStatus(
+    @Param('invoiceId') invoiceId: number,
+    @Body('status') status: 'paid',
+  ) {
+    return this.invoiceService.updateInvoiceStatus(invoiceId, status);
+  }
 }

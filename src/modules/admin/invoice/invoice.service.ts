@@ -305,4 +305,75 @@ export class InvoiceService {
   private roundToTwo(num: number): number {
     return Math.round(num * 100) / 100;
   }
+  // calculate Over Dues Day
+  async handleOverdueInvoices() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to midnight
+
+    const invoices = await this.invoiceRepository.find({
+      where: { status: 'unpaid', user_type: UserType.VENUE },
+    }); // Adjust based on your ORM
+
+    for (const invoice of invoices) {
+      const dueDate = new Date(invoice.due_date);
+      dueDate.setHours(0, 0, 0, 0);
+
+      if (today > dueDate) {
+        const diffTime = today.getTime() - dueDate.getTime();
+        const overdueDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+        if (invoice.overdue !== overdueDays) {
+          invoice.overdue = overdueDays;
+          await this.invoiceRepository.save(invoice);
+        }
+      }
+    }
+  }
+
+  async applyLateFee(invoiceId: number) {
+    const invoice = await this.invoiceRepository.findOne({
+      where: { id: invoiceId },
+    });
+
+    if (!invoice) {
+      throw new NotFoundException({
+        message: `Invoice with ID ${invoiceId} not found.`,
+      });
+    }
+
+    const overdueDays = invoice.overdue || 0;
+
+    const lateFee = Number(overdueDays * 25);
+    // Add late fee to total_with_tax
+    invoice.total_with_tax += lateFee;
+
+    await this.invoiceRepository.save(invoice);
+
+    return {
+      message: 'Late fees applied Successfully.',
+      data: {
+        invoiceId: invoice.id,
+        overdueDays,
+        lateFee,
+        updatedTotal: invoice.total_with_tax,
+      },
+      status: true,
+    };
+  }
+
+  async updateInvoiceStatus(invoiceId: number, status: 'paid') {
+    const invoice = await this.invoiceRepository.findOne({
+      where: { id: invoiceId },
+    });
+
+    if (!invoice) {
+      throw new NotFoundException({
+        message: `Invoice with ID ${invoiceId} not found.`,
+      });
+    }
+    invoice.status = status;
+
+    await this.invoiceRepository.save(invoice);
+    return { message: 'Invoice returned Successfully', status: true }; // Save the updated invoice
+  }
 }

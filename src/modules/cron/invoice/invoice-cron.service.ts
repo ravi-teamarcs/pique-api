@@ -3,17 +3,17 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { isLastDayOfMonth } from 'date-fns';
 import { Entertainer } from '../../entertainer/entities/entertainer.entity';
-import { InvoiceService } from '../../invoice/invoice.service';
 import { Repository } from 'typeorm';
 import { ReminderService } from 'src/modules/reminders/reminder.service';
+import { InvoiceService } from '../../admin/invoice/invoice.service';
 
 @Injectable()
 export class InvoiceCronService {
   constructor(
-    private readonly invoiceService: InvoiceService,
     @InjectRepository(Entertainer)
     private readonly entRepository: Repository<Entertainer>,
     private readonly reminderService: ReminderService,
+    private readonly invoiceService: InvoiceService,
   ) {}
 
   @Cron('0 0 * * *')
@@ -26,4 +26,9 @@ export class InvoiceCronService {
   }
   @Cron('0 * * * *') // Runs at minute 0 of every hour
   async syncAdminLatestBooking() {}
+
+  @Cron('0 0 * * *')
+  async handleOverDues() {
+    await this.invoiceService.handleOverdueInvoices();
+  }
 }
