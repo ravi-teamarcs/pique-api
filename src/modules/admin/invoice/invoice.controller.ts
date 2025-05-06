@@ -100,7 +100,7 @@ export class InvoiceController {
 
   @Put(':invoiceId/status')
   async updateInvoiceStatus(
-    @Param('invoiceId') invoiceId: number,
+    @Param('invoiceId', ParseIntPipe) invoiceId: number,
     @Body('status') status: 'paid',
   ) {
     return this.invoiceService.updateInvoiceStatus(invoiceId, status);

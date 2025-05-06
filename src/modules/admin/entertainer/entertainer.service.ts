@@ -246,7 +246,8 @@ export class EntertainerService {
       if (createLogin) {
         const { password, ...rest } = user;
         const hashedPassword = await bcrypt.hash(password, 10);
-        const alreadyExists = this.userRepository.find({
+
+        const alreadyExists = await this.userRepository.find({
           where: { email: rest.email },
         });
 

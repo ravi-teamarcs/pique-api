@@ -38,7 +38,7 @@ export class Invoice {
   @Column({ type: 'date' })
   issue_date: string;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'date', nullable: true })
   due_date: string;
 
   @Column({ type: 'decimal' })

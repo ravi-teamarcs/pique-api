@@ -30,99 +30,103 @@ export class InvoiceService {
 
   // Invoice generation Logic for Entertainer
   async generateInvoice(userId: number, eventIds: number[], monthStr: string) {
-    let total = 0;
-    let invoiceMonth = monthStr?.toUpperCase();
-    const invoiceDetails = [];
-    for (const eventid of eventIds) {
-      const {
-        eventName,
-        eventStartTime,
-        eventEndTime,
-        bookingId,
-        eventId,
-        pricePerEvent,
-      } = await this.bookingRepository
-        .createQueryBuilder('booking')
-        .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
-        .leftJoin('event', 'event', 'event.id = booking.eventId')
+    try {
+      let total = 0;
+      let invoiceMonth = monthStr?.toUpperCase();
+      const invoiceDetails = [];
+      for (const eventid of eventIds) {
+        const {
+          eventName,
+          eventStartTime,
+          eventEndTime,
+          bookingId,
+          eventId,
+          pricePerEvent,
+        } = await this.bookingRepository
+          .createQueryBuilder('booking')
+          .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+          .leftJoin('event', 'event', 'event.id = booking.eventId')
 
-        .where('booking.entId = :userId AND  booking.eventId=:eventid', {
-          userId,
-          eventid,
-        })
-        .select([
-          'booking.id AS bookingId',
-          'booking.eventId AS eventId',
-          'event.title AS eventName',
-          'event.description AS eventDescription',
-          'event.startTime AS eventStartTime',
-          'event.endTime AS eventEndTime',
-          'ent.pricePerEvent AS pricePerEvent',
-        ])
-        .getRawOne();
+          .where('booking.entId = :userId AND  booking.eventId=:eventid', {
+            userId,
+            eventid,
+          })
+          .select([
+            'booking.id AS bookingId',
+            'booking.eventId AS eventId',
+            'event.title AS eventName',
+            'event.description AS eventDescription',
+            'event.startTime AS eventStartTime',
+            'event.endTime AS eventEndTime',
+            'ent.pricePerEvent AS pricePerEvent',
+          ])
+          .getRawOne();
 
-      const durationInHours = this.getDurationInHours(
-        eventStartTime,
-        eventEndTime,
-      );
-      const totalAmount = pricePerEvent * durationInHours;
+        const durationInHours = this.getDurationInHours(
+          eventStartTime,
+          eventEndTime,
+        );
+        const totalAmount = pricePerEvent * durationInHours;
 
-      total += totalAmount;
+        total += totalAmount;
 
-      invoiceDetails.push({ bookingId, eventId });
-    }
+        invoiceDetails.push({ bookingId, eventId });
+      }
 
-    const lastInvoice = await this.invoiceRepository
-      .createQueryBuilder('invoices')
-      .orderBy('invoices.id', 'DESC')
-      .limit(1)
-      .getOne();
+      const lastInvoice = await this.invoiceRepository
+        .createQueryBuilder('invoices')
+        .orderBy('invoices.id', 'DESC')
+        .limit(1)
+        .getOne();
 
-    // checks last invoice number and  increment it by one.
-    const lastInvoiceNumber = lastInvoice
-      ? parseInt(lastInvoice.invoice_number.split('-')[2])
-      : 1000;
+      // checks last invoice number and  increment it by one.
+      const lastInvoiceNumber = lastInvoice
+        ? parseInt(lastInvoice.invoice_number.split('-')[2])
+        : 1000;
 
-    const newInvoiceNumber = `INV-${invoiceMonth}-${lastInvoiceNumber + 1}`;
-    const issueDate = new Date();
+      const newInvoiceNumber = `INV-${invoiceMonth}-${lastInvoiceNumber + 1}`;
+      const issueDate = new Date();
 
-    const newInvoice = this.invoiceRepository.create({
-      invoice_number: newInvoiceNumber,
-      user_id: userId,
-      event_id: null,
-      issue_date: issueDate.toISOString().split('T')[0],
-      due_date: null,
-      total_amount: parseFloat(total.toFixed(2)),
-      tax_rate: 0,
-      tax_amount: 0,
-      total_with_tax: parseFloat(total.toFixed(2)),
-      status: InvoiceStatus.UNPAID,
-      payment_method: '',
-      payment_date: null,
-      overdue: null,
-      booking_id: null,
-    });
-    const savedInvoice = await this.invoiceRepository.save(newInvoice);
-
-    const updatedInvoiceDetails = invoiceDetails.map((item) => ({
-      ...item,
-      invoiceId: savedInvoice.id,
-    }));
-
-    for (const item of updatedInvoiceDetails) {
-      const mapping = this.invoiceBookingRepo.create({
-        invoiceId: item.invoiceId,
-        eventId: item.eventId,
-        bookingId: item.bookingId,
+      const newInvoice = this.invoiceRepository.create({
+        invoice_number: newInvoiceNumber,
+        user_id: userId,
+        event_id: null,
+        issue_date: issueDate.toISOString().split('T')[0],
+        due_date: null,
+        total_amount: parseFloat(total.toFixed(2)),
+        tax_rate: 0,
+        tax_amount: 0,
+        total_with_tax: parseFloat(total.toFixed(2)),
+        status: InvoiceStatus.UNPAID,
+        payment_method: '',
+        payment_date: null,
+        overdue: null,
+        booking_id: null,
       });
-      await this.invoiceBookingRepo.save(mapping);
-    }
+      const savedInvoice = await this.invoiceRepository.save(newInvoice);
 
-    return {
-      message: 'Invoice generated Successfully',
-      data: newInvoice,
-      status: true,
-    };
+      const updatedInvoiceDetails = invoiceDetails.map((item) => ({
+        ...item,
+        invoiceId: savedInvoice.id,
+      }));
+
+      for (const item of updatedInvoiceDetails) {
+        const mapping = this.invoiceBookingRepo.create({
+          invoiceId: item.invoiceId,
+          eventId: item.eventId,
+          bookingId: item.bookingId,
+        });
+        await this.invoiceBookingRepo.save(mapping);
+      }
+
+      return {
+        message: 'Invoice generated Successfully',
+        data: newInvoice,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({ message: error.message });
+    }
   }
 
   // Fetch All Invoices for Entertainer
