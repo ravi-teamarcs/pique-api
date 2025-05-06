@@ -49,6 +49,6 @@ export class InvoiceController {
   @Get()
   getAllInvoices(@Request() req) {
     const { refId } = req.user;
-    // return this.invoiceService.findAllInvoice(refId);
+    return this.invoiceService.findAllInvoice(refId);
   }
 }
