@@ -940,6 +940,16 @@ export class VenueService {
       status: true,
     };
   }
+  async neighbourhoodById(id: number) {
+    const res = await this.neighbourRepository.find({
+      where: { venueId: id },
+    });
+    return {
+      message: 'Neighbourhood fetched successfully',
+      data: res,
+      status: true,
+    };
+  }
 
   async removeNeighbourhood(id: number) {
     const result = await this.neighbourRepository.delete(id);

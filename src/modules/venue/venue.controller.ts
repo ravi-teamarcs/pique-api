@@ -468,7 +468,7 @@ export class VenueController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getNeighbourhood(@Param('id', ParseIntPipe) id: number) {
-    // return this.venueService.neighbourhoodById(id);
+    return this.venueService.neighbourhoodById(id);
   }
 
   @Post('neighbourhood')

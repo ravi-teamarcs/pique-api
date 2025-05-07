@@ -183,7 +183,7 @@ export class BookingService {
           'invoice.payment_method AS paymentMethod',
           'invoice.cheque_no AS chequeNo',
           'invoice.inv_amount_paid AS invAmountPaid',
-          'invoice.payment_date AS paymentMethod',
+          'invoice.payment_date AS paymentDate',
           'hood.name AS neighbourhood_name',
           'venue.name AS neighbourhood_name',
           'venue.addressLine1 AS  addressLine1',
