@@ -149,25 +149,26 @@ export class EventService {
 
     const time12 = format(parsedTime, 'h:mm a');
 
-    const { name, neighbourhoodName, addressLine1, addressLine2 } =
-      await this.venueRepository
-        .createQueryBuilder('venue')
-        .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
-          neighbourhoodId,
-        })
-        .select([
-          'venue.id AS id',
-          'venue.name AS name',
-          'venue.addressLine1 AS addressLine1',
-          'venue.addressLine2 AS addressLine2',
-          'hood.name AS neighbourhoodName',
-          'hood.contactPerson AS neighbourhood_contact_person',
-          'hood.contactNumber AS neighbourhood_contact_number',
-        ])
-        .where('venue.id = :id', { id: venueId })
-        .getRawOne();
+    const { name, neighbourhoodName, city } = await this.venueRepository
+      .createQueryBuilder('venue')
+      .leftJoin('cities', 'city', 'city.id = venue.city')
+      .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
+        neighbourhoodId,
+      })
+      .select([
+        'venue.id AS id',
+        'venue.name AS name',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+        'city.name AS city',
+        'hood.name AS neighbourhoodName',
+        'hood.contactPerson AS neighbourhood_contact_person',
+        'hood.contactNumber AS neighbourhood_contact_number',
+      ])
+      .where('venue.id = :id', { id: venueId })
+      .getRawOne();
 
-    const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName}/${name} at ${addressLine1} ${addressLine2}`;
+    const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName}/${name} in ${city}`;
 
     return slug;
   }

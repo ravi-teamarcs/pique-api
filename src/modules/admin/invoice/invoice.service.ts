@@ -216,7 +216,7 @@ export class InvoiceService {
         'invoices.total_with_tax AS totalWithTax',
         'venue.name AS venueName',
         'user.email AS userEmail',
-        'event.title AS eventName',
+        'event.slug AS eventName',
         'event.description AS description',
         'event.eventDate AS eventDate',
       ])
@@ -240,11 +240,9 @@ export class InvoiceService {
         description: invoice.description,
       };
       const html = loadEmailTemplate('invoice.html', invoicePayload);
-      console.log('Before Calling pdf fn ');
+
       const buffer = await this.generatePDF(html);
-      // Convert HTML to PDF buffer using Puppeteer
-      // const buffer = Buffer.from(pdfBuffer); // Ensure it's a Node.js Buffer
-      console.log('Buffer ', buffer);
+
       const emailPayload = {
         to: invoice.userEmail,
         subject: 'Invoice For Event',
@@ -254,7 +252,7 @@ export class InvoiceService {
           venueName: invoice.venueName,
           invoiceNumber: invoice.invoiceNumber,
           totalAmount: invoice.totalAmount,
-          evevntName: invoice.eventName,
+          eventName: invoice.eventName,
         },
         attachments: [
           {

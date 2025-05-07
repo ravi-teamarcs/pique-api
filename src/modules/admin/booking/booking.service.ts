@@ -171,6 +171,7 @@ export class BookingService {
 
           'booking.id AS booking_id',
           'booking.status AS booking_status',
+          'booking.entId AS booking_ent_id',
 
           'entertainers.id AS entertainer_id',
           'entertainers.name AS stageName',
@@ -184,10 +185,19 @@ export class BookingService {
           'invoice.cheque_no AS chequeNo',
           'invoice.inv_amount_paid AS invAmountPaid',
           'invoice.payment_date AS paymentDate',
+
+          'inv.id AS venueInvoiceId',
+          'inv.total_with_tax AS venueTotalAmount',
+          'inv.status AS venueInvoiceStatus',
+          'inv.invoice_number AS venueInvoiceNumber',
+          'inv.payment_method AS venuePaymentMethod',
+          'inv.cheque_no AS venueChequeNo',
+          'inv.inv_amount_paid AS venueInvAmountPaid',
+          'inv.payment_date AS venuePaymentDate',
+
           'hood.name AS neighbourhood_name',
-          'venue.name AS neighbourhood_name',
-          'venue.addressLine1 AS  addressLine1',
-          'venue.addressLine2 AS  addressLine2',
+          'city.name AS  venueCityName',
+          'state.name AS  venueStateName',
         ])
         .where('entertainers.status=:status', { status: 'active' })
         .where('event.eventDate BETWEEN :from AND :to', {
@@ -195,7 +205,7 @@ export class BookingService {
           to: toDate,
         })
         .andWhere('booking.status IN (:...status)', {
-          status: ['confirmed'],
+          status: ['confirmed', 'invited', 'declined', 'cancelled'],
         })
 
         .leftJoin('booking', 'booking', 'booking.entId = entertainers.id')
@@ -214,9 +224,13 @@ export class BookingService {
         .leftJoin(
           'invoices',
           'invoice',
-          'invoice.user_id = booking.entId AND invoice.booking_id = invmap.invoice_id',
+          'invoice.id = invmap.invoice_id AND booking.entId = invoice.user_id',
         )
-
+        .leftJoin(
+          'invoices',
+          'inv',
+          'inv.event_id = event.id AND inv.user_id = event.venueId',
+        )
         .orderBy('event.eventDate', 'ASC')
         .getRawMany();
 
