@@ -198,6 +198,7 @@ export class BookingService {
           'hood.name AS neighbourhood_name',
           'city.name AS  venueCityName',
           'state.name AS  venueStateName',
+          'log.venueConfirmation',
         ])
         .where('entertainers.status=:status', { status: 'active' })
         .where('event.eventDate BETWEEN :from AND :to', {
