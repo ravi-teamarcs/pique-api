@@ -1,3 +1,4 @@
+import { PartialType } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 
 export class NeighbourhoodDto {
@@ -11,3 +12,5 @@ export class NeighbourhoodDto {
   @IsNotEmpty()
   contactNumber: string;
 }
+
+export class UpdateNeighbourhoodDto extends PartialType(NeighbourhoodDto) {}

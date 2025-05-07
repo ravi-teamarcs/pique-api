@@ -281,6 +281,37 @@ export class VenueService {
     }
   }
 
+  async updateNeighbourhood(userId: number, dto: UpdateNeighbourhoodDto) {
+    const venue = await this.venueRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    if (!venue) {
+      throw new NotFoundException('Venue not found');
+    }
+    try {
+      // const neighbourhood = this.neighbourRepository.create({
+      //   ...dto,
+      //   venueId: venue.id,
+      // });
+      // await this.neighbourRepository.save(neighbourhood);
+      // update other data
+      await this.venueRepository.update({ id: venue.id }, { ...dto });
+
+      return {
+        message: 'Contact details updates Successfully',
+        data: dto,
+
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
   async findAllByUser(userId: number, venueId: number) {
     const venueDetails = await this.venueRepository
       .createQueryBuilder('venue')

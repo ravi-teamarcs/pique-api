@@ -159,6 +159,13 @@ export class VenueController {
     const { userId } = req.user;
     return this.venueService.createNeighbourhood(userId, dto);
   }
+  @Patch('neighbourhood')
+  @UseGuards(JwtAuthGuard)
+  updateNeighbourhood(@Body() dto: UpdateNeighbourhoodDto, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.updateNeighbourhood(userId, dto);
+  }
+
   @Post('media')
   @UseInterceptors(AnyFilesInterceptor())
   @UseGuards(JwtAuthGuard)
@@ -203,6 +210,7 @@ export class VenueController {
     const { userId } = req.user;
     return this.venueService.updatePrimaryDetails(userId, dto);
   }
+
   @Patch('address')
   @UseGuards(JwtAuthGuard)
   async updateVenueAddress(@Body() dto: UpdateAddressDto, @Request() req) {
