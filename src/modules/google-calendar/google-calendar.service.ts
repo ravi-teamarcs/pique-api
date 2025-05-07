@@ -311,7 +311,7 @@ export class GoogleCalendarServices {
     return unsyncedBookings;
   }
 
-  async syncAdminCalendar(userId: number, accessToken: string) {
+  async syncAdminCalendar(userId: number, accessToken: string, res) {
     const bookings = await this.adminConfirmedEvents();
     // check if bookings are not already synced or not
     const unsyncedBookings = await this.checkAlreadySyncedAdminBooking(
@@ -320,10 +320,7 @@ export class GoogleCalendarServices {
     );
 
     if (unsyncedBookings.length === 0) {
-      return {
-        status: true,
-        message: 'All bookings are already synced with Google Calendar.',
-      };
+      return res.redirect('https://digidemo.in/p/successSync');
     }
 
     if (unsyncedBookings && unsyncedBookings.length > 0) {
@@ -350,7 +347,6 @@ export class GoogleCalendarServices {
         await this.syncCalendarRepo.save(save);
       }
     }
-    return { message: 'Admin Calendar Synced Successfully ' };
   }
 
   async getAdminAccessToken(code: string) {

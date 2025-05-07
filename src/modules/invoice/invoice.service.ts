@@ -200,7 +200,7 @@ export class InvoiceService {
           .select([
             'booking.id AS bookingId',
             'booking.eventId AS eventId',
-            'event.title AS eventName',
+            'event.slug AS eventName',
             'event.description AS eventDescription',
             'event.startTime AS eventStartTime',
             'event.endTime AS eventEndTime',
@@ -223,7 +223,6 @@ export class InvoiceService {
           bookingId,
           eventId,
           eventName,
-          eventDescription,
           pricePerEvent,
           durationInHours,
           totalAmount,

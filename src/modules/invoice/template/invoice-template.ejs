@@ -66,19 +66,19 @@
                     >
                       <div class="col-6">
                         <p class="fw-medium my-1" style="color: #0067ff">
-                          Digicorns | Olivia Andrews
+                          <!-- Digicorns | Olivia Andrews -->
                         </p>
                         <p class="fw-semibold my-0">Bill to</p>
                         <p style="color: #424242">
                          Pique Entertainment<br />
-                          <span>Digicorns</span>
+                        
                         </p>
                       </div>
                       <div class="col-6 text-start">
                         <p class="fw-semibold my-0 mt-4">Ship to</p>
                         <p class="mb-0" style="color: #424242">
                           PiqueEntertainment<br />
-                          <span>Digicorns</span>
+                          
                         </p>
                       </div>
                     </div>
@@ -113,10 +113,10 @@
                         <tr>
                           <th>SNo</th>
                           <th>Event </th>
-                          <th>Description</th>
                           <th>Duration(Hours)</th>
                           <th>Rate</th>
                           <th>Amount</th>
+                          
                         </tr>
                           
                       </thead>
@@ -128,10 +128,10 @@
                             <td>
                               <strong class="text-warp"><%= item.eventName %></strong>
                             </td>
-                            <td><%= item.eventDescription %></td>
                             <td><%= item.durationInHours || 1 %></td>
                             <td>$<%= item.pricePerEvent %></td>
                             <td>$<%= item.totalAmount %></td>
+                            
                           </tr>
                         <% }) %>
                       </tbody>

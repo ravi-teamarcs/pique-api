@@ -60,6 +60,7 @@ export class GoogleCalendarController {
       await this.googleCalendarService.syncAdminCalendar(
         userId,
         res.data.access_token,
+        response_object,
       );
     } else {
       // console.log(`Callback By google: ${userId} and typeof ${typeof userId}`);
@@ -85,10 +86,7 @@ export class GoogleCalendarController {
           Number(userId),
         );
       if (unsyncedBookings.length === 0) {
-        return {
-          status: true,
-          message: 'All bookings are already synced with Google Calendar.',
-        };
+        response_object.redirect('https://digidemo.in/p/successSync');
       }
 
       if (unsyncedBookings && unsyncedBookings.length > 0) {
