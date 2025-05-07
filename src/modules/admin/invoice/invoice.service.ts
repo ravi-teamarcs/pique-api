@@ -37,7 +37,8 @@ export class InvoiceService {
 
     const baseQuery = this.invoiceRepository
       .createQueryBuilder('invoices')
-      .select(['invoices.*'])
+      .leftJoin('event', 'event', 'event.id = invoices.event_id')
+      .select(['invoices.*', 'event.id AS eventId', 'event.slug AS eventSlug'])
       .where('invoices.user_type = :role', { role });
 
     if (search) {

@@ -49,6 +49,12 @@ export class Venue {
   @Column({ default: 'pending' })
   status: 'active' | 'inactive' | 'pending' | 'rejected';
 
+  @Column({ name: 'contact_person' })
+  contactPerson: string;
+
+  @Column({ name: 'contact_number' })
+  contactNumber: string;
+
   @CreateDateColumn()
   createdAt: Date;
 
