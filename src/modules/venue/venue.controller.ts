@@ -463,6 +463,14 @@ export class VenueController {
     const { refId } = req.user;
     return this.venueService.getVenueNeighbourhoods(refId);
   }
+
+  @Get('neighbourhood/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getNeighbourhood(@Param('id', ParseIntPipe) id: number) {
+    // return this.venueService.neighbourhoodById(id);
+  }
+
   @Post('neighbourhood')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')

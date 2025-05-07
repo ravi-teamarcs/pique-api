@@ -245,15 +245,13 @@ export class EntertainerService {
       // 1. Create user if checkbox is checked
       if (createLogin) {
         const { password, ...rest } = user;
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        const alreadyExists = await this.userRepository.find({
+        const alreadyExists = await this.userRepository.findOne({
           where: { email: rest.email },
         });
-
         if (alreadyExists)
           throw new BadRequestException({ message: 'Email Already in Use' });
 
+        const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = this.userRepository.create({
           ...rest,
           password: hashedPassword,
@@ -261,6 +259,7 @@ export class EntertainerService {
           status: 'active',
           createdByAdmin: true,
         });
+
         savedUser = await queryRunner.manager.save(newUser);
         // saving password in temp repo
         const temp = this.tempRepository.create({

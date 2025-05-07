@@ -83,6 +83,12 @@ export class Invoice {
   @Column({ nullable: true })
   overdue: number;
 
+  @Column({ nullable: true, name: 'cheque_no' })
+  chequeNo: string;
+
+  @Column({ nullable: true, name: 'inv_amount_paid' })
+  invAmountPaid: number;
+
   @CreateDateColumn()
   created_at: Date;
 

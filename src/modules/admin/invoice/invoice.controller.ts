@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Put,
   Query,
@@ -20,6 +21,7 @@ import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
 import { InvoiceQueryDto } from './Dto/invoice-query.dto';
+import { UpdateInvoiceStatus } from './Dto/update-invoice-status.dto';
 
 @ApiTags('admin')
 @Controller('admin/invoice')
@@ -101,10 +103,15 @@ export class InvoiceController {
   @Put(':invoiceId/status')
   async updateInvoiceStatus(
     @Param('invoiceId', ParseIntPipe) invoiceId: number,
-    @Body('status') status: 'paid',
+    @Body() dto: UpdateInvoiceStatus,
   ) {
-    return this.invoiceService.updateInvoiceStatus(invoiceId, status);
+    return this.invoiceService.updateInvoiceStatus(invoiceId, dto);
   }
 
-  
+  // invoice.controller.ts
+
+  @Patch(':id/apply-late-fee')
+  async applyLateFee(@Param('id', ParseIntPipe) id: number) {
+    return this.invoiceService.applyLateFee(id);
+  }
 }

@@ -9,6 +9,7 @@ import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { NotificationModule } from 'src/modules/notification/notification.module';
 import { EmailModule } from 'src/modules/Email/email.module';
 import { BookingRequest } from './entities/modify-booking.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { BookingRequest } from './entities/modify-booking.entity';
       RoleCapability,
       Role,
       Capability,
+      Entertainer,
       BookingRequest,
     ]),
     NotificationModule,

@@ -15,16 +15,20 @@ import { ModifyBookingDto } from './dto/modify.booking.dto';
 import { EmailService } from 'src/modules/Email/email.service';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import { BookingRequest } from './entities/modify-booking.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
 
 @Injectable()
 export class BookingService {
   constructor(
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
-    private readonly emailService: EmailService,
+    @InjectRepository(Entertainer)
+    private readonly entertainerRepository: Repository<Entertainer>,
+
     @InjectRepository(BookingRequest)
     private readonly reqRepository: Repository<BookingRequest>,
     private readonly notifyService: NotificationService,
+    private readonly emailService: EmailService,
   ) {}
   async getAllBookings(query: BookingQueryDto) {
     const { page = 1, status = 'pending', pageSize = 10 } = query;
@@ -152,8 +156,8 @@ export class BookingService {
 
   async getBookingListing(fromDate, toDate) {
     try {
-      const res = await this.bookingRepository
-        .createQueryBuilder('booking')
+      const res = await this.entertainerRepository
+        .createQueryBuilder('entertainers')
         .select([
           'event.id AS event_id',
           'event.title AS event_title',
@@ -161,75 +165,59 @@ export class BookingService {
           'event.slug AS event_slug',
           'event.startTime AS event_endTime',
           'event.endTime AS event_startTime',
+          'event.eventDate AS event_eventDate',
           'event.status AS event_status',
           'event.sub_venue_id AS sub_venue_id',
 
-          'venue.id AS venue_id',
-          'venue.name AS venue_name',
-          'venue.addressLine1 AS venue_addressLine1',
-          'venue.addressLine1 AS venue_addressLine2',
-          'city.name AS city',
-          'country.name AS country',
-          'state.name AS state',
-
           'booking.id AS booking_id',
           'booking.status AS booking_status',
-          'booking.showDate AS booking_showDate',
-          'booking.showTime AS booking_showTime',
 
-          'entertainer.id AS entertainer_id',
-          'entertainer.name AS entertainer_name',
+          'entertainers.id AS entertainer_id',
+          'entertainers.name AS stageName',
+          'entertainers.entertainerName AS entertainerName',
 
           'invoice.id AS ent_invoice_id',
-          'invoice.total_with_tax AS ent_total_amount',
-          'invoice.status AS ent_invoice_status',
-          'invoice.invoice_number AS ent_invoice_number',
-          'invoice.payment_method AS ent_payment_method',
-          'invoice.payment_date AS ent_payment_date',
-
-          'inv.id AS venue_invoice_id',
-          'inv.invoice_number AS venue_invoice_number',
-          'inv.total_with_tax AS venue_total_amount',
-
+          'invoice.total_with_tax AS totalAmount',
+          'invoice.status AS ent_invoiceStatus',
+          'invoice.invoice_number AS invoiceNumber',
+          'invoice.payment_method AS paymentMethod',
+          'invoice.cheque_no AS chequeNo',
+          'invoice.inv_amount_paid AS invAmountPaid',
+          'invoice.payment_date AS paymentMethod',
           'hood.name AS neighbourhood_name',
+          'venue.name AS neighbourhood_name',
+          'venue.addressLine1 AS  addressLine1',
+          'venue.addressLine2 AS  addressLine2',
         ])
-        .where('booking.showDate BETWEEN :from AND :to', {
+        .where('entertainers.status=:status', { status: 'active' })
+        .where('event.eventDate BETWEEN :from AND :to', {
           from: fromDate,
           to: toDate,
         })
         .andWhere('booking.status IN (:...status)', {
-          status: [
-            'completed',
-            'invited',
-            'cancelled',
-            'accepted',
-            'declined',
-            'confirmed',
-          ],
+          status: ['confirmed'],
         })
+
+        .leftJoin('booking', 'booking', 'booking.entId = entertainers.id')
 
         .leftJoin('event', 'event', 'event.id = booking.eventId')
         .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
         .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+        .leftJoin(
+          'invoice_bookings',
+          'invmap',
+          'invmap.booking_id = booking.id',
+        )
         .leftJoin('countries', 'country', 'country.id = venue.country')
         .leftJoin('states', 'state', 'state.id = venue.state')
         .leftJoin('cities', 'city', 'city.id = venue.city')
         .leftJoin(
-          'entertainers',
-          'entertainer',
-          'entertainer.id = booking.entId',
-        )
-        .leftJoin(
           'invoices',
           'invoice',
-          'invoice.user_id = booking.entId AND invoice.booking_id = booking.id',
+          'invoice.user_id = booking.entId AND invoice.booking_id = invmap.invoice_id',
         )
-        .leftJoin(
-          'invoices',
-          'inv',
-          'inv.user_id = booking.venueId  AND inv.booking_id = booking.id',
-        )
-        .orderBy('booking.showDate', 'DESC')
+
+        .orderBy('event.eventDate', 'ASC')
         .getRawMany();
 
       return {
@@ -244,6 +232,100 @@ export class BookingService {
       });
     }
   }
+  // async getBookingListing(fromDate, toDate) {
+  //   try {
+  //     const res = await this.bookingRepository
+  //       .createQueryBuilder('booking')
+  //       .select([
+  //         'event.id AS event_id',
+  //         'event.title AS event_title',
+  //         'event.description AS event_description',
+  //         'event.slug AS event_slug',
+  //         'event.startTime AS event_endTime',
+  //         'event.endTime AS event_startTime',
+  //         'event.status AS event_status',
+  //         'event.sub_venue_id AS sub_venue_id',
+
+  //         'venue.id AS venue_id',
+  //         'venue.name AS venue_name',
+  //         'venue.addressLine1 AS venue_addressLine1',
+  //         'venue.addressLine1 AS venue_addressLine2',
+  //         'city.name AS city',
+  //         'country.name AS country',
+  //         'state.name AS state',
+
+  //         'booking.id AS booking_id',
+  //         'booking.status AS booking_status',
+  //         'booking.showDate AS booking_showDate',
+  //         'booking.showTime AS booking_showTime',
+
+  //         'entertainer.id AS entertainer_id',
+  //         'entertainer.name AS entertainer_name',
+
+  //         'invoice.id AS ent_invoice_id',
+  //         'invoice.total_with_tax AS ent_total_amount',
+  //         'invoice.status AS ent_invoice_status',
+  //         'invoice.invoice_number AS ent_invoice_number',
+  //         'invoice.payment_method AS ent_payment_method',
+  //         'invoice.payment_date AS ent_payment_date',
+
+  //         'inv.id AS venue_invoice_id',
+  //         'inv.invoice_number AS venue_invoice_number',
+  //         'inv.total_with_tax AS venue_total_amount',
+
+  //         'hood.name AS neighbourhood_name',
+  //       ])
+  //       .where('booking.showDate BETWEEN :from AND :to', {
+  //         from: fromDate,
+  //         to: toDate,
+  //       })
+  //       .andWhere('booking.status IN (:...status)', {
+  //         status: [
+  //           'completed',
+  //           'invited',
+  //           'cancelled',
+  //           'accepted',
+  //           'declined',
+  //           'confirmed',
+  //         ],
+  //       })
+
+  //       .leftJoin('event', 'event', 'event.id = booking.eventId')
+  //       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+  //       .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+  //       .leftJoin('countries', 'country', 'country.id = venue.country')
+  //       .leftJoin('states', 'state', 'state.id = venue.state')
+  //       .leftJoin('cities', 'city', 'city.id = venue.city')
+  //       .leftJoin(
+  //         'entertainers',
+  //         'entertainer',
+  //         'entertainer.id = booking.entId',
+  //       )
+  //       .leftJoin(
+  //         'invoices',
+  //         'invoice',
+  //         'invoice.user_id = booking.entId AND invoice.booking_id = booking.id',
+  //       )
+  //       .leftJoin(
+  //         'invoices',
+  //         'inv',
+  //         'inv.user_id = booking.venueId  AND inv.booking_id = booking.id',
+  //       )
+  //       .orderBy('booking.showDate', 'DESC')
+  //       .getRawMany();
+
+  //     return {
+  //       message: 'Booking Listing Fetched Successfully',
+  //       data: res,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
 
   async handleChangeRequest(id: number, bookingdto: ModifyBookingDto) {
     const { reqShowDate, reqShowTime } = bookingdto;

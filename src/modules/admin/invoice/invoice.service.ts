@@ -16,6 +16,8 @@ import { loadEmailTemplate } from 'src/common/email-templates/utils/email.utils'
 import { EmailService } from 'src/modules/Email/email.service';
 // import * as pdf from 'html-pdf-node';
 import * as pdf from 'html-pdf';
+import { UpdateInvoiceStatus } from './Dto/update-invoice-status.dto';
+import { paymentsresellersubscription } from 'googleapis/build/src/apis/paymentsresellersubscription';
 
 @Injectable()
 export class InvoiceService {
@@ -365,17 +367,22 @@ export class InvoiceService {
     };
   }
 
-  async updateInvoiceStatus(invoiceId: number, status: 'paid') {
+  async updateInvoiceStatus(invoiceId: number, dto: UpdateInvoiceStatus) {
+    const { invAmountPaid, status, chequeNo, paymentDate } = dto;
+
     const invoice = await this.invoiceRepository.findOne({
       where: { id: invoiceId },
     });
-
     if (!invoice) {
       throw new NotFoundException({
         message: `Invoice with ID ${invoiceId} not found.`,
       });
     }
-    invoice.status = status;
+
+    this.invoiceRepository.update(
+      { id: invoice.id },
+      { status, chequeNo, invAmountPaid, payment_date: paymentDate },
+    );
 
     await this.invoiceRepository.save(invoice);
     return { message: 'Invoice returned Successfully', status: true }; // Save the updated invoice
