@@ -20,21 +20,21 @@ export class BookingLog {
   @Column({
     type: 'enum',
     enum: [
-      'pending',
+      'invited',
       'confirmed',
       'accepted',
       'cancelled',
-      'rejected',
-      'completed',
+      'declined',
+
       'rescheduled',
     ],
-    default: 'pending',
+    default: 'invited',
   })
   status:
-    | 'pending'
+    | 'invited'
     | 'confirmed'
     | 'cancelled'
-    | 'rejected'
+    | 'declined'
     | 'completed'
     | 'rescheduled';
 

@@ -215,7 +215,6 @@ export class BookingService {
         })
 
         .leftJoin('booking', 'booking', 'booking.entId = entertainers.id')
-
         .leftJoin('event', 'event', 'event.id = booking.eventId')
         .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
         .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
@@ -237,6 +236,20 @@ export class BookingService {
           'inv',
           'inv.event_id = event.id AND inv.user_id = event.venueId',
         )
+        .leftJoin(
+          (qb) =>
+            qb
+              .select('booking_log.bookingId', 'bookingId')
+              .addSelect(
+                "MAX(CASE WHEN booking_log.performedBy = 'venue' AND booking_log.status = 'confirmed' THEN booking_log.createdAt ELSE NULL END)",
+                'venueConfirmation',
+              )
+              .from('booking_log', 'booking_log')
+              .groupBy('booking_log.bookingId'),
+          'log',
+          'log.bookingId = booking.id',
+        )
+
         .orderBy('event.eventDate', 'ASC')
         .getRawMany();
 

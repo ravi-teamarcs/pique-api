@@ -18,6 +18,14 @@ export class CreateVenueDto {
   @IsNotEmpty()
   addressLine1: string;
 
+  @IsString()
+  @IsNotEmpty()
+  contactPerson: string;
+
+  @IsString()
+  @IsNotEmpty()
+  contactNumber: string;
+
   @IsOptional()
   @IsString()
   addressLine2?: string;
