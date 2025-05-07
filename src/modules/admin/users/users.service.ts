@@ -215,31 +215,34 @@ export class UsersService {
         .leftJoin('cities', 'city', 'city.id = venue.city') // Join 'cities' table based on 'venue.city'
         .leftJoin('states', 'state', 'state.id = venue.state') // Join 'states' table based on 'venue.state'
         .leftJoin('countries', 'country', 'country.id = venue.country') // Join 'countries' table based on 'venue.country'
-        .leftJoin(
-          (qb) =>
-            qb
-              .select([
-                'neighbourhood.venue_id AS nh_venue_id', // Selecting 'venueId' from 'neighbourhood' as 'nh_venue_id'
-                `JSON_ARRAYAGG(
-            JSON_OBJECT(
-              "id", neighbourhood.id,
-              "name", neighbourhood.name,
-              "contactPerson", neighbourhood.contact_person,
-              "contactNumber", neighbourhood.contact_number
-            )
-          ) AS neighbourhoodDetails`, // Aggregate neighbourhoods into JSON array
-              ])
-              .from('neighbourhood', 'neighbourhood') // From 'neighbourhood' table
-              .groupBy('neighbourhood.venue_id'), // Group by 'venueId' to match venues with neighbourhoods
-          'neighbourhoods', // Alias for the subquery
-          'neighbourhoods.nh_venue_id = venue.id', // Join condition for neighbourhoods based on venue id
-        )
+        // .leftJoin(
+        //   (qb) =>
+        //     qb
+        //       .select([
+        //         'neighbourhood.venue_id AS nh_venue_id', // Selecting 'venueId' from 'neighbourhood' as 'nh_venue_id'
+        //         `JSON_ARRAYAGG(
+        //     JSON_OBJECT(
+        //       "id", neighbourhood.id,
+        //       "name", neighbourhood.name,
+        //       "contactPerson", neighbourhood.contact_person,
+        //       "contactNumber", neighbourhood.contact_number
+        //     )
+        //   ) AS neighbourhoodDetails`, // Aggregate neighbourhoods into JSON array
+        //       ])
+        //       .from('neighbourhood', 'neighbourhood') // From 'neighbourhood' table
+        //       .groupBy('neighbourhood.venue_id'), // Group by 'venueId' to match venues with neighbourhoods
+        //   'neighbourhoods', // Alias for the subquery
+        //   'neighbourhoods.nh_venue_id = venue.id', // Join condition for neighbourhoods based on venue id
+        // )
         .select([
           'venue.id AS id',
           'venue.name AS name',
           'venue.addressLine1 AS addressLine1',
           'venue.addressLine2 AS addressLine2',
           'venue.description AS description',
+          'venue.city AS city_code',
+          'venue.contactPerson AS contactPerson',
+          'venue.contactNumber AS contactNumber',
           'venue.city AS city_code',
           'venue.state AS state_code',
           'venue.country AS country_code',
@@ -248,7 +251,7 @@ export class UsersService {
           'state.name AS state',
           'country.name AS country',
           'user.email AS email',
-          'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods', // Handle empty neighbourhoods array with COALESCE
+          // 'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods', // Handle empty neighbourhoods array with COALESCE
         ])
         .orderBy('venue.id', 'DESC') // Sort by venue ID
         .where("venue.status = 'pending' AND venue.userId IS NOT NULL");
@@ -265,9 +268,9 @@ export class UsersService {
         .skip(skip)
         .take(Number(pageSize))
         .getRawMany();
-      const parsedResult = results.map(({ neighbourhoods, ...rest }) => ({
+      const parsedResult = results.map(({ ...rest }) => ({
         ...rest,
-        neighbourhoods: JSON.parse(neighbourhoods),
+        // neighbourhoods: JSON.parse(neighbourhoods),
       }));
 
       return {
