@@ -921,8 +921,12 @@ export class VenueService {
   // Creation Logic Neighbourhood
   async create(dto: CreateNeighbourhoodDto, venueId: number) {
     const neighbourhood = this.neighbourRepository.create({ ...dto, venueId });
-    await this.neighbourRepository.save(neighbourhood);
-    return { message: 'Neighbourhood added successfully', status: true };
+    const saved = await this.neighbourRepository.save(neighbourhood);
+    return {
+      message: 'Neighbourhood added successfully',
+      data: saved,
+      status: true,
+    };
   }
 
   async update(id: number, dto: UpdateNeighbourhoodDto) {
@@ -941,8 +945,8 @@ export class VenueService {
     };
   }
   async neighbourhoodById(id: number) {
-    const res = await this.neighbourRepository.find({
-      where: { venueId: id },
+    const res = await this.neighbourRepository.findOne({
+      where: { id: id },
     });
     return {
       message: 'Neighbourhood fetched successfully',
