@@ -257,7 +257,7 @@ export class EventService {
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'event.venueId = venue.id')
         .leftJoin('media', 'media', 'event.id = media.eventId')
-        .where('event.startTime > :now', { now: new Date() })
+        .where('event.eventDate > :now', { now: new Date() })
         .select([
           'event.id AS event_id',
           'event.title AS title',
@@ -277,7 +277,7 @@ export class EventService {
         ])
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
-        .orderBy('event.startTime', 'ASC');
+        .orderBy('event.eventDate', 'ASC');
 
       const totalCount = await events.getCount();
 
