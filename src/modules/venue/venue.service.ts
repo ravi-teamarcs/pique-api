@@ -151,20 +151,20 @@ export class VenueService {
       throw new NotFoundException('Venue not found');
     }
     try {
-      const neighbourhood = this.neighbourRepository.create({
-        ...dto,
-        venueId: venue.id,
-      });
-      await this.neighbourRepository.save(neighbourhood);
+      // const neighbourhood = this.neighbourRepository.create({
+      //   ...dto,
+      //   venueId: venue.id,
+      // });
+      // await this.neighbourRepository.save(neighbourhood);
       // update other data
       await this.venueRepository.update(
         { id: venue.id },
-        { isProfileComplete: false, profileStep: 3 },
+        { ...dto, isProfileComplete: false, profileStep: 3 },
       );
 
       return {
         message: 'Neighbourhood added Successfully',
-        data: neighbourhood,
+        data: dto,
         step: 3,
         nextStep: Number('04'),
         status: true,
