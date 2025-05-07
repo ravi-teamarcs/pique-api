@@ -227,8 +227,7 @@ export class VenueController {
   @ApiResponse({ status: 200, description: 'Venue details.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    const { userId } = req.user;
-    return this.venueService.findVenueLocation(id);
+    return this.venueService.findVenueById(id);
   }
   // Under Testing  ()
   @Get('search/entertainers')

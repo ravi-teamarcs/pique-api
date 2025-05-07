@@ -1186,6 +1186,7 @@ export class EntertainerService {
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
+          'event.eventDate As eventDate',
           'event.recurring AS recurring',
           'event.status AS status',
           'event.isAdmin AS isAdmin',

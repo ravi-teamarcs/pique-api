@@ -105,4 +105,6 @@ export class InvoiceController {
   ) {
     return this.invoiceService.updateInvoiceStatus(invoiceId, status);
   }
+
+  
 }

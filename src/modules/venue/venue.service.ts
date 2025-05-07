@@ -343,26 +343,8 @@ export class VenueService {
     };
   }
 
-  async findVenueLocation(id: number) {
-    const venue = await this.venueRepository.find({
-      where: { parentId: id },
-      select: [
-        'id',
-        'name',
-        'phone',
-        'email',
-        'addressLine1',
-        'addressLine2',
-        'description',
-        'city',
-        'state',
-        'zipCode',
-        'country',
-        'parentId',
-        'isParent',
-      ],
-    });
-
+  async findVenueById(id: number) {
+    const venue = await this.venueRepository.findOne({ where: { id } });
     return { message: 'Venue fetched successfully', data: venue, status: true };
   }
 

@@ -107,6 +107,10 @@ export class InvoiceService {
   async generateInvoice(dto: CreateInvoiceDto) {
     const { eventId, pricePerHour, platformFee, isFixed, discountInPercent } =
       dto;
+
+    const date = new Date(); // or any date you want
+    const formatted = format(date, 'MMM').toUpperCase(); // e.g., '4 MAR'
+
     try {
       const { venueId, eventStartTime, eventEndTime, eventName } =
         await this.eventRepository
@@ -129,10 +133,10 @@ export class InvoiceService {
 
       // checks last invoice number and  increment it by one.
       const lastInvoiceNumber = lastInvoice
-        ? parseInt(lastInvoice.invoice_number.split('-')[1])
+        ? parseInt(lastInvoice.invoice_number.split('-')[2])
         : 1000;
 
-      const newInvoiceNumber = `INV-${lastInvoiceNumber + 1}`;
+      const newInvoiceNumber = `INV-${formatted}-${lastInvoiceNumber + 1}`;
       // Logic to calculate the total amount based on the booking details
 
       const durationInHours = this.getDurationInHours(
