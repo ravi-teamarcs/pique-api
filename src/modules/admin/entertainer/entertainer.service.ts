@@ -666,11 +666,25 @@ export class EntertainerService {
 
   async saveEntertainerAvailability(dto: EntertainerAvailabilityDto) {
     try {
+      const { entertainer_id, ...rest } = dto;
+
+      const alreadyExists = await this.availabilityRepository.findOne({
+        where: { entertainer_id, year: dto.year, month: dto.month },
+      });
+
+      if (alreadyExists) {
+        await this.availabilityRepository.update(
+          { id: alreadyExists.id },
+          { ...rest },
+        );
+      }
+
       const availability = this.availabilityRepository.create(dto);
-      await this.availabilityRepository.save(availability);
+      const savedAvailability =
+        await this.availabilityRepository.save(availability);
       return {
         message: 'Entertainer Availability returned Successfully',
-        data: availability,
+        data: savedAvailability,
         status: true,
       };
     } catch (error) {

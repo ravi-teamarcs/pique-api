@@ -249,10 +249,10 @@ export class EntertainerController {
 
   // Availability APIs
 
-  @Post('availability/:id')
+  @Post('availability/save/:id')
   async createAvailability(
     @Body() dto: EntertainerAvailabilityDto,
-    @Param(':id', ParseIntPipe) id: number,
+    @Param('id', ParseIntPipe) id: number,
   ) {
     dto['entertainer_id'] = id;
     return this.EntertainerService.saveEntertainerAvailability(dto);
