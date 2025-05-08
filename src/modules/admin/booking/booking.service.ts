@@ -86,6 +86,16 @@ export class BookingService {
 
     try {
       for (const entertainerId of entertainerIds) {
+        const alreadyBooked = await this.bookingRepository.findOne({
+          where: { entId: entertainerId, eventId: data.eventId },
+        });
+
+        if (alreadyBooked) {
+          throw new BadRequestException({
+            message: 'Entertainer Already booked for event ',
+          });
+        }
+
         const newBooking = this.bookingRepository.create({
           ...data,
           venueId: venueId,
