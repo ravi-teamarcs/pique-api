@@ -50,7 +50,7 @@ export class CreateEventDto {
   @IsString()
   description: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @Transform(({ value }) => Number(value))
   neighbourhoodId: number;
 }

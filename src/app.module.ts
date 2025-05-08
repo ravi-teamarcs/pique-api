@@ -46,7 +46,7 @@ import { ReminderModule } from './modules/reminders/reminder.module';
         entities: [join(process.cwd(), 'dist/**/*.entity.js')],
         // logging: true,
         // logger: 'advanced-console',
-        // synchronize: true, // Set this to false in production
+        synchronize: true, // Set this to false in production
       }),
     }),
 

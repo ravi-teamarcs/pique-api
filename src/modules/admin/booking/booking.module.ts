@@ -10,6 +10,8 @@ import { NotificationModule } from 'src/modules/notification/notification.module
 import { EmailModule } from 'src/modules/Email/email.module';
 import { BookingRequest } from './entities/modify-booking.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { BookingLog } from '../../admin/booking/entities/booking-log.entity';
+import { Event } from '../events/entities/event.entity';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
       Capability,
       Entertainer,
       BookingRequest,
+      BookingLog,
+      Event
     ]),
     NotificationModule,
     EmailModule,

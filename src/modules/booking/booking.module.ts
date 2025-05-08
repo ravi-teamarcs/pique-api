@@ -14,6 +14,7 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailModule } from '../Email/email.module';
 import { NotificationModule } from '../notification/notification.module';
 import { GoogleCalendarModule } from '../google-calendar/google-calendar.module';
+import { Event } from '../admin/events/entities/event.entity';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { GoogleCalendarModule } from '../google-calendar/google-calendar.module'
       BookingLog,
       User,
       Entertainer,
+      Event,
     ]),
     EmailModule,
     NotificationModule,

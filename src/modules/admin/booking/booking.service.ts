@@ -17,6 +17,7 @@ import { NotificationService } from 'src/modules/notification/notification.servi
 import { BookingRequest } from './entities/modify-booking.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Event } from '../events/entities/event.entity';
+import { BookingLog } from './entities/booking-log.entity';
 
 @Injectable()
 export class BookingService {
@@ -27,6 +28,9 @@ export class BookingService {
     private readonly entertainerRepository: Repository<Entertainer>,
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
+
+    @InjectRepository(BookingLog)
+    private readonly logRepository: Repository<BookingLog>,
 
     @InjectRepository(BookingRequest)
     private readonly reqRepository: Repository<BookingRequest>,
@@ -69,16 +73,16 @@ export class BookingService {
   async createBooking(payload: AdminBookingDto) {
     const { venueId, entertainerId, ...data } = payload;
 
-    const event = await this.eventRepository.findOne({
-      where: { id: payload.eventId },
-    });
+    // const event = await this.eventRepository.findOne({
+    //   where: { id: payload.eventId },
+    // });
 
-    if (['published', 'unpublished'].includes(event.status)) {
-      throw new BadRequestException({
-        message: `Can not book for event with status ${event.status} `,
-        status: false,
-      });
-    }
+    // if (['published', 'unpublished'].includes(event.status)) {
+    //   throw new BadRequestException({
+    //     message: `Can not book for event with status ${event.status} `,
+    //     status: false,
+    //   });
+    // }
 
     const booking = await this.bookingRepository.findOne({
       where: { entId: entertainerId, eventId: payload.eventId },
@@ -96,6 +100,16 @@ export class BookingService {
         entId: entertainerId,
       });
       await this.bookingRepository.save(newBooking);
+
+      const logPayload = this.logRepository.create({
+        bookingId: newBooking.id,
+        performedBy: 'admin',
+        status: 'invited',
+        user: null,
+      });
+
+      await this.bookingRepository.save(logPayload);
+
       return {
         Message: 'Booking created Successfully',
         data: newBooking,
