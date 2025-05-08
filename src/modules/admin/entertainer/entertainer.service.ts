@@ -713,15 +713,10 @@ export class EntertainerService {
     }
   }
 
-  async updateEntertainerAvailability(
-    id: number,
-    year: number,
-    month: number,
-    dto: UpdateAvailabilityDto,
-  ) {
+  async updateEntertainerAvailability(id: number, dto: UpdateAvailabilityDto) {
     try {
       const availability = await this.availabilityRepository.findOne({
-        where: { entertainer_id: id, year, month },
+        where: { entertainer_id: id, year: dto.year, month: dto.month },
       });
 
       const updatedAvailability = await this.availabilityRepository.update(

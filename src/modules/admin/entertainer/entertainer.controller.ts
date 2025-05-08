@@ -274,15 +274,9 @@ export class EntertainerController {
   @Roles('super-admin', 'entertainer-admin')
   async updateEntertainerAvailability(
     @Param('id', ParseIntPipe) id: number,
-    @Query('year') year: number,
-    @Query('month') month: number,
+
     @Body() dto: UpdateAvailabilityDto,
   ) {
-    return this.EntertainerService.updateEntertainerAvailability(
-      id,
-      year,
-      month,
-      dto,
-    );
+    return this.EntertainerService.updateEntertainerAvailability(id, dto);
   }
 }
