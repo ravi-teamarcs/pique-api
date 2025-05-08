@@ -189,6 +189,10 @@ export class BookingService {
           'event.eventDate AS event_eventDate',
           'event.status AS event_status',
           'event.sub_venue_id AS sub_venue_id',
+          'code.StateCode AS stateCode',
+          'state.name AS stateName',
+          'country.name AS countryName',
+          'city.name AS cityName',
 
           'booking.id AS booking_id',
           'booking.status AS booking_status',
@@ -255,7 +259,9 @@ export class BookingService {
         )
         .leftJoin('countries', 'country', 'country.id = venue.country')
         .leftJoin('states', 'state', 'state.id = venue.state')
+        .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
         .leftJoin('cities', 'city', 'city.id = venue.city')
+
         .leftJoin(
           'invoices',
           'invoice',

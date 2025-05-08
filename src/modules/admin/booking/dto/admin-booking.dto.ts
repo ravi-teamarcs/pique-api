@@ -7,6 +7,7 @@ import {
   IsNumber,
   IsArray,
   ArrayNotEmpty,
+  IsOptional,
 } from 'class-validator';
 class AdminBookingDto {
   @ApiProperty({ example: '12:10:01', description: 'Timing of the Show' })
@@ -24,6 +25,7 @@ class AdminBookingDto {
     description: 'Special Notes for the Booking',
     required: false,
   })
+  @IsOptional()
   @IsString()
   specialNotes?: string;
 
