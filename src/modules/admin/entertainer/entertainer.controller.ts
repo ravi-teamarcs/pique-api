@@ -263,8 +263,8 @@ export class EntertainerController {
   @Roles('super-admin', 'entertainer-admin')
   async getEntertainerAvailability(
     @Param('id', ParseIntPipe) id: number,
-    @Query('year') year: number,
-    @Query('month') month: number,
+    @Query('year', ParseIntPipe) year: number,
+    @Query('month', ParseIntPipe) month: number,
   ) {
     return this.EntertainerService.getEntertainerAvailability(id, year, month);
   }

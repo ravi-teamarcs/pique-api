@@ -680,10 +680,10 @@ export class EntertainerService {
       });
     }
   }
-  async getEntertainerAvailability(id: number, year: number, month) {
+  async getEntertainerAvailability(id: number, year: number, month: number) {
     try {
       const availability = await this.availabilityRepository.findOne({
-        where: { id, year, month },
+        where: { entertainer_id: id, year, month },
       });
 
       return {
@@ -707,7 +707,7 @@ export class EntertainerService {
   ) {
     try {
       const availability = await this.availabilityRepository.findOne({
-        where: { id, year, month },
+        where: { entertainer_id: id, year, month },
       });
 
       const updatedAvailability = await this.availabilityRepository.update(
