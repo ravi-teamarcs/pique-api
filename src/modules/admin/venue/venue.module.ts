@@ -14,6 +14,7 @@ import { Not } from 'typeorm';
 import { NotificationModule } from 'src/modules/notification/notification.module';
 import { EmailModule } from 'src/modules/Email/email.module';
 import { Booking } from '../booking/entities/booking.entity';
+import { BookingLog } from '../booking/entities/booking-log.entity';
 
 @Module({
   imports: [
@@ -25,7 +26,8 @@ import { Booking } from '../booking/entities/booking.entity';
       Capability,
       Neighbourhood,
       AdminCreatedUser,
-      Booking
+      Booking,
+      BookingLog,
     ]),
     MediaModule,
     NotificationModule,

@@ -25,6 +25,7 @@ import { NotificationService } from 'src/modules/notification/notification.servi
 import { EmailService } from 'src/modules/Email/email.service';
 import { Booking } from '../booking/entities/booking.entity';
 import { format, sub } from 'date-fns';
+import { BookingLog } from '../booking/entities/booking-log.entity';
 
 @Injectable()
 export class VenueService {
@@ -38,6 +39,10 @@ export class VenueService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @InjectRepository(AdminCreatedUser)
     private readonly tempRepository: Repository<AdminCreatedUser>,
+
+    @InjectRepository(BookingLog)
+    private readonly logRepository: Repository<BookingLog>,
+
     private readonly dataSource: DataSource,
 
     private readonly mediaService: MediaService,
@@ -607,6 +612,14 @@ export class VenueService {
         }
 
         await this.bookingRepository.update({ id: bookingId }, { status });
+        const logPayload = this.logRepository.create({
+          bookingId,
+          performedBy: 'admin',
+          status,
+          user: null,
+        });
+
+        await this.bookingRepository.save(logPayload);
 
         if (booking.eEmail) {
           const formattedDate = format(booking.showDate, 'yyyy-MM-dd'); // e.g. '2025-05-01'

@@ -204,6 +204,8 @@ export class BookingService {
           'entertainers.id AS entertainer_id',
           'entertainers.name AS stageName',
           'entertainers.entertainerName AS entertainerName',
+          'cat.name AS categoryName',
+          'subcat.name AS specificCategoryName',
 
           'invoice.id AS ent_invoice_id',
           'invoice.total_with_tax AS totalAmount',
@@ -247,6 +249,12 @@ export class BookingService {
         .leftJoin('event', 'event', 'event.id = booking.eventId')
         .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
         .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+        .leftJoin('categories', 'cat', 'cat.id = entertainers.category')
+        .leftJoin(
+          'categories',
+          'subcat',
+          'subcat.id = entertainers.specific_category AND subcat.parentId = entertainers.category',
+        )
         .leftJoin(
           'invoice_bookings',
           'invmap',

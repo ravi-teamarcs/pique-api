@@ -263,7 +263,7 @@ export class BookingService {
       role === 'entertainer' ? booking.vid : booking.eid,
     );
 
-    const log = this.generateBookingLog({
+    const log = await this.generateBookingLog({
       bookingId,
       status: status,
       user: userId,
@@ -494,6 +494,14 @@ export class BookingService {
         }
 
         await this.bookingRepository.update({ id: bookingId }, { status });
+
+        const logPayload = {
+          bookingId,
+          performedBy: 'venue',
+          status,
+          user: Number(booking.venueId),
+        };
+        await this.generateBookingLog(logPayload);
 
         if (booking.eEmail) {
           const formattedDate = format(booking.showDate, 'yyyy-MM-dd'); // e.g. '2025-05-01'
