@@ -28,6 +28,7 @@ import { AdminBookingDto } from './dto/admin-booking.dto';
 import { AdminBookingResponseDto } from './dto/admin-booking-response.dto';
 import { ModifyBookingDto } from './dto/modify.booking.dto';
 import {
+  addMonths,
   endOfMonth,
   format,
   startOfMonth,
@@ -93,25 +94,14 @@ export class BookingController {
   @Get('listing')
   @Roles('super-admin')
   getBookingListing(@Query('from') from: string, @Query('to') to: string) {
-    const parsedFromDate = from ? new Date(from) : undefined;
-    const parsedToDate = to ? new Date(to) : undefined;
+    const today = new Date();
+    // Calculate finalFromDate = start of the month, 6 months ago
+    const finalFromDate = startOfMonth(subMonths(today, 6));
 
-    let finalFromDate: Date;
-    let finalToDate: Date;
+    // Calculate finalToDate = end of the month, 6 months ahead
+    const finalToDate = endOfMonth(addMonths(today, 6));
 
-    if (parsedFromDate && parsedToDate) {
-      finalFromDate = parsedFromDate;
-      finalToDate = parsedToDate;
-    } else {
-      const today = new Date();
-
-      // End of current month for finalToDate
-      finalToDate = endOfMonth(today);
-
-      // Start of the month 5 months ago for 6 full months including current
-      finalFromDate = startOfMonth(subMonths(today, 5));
-    }
-
+    // Validate dates
     if (
       !(finalFromDate instanceof Date) ||
       isNaN(finalFromDate.getTime()) ||
@@ -121,9 +111,10 @@ export class BookingController {
       throw new Error('Invalid date format');
     }
 
+    // Format for SQL or output
     const formattedFromDate = format(finalFromDate, 'yyyy-MM-dd');
     const formattedToDate = format(finalToDate, 'yyyy-MM-dd');
-
+    console.log('Formatted From', formattedFromDate,"Formatted to DAte", formattedToDate);
     return this.bookingService.getBookingListing(
       formattedFromDate,
       formattedToDate,
