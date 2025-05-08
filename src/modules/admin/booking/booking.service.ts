@@ -71,8 +71,7 @@ export class BookingService {
   }
 
   async createBooking(payload: AdminBookingDto) {
-    const { venueId, entertainerId, ...data } = payload;
-
+    const { venueId, entertainerIds, ...data } = payload;
     // const event = await this.eventRepository.findOne({
     //   where: { id: payload.eventId },
     // });
@@ -84,37 +83,30 @@ export class BookingService {
     //   });
     // }
 
-    const booking = await this.bookingRepository.findOne({
-      where: { entId: entertainerId, eventId: payload.eventId },
-    });
-
-    if (booking)
-      throw new BadRequestException({
-        message: 'Booking for event  already exists for this entertainer',
-      });
-
     try {
-      const newBooking = this.bookingRepository.create({
-        ...data,
-        venueId: venueId,
-        entId: entertainerId,
-      });
-      await this.bookingRepository.save(newBooking);
+      for (const entertainerId of entertainerIds) {
+        const newBooking = this.bookingRepository.create({
+          ...data,
+          venueId: venueId,
+          entId: entertainerId,
+        });
+        await this.bookingRepository.save(newBooking);
 
-      const logPayload = this.logRepository.create({
-        bookingId: newBooking.id,
-        performedBy: 'admin',
-        status: 'invited',
-        user: null,
-      });
+        const logPayload = this.logRepository.create({
+          bookingId: newBooking.id,
+          performedBy: 'admin',
+          status: 'invited',
+          user: null,
+        });
 
-      await this.bookingRepository.save(logPayload);
+        await this.bookingRepository.save(logPayload);
 
-      return {
-        Message: 'Booking created Successfully',
-        data: newBooking,
-        status: true,
-      };
+        return {
+          Message: 'Booking created Successfully',
+          data: newBooking,
+          status: true,
+        };
+      }
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,
