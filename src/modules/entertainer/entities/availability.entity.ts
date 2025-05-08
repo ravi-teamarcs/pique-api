@@ -25,6 +25,12 @@ export class EntertainerAvailability {
   @Column({ type: 'json' })
   unavailable_weekdays: number[];
 
+  @Column()
+  year: number;
+
+  @Column()
+  month: number;
+
   @CreateDateColumn()
   created_at: Date;
 

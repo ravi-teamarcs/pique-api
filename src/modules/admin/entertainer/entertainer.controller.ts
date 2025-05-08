@@ -43,6 +43,7 @@ import { diskStorage } from 'multer';
 import * as path from 'path';
 import * as fs from 'fs';
 import { EntertainerAvailabilityDto } from './Dto/entertainer-availability.dto';
+import { UpdateAvailabilityDto } from './Dto/update-availability.dto';
 
 @ApiTags('admin')
 @Controller('admin/entertainer')
@@ -271,7 +272,17 @@ export class EntertainerController {
   @Put('availability/:id')
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Roles('super-admin', 'entertainer-admin')
-  async updateEntertainerAvailability(@Param('id', ParseIntPipe) id: number) {
-    return this.EntertainerService.updateEntertainerAvailability(+id);
+  async updateEntertainerAvailability(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('year') year: number,
+    @Query('month') month: number,
+    @Body() dto: UpdateAvailabilityDto,
+  ) {
+    return this.EntertainerService.updateEntertainerAvailability(
+      id,
+      year,
+      month,
+      dto,
+    );
   }
 }

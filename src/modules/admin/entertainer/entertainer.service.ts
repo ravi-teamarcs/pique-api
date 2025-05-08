@@ -30,6 +30,7 @@ import { EventsByMonthDto } from 'src/modules/entertainer/dto/get-events-bymonth
 import { Booking } from '../booking/entities/booking.entity';
 import { EntertainerAvailability } from './entities/entertainer-availability.entity';
 import { EntertainerAvailabilityDto } from './Dto/entertainer-availability.dto';
+import { UpdateAvailabilityDto } from './Dto/update-availability.dto';
 
 @Injectable()
 export class EntertainerService {
@@ -698,15 +699,20 @@ export class EntertainerService {
     }
   }
 
-  async updateEntertainerAvailability(id: number) {
+  async updateEntertainerAvailability(
+    id: number,
+    year: number,
+    month: number,
+    dto: UpdateAvailabilityDto,
+  ) {
     try {
       const availability = await this.availabilityRepository.findOne({
-        where: { id },
+        where: { id, year, month },
       });
 
       const updatedAvailability = await this.availabilityRepository.update(
         { id: availability.id },
-        {},
+        dto,
       );
       return {
         message: 'Entertainer Availability updated Successfully',

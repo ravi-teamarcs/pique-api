@@ -1,16 +1,14 @@
+import { Type } from 'class-transformer';
 import {
-  IsArray,
   ArrayUnique,
+  IsArray,
   IsDateString,
   IsInt,
-  Min,
   Max,
+  Min,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
-export class CreateEntertainerAvailabilityDto {
-  entertainer_id?: number;
-
+export class UpdateAvailabilityDto {
   @IsArray()
   @ArrayUnique()
   @IsDateString({}, { each: true }) // Ensure dates are valid ISO strings
@@ -25,6 +23,7 @@ export class CreateEntertainerAvailabilityDto {
   @ArrayUnique()
   @Type(() => Number)
   unavailable_weekdays: number[]; // 0=Sunday, 6=Saturday
+
   @IsInt()
   year: number;
 
