@@ -51,13 +51,13 @@ export class Booking {
   @Column({ type: 'date' })
   showDate: Date;
 
-  @Column()
+  @Column({ nullable: true })
   specialNotes: string;
 
   @Column({
     type: 'enum',
     enum: ['soloist', 'duo', 'trio', 'ensemble'],
-    nullable: false,
+    nullable: true,
   })
   performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 

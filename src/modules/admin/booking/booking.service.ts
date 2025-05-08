@@ -72,6 +72,7 @@ export class BookingService {
 
   async createBooking(payload: AdminBookingDto) {
     const { venueId, entertainerIds, ...data } = payload;
+    const details = [];
     // const event = await this.eventRepository.findOne({
     //   where: { id: payload.eventId },
     // });
@@ -100,13 +101,13 @@ export class BookingService {
         });
 
         await this.bookingRepository.save(logPayload);
-
-        return {
-          Message: 'Booking created Successfully',
-          data: newBooking,
-          status: true,
-        };
+        details.push(newBooking);
       }
+      return {
+        Message: 'Booking created Successfully',
+        data: details,
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,

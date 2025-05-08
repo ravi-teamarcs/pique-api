@@ -404,7 +404,16 @@ export class EntertainerService {
 
       if (createLogin) {
         if (alreadyHaveLoginCredentials) {
-          // If already have login credentials then update them.
+          if (user.email !== entertainer.user.email) {
+            const alreadyExists = await this.userRepository.findOne({
+              where: { email: user.email },
+            });
+            if (alreadyExists)
+              throw new BadRequestException({
+                message:
+                  'Email Already taken by another user , cannot update email. ',
+              });
+          }
           const hashedPassword = await bcrypt.hash(user.password, 10);
           await this.userRepository.update(
             { id: userId },
@@ -415,15 +424,14 @@ export class EntertainerService {
             { email: user.email, password: user.password },
           );
         } else {
-          const hashedPassword = await bcrypt.hash(user.password, 10);
-
-          const alreadyExists = this.userRepository.find({
+          const alreadyExists = await this.userRepository.findOne({
             where: { email: user.email },
           });
 
           if (alreadyExists)
             throw new BadRequestException({ message: 'Email Already in Use' });
 
+          const hashedPassword = await bcrypt.hash(user.password, 10);
           const newUser = this.userRepository.create({
             email: user.email,
             password: hashedPassword,

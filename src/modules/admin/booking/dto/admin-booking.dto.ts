@@ -1,6 +1,13 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsNotEmpty, IsString, IsEnum, IsNumber, IsArray, ArrayNotEmpty } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsArray,
+  ArrayNotEmpty,
+} from 'class-validator';
 class AdminBookingDto {
   @ApiProperty({ example: '12:10:01', description: 'Timing of the Show' })
   @IsString()
@@ -30,7 +37,6 @@ class AdminBookingDto {
   venueId: number;
 
   @ApiProperty({ example: 1, description: 'Reference to the Entertainers' })
-  @IsNumber()
   @IsNotEmpty()
   @IsArray()
   @ArrayNotEmpty()

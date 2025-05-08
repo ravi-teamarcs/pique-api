@@ -7,6 +7,7 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { User } from '../../users/entities/users.entity';
+import { truncate } from 'fs';
 
 @Entity('booking')
 export class Booking {
@@ -16,7 +17,7 @@ export class Booking {
   @Column({
     type: 'enum',
     enum: ['soloist', 'duo', 'trio', 'ensemble'],
-    nullable: false,
+    nullable: true,
   })
   performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 
@@ -58,7 +59,7 @@ export class Booking {
   @Column({ type: 'date' })
   showDate: Date;
 
-  @Column()
+  @Column({ nullable: true })
   specialNotes: string;
 
   @CreateDateColumn()
