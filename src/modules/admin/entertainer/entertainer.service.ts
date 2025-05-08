@@ -719,6 +719,10 @@ export class EntertainerService {
         where: { entertainer_id: id, year: dto.year, month: dto.month },
       });
 
+      if (!availability) {
+        throw new BadRequestException({ message: 'Availability not found' });
+      }
+
       const updatedAvailability = await this.availabilityRepository.update(
         { id: availability.id },
         dto,

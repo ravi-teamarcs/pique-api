@@ -274,7 +274,6 @@ export class EntertainerController {
   @Roles('super-admin', 'entertainer-admin')
   async updateEntertainerAvailability(
     @Param('id', ParseIntPipe) id: number,
-
     @Body() dto: UpdateAvailabilityDto,
   ) {
     return this.EntertainerService.updateEntertainerAvailability(id, dto);
