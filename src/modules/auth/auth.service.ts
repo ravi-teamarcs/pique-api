@@ -104,7 +104,7 @@ export class AuthService {
     const user = await this.usersRepository.findOne({
       where: { email },
     });
-    if (user && !user.createdByAdmin) {
+    if (user) {
       throw new BadRequestException({
         message: 'Email Already Taken',
         error: 'Bad Request',
