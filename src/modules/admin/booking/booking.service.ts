@@ -251,6 +251,7 @@ export class BookingService {
             'cancelled',
             'rescheduled',
             'completed',
+            'accepted',
           ],
         })
 
