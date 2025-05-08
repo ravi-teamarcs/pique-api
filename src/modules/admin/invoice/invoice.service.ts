@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -110,6 +111,15 @@ export class InvoiceService {
   async generateInvoice(dto: CreateInvoiceDto) {
     const { eventId, pricePerHour, platformFee, isFixed, discountInPercent } =
       dto;
+    const alreadyExists = await this.invoiceRepository.findOne({
+      where: { event_id: eventId },
+    });
+
+    if (alreadyExists) {
+      throw new BadRequestException({
+        message: 'Invoice Already exists for event. ',
+      });
+    }
 
     const date = new Date(); // or any date you want
     const formatted = format(date, 'MMM').toUpperCase(); // e.g., '4 MAR'

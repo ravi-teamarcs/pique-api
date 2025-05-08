@@ -27,7 +27,14 @@ import { BookingQueryDto } from './dto/booking-query.dto';
 import { AdminBookingDto } from './dto/admin-booking.dto';
 import { AdminBookingResponseDto } from './dto/admin-booking-response.dto';
 import { ModifyBookingDto } from './dto/modify.booking.dto';
-import { format, startOfYear, subYears } from 'date-fns';
+import {
+  endOfMonth,
+  format,
+  startOfMonth,
+  startOfYear,
+  subMonths,
+  subYears,
+} from 'date-fns';
 
 @ApiTags('Booking')
 @ApiBearerAuth()
@@ -89,27 +96,31 @@ export class BookingController {
     const parsedFromDate = from ? new Date(from) : undefined;
     const parsedToDate = to ? new Date(to) : undefined;
 
-    // If fromDate and toDate are not provided, calculate the default range
     let finalFromDate: Date;
     let finalToDate: Date;
 
     if (parsedFromDate && parsedToDate) {
-      // If both fromDate and toDate are provided, use them
       finalFromDate = parsedFromDate;
       finalToDate = parsedToDate;
     } else {
-      // If no dates are provided, use the default range (start of previous year to today)
       const today = new Date();
-      finalToDate = today; // Set finalToDate as today
 
-      // Calculate the start of the previous year (January 1st of the previous year)
-      finalFromDate = startOfYear(subYears(today, 1));
+      // End of current month for finalToDate
+      finalToDate = endOfMonth(today);
+
+      // Start of the month 5 months ago for 6 full months including current
+      finalFromDate = startOfMonth(subMonths(today, 5));
     }
-    if (!(finalFromDate instanceof Date) || !(finalToDate instanceof Date)) {
+
+    if (
+      !(finalFromDate instanceof Date) ||
+      isNaN(finalFromDate.getTime()) ||
+      !(finalToDate instanceof Date) ||
+      isNaN(finalToDate.getTime())
+    ) {
       throw new Error('Invalid date format');
     }
 
-    // Format the dates for the SQL query
     const formattedFromDate = format(finalFromDate, 'yyyy-MM-dd');
     const formattedToDate = format(finalToDate, 'yyyy-MM-dd');
 
