@@ -220,9 +220,9 @@ export class AuthService {
     const token = this.jwtService.sign(payload);
 
     const deviceType = this.detectDevice(userAgent);
-
-    this.notificationService.storeFcmToken(user.id, fcmToken, deviceType);
-
+    if (fcmToken) {
+      this.notificationService.storeFcmToken(user.id, fcmToken, deviceType);
+    }
     return {
       message: 'Logged in Successfully',
       access_token: token,

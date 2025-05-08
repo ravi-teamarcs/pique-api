@@ -57,9 +57,9 @@ export class AuthService {
     const userrole = await this.roleRepository.findOne({
       where: { id: Number(user.role) },
     });
-
-    this.notificationService.storeAdminFcmToken(user.id, fcmToken);
-
+    if (fcmToken) {
+      this.notificationService.storeAdminFcmToken(user.id, fcmToken);
+    }
     const payload = {
       sub: user.id,
       email: user.email,
