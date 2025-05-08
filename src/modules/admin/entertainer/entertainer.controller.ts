@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   Request,
@@ -41,6 +42,7 @@ import { EventsByMonthDto } from 'src/modules/entertainer/dto/get-events-bymonth
 import { diskStorage } from 'multer';
 import * as path from 'path';
 import * as fs from 'fs';
+import { EntertainerAvailabilityDto } from './Dto/entertainer-availability.dto';
 
 @ApiTags('admin')
 @Controller('admin/entertainer')
@@ -242,5 +244,34 @@ export class EntertainerController {
   @Delete(':id')
   async deleteEntertainer(@Param('id') id: string) {
     return this.EntertainerService.deleteEntertainer(Number(id));
+  }
+
+  // Availability APIs
+
+  @Post('availability/:id')
+  async createAvailability(
+    @Body() dto: EntertainerAvailabilityDto,
+    @Param(':id', ParseIntPipe) id: number,
+  ) {
+    dto['entertainer_id'] = id;
+    return this.EntertainerService.saveEntertainerAvailability(dto);
+  }
+
+  @Get('availability/:id')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin', 'entertainer-admin')
+  async getEntertainerAvailability(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('year') year: number,
+    @Query('month') month: number,
+  ) {
+    return this.EntertainerService.getEntertainerAvailability(id, year, month);
+  }
+
+  @Put('availability/:id')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin', 'entertainer-admin')
+  async updateEntertainerAvailability(@Param('id', ParseIntPipe) id: number) {
+    return this.EntertainerService.updateEntertainerAvailability(+id);
   }
 }

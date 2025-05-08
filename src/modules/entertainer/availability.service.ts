@@ -7,8 +7,6 @@ import { UnavailableDate } from './entities/unavailable.entity';
 import { EntertainerAvailability } from './entities/availability.entity';
 import { CreateEntertainerAvailabilityDto } from './dto/entertainer-availability-dto';
 
-
-
 @Injectable()
 export class AvailabilityService {
   constructor(
@@ -21,9 +19,22 @@ export class AvailabilityService {
 
   async create(dto: CreateEntertainerAvailabilityDto) {
     const availability = this.EntertainerAvailability.create(dto);
-    return this.EntertainerAvailability.save(availability);
+    const savedAvailability =
+      await this.EntertainerAvailability.save(availability);
+    return {
+      message: 'Availability Saved Successfully',
+      status: true,
+      data: savedAvailability,
+    };
   }
   async findByEntertainerId(entertainer_id: number) {
-    return this.EntertainerAvailability.find({ where: { entertainer_id } });
+    const availability = await this.EntertainerAvailability.find({
+      where: { entertainer_id },
+    });
+    return {
+      message: 'Availability fetched Successfully',
+      status: true,
+      data: availability,
+    };
   }
 }

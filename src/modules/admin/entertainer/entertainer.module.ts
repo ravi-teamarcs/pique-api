@@ -12,6 +12,7 @@ import { AdminCreatedUser } from '../users/entities/admin.created.entity';
 import { MediaModule } from '../media/media.module';
 import { EmailModule } from 'src/modules/Email/email.module';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
+import { EntertainerAvailability } from './entities/entertainer-availability.entity';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { Booking } from 'src/modules/booking/entities/booking.entity';
       User,
       AdminCreatedUser,
       Booking,
+      EntertainerAvailability,
     ]),
     MediaModule,
     EmailModule,

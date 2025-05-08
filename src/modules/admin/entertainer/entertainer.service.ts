@@ -28,6 +28,8 @@ import { EmailService } from 'src/modules/Email/email.service';
 import { GetEntertainerDto } from './Dto/search-entertainer-query.dto';
 import { EventsByMonthDto } from 'src/modules/entertainer/dto/get-events-bymonth.dto';
 import { Booking } from '../booking/entities/booking.entity';
+import { EntertainerAvailability } from './entities/entertainer-availability.entity';
+import { EntertainerAvailabilityDto } from './Dto/entertainer-availability.dto';
 
 @Injectable()
 export class EntertainerService {
@@ -42,6 +44,9 @@ export class EntertainerService {
     private readonly tempRepository: Repository<AdminCreatedUser>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(EntertainerAvailability)
+    private readonly availabilityRepository: Repository<EntertainerAvailability>,
+
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
     private readonly mediaService: MediaService,
@@ -648,6 +653,64 @@ export class EntertainerService {
         page,
         pageSize,
         totalPages: Math.ceil(totalCount / pageSize),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async saveEntertainerAvailability(dto: EntertainerAvailabilityDto) {
+    try {
+      const availability = this.availabilityRepository.create(dto);
+      await this.availabilityRepository.save(availability);
+      return {
+        message: 'Entertainer Availability returned Successfully',
+        data: availability,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async getEntertainerAvailability(id: number, year: number, month) {
+    try {
+      const availability = await this.availabilityRepository.findOne({
+        where: { id, year, month },
+      });
+
+      return {
+        message: 'Entertainer Availability returned Successfully',
+        data: availability,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async updateEntertainerAvailability(id: number) {
+    try {
+      const availability = await this.availabilityRepository.findOne({
+        where: { id },
+      });
+
+      const updatedAvailability = await this.availabilityRepository.update(
+        { id: availability.id },
+        {},
+      );
+      return {
+        message: 'Entertainer Availability updated Successfully',
+        data: updatedAvailability,
         status: true,
       };
     } catch (error) {
