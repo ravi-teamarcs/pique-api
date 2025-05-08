@@ -432,4 +432,15 @@ export class EventService {
       });
     }
   }
+
+  async updateEventStatus(id: number, status) {
+    try {
+      const event = await this.eventRepository.findOne({ where: { id } });
+      if (!event) throw new NotFoundException({ message: 'Event Not Found' });
+
+      await this.eventRepository.update({ id: event.id }, {status});
+    } catch (error) {
+      throw new InternalServerErrorException({ message: error.message });
+    }
+  }
 }

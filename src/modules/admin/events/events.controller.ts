@@ -110,4 +110,12 @@ export class EventController {
   async getEventCalendar(@Query() query: EventsQueryDto) {
     return this.eventService.getEventDetailsByMonth(query);
   }
+
+  @Put()
+  async updateEventStatus(
+    @Param('eventId', ParseIntPipe) eventId: number,
+    status: 'published' | 'unpublished' | 'completed',
+  ) {
+    return this.eventService.updateEventStatus(eventId, status);
+  }
 }

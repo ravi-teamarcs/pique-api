@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsBoolean,
   IsEnum,
+  IsOptional,
 } from 'class-validator';
 
 export class CreateEventDto {
@@ -17,7 +18,7 @@ export class CreateEventDto {
     example: 'singing concert',
     description: 'Title of the event',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   title: string;
 

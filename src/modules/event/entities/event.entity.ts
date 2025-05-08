@@ -11,9 +11,9 @@ export class VenueEvent {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   title: string;
-  
+
   @Column({ type: 'text' })
   slug: string;
 
@@ -47,10 +47,23 @@ export class VenueEvent {
 
   @Column({
     type: 'enum',
-    enum: ['unpublished', 'scheduled', 'confirmed', 'cancelled', 'completed'],
+    enum: [
+      'unpublished',
+      'published',
+      'confirmed',
+      'cancelled',
+      'completed',
+      'rescheduled',
+    ],
     default: 'unpublished',
   })
-  status: 'unpublished' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+  status:
+    | 'unpublished'
+    | 'scheduled'
+    | 'confirmed'
+    | 'cancelled'
+    | 'completed'
+    | 'published';
 
   @Column({ type: 'boolean' })
   isAdmin: boolean;

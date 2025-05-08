@@ -21,7 +21,7 @@ export class CreateEventDto {
     example: 'singing concert',
     description: 'Title of the event',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   title: string;
 

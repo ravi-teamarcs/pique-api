@@ -14,7 +14,7 @@ export class Event {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   title: string;
 
   @Column({ nullable: true })
@@ -49,10 +49,23 @@ export class Event {
 
   @Column({
     type: 'enum',
-    enum: ['unpublished', 'scheduled', 'confirmed', 'cancelled', 'completed'],
+    enum: [
+      'unpublished',
+      'published',
+      'confirmed',
+      'cancelled',
+      'completed',
+      'rescheduled',
+    ],
     default: 'unpublished',
   })
-  status: 'unpublished' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+  status:
+    | 'unpublished'
+    | 'rescheduled'
+    | 'confirmed'
+    | 'cancelled'
+    | 'completed'
+    | 'published';
 
   @Column({ type: 'boolean', default: true })
   isAdmin: boolean;

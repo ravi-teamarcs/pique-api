@@ -16,6 +16,7 @@ import { EmailService } from 'src/modules/Email/email.service';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import { BookingRequest } from './entities/modify-booking.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { Event } from '../events/entities/event.entity';
 
 @Injectable()
 export class BookingService {
@@ -24,6 +25,8 @@ export class BookingService {
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(Entertainer)
     private readonly entertainerRepository: Repository<Entertainer>,
+    @InjectRepository(Event)
+    private readonly eventRepository: Repository<Event>,
 
     @InjectRepository(BookingRequest)
     private readonly reqRepository: Repository<BookingRequest>,
@@ -65,6 +68,17 @@ export class BookingService {
 
   async createBooking(payload: AdminBookingDto) {
     const { venueId, entertainerId, ...data } = payload;
+
+    const event = await this.eventRepository.findOne({
+      where: { id: payload.eventId },
+    });
+
+    if (['published', 'unpublished'].includes(event.status)) {
+      throw new BadRequestException({
+        message: `Can not book for event with status ${event.status} `,
+        status: false,
+      });
+    }
 
     const booking = await this.bookingRepository.findOne({
       where: { entId: entertainerId, eventId: payload.eventId },
