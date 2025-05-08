@@ -630,7 +630,7 @@ export class VenueService {
           user: null,
         });
 
-        await this.bookingRepository.save(logPayload);
+        await this.logRepository.save(logPayload);
 
         if (booking.eEmail) {
           const formattedDate = format(booking.showDate, 'yyyy-MM-dd'); // e.g. '2025-05-01'

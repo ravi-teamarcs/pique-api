@@ -92,7 +92,7 @@ export class BookingService {
 
         if (alreadyBooked) {
           throw new BadRequestException({
-            message: 'Entertainer Already booked for event ',
+            message: `Entertainer with id  ${entertainerId} Already booked for event `,
           });
         }
 
@@ -101,7 +101,7 @@ export class BookingService {
           venueId: venueId,
           entId: entertainerId,
         });
-        await this.bookingRepository.save(newBooking);
+        const savedBooking = await this.bookingRepository.save(newBooking);
 
         const logPayload = this.logRepository.create({
           bookingId: newBooking.id,
@@ -110,9 +110,10 @@ export class BookingService {
           user: null,
         });
 
-        await this.bookingRepository.save(logPayload);
-        details.push(newBooking);
+        await this.logRepository.save(logPayload);
+        details.push(savedBooking);
       }
+
       return {
         Message: 'Booking created Successfully',
         data: details,
