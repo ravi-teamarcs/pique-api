@@ -729,7 +729,7 @@ export class EntertainerService {
       );
       return {
         message: 'Entertainer Availability updated Successfully',
-        data: updatedAvailability,
+        data: dto,
         status: true,
       };
     } catch (error) {

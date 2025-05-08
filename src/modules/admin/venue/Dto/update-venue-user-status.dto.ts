@@ -6,6 +6,6 @@ export class UpdateVenueUserStatus {
   id: number;
 
   @IsNotEmpty()
-  @IsIn(['active', 'rejected'])
-  status: 'active' | 'rejected';
+  @IsIn(['active', 'rejected', 'inactive'])
+  status: 'active' | 'rejected' | 'inactive';
 }
