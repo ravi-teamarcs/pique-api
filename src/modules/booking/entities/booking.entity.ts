@@ -30,7 +30,7 @@ export class Booking {
       'confirmed',
       'accepted',
       'cancelled',
-      'rejected',
+      'declined',
       'completed',
       'rescheduled',
     ],

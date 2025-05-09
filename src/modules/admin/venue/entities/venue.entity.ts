@@ -33,10 +33,10 @@ export class Venue {
   @Column({ nullable: true })
   addressLine2: string;
 
-  @Column({ name: 'contact_person' })
+  @Column({ name: 'contact_person', nullable: true })
   contactPerson: string;
 
-  @Column({ name: 'contact_number' })
+  @Column({ name: 'contact_number', nullable: true })
   contactNumber: string;
 
   @Column({ type: 'text', nullable: true })
