@@ -155,8 +155,8 @@ export class EventService {
     const event = await this.eventRepository
       .createQueryBuilder('event')
       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
-      .leftJoin('invoices', 'inv', 'inv.event_id = event.id')
       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+
       .select([
         // Event Details
         'event.id AS id',
@@ -177,9 +177,6 @@ export class EventService {
         'venue.name AS venueName',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
-        'inv.id AS invoiceId',
-        'inv.invoice_number AS invoiceNumber',
-        'inv.userId AS invoiceUserId',
       ])
 
       .where('event.id = :id', { id })

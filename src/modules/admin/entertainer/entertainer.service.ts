@@ -739,4 +739,86 @@ export class EntertainerService {
       });
     }
   }
+
+  async getEntertainerList(eventId: number, query: GetEntertainerDto) {
+    try {
+      const { page = 1, pageSize = 10, search = '', vaccinated } = query; // Default values for pagination
+      const skip = (page - 1) * pageSize; // Calculate records to skip
+
+      const baseQuery = this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
+        .leftJoin(
+          'booking',
+          'book',
+          'book.entId =entertainer AND book.eventId = :id',
+          { id: eventId },
+        )
+        .leftJoin(
+          'categories',
+          'subcat',
+          'subcat.id = entertainer.specific_category',
+        )
+        .where('entertainer.status IN (:...statuses)', {
+          statuses: ['active'],
+        })
+        .select([
+          'entertainer.id AS id',
+          'entertainer.name AS name',
+          'entertainer.entertainer_name AS entertainer_name',
+          'entertainer.dob AS dob',
+          'entertainer.bio AS bio',
+          'entertainer.performanceRole AS performanceRole',
+          'entertainer.socialLinks AS socialLinks',
+          'entertainer.zipCode AS ZipCode',
+          'entertainer.contact_person AS contactPerson',
+          'entertainer.contact_number AS ContactNumber',
+          'entertainer.address AS address',
+          'entertainer.status AS status',
+          'entertainer.vaccinated AS vaccinated',
+          'city.name AS city',
+          'country.name AS country',
+          'state.name AS state',
+        ]);
+
+      if (search) {
+        baseQuery.where('entertainer.name LIKE :search', {
+          search: `%${search}%`,
+        });
+      }
+      if (vaccinated) {
+        baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+          vaccinated,
+        });
+      }
+      const total = await baseQuery.getCount();
+
+      const records = await baseQuery
+        .orderBy('entertainer.name', 'DESC')
+        .skip(skip)
+        .take(pageSize)
+        .getRawMany();
+      const parsedRecords = records.map(({ services, id, ...rest }) => ({
+        // services: services ? services.split(',') : [],
+        id: Number(id),
+        ...rest,
+      }));
+
+      return {
+        message: 'Entertainers fetched Sucessfully.',
+        records: parsedRecords,
+        total,
+        pageSize,
+        currentPage: page, // Total count of entertainers
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 }
