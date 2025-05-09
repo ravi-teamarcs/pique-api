@@ -328,7 +328,10 @@ export class VenueService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
-    const { user, createLogin } = dto;
+    let { user, createLogin, venue } = dto;
+    if (typeof user === 'string') {
+      user = JSON.parse(user);
+    }
     try {
       const venue = await queryRunner.manager.findOne(Venue, {
         where: { id: venueId },
@@ -349,13 +352,14 @@ export class VenueService {
           // If already have login credentials then update them.
 
           if (user.email !== venue.user.email) {
+            // const userData = JSON.parse(user);
             const alreadyExists = await this.userRepository.findOne({
-              where: { email: user.email },
+              where: { email: user?.email },
             });
             if (alreadyExists)
               throw new BadRequestException({
                 message:
-                  'Email already taken by another user , cannot update your email. ',
+                  'Email Already taken by another user , cannot update email. ',
               });
           }
 
@@ -373,7 +377,7 @@ export class VenueService {
             where: { email: user.email },
           });
           if (alreadyExists)
-            throw new BadRequestException({ message: 'Email already in use' });
+            throw new BadRequestException({ message: 'Email Already in Use' });
 
           const hashedPassword = await bcrypt.hash(user.password, 10);
           const newUser = this.userRepository.create({
@@ -391,6 +395,9 @@ export class VenueService {
         }
       }
 
+      if (typeof dto.venue === 'string') {
+        dto.venue = JSON.parse(dto.venue);
+      }
       await queryRunner.manager.update(Venue, { id: venue.id }, dto.venue);
 
       if (uploadedFiles?.length > 0) {
