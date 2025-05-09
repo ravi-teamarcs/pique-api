@@ -111,20 +111,22 @@ export class NotificationService {
     };
 
     try {
-      const { responses } = await admin
-        .messaging()
-        .sendEachForMulticast(message);
+      if (res.data.length > 0) {
+        const { responses } = await admin
+          .messaging()
+          .sendEachForMulticast(message);
 
-      console.log(responses);
+        console.log(responses);
 
-      const failedTokens = res.data.filter(
-        (token, index) => !responses[index].success,
-      );
-
-      if (failedTokens.length > 0) {
-        failedTokens.map(
-          async (token) => await this.fcmTokenRepo.delete({ token }),
+        const failedTokens = res.data.filter(
+          (token, index) => !responses[index].success,
         );
+
+        if (failedTokens.length > 0) {
+          failedTokens.map(
+            async (token) => await this.fcmTokenRepo.delete({ token }),
+          );
+        }
       }
 
       return { message: 'Notification Sent successfully ', status: true };
