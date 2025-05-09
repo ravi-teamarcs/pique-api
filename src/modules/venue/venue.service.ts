@@ -163,7 +163,7 @@ export class VenueService {
       );
 
       return {
-        message: 'Neighbourhood added Successfully',
+        message: 'Contact details  added Successfully',
         data: dto,
         step: 3,
         nextStep: Number('04'),
@@ -363,7 +363,7 @@ export class VenueService {
     const { media, ...rest } = venueDetails;
     const response = {
       ...rest,
-      media: JSON.parse(media),
+      media: media ? JSON.parse(media) : null,
       neighbourhoods: neighbourhood,
     };
 

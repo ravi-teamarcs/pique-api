@@ -9,7 +9,11 @@ async function bootstrap() {
     logger:
       process.env.NODE_ENV === 'production' ? false : ['log', 'error', 'warn'],
   });
-  app.enableCors();
+  app.enableCors({
+    origin: '*',
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: 'Content-Type,Authorization',
+  });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.use(compression());
 
