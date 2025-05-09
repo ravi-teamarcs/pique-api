@@ -742,7 +742,7 @@ export class EntertainerService {
 
   async getAllEntertainerList(eventId: number, query: GetEntertainerDto) {
     try {
-      const { page = 1, pageSize = 10, search = '', vaccinated } = query; // Default values for pagination
+      const { page = 1, pageSize = 10, search = '', vaccinated } = query; // Default values for pagination ok
       const skip = (page - 1) * pageSize; // Calculate records to skip
 
       const baseQuery = this.entertainerRepository
