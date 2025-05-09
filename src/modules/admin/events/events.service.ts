@@ -246,61 +246,60 @@ export class EventService {
     return { message: 'Event deleted Successfully ', status: true };
   }
 
- async getUpcomingEvent(query: GetEventDto) {
-  const { page = 1, pageSize = 5 } = query;
-  const skip = (Number(page) - 1) * Number(pageSize);
+  async getUpcomingEvent(query: GetEventDto) {
+    const { page = 1, pageSize = 5 } = query;
+    const skip = (Number(page) - 1) * Number(pageSize);
 
-  try {
-    const now = new Date().toISOString().split('T')[0];
+    try {
+      const now = new Date().toISOString().split('T')[0];
 
-    // Step 1: Get total count of events (without join)
-    const totalCount = await this.eventRepository
-      .createQueryBuilder('event')
-      .where('event.eventDate > :now', { now })
-      .getCount();
+      // Step 1: Get total count of events (without join)
+      const totalCount = await this.eventRepository
+        .createQueryBuilder('event')
+        .where('event.eventDate > :now', { now })
+        .getCount();
 
-    // Step 2: Paginate with join and select raw fields
-    const results = await this.eventRepository
-      .createQueryBuilder('event')
-      .leftJoin('venue', 'venue', 'venue.id = event.venueId') // manual join
-      .where('event.eventDate > :now', { now })
-      .select([
-        'event.id AS event_id',
-        'event.title AS title',
-        'event.location AS location',
-        'event.slug AS slug',
-        'event.description AS description',
-        'event.startTime AS startTime',
-        'event.endTime AS endTime',
-        'event.eventDate AS eventDate',
-        'event.recurring AS recurring',
-        'event.status AS status',
-        'event.isAdmin AS isAdmin',
-        'venue.id AS venue_id',
-        'venue.name AS venue_name',
-      ])
-      .orderBy('event.eventDate', 'ASC')
-      .offset(skip)
-      .limit(Number(pageSize))
-      .getRawMany();
+      // Step 2: Paginate with join and select raw fields
+      const results = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId') // manual join
+        .where('event.eventDate > :now', { now })
+        .select([
+          'event.id AS event_id',
+          'event.title AS title',
+          'event.location AS location',
+          'event.slug AS slug',
+          'event.description AS description',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'event.eventDate AS eventDate',
+          'event.recurring AS recurring',
+          'event.status AS status',
+          'event.isAdmin AS isAdmin',
+          'venue.id AS venue_id',
+          'venue.name AS venue_name',
+        ])
+        .orderBy('event.eventDate', 'ASC')
+        .offset(skip)
+        .limit(Number(pageSize))
+        .getRawMany();
 
-    return {
-      message: 'Events returned successfully',
-      data: results,
-      totalCount,
-      page,
-      pageSize,
-      totalPages: Math.ceil(totalCount / Number(pageSize)),
-      status: true,
-    };
-  } catch (error) {
-    throw new InternalServerErrorException({
-      message: error.message,
-      status: false,
-    });
+      return {
+        message: 'Events returned successfully',
+        data: results,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
-}
-
 
   async getEventDetailsByMonth(query: EventsQueryDto) {
     const {
