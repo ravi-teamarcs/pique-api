@@ -60,12 +60,15 @@ export class EntertainerController {
 
   // Get List  of the  Entertainer  which  are not booked for the  event
 
-  // @Get(':eventId')
-  // @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  // @Roles('super-admin', 'entertainer-admin')
-  // getEntertainerList(@Param) {
-  //   // return this.EntertainerService.getAllEntertainerList(query);
-  // }
+  @Get(':eventId')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin', 'entertainer-admin')
+  getEntertainerList(
+    @Param('eventId', ParseIntPipe) eventId: number,
+    @Query() query: GetEntertainerDto,
+  ) {
+    return this.EntertainerService.getAllEntertainerList(eventId, query);
+  }
 
   // New Flow for Creating Entertainer
 

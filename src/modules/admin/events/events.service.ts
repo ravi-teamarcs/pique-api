@@ -17,9 +17,10 @@ import { Media } from '../media/entities/media.entity';
 import { MediaService } from '../media/media.service';
 import { EventsQueryDto } from './dto/query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
-import { format, parse } from 'date-fns';
+import { endOfMonth, format, parse, startOfMonth } from 'date-fns';
 import { Venue } from '../venue/entities/venue.entity';
 import { BookingService } from '../booking/booking.service';
+import { FilterEventDto } from './dto/filter-event.dto';
 
 @Injectable()
 export class EventService {
@@ -156,6 +157,7 @@ export class EventService {
       .createQueryBuilder('event')
       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+      .leftJoin('invoices', 'inv', 'inv.event_id = event.id')
 
       .select([
         // Event Details
@@ -177,6 +179,9 @@ export class EventService {
         'venue.name AS venueName',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
+
+        'inv.invoice_number AS invoiceNumber',
+        'inv.id AS invoiceId',
       ])
 
       .where('event.id = :id', { id })
@@ -439,6 +444,36 @@ export class EventService {
       await this.eventRepository.update({ id: event.id }, { status });
     } catch (error) {
       throw new InternalServerErrorException({ message: error.message });
+    }
+  }
+
+  async filterEventsByMonthAndYear(query: FilterEventDto) {
+    const { month, year } = query;
+
+    try {
+      const start = format(
+        startOfMonth(new Date(year, month - 1)),
+        'yyyy-MM-dd',
+      );
+      const end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
+
+      const events = await this.eventRepository
+        .createQueryBuilder('event')
+        .where('event.eventDate BETWEEN :start AND :end', { start, end })
+        .orderBy('event.eventDate', 'ASC')
+        .getMany();
+
+      return {
+        message: 'Filtered events returned successfully',
+        data: events,
+        count: events.length,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
     }
   }
 }

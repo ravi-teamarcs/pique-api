@@ -740,7 +740,7 @@ export class EntertainerService {
     }
   }
 
-  async getEntertainerList(eventId: number, query: GetEntertainerDto) {
+  async getAllEntertainerList(eventId: number, query: GetEntertainerDto) {
     try {
       const { page = 1, pageSize = 10, search = '', vaccinated } = query; // Default values for pagination
       const skip = (page - 1) * pageSize; // Calculate records to skip
@@ -752,12 +752,6 @@ export class EntertainerService {
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
         .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
         .leftJoin(
-          'booking',
-          'book',
-          'book.entId =entertainer AND book.eventId = :id',
-          { id: eventId },
-        )
-        .leftJoin(
           'categories',
           'subcat',
           'subcat.id = entertainer.specific_category',
@@ -765,6 +759,18 @@ export class EntertainerService {
         .where('entertainer.status IN (:...statuses)', {
           statuses: ['active'],
         })
+        .andWhere((qb) => {
+          const subQuery = qb
+            .subQuery()
+            .select('1')
+            .from('booking', 'book')
+            .where('book.entId = entertainer.id')
+            .andWhere('book.eventId = :eventId')
+            .getQuery();
+          return `NOT EXISTS ${subQuery}`;
+        })
+        .setParameter('eventId', eventId)
+
         .select([
           'entertainer.id AS id',
           'entertainer.name AS name',

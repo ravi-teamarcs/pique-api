@@ -29,6 +29,7 @@ import { UploadedFile } from 'src/common/types/media.type';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { EventsQueryDto } from './dto/query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
+import { FilterEventDto } from './dto/filter-event.dto';
 
 @ApiTags('admin')
 @Controller('admin/events')
@@ -70,6 +71,11 @@ export class EventController {
   @Roles('super-admin')
   async findOne(@Param('id') id: number): Promise<Event> {
     return this.eventService.findOne(id);
+  }
+
+  @Get('filter')
+  async filterEventsByMonthAndYear(@Query() query: FilterEventDto) {
+    return await this.eventService.filterEventsByMonthAndYear(query);
   }
 
   @Get('booking/:eventId')
