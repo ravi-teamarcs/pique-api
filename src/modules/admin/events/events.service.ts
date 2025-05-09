@@ -246,62 +246,61 @@ export class EventService {
     return { message: 'Event deleted Successfully ', status: true };
   }
 
-  async getUpcomingEvent(query: GetEventDto) {
-    const { page = 1, pageSize = 5 } = query;
+ async getUpcomingEvent(query: GetEventDto) {
+  const { page = 1, pageSize = 5 } = query;
+  const skip = (Number(page) - 1) * Number(pageSize);
 
-    const skip = (Number(page) - 1) * Number(pageSize);
-    try {
-      const URL =
-        'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
-      const events = this.eventRepository
-        .createQueryBuilder('event')
-        .leftJoin('venue', 'venue', 'event.venueId = venue.id')
-        .leftJoin('media', 'media', 'event.id = media.eventId')
-        .where('event.eventDate > :now', { now: new Date() })
-        .select([
-          'event.id AS event_id',
-          'event.title AS title',
-          'event.location AS location',
-          'event.slug  AS slug',
+  try {
+    const now = new Date().toISOString().split('T')[0];
 
-          'event.description AS description',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
-          'event.eventDate AS eventDate',
-          'event.recurring AS recurring',
-          'event.status AS status',
-          'event.isAdmin AS isAdmin',
-          'venue.id AS venue_id',
-          'venue.name AS venue_name',
-          `COALESCE(CONCAT(:baseUrl, media.url), :defaultMediaUrl) AS image_url`,
-        ])
-        .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
-        .setParameter('defaultMediaUrl', URL)
-        .orderBy('event.eventDate', 'ASC');
+    // Step 1: Get total count of events (without join)
+    const totalCount = await this.eventRepository
+      .createQueryBuilder('event')
+      .where('event.eventDate > :now', { now })
+      .getCount();
 
-      const totalCount = await events.getCount();
+    // Step 2: Paginate with join and select raw fields
+    const results = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoin('venue', 'venue', 'venue.id = event.venueId') // manual join
+      .where('event.eventDate > :now', { now })
+      .select([
+        'event.id AS event_id',
+        'event.title AS title',
+        'event.location AS location',
+        'event.slug AS slug',
+        'event.description AS description',
+        'event.startTime AS startTime',
+        'event.endTime AS endTime',
+        'event.eventDate AS eventDate',
+        'event.recurring AS recurring',
+        'event.status AS status',
+        'event.isAdmin AS isAdmin',
+        'venue.id AS venue_id',
+        'venue.name AS venue_name',
+      ])
+      .orderBy('event.eventDate', 'ASC')
+      .offset(skip)
+      .limit(Number(pageSize))
+      .getRawMany();
 
-      const results = await events
-        .skip(Number(skip))
-        .take(Number(pageSize))
-        .getRawMany();
-
-      return {
-        message: 'Events returned successfully',
-        data: results,
-        totalCount,
-        page,
-        pageSize,
-        totalPages: Math.ceil(totalCount / Number(pageSize)),
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
-        status: true,
-      });
-    }
+    return {
+      message: 'Events returned successfully',
+      data: results,
+      totalCount,
+      page,
+      pageSize,
+      totalPages: Math.ceil(totalCount / Number(pageSize)),
+      status: true,
+    };
+  } catch (error) {
+    throw new InternalServerErrorException({
+      message: error.message,
+      status: false,
+    });
   }
+}
+
 
   async getEventDetailsByMonth(query: EventsQueryDto) {
     const {
