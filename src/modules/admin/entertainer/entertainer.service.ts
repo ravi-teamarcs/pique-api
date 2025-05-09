@@ -417,7 +417,7 @@ export class EntertainerService {
             if (alreadyExists)
               throw new BadRequestException({
                 message:
-                  'Email Already taken by another user , cannot update email. ',
+                  'Email already taken by another user , cannot update your email. ',
               });
           }
           const hashedPassword = await bcrypt.hash(user.password, 10);

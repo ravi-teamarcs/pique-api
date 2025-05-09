@@ -117,7 +117,7 @@ export class InvoiceService {
 
     if (alreadyExists) {
       throw new BadRequestException({
-        message: 'Invoice Already exists for event. ',
+        message: 'Invoice has been already generated  for the event. ',
       });
     }
 
@@ -195,10 +195,10 @@ export class InvoiceService {
         booking_id: null,
       });
 
-      await this.invoiceRepository.save(newInvoice);
+      const savedInvoice = await this.invoiceRepository.save(newInvoice);
       return {
         message: 'Invoice generated successfully',
-        data: newInvoice,
+        data: savedInvoice,
         status: true,
       };
     } catch (error) {

@@ -256,7 +256,7 @@ export class VenueService {
       // 1. Create user if checkbox is checked
       if (createLogin) {
         const { password, ...rest } = user;
-        const alreadyExists = this.userRepository.find({
+        const alreadyExists = await this.userRepository.findOne({
           where: { email: rest.email },
         });
         if (alreadyExists)
@@ -355,7 +355,7 @@ export class VenueService {
             if (alreadyExists)
               throw new BadRequestException({
                 message:
-                  'Email Already taken by another user , cannot update email. ',
+                  'Email already taken by another user , cannot update your email. ',
               });
           }
 
@@ -373,7 +373,7 @@ export class VenueService {
             where: { email: user.email },
           });
           if (alreadyExists)
-            throw new BadRequestException({ message: 'Email Already in Use' });
+            throw new BadRequestException({ message: 'Email already in use' });
 
           const hashedPassword = await bcrypt.hash(user.password, 10);
           const newUser = this.userRepository.create({

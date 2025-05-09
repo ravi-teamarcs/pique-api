@@ -163,7 +163,7 @@ export class VenueService {
       );
 
       return {
-        message: 'Contact details  added Successfully',
+        message: 'Contact details  saved Successfully',
         data: dto,
         step: 3,
         nextStep: Number('04'),
@@ -299,7 +299,7 @@ export class VenueService {
       await this.venueRepository.update({ id: venue.id }, { ...dto });
 
       return {
-        message: 'Contact details updates Successfully',
+        message: 'Contact details updated Successfully',
         data: dto,
 
         status: true,
