@@ -4,7 +4,9 @@ import {
   Controller,
   Delete,
   Get,
+  NotFoundException,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   Query,
@@ -34,6 +36,7 @@ import { typeMap } from 'src/common/constants/media.constants';
 import { UploadedFile } from 'src/common/types/media.type';
 import { UploadMedia } from './dto/upload-media.dto';
 import { Roles } from '../auth/roles.decorator';
+import { ReturnDocument } from 'typeorm';
 
 @ApiTags('Media')
 @Controller('media')
@@ -108,6 +111,12 @@ export class MediaController {
     const { refId } = req.user;
     return this.mediaService.findAllMedia(refId);
   }
+
+  @Get(':id')
+  async getMediaById(@Param('id', ParseIntPipe) id: number) {
+    return await this.mediaService.findById(id);
+  }
+
   @Roles('findAll')
   @Put(':mediaId')
   @UseInterceptors(

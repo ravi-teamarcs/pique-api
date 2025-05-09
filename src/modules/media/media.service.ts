@@ -95,6 +95,26 @@ export class MediaService {
     }
     return { message: 'Multimedia returned successfully', media, status: true };
   }
+  async findById(id: number) {
+    const media = await this.mediaRepository
+      .createQueryBuilder('media')
+      .select([
+        'media.id AS id',
+        `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
+        'media.type AS type',
+        'media.name  AS name',
+      ])
+      .where('media.user_id = :id', { id })
+      .getRawMany();
+
+    if (!media) {
+      throw new BadRequestException({
+        message: 'Media Not Found',
+        status: false,
+      });
+    }
+    return { message: 'Multimedia returned successfully', media, status: true };
+  }
 
   async updateMedia(mediaId: number, uploadedFile) {
     const media = await this.mediaRepository.findOne({
