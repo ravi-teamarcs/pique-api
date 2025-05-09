@@ -411,6 +411,7 @@ export class BookingService {
 
   async handleChangeRequest(id: number, bookingdto: ModifyBookingDto) {
     const { reqShowDate, reqShowTime } = bookingdto;
+
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
@@ -433,6 +434,14 @@ export class BookingService {
 
     try {
       for (const booking of bookings) {
+        const IGNORED_STATUSES = [
+          'invited',
+          'cancelled',
+          'declined',
+          'completed',
+        ];
+        if (IGNORED_STATUSES.includes(booking.status)) continue;
+
         const bookReq = this.reqRepository.create({
           ...bookingdto,
           vuid: booking.vuid,
@@ -465,7 +474,7 @@ export class BookingService {
               newDate: booking.reqShowDate,
             },
           };
-          this.emailService.handleSendEmail(emailPayload);
+          await this.emailService.handleSendEmail(emailPayload);
 
           // Send Notification to Entertainer
 
@@ -487,7 +496,7 @@ export class BookingService {
     } catch (err) {
       throw new InternalServerErrorException({
         message: err.message,
-        status: true,
+        status: false,
       });
     }
   }

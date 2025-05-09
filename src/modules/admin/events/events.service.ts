@@ -247,7 +247,7 @@ export class EventService {
   }
 
   async getUpcomingEvent(query: GetEventDto) {
-    const { page = 1, pageSize = 10 } = query;
+    const { page = 1, pageSize = 5 } = query;
 
     const skip = (Number(page) - 1) * Number(pageSize);
     try {
@@ -438,7 +438,7 @@ export class EventService {
       const event = await this.eventRepository.findOne({ where: { id } });
       if (!event) throw new NotFoundException({ message: 'Event Not Found' });
 
-      await this.eventRepository.update({ id: event.id }, {status});
+      await this.eventRepository.update({ id: event.id }, { status });
     } catch (error) {
       throw new InternalServerErrorException({ message: error.message });
     }
