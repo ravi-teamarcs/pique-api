@@ -394,7 +394,12 @@ export class VenueService {
       await queryRunner.manager.update(Venue, { id: venue.id }, dto.venue);
 
       if (uploadedFiles?.length > 0) {
-        await this.mediaService.handleMediaUpload(venue.id, uploadedFiles);
+        const res = await this.mediaService.handleMediaUpload(
+          venue.id,
+          uploadedFiles,
+        );
+
+        console.log('Response Data', res.data);
       }
       await queryRunner.commitTransaction();
       return { message: 'Venue updated with media Sucessfully ', status: true };

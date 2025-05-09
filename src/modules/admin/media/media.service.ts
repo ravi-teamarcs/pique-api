@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { UploadedFile } from 'src/common/types/media.type';
 import { Media } from './entities/media.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -18,10 +22,10 @@ export class MediaService {
   async handleMediaUpload(
     userId: number,
     uploadedFiles: UploadedFile[],
-
     eventId?: number | null,
   ) {
     try {
+      const uploadedData = [];
       for (const file of uploadedFiles) {
         if (!file || !file.type) continue; // Safety check
 
@@ -42,7 +46,8 @@ export class MediaService {
               ...file,
               user_id: userId,
             });
-            await this.mediaRepository.save(newHeadshot);
+            const saved = await this.mediaRepository.save(newHeadshot);
+            uploadedData.push(saved);
           }
           continue;
         }
@@ -55,16 +60,20 @@ export class MediaService {
         });
 
         const savedMedia = await this.mediaRepository.save(media);
+        uploadedData.push(savedMedia);
       }
 
       return {
         message: 'Files Saved Successfully',
-
+        data: uploadedData,
         status: true,
       };
     } catch (error) {
       console.error('Error uploading media:', error);
-      throw new Error('Media upload failed');
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
     }
   }
 
