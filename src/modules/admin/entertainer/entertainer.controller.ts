@@ -58,6 +58,10 @@ export class EntertainerController {
     return await this.EntertainerService.getAllEntertainers(query);
   }
 
+  // Get List  of the  Entertainer  which  are not booked for the  event
+
+  
+
   // New Flow for Creating Entertainer
 
   @Post('createent')

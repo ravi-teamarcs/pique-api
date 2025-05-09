@@ -39,7 +39,30 @@ export class InvoiceService {
     const baseQuery = this.invoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('event', 'event', 'event.id = invoices.event_id')
-      .select(['invoices.*', 'event.id AS eventId', 'event.slug AS eventSlug'])
+      .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
+      .leftJoin('states', 'state', 'state.id = venue.state')
+      .leftJoin('countries', 'country', 'country.id = venue.country')
+      .leftJoin('cities', 'city', 'city.id = venue.city')
+      .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+      .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+      .select([
+        'invoices.*',
+        'event.id AS eventId',
+        'event.slug AS eventSlug',
+        // venue Info
+        'venue.name AS venueName',
+        'venue.addressLine1 AS venueAddressLine1',
+        'venue.addressLine2 AS venueAddressLine2',
+        'venue.contactPerson As contactPerson',
+        'venue.contactNumber As contactNumber',
+        'state.name AS stateName',
+        'city.name AS cityName',
+        'code.stateCode AS StateCode',
+        // Neighbourhood Info
+        'hood.name AS neighbourhoodName',
+        'hood.contactPerson AS neighbourhoodContactPerson',
+        'hood.contactNumber AS neighbourhoodContactNumber',
+      ])
       .where('invoices.user_type = :role', { role });
 
     if (search) {
@@ -72,7 +95,18 @@ export class InvoiceService {
 
   // Get a specific invoice by ID
   async findOne(id: number) {
-    const invoice = await this.invoiceRepository.findOne({ where: { id } });
+    const invoice = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
+      .leftJoin('states', 'state', 'state.id = venue.state')
+      .leftJoin('countries', 'country', 'country.id = venue.country')
+      .leftJoin('cities', 'city', 'city.id = venue.city')
+      .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+      .leftJoin('event', 'event', 'event.id = invoices.event_id')
+      .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+
+      .getRawOne();
+
     if (!invoice) {
       throw new NotFoundException('Invoice not found');
     }
