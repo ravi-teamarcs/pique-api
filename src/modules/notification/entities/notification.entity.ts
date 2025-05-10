@@ -4,23 +4,38 @@ import {
   Column,
   ManyToOne,
   CreateDateColumn,
+  UpdateDateColumn,
 } from 'typeorm';
-// import { Entertainer } from './Entertainer';
 
-@Entity()
+@Entity('notifications')
 export class Notification {
   @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
-  message: string;
+  userId: number;
+
+  @Column({ nullable: true })
+  isAdmin: boolean;
 
   @Column()
-  venueId: number;
+  title: string;
 
-  @Column()
-  entertainerId: number;
+  @Column('text')
+  body: string;
+
+  @Column({ type: 'varchar', length: 50 })
+  type: string; // e.g., 'booking_request', 'payment_alert', etc.
+
+  @Column({ type: 'text', nullable: true })
+  data: Record<string, any>; // Additional metadata, like bookingId, etc.
+
+  @Column({ default: false })
+  isRead: boolean;
 
   @CreateDateColumn()
   createdAt: Date;
+
+  @Column({ type: 'timestamp', nullable: true })
+  readAt: Date;
 }

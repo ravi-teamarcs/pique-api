@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from './entities/message.entity';
@@ -11,55 +11,64 @@ export class ChatService {
   ) {}
 
   // Save a new message
-  async saveMessage(senderId: string, receiverId: string, message: string) {
-    const newMessage = this.messageRepository.create({
-      senderId,
-      receiverId,
-      message,
-    });
-    return await this.messageRepository.save(newMessage);
+  async saveMessage(senderId: number, receiverId: number, message: string) {
+    try {
+      const newMessage = this.messageRepository.create({
+        senderId,
+        receiverId,
+        message,
+      });
+      await this.messageRepository.save(newMessage);
+      return { message: 'Message saved successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        Message: error.message,
+        status: false,
+      });
+    }
   }
 
-  async getChatHistory(userId1: string, userId2: string) {
-    const history = await this.messageRepository.find({
-      where: [
-        { senderId: userId1, receiverId: userId2 },
-        { senderId: userId2, receiverId: userId1 },
-      ],
-      order: { createdAt: 'DESC' },
-      take: 1,
-    });
+  // get Chat History
+  async getChatHistory(userId1: number, userId2: number) {
+    try {
+      const history = await this.messageRepository.find({
+        where: [
+          { senderId: userId1, receiverId: userId2 },
+          { senderId: userId2, receiverId: userId1 },
+        ],
+        order: { createdAt: 'DESC' },
+        take: 1,
+      });
 
-    // take: pageSize,
-    //   skip: (page - 1) * pageSize, // For pagination
-
-    return {
-      message: 'Chat history fetched Successfully',
-      data: history,
-      status: true,
-    };
+      // take: pageSize,
+      //   skip: (page - 1) * pageSize, // For pagination
+      return {
+        message: 'Chat history fetched Successfully',
+        data: history,
+        status: true,
+      };
+    } catch (error) {}
   }
 
   // Fetch unread messages for a user
-  async getUnreadMessages(receiverId: string) {
-    console.log('Inside chats service', receiverId);
-    const res = await this.messageRepository.find({
-      where: { receiverId, delivered: false },
-      order: { createdAt: 'ASC' },
-    });
+  // async getUnreadMessages(receiverId: string) {
+  //   const res = await this.messageRepository.find({
+  //     where: { receiverId, delivered: false },
+  //     order: { createdAt: 'ASC' },
+  //   });
 
-    return res;
-  }
+  //   return res;
+  // }
 
   // Mark messages as delivered
-  async markMessagesAsDelivered(receiverId: string) {
+  async markMessagesAsDelivered(receiverId: number) {
     await this.messageRepository.update(
       { receiverId, delivered: false },
       { delivered: true },
     );
   }
 
-  async markMessagesAsRead(receiverId: string) {
+  async markMessagesAsRead(receiverId: number) {
     return await this.messageRepository.update(
       { receiverId, delivered: true, read: false },
       { read: true },

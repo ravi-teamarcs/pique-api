@@ -6,21 +6,26 @@ import {
   UpdateDateColumn,
   ManyToOne,
 } from 'typeorm';
-import { User } from '../../users/Entity/users.entity';
+import { User } from '../../users/entities/users.entity';
+import { truncate } from 'fs';
 
 @Entity('booking')
 export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.venueBookings)
-  venueUser: User;
-
-  @ManyToOne(() => User, (user) => user.entertainerBookings)
-  entertainerUser: User;
+  @Column({
+    type: 'enum',
+    enum: ['soloist', 'duo', 'trio', 'ensemble'],
+    nullable: true,
+  })
+  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 
   @Column({ nullable: false })
   venueId: number;
+
+  @Column({ nullable: false })
+  entId: number;
 
   @Column({ nullable: false })
   eventId: number;
@@ -28,23 +33,24 @@ export class Booking {
   @Column({
     type: 'enum',
     enum: [
-      'pending',
+      'invited',
       'confirmed',
       'accepted',
       'cancelled',
-      'rejected',
       'completed',
       'rescheduled',
+      'declined',
     ],
-    default: 'pending',
+    default: 'invited',
   })
   status:
-    | 'pending'
+    | 'invited'
     | 'confirmed'
     | 'cancelled'
-    | 'rejected'
+    | 'accepted'
     | 'completed'
-    | 'rescheduled';
+    | 'rescheduled'
+    | 'declined';
 
   @Column({ type: 'time' })
   showTime: Date;
@@ -52,21 +58,8 @@ export class Booking {
   @Column({ type: 'date' })
   showDate: Date;
 
-  @Column({
-    type: 'enum',
-    enum: ['accepted', 'rejected', 'pending'],
-    default: 'pending',
-  })
-  isAccepted: 'accepted' | 'rejected' | 'pending';
-
-  @Column()
+  @Column({ nullable: true })
   specialNotes: string;
-
-  @Column({ type: 'timestamp', nullable: true })
-  statusDate: Date;
-
-  @Column({ type: 'timestamp', nullable: true })
-  isAcceptedDate: Date;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -8,7 +8,7 @@ export class AdminBookingResponseDto {
   bookingId: number;
 
   @ApiProperty({ example: 34, description: 'Booking id' })
-  @IsIn(['confirmed', 'rejected', 'cancelled', 'rescheduled'])
+  @IsIn(['confirmed', 'declined', 'cancelled', 'rescheduled', 'completed'])
   @IsNotEmpty()
-  status:'confirmed'| 'rejected'| 'cancelled'| 'rescheduled';
+  status: 'confirmed' | 'declined' | 'cancelled' | 'rescheduled' | 'completed';
 }

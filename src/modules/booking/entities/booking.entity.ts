@@ -14,14 +14,11 @@ export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.venueBookings)
-  venueUser: User;
-
-  @ManyToOne(() => User, (user) => user.entertainerBookings)
-  entertainerUser: User;
-
   @Column({ nullable: false })
   venueId: number;
+
+  @Column({ nullable: false })
+  entId: number;
 
   @Column({ nullable: false })
   eventId: number;
@@ -29,22 +26,23 @@ export class Booking {
   @Column({
     type: 'enum',
     enum: [
-      'pending',
+      'invited',
       'confirmed',
       'accepted',
       'cancelled',
-      'rejected',
+      'declined',
       'completed',
       'rescheduled',
     ],
-    default: 'pending',
+    default: 'invited',
   })
   status:
-    | 'pending'
+    | 'invited'
     | 'confirmed'
     | 'cancelled'
-    | 'rejected'
+    | 'declined'
     | 'completed'
+    | 'accepted'
     | 'rescheduled';
 
   @Column({ type: 'time' })
@@ -53,21 +51,15 @@ export class Booking {
   @Column({ type: 'date' })
   showDate: Date;
 
-  @Column({
-    type: 'enum',
-    enum: ['accepted', 'rejected', 'pending'],
-    default: 'pending',
-  })
-  isAccepted: 'accepted' | 'rejected' | 'pending';
-
-  @Column()
+  @Column({ nullable: true })
   specialNotes: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  statusDate: Date;
-
-  @Column({ type: 'timestamp', nullable: true })
-  isAcceptedDate: Date;
+  @Column({
+    type: 'enum',
+    enum: ['soloist', 'duo', 'trio', 'ensemble'],
+    nullable: true,
+  })
+  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 
   @CreateDateColumn()
   createdAt: Date;

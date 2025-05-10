@@ -16,6 +16,11 @@ import { Wishlist } from './entities/wishlist.entity';
 import { VenueDetailsController } from './venue.details.controller';
 import { VenueDetailService } from './venue.details.service';
 import { VenueDetails } from './entities/venue.details.entity';
+import { MediaModule } from '../media/media.module';
+import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.entity';
+import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
+import { NotificationModule } from '../notification/notification.module';
+import { Neighbourhood } from './entities/neighbourhood.entity';
 
 @Module({
   imports: [
@@ -31,8 +36,11 @@ import { VenueDetails } from './entities/venue.details.entity';
       Category,
       Wishlist,
       VenueDetails,
+      Neighbourhood,
     ]),
     BookingModule,
+    MediaModule,
+    NotificationModule,
   ],
   controllers: [VenueController, VenueDetailsController],
   providers: [VenueService, VenueDetailService],

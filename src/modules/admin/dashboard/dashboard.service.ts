@@ -1,31 +1,36 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from '../users/Entity/users.entity';
-import { Repository } from 'typeorm';
+import { MoreThan, Repository } from 'typeorm';
 import { Booking } from '../booking/entities/booking.entity';
+import { Event } from '../events/entities/event.entity';
+import { ConfigService } from '@nestjs/config';
+import { Invoice } from '../invoice/entities/invoices.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { Venue } from '../venue/entities/venue.entity';
+import { EventsByMonthDto } from 'src/modules/entertainer/dto/get-events-bymonth.dto';
 
 @Injectable()
 export class DashboardService {
   constructor(
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
+    @InjectRepository(Entertainer)
+    private readonly entRepo: Repository<Entertainer>,
+    @InjectRepository(Venue)
+    private readonly venueRepo: Repository<Venue>,
     @InjectRepository(Booking)
     private readonly bookingRepo: Repository<Booking>,
+    @InjectRepository(Event)
+    private readonly eventRepo: Repository<Event>,
+
+    @InjectRepository(Invoice)
+    private readonly invoiceRepo: Repository<Event>,
+    private readonly configService: ConfigService,
   ) {}
 
   async getDashboardStats() {
     try {
-      const totalUsers = await this.userRepo.count();
-
       // Count users by role
-      const entertainerCount = await this.userRepo.count({
-        where: { role: 'entertainer' },
-      });
-
-      console.log('entcount', entertainerCount);
-      const venueCount = await this.userRepo.count({
-        where: { role: 'venue' },
-      });
+      const entertainerCount = await this.entRepo.count();
+      const venueCount = await this.venueRepo.count();
 
       // Booking statistics
       const bookingStats = await this.bookingRepo
@@ -38,10 +43,16 @@ export class DashboardService {
         ])
         .getRawOne();
 
+      const { total } = await this.invoiceRepo
+        .createQueryBuilder('invoices')
+        .where('invoices.user_type = :userType', { userType: 'venue' })
+        .select('SUM(invoices.total_amount)', 'total')
+        .getRawOne();
+
       const data = {
-        totalUsers,
         entertainerCount,
         venueCount,
+        TotalRevenue: Number(total) ?? 0,
         bookingStats: {
           total: Number(bookingStats.total),
           confirmed: Number(bookingStats.confirmed),
@@ -57,6 +68,209 @@ export class DashboardService {
       };
     } catch (error) {
       throw new InternalServerErrorException({ Message: error.message });
+    }
+  }
+
+  async upcomingEvents() {
+    try {
+      const currentDate = new Date();
+      const baseUrl = this.configService.get<string>('BASE_URL'); // Base URL for images
+      const fallbackUrl =
+        'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+
+      const upcomingEvent = await this.eventRepo
+        .createQueryBuilder('event')
+        .leftJoin(
+          'media',
+          'media',
+          'media.eventId = event.id AND media.type = :mediaType',
+        )
+        .where('event.status = :status', { status: 'confirmed' })
+        .andWhere('event.startTime > :currentDate', { currentDate })
+        .orderBy('event.startTime', 'ASC')
+        .select([
+          'event.id AS id',
+          'event.title AS title',
+          'event.location AS location',
+          'event.userId AS userId',
+          'event.venueId AS venueId',
+          'event.description AS description',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'event.recurring AS recurring',
+          'event.status AS status',
+
+          `COALESCE(
+            CASE 
+              WHEN media.url IS NOT NULL THEN CONCAT(:baseUrl, media.url) 
+              ELSE :fallbackUrl 
+            END, :fallbackUrl
+          ) AS image_url`,
+        ])
+        .setParameters({
+          mediaType: 'event_headshot',
+          baseUrl,
+          fallbackUrl,
+          status: 'confirmed',
+          currentDate,
+        })
+        .getRawMany();
+
+      return {
+        message: 'Events returned Successfully',
+        data: upcomingEvent,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async getBookingsByMonth(): Promise<
+    { name: string; y: number; color: string }[]
+  > {
+    const rawData = await this.bookingRepo
+      .createQueryBuilder('booking')
+      .select('MONTH(booking.createdAt)', 'month')
+      .addSelect('COUNT(*)', 'count')
+      .groupBy('month')
+      .getRawMany();
+
+    const monthMap: Record<number, string> = {
+      1: 'Jan',
+      2: 'Feb',
+      3: 'Mar',
+      4: 'Apr',
+      5: 'May',
+      6: 'Jun',
+      7: 'Jul',
+      8: 'Aug',
+      9: 'Sep',
+      10: 'Oct',
+      11: 'Nov',
+      12: 'Dec',
+    };
+
+    // Initialize an array with zero bookings for each month
+    const data = Array.from({ length: 12 }, (_, i) => ({
+      name: monthMap[i + 1],
+      y: 0, // Set initial count to 0 for all months
+      color: '#00e0d7',
+    }));
+
+    // Update the data array with the actual booking counts
+    rawData.forEach(({ month, count }) => {
+      const monthIndex = Number(month) - 1; // Adjust index to match 0-based array
+      data[monthIndex].y = Number(count); // Update the count for the respective month
+    });
+
+    return data;
+  }
+
+  async getMonthlyRevenueStats(): Promise<{
+    series: { name: string; data: number[] }[];
+  }> {
+    const rawData = await this.invoiceRepo
+      .createQueryBuilder('invoice')
+      .select('MONTH(invoice.created_at)', 'month') // use your timestamp column name
+      .addSelect('SUM(invoice.total_amount)', 'revenue')
+      .where('YEAR(invoice.created_at) = :year', {
+        year: new Date().getFullYear(),
+      })
+      .groupBy('month')
+      .orderBy('month', 'ASC')
+      .getRawMany();
+
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    const monthlyRevenueData = months.map((name, index) => {
+      const found = rawData.find((r) => parseInt(r.month) === index + 1);
+      return found ? parseFloat(found.revenue) : 0;
+    });
+
+    // Wrap the data in a 'series' format
+    return {
+      series: [
+        {
+          name: 'Revenue',
+          data: monthlyRevenueData,
+        },
+      ],
+    };
+  }
+
+  async getEventDetailsByMonth(query: EventsByMonthDto) {
+    const {
+      date = '', // e.g., '2025-04'
+      page = 1,
+      pageSize = 10,
+      status = '',
+    } = query;
+
+    // If date is not provided, use current year and month
+    const current = new Date();
+    const year = date ? Number(date.split('-')[0]) : current.getFullYear();
+    const month = date ? Number(date.split('-')[1]) : current.getMonth() + 1;
+
+    const skip = (page - 1) * pageSize;
+
+    try {
+      const qb = this.bookingRepo
+        .createQueryBuilder('booking')
+        .innerJoin('event', 'event', 'event.id = booking.eventId')
+        .andWhere('YEAR(event.eventDate) = :year', { year })
+        .andWhere('MONTH(event.eventDate) = :month', { month })
+        .select([
+          'event.id AS event_id',
+          'event.title AS title',
+          'event.location AS location',
+          'event.eventDate AS eventDate',
+          'event.description AS description',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'event.recurring AS recurring',
+          'event.status AS status',
+          'event.isAdmin AS isAdmin',
+        ])
+        .orderBy('event.eventDate', 'ASC');
+
+      if (status) {
+        qb.andWhere('event.status=:status', { status });
+      }
+
+      const totalCount = await qb.getCount();
+      const results = await qb.skip(skip).take(pageSize).getRawMany();
+
+      return {
+        message: 'Events returned successfully',
+        data: results,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / pageSize),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
     }
   }
 }

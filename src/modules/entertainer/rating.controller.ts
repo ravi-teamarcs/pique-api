@@ -27,6 +27,7 @@ export class RatingsController {
     status: 200,
     description: 'Entertainer rating fetched Successfully.',
   })
+  @Roles('findAll')
   @Get(':entertainerId/average')
   async getAverageRating(@Param('entertainerId') entertainerId: number) {
     return this.ratingsService.getAverageRating(entertainerId);

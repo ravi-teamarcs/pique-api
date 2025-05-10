@@ -29,7 +29,11 @@ export class RatingsService {
         status: true,
       };
     } catch (error) {
-      throw new InternalServerErrorException({ message: error.message });
+      throw new InternalServerErrorException({
+        error: error.message,
+        message: 'Error while rating entertainer',
+        status: false,
+      });
     }
   }
 
@@ -51,7 +55,7 @@ export class RatingsService {
     }
   }
 
-  async getRating(eid: number , ) {
+  async getRating(eid: number) {
     try {
       const ratings = await this.ratingRepo.find({ where: { eid } });
       return {
@@ -60,7 +64,11 @@ export class RatingsService {
         data: ratings,
       };
     } catch (error) {
-      throw new InternalServerErrorException({ message: error.message });
+      throw new InternalServerErrorException({
+        error: error.message,
+        message: 'Error while  getting  entertainer ratings',
+        status: false,
+      });
     }
   }
 }

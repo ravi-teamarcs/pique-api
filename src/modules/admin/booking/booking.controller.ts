@@ -1,9 +1,12 @@
 import {
+  BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Query,
@@ -24,6 +27,15 @@ import { BookingQueryDto } from './dto/booking-query.dto';
 import { AdminBookingDto } from './dto/admin-booking.dto';
 import { AdminBookingResponseDto } from './dto/admin-booking-response.dto';
 import { ModifyBookingDto } from './dto/modify.booking.dto';
+import {
+  addMonths,
+  endOfMonth,
+  format,
+  startOfMonth,
+  startOfYear,
+  subMonths,
+  subYears,
+} from 'date-fns';
 
 @ApiTags('Booking')
 @ApiBearerAuth()
@@ -39,7 +51,7 @@ export class BookingController {
   @Get('request')
   @HttpCode(200)
   @Roles('super-admin')
-  getAllBookingById(@Query() @Query() query: BookingQueryDto) {
+  getAllBooking(@Query() query: BookingQueryDto) {
     return this.bookingService.getAllBookings(query);
   }
 
@@ -50,8 +62,7 @@ export class BookingController {
   @Get(':id/request')
   @HttpCode(200)
   @Roles('super-admin')
-  getAllBooking(@Query() query: BookingQueryDto, @Param('id') userId) {
-    console.log('inside controller');
+  getAllBookingById(@Query() query: BookingQueryDto, @Param('id') userId) {
     return this.bookingService.getAllBookingById(query, Number(userId));
   }
   @ApiOperation({
@@ -79,10 +90,53 @@ export class BookingController {
     return this.bookingService.bookingResponse(bookingdto);
   }
 
-  @Patch('details')
-  @HttpCode(200)
+  // To get Booking Listing
+  @Get('listing')
   @Roles('super-admin')
-  modifyBooking(@Body() dto: ModifyBookingDto) {
-    return this.bookingService.modifyBooking(dto);
+  getBookingListing(@Query('from') from: string, @Query('to') to: string) {
+    const today = new Date();
+    // Calculate finalFromDate = start of the month, 6 months ago
+    const finalFromDate = startOfMonth(subMonths(today, 6));
+
+    // Calculate finalToDate = end of the month, 6 months ahead
+    const finalToDate = endOfMonth(addMonths(today, 6));
+
+    // Validate dates
+    if (
+      !(finalFromDate instanceof Date) ||
+      isNaN(finalFromDate.getTime()) ||
+      !(finalToDate instanceof Date) ||
+      isNaN(finalToDate.getTime())
+    ) {
+      throw new Error('Invalid date format');
+    }
+
+    // Format for SQL or output
+    const formattedFromDate = format(finalFromDate, 'yyyy-MM-dd');
+    const formattedToDate = format(finalToDate, 'yyyy-MM-dd');
+    console.log(
+      'Formatted From',
+      formattedFromDate,
+      'Formatted to DAte',
+      formattedToDate,
+    );
+    return this.bookingService.getBookingListing(
+      formattedFromDate,
+      formattedToDate,
+    );
+  }
+
+  // To Reschedule Booking Request
+  // @Patch('rescheduled')
+  // @Roles('super-admin')
+  // modifybooking(@Body() dto: ModifyBookingDto) {
+  //   return this.bookingService.handleChangeRequest(dto);
+  // }
+
+  // To Delete  Booking Request
+  @Delete(':id')
+  @Roles('super-admin')
+  removeBooking(@Param('id', ParseIntPipe) id: number) {
+    return this.bookingService.removeBooking(id);
   }
 }

@@ -1,66 +1,106 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsNumber } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import {
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsNumber,
+  IsArray,
+  IsIn,
+  IsBoolean,
+  ValidateNested,
+} from 'class-validator';
+import { CreateUserDto } from 'src/modules/users/dto/users.dto';
 
-export class CreateEntertainerDto {
-  @ApiProperty({ description: 'Name of the entertainer' })
+class GeneralInfoDto {
   @IsString()
   @IsNotEmpty()
-  name: string;
+  stageName: string;
 
-  @ApiProperty({ description: 'Category ID of the entertainer' })
+  @IsString()
+  @IsNotEmpty()
+  entertainerName: string;
+
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   category: number;
 
-  @ApiProperty({ description: 'Specific category ID of the entertainer' })
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   specific_category: number;
 
-  @ApiProperty({ description: 'Bio of the entertainer' })
   @IsString()
   @IsNotEmpty()
   bio: string;
 
-  @ApiProperty({ description: 'Enter the Phone Number of Entertainer' })
-  @IsString()
-  @IsNotEmpty()
-  phone1: string;
-
-  @ApiProperty({
-    description: 'Enter the alternative Phone number of Entertainer',
-  })
-  @IsString()
-  @IsNotEmpty()
-  phone2: string;
-
-  @ApiProperty({ description: ' Role of entertainer (soloist , duo , trio)' })
-  @IsEnum(['soloist', 'duo', 'trio', 'ensemble'])
+  @IsIn(['solo', 'duo', 'trio', 'ensemble'])
   @IsNotEmpty()
   performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
-
-  @ApiProperty({ description: 'Availability schedule of the entertainer' })
-  @IsEnum(['yes', 'no'])
+  @IsString()
   @IsNotEmpty()
-  availability: 'yes' | 'no';
+  contactPerson: string;
 
-  @ApiProperty({ description: 'Price per Event Entertainer Charges' })
+  @IsString()
+  @IsNotEmpty()
+  contactNumber: string;
+
   @IsNumber()
+  @IsNotEmpty()
   pricePerEvent: number;
-
-  @ApiProperty({ description: 'Social Media Link of Entertainer' })
-  @IsString()
-  socialLinks: string;
-
-  @ApiProperty({ description: 'Vaccinated or Not' })
-  @IsEnum(['yes', 'no'])
-  vaccinated: 'yes' | 'no';
-
-  @ApiProperty({ description: 'Status of Entertainer' })
-  @IsString()
-  status: string;
-
-  @IsNumber()
   @IsNotEmpty()
-  userId: number;
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    // If it's already an array (e.g., services[]=A&services[]=B), return as-is
+    if (Array.isArray(value)) return value;
+    // If it's a comma-separated string: "A,B,C"
+    if (typeof value === 'string')
+      return value.split(',').map((item) => item.trim());
+    return [];
+  })
+  services: string[];
 }
+
+export class CreateEntertainerDto {
+  @IsBoolean()
+  @IsNotEmpty()
+  @Transform(({ value }) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') return value.toLowerCase() === 'true';
+    return false;
+  })
+  createLogin: boolean;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        return value;
+      }
+    }
+    return value;
+  })
+  @Type(() => CreateUserDto)
+  user?: CreateUserDto;
+
+  @IsNotEmpty()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value);
+      } catch (error) {
+        console.error('Failed to parse value:', value);
+        return value;
+      }
+    }
+    return value;
+  })
+  @Type(() => GeneralInfoDto)
+  entertainer: GeneralInfoDto;
+}
+
+export { GeneralInfoDto };

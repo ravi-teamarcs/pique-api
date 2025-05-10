@@ -2,48 +2,96 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
-import { User } from '../../users/entities/users.entity';
+export enum UserType {
+  ENTERTAINER = 'entertainer',
+  VENUE = 'venue',
+}
+export enum InvoiceStatus {
+  UNPAID = 'unpaid',
+  PAID = 'paid',
+  PAYMENTSENT = 'paymentsent',
+  INVOICE_TO_BE_SENT = 'invoice to be send',
+  AWAITING_PAYMENT = 'awaiting payment',
+}
 
-@Entity()
+@Entity('invoices')
 export class Invoice {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn()
+  id: number;
 
   @Column({ type: 'varchar', unique: true })
-  invoiceNumber: string; 
+  invoice_number: string;
 
-  @ManyToOne(() => User, (user) => user.invoices)
-  customer: User;
+  @Column()
+  user_id: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  totalAmount: number;
+  @Column({ nullable: true })
+  event_id: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  discount: number;
+  @Column({ type: 'enum', enum: UserType })
+  user_type: UserType; // Entertainer or venue
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  taxAmount: number;
+  @Column({ type: 'date' })
+  issue_date: string;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2 })
-  grandTotal: number;
+  @Column({ type: 'date', nullable: true })
+  due_date: string;
 
-  @Column({ type: 'enum', enum: ['pending', 'paid', 'partial', 'overdue'] })
-  paymentStatus: 'pending' | 'paid' | 'partial' | 'overdue';
+  @Column({ type: 'decimal' })
+  total_amount: number;
 
-  @Column({ type: 'timestamp' })
-  issuedDate: Date;
+  @Column({ type: 'decimal', precision: 5, scale: 2 })
+  tax_rate: number;
 
-  @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  dueDate: Date;
+  @Column({ type: 'decimal' })
+  tax_amount: number;
+
+  @Column({ type: 'decimal' })
+  total_with_tax: number;
+
+  @Column({
+    type: 'enum',
+    enum: [
+      'unpaid',
+      'paid',
+      'paymentsent',
+      'invoice to be send',
+      'awaiting payment',
+    ],
+    default: 'unpaid',
+  })
+  status:
+    | 'unpaid'
+    | 'paid'
+    | 'paymentsent'
+    | 'invoice to be send'
+    | 'awaiting payment';
+
+  @Column({ type: 'varchar', length: 255 })
+  payment_method: string;
+
+  @Column({ type: 'date', nullable: true })
+  payment_date: string;
+
+  @Column({ nullable: true })
+  booking_id: number;
+
+  @Column({ nullable: true })
+  overdue: number;
+
+  @Column({ nullable: true, name: 'cheque_no' })
+  chequeNo: string;
+
+  @Column({ nullable: true, name: 'inv_amount_paid' })
+  invAmountPaid: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  created_at: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updated_at: Date;
 }

@@ -10,7 +10,7 @@ export class FcmToken {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   token: string;
 
   @Column({ default: 'mobile' }) // Can store 'mobile' or 'web' if needed
@@ -18,6 +18,9 @@ export class FcmToken {
 
   @Column()
   userId: number;
+
+  @Column({ nullable: true })
+  isAdmin: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

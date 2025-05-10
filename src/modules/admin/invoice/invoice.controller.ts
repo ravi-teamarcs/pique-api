@@ -1,5 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
-import { Invoice, InvoiceStatus, UserType } from './Entity/invoices.entity';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { Invoice, InvoiceStatus, UserType } from './entities/invoices.entity';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
 import { InvoiceService } from './invoice.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -7,104 +20,98 @@ import { GenerateInvoiceService } from 'src/common/invoice/generateinvoice.servi
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
+import { InvoiceQueryDto } from './Dto/invoice-query.dto';
+import { UpdateInvoiceStatus } from './Dto/update-invoice-status.dto';
 
 @ApiTags('admin')
 @Controller('admin/invoice')
 export class InvoiceController {
-    constructor(private readonly invoiceService: InvoiceService,
-        private readonly geninvoiceService: GenerateInvoiceService
-    ) { }
+  constructor(
+    private readonly invoiceService: InvoiceService,
+    private readonly geninvoiceService: GenerateInvoiceService,
+  ) {}
 
-    // Create a new invoice
-    @Roles('super-admin')
-    @ApiBearerAuth()
-    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-    @Post('create')
-    async create(@Body() createInvoiceDto: CreateInvoiceDto): Promise<any> {
-        return await this.invoiceService.create(createInvoiceDto);
-    }
+  // Create a new invoice
 
-    @Roles('super-admin')
-    @ApiBearerAuth()
-    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-    @Get('generateinvoices')
-    async generateInvoices(): Promise<void> {
-        return await this.geninvoiceService.generateInvoices();
-    }
+  @Post()
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin')
+  async create(@Body() dto: CreateInvoiceDto) {
+    return await this.invoiceService.generateInvoice(dto);
+  }
 
+  @Roles('super-admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Get('getallinvoice')
+  async findAll(@Req() req, @Query() dto: InvoiceQueryDto) {
+    return await this.invoiceService.findAll(dto);
+  }
 
-    @Roles('super-admin')
-    @ApiBearerAuth()
-    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-    @Get('getallinvoice')
-    async findAll(@Req() req,
-        @Query('page') page: number = 1,
-        @Query('pageSize') pageSize: number = 10,
-        @Query('search') search: string = '',): Promise<Invoice[]> {
-        return await this.invoiceService.findAll({ page, pageSize, search });
-    }
+  @Roles('super-admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Get('getbyid:id')
+  async findOne(@Param('id') id: number): Promise<any> {
+    return await this.invoiceService.findOne(id);
+  }
 
+  @Roles('super-admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Put(':id')
+  async update(
+    @Param('id') id: number,
+    @Body() updateInvoiceDto: UpdateInvoiceDto,
+  ): Promise<any> {
+    return await this.invoiceService.update(id, updateInvoiceDto);
+  }
 
+  @Delete(':id')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin')
+  async remove(@Param('id') id: number) {
+    return await this.invoiceService.remove(id);
+  }
 
-    @Roles('super-admin')
-    @ApiBearerAuth()
-    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-    @Get('getbyid:id')
-    async findOne(@Param('id') id: number): Promise<any> {
-        return await this.invoiceService.findOne(id);
-    }
+  @Roles('super-admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Get('user-type/:userType')
+  async findByUserType(
+    @Param('userType') userType: UserType,
+  ): Promise<Invoice[]> {
+    return await this.invoiceService.findByUserType(userType);
+  }
 
+  @Roles('super-admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Get('status/:status')
+  async findByStatus(@Param('status') status: InvoiceStatus) {
+    // return await this.invoiceService.findByStatus(status);
+  }
 
+  @Post('/send/:id')
+  @Roles('super-admin', 'venue-admin')
+  sendInvoice(@Param('id', ParseIntPipe) id: number) {
+    return this.invoiceService.sendInvoice(id);
+  }
 
-    @Roles('super-admin')
-    @ApiBearerAuth()
-    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-    @Put(':id')
-    async update(
-        @Param('id') id: number,
-        @Body() updateInvoiceDto: UpdateInvoiceDto,
-    ): Promise<any> {
-        return await this.invoiceService.update(id, updateInvoiceDto);
-    }
+  @Put(':invoiceId/status')
+  async updateInvoiceStatus(
+    @Param('invoiceId', ParseIntPipe) invoiceId: number,
+    @Body() dto: UpdateInvoiceStatus,
+  ) {
+    return this.invoiceService.updateInvoiceStatus(invoiceId, dto);
+  }
 
+  // invoice.controller.ts
 
-
-    @Roles('super-admin')
-    @ApiBearerAuth()
-    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-    @Delete(':id')
-    async remove(@Param('id') id: number): Promise<void> {
-        return await this.invoiceService.remove(id);
-    }
-
-
-
-    @Roles('super-admin')
-    @ApiBearerAuth()
-    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-    @Get('user-type/:userType')
-    async findByUserType(@Param('userType') userType: UserType): Promise<Invoice[]> {
-        return await this.invoiceService.findByUserType(userType);
-    }
-
-    @Roles('super-admin')
-    @ApiBearerAuth()
-    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-    @Get('status/:status')
-    async findByStatus(@Param('status') status: InvoiceStatus): Promise<Invoice[]> {
-        return await this.invoiceService.findByStatus(status);
-    }
-
-
-
-    @Roles('super-admin')
-    @ApiBearerAuth()
-    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-    @Put('status/:id')
-    async updateStatus(
-        @Param('id') id: number,
-        @Body('status') status: InvoiceStatus,
-    ): Promise<any> {
-        return await this.invoiceService.updateStatus(id, status);
-    }
+  @Patch(':id/apply-late-fee')
+  async applyLateFee(@Param('id', ParseIntPipe) id: number) {
+    return this.invoiceService.applyLateFee(id);
+  }
 }

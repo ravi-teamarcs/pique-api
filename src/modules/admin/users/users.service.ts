@@ -1,51 +1,32 @@
 import {
+  BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Like, Not, Repository } from 'typeorm';
-import { User } from './Entity/users.entity';
+import { User } from './entities/users.entity';
 import { UpdateStatusDto } from './Dto/update-status.dto';
 import { UpdateUserDto } from './Dto/update-user.dto';
 import { CreateUserDto } from './Dto/create-user.dto';
 import * as bcrypt from 'bcryptjs';
+import { Venue } from '../venue/entities/venue.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { ApprovalQuery } from './Dto/query.dto';
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Venue)
+    private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(Entertainer)
+    private readonly entertainerRepository: Repository<Entertainer>,
   ) {}
 
-  // async getAllUser({
-  //     page,
-  //     pageSize,
-  //     search,
-  //     role
-  // }: {
-  //     page: number;
-  //     pageSize: number;
-  //     search: string;
-  //     role:string;
-  // }) {
-  //     const skip = (page - 1) * pageSize; // Calculate records to skip
-  //     const [records, total] = await this.userRepository.findAndCount({
-  //         //where: search ? { name: Like(`%${search}%`) } : {},
-  //         where: {
-  //             ...(search ? { name: Like(`%${search}%`) } : {}),
-  //             status: Not("inactive"),
-
-  //         },
-  //         skip,
-  //         take: pageSize,
-  //     });
-
-  //     return {
-  //         records,
-  //         total,
-  //     };
-  // }
   async getAllUser({
     page,
     pageSize,
@@ -59,8 +40,9 @@ export class UsersService {
   }) {
     const skip = (page - 1) * pageSize; // Calculate records to skip
 
+    // Unnecessary condition  all user must be fetched irrespective of their status.
     const whereCondition: any = {
-      status: Not('inactive'), // Ensure only active users are fetched
+      // status: Not('inactive'), // Ensure only active users are fetched
     };
 
     if (search.trim()) {
@@ -81,6 +63,8 @@ export class UsersService {
     return {
       records,
       total,
+      page,
+      pageSize,
     };
   }
 
@@ -102,14 +86,82 @@ export class UsersService {
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await this.userRepository.create({
+    const newUser = this.userRepository.create({
       ...createUserDto,
       password: hashedPassword,
+      status: 'active',
+      isVerified: true,
+      createdByAdmin: true,
     });
 
     return this.userRepository.save(newUser);
   }
 
+  async remove(id: number) {
+    // Validate the provided IDs: Check if all IDs exist in the database
+    const user = await this.userRepository.findOne({
+      where: { id },
+    });
+
+    // If no users found, throw an error
+    if (!user) {
+      throw new NotFoundException({ message: 'User not Found', status: true });
+    }
+    try {
+      await this.userRepository.remove(user);
+
+      return { message: 'User removed Successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async updateUser(updateUserDto: UpdateUserDto): Promise<string> {
+    const { id, fieldsToUpdate } = updateUserDto;
+
+    // Check if password needs to be updated
+    if (fieldsToUpdate.password) {
+      fieldsToUpdate.password = await bcrypt.hash(fieldsToUpdate.password, 10);
+    }
+
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`User with ID ${id} not found.`);
+    }
+
+    await this.userRepository.update(id, fieldsToUpdate);
+
+    return `User with ID ${id} updated successfully.`;
+  }
+
+  // update single user status
+  // async updateUserStatus(dto: UpdateStatusDto) {
+  //   const { userId, status } = dto;
+
+  //   const user = await this.userRepository.findOne({ where: { id: userId } });
+  //   if (!user) {
+  //     throw new NotFoundException({
+  //       message: `User with ID ${userId} not found.`,
+  //       status: false,
+  //     });
+  //   }
+
+  //   try {
+  //     await this.userRepository.update({ id: userId }, { status });
+
+  //     return { message: 'User status Updated', status: true };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: 'Error in updating user status',
+  //       error: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+  // Multiple user  status change
   async updateStatus(updateStatusDto: UpdateStatusDto): Promise<string> {
     let { ids, status } = updateStatusDto;
 
@@ -152,21 +204,125 @@ export class UsersService {
     }
   }
 
-  async updateUser(updateUserDto: UpdateUserDto): Promise<string> {
-    const { id, fieldsToUpdate } = updateUserDto;
+  async getApprovalList(query: ApprovalQuery) {
+    const { page = 1, pageSize = 10, role, search } = query;
+    const skip = (Number(page) - 1) * Number(pageSize);
 
-    // Check if password needs to be updated
-    if (fieldsToUpdate.password) {
-      fieldsToUpdate.password = await bcrypt.hash(fieldsToUpdate.password, 10);
+    if (role === 'venue') {
+      const res = this.venueRepository
+        .createQueryBuilder('venue')
+        .leftJoin('users', 'user', ' user.id = venue.userId ') // Join the 'venue' table
+        .leftJoin('cities', 'city', 'city.id = venue.city') // Join 'cities' table based on 'venue.city'
+        .leftJoin('states', 'state', 'state.id = venue.state') // Join 'states' table based on 'venue.state'
+        .leftJoin('countries', 'country', 'country.id = venue.country') // Join 'countries' table based on 'venue.country'
+        // .leftJoin(
+        //   (qb) =>
+        //     qb
+        //       .select([
+        //         'neighbourhood.venue_id AS nh_venue_id', // Selecting 'venueId' from 'neighbourhood' as 'nh_venue_id'
+        //         `JSON_ARRAYAGG(
+        //     JSON_OBJECT(
+        //       "id", neighbourhood.id,
+        //       "name", neighbourhood.name,
+        //       "contactPerson", neighbourhood.contact_person,
+        //       "contactNumber", neighbourhood.contact_number
+        //     )
+        //   ) AS neighbourhoodDetails`, // Aggregate neighbourhoods into JSON array
+        //       ])
+        //       .from('neighbourhood', 'neighbourhood') // From 'neighbourhood' table
+        //       .groupBy('neighbourhood.venue_id'), // Group by 'venueId' to match venues with neighbourhoods
+        //   'neighbourhoods', // Alias for the subquery
+        //   'neighbourhoods.nh_venue_id = venue.id', // Join condition for neighbourhoods based on venue id
+        // )
+        .select([
+          'venue.id AS id',
+          'venue.name AS name',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'venue.description AS description',
+          'venue.city AS city_code',
+          'venue.contactPerson AS contactPerson',
+          'venue.contactNumber AS contactNumber',
+          'venue.city AS city_code',
+          'venue.state AS state_code',
+          'venue.country AS country_code',
+          'venue.zipCode AS zipCode',
+          'city.name AS city',
+          'state.name AS state',
+          'country.name AS country',
+          'user.email AS email',
+          // 'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods', // Handle empty neighbourhoods array with COALESCE
+        ])
+        .orderBy('venue.id', 'DESC') // Sort by venue ID
+        .where("venue.status = 'pending' AND venue.userId IS NOT NULL");
+
+      if (search) {
+        res.andWhere('(venue.name LIKE :search OR user.email LIKE :search)', {
+          search: `%${search}%`,
+        });
+      }
+
+      const totalCount = await res.getCount();
+      const results = await res
+        .orderBy(`user.id`, 'DESC')
+        .skip(skip)
+        .take(Number(pageSize))
+        .getRawMany();
+      const parsedResult = results.map(({ ...rest }) => ({
+        ...rest,
+        // neighbourhoods: JSON.parse(neighbourhoods),
+      }));
+
+      return {
+        message: `Venue approval list fetched successfully`,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        data: parsedResult,
+        status: true,
+      };
+    } else {
+      const res = this.entertainerRepository
+        .createQueryBuilder('ent')
+        .leftJoin('users', 'user', ` user.id = ent.userId`)
+        .leftJoin('cities', 'city', `city.id = ent.city`)
+        .leftJoin('states', 'state', `state.id = ent.state`)
+        .leftJoin('countries', 'country', `country.id = ent.country`)
+
+        .select([
+          `ent.*`, // select all fields from venue/entertainer
+          'user.id AS user_id',
+          'user.email AS user_email',
+          'user.status AS user_status',
+          'user.isVerified AS user_is_verified',
+          'city.name As city_name',
+          'country.name As country_name',
+          'state.name As state_name',
+        ])
+        .where("ent.status = 'pending' AND ent.userId IS NOT NULL");
+      if (search) {
+        res.andWhere('(ent.name LIKE :search OR user.email LIKE :search)', {
+          search: `%${search}%`,
+        });
+      }
+
+      const totalCount = await res.getCount();
+      const results = await res
+        .orderBy(`user.id`, 'DESC')
+        .skip(skip)
+        .take(Number(pageSize))
+        .getRawMany();
+
+      return {
+        message: `Entertainer approval list fetched successfully`,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        data: results,
+        status: true,
+      };
     }
-
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found.`);
-    }
-
-    await this.userRepository.update(id, fieldsToUpdate);
-
-    return `User with ID ${id} updated successfully.`;
   }
 }

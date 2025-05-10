@@ -17,14 +17,19 @@ export class Media {
   url: string;
   @Column()
   name: string;
-  @Column({ type: 'enum', enum: ['image', 'video', 'headshot'] })
-  type: 'image' | 'video' | 'headshot';
+
+  @Column({
+    type: 'enum',
+    enum: ['image', 'video', 'headshot', 'event_headshot'],
+  })
+  type: 'image' | 'video' | 'headshot' | 'event_headshot';
 
   @Column({ nullable: true })
-  refId: number;
-  // Relation to userId
-  @ManyToOne(() => User, (user) => user.media, { onDelete: 'CASCADE' })
-  user: User;
+  user_id: number;
+
+  @Column({ nullable: true })
+  eventId: number;
+
   @CreateDateColumn()
   createdAt: Date;
   @UpdateDateColumn()

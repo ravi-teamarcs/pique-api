@@ -1,29 +1,38 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { UploadedFile } from 'src/common/types/media.type';
-import { Media } from './Entity/media.entity';
+import { Media } from './entities/media.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UploadUrlDto } from './Dto/UploadUrlDto.dto';
+import { Type } from 'src/common/enums/media.enum';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MediaService {
   constructor(
     @InjectRepository(Media)
     private readonly mediaRepository: Repository<Media>,
-  ) { }
+    private readonly config: ConfigService,
+  ) {}
 
   async handleMediaUpload(
     userId: number,
     uploadedFiles: UploadedFile[],
-    venueId: number,
+    eventId?: number | null,
   ) {
     try {
+      const uploadedData = [];
       for (const file of uploadedFiles) {
         if (!file || !file.type) continue; // Safety check
 
+        // Here user user_id instead of relation(VenueId or Entertainer id)
         if (file.type === 'headshot') {
           const existsAlready = await this.mediaRepository.findOne({
-            where: { user: { id: userId }, type: 'headshot' },
+            where: { user_id: userId, type: 'headshot' },
           });
 
           if (existsAlready) {
@@ -35,10 +44,10 @@ export class MediaService {
             // Create a new headshot if none exists
             const newHeadshot = this.mediaRepository.create({
               ...file,
-              user: { id: userId },
-              refId: venueId ?? null,
+              user_id: userId,
             });
-            await this.mediaRepository.save(newHeadshot);
+            const saved = await this.mediaRepository.save(newHeadshot);
+            uploadedData.push(saved);
           }
           continue;
         }
@@ -46,21 +55,27 @@ export class MediaService {
         // For non-headshot files, create a new media entry
         const media = this.mediaRepository.create({
           ...file,
-          user: { id: userId },
-          refId: venueId ?? null,
+          user_id: userId,
+          eventId: eventId ?? null,
         });
-        await this.mediaRepository.save(media);
+
+        const savedMedia = await this.mediaRepository.save(media);
+        uploadedData.push(savedMedia);
       }
 
-      return { message: 'Files Saved Successfully' };
+      return {
+        message: 'Files Saved Successfully',
+        data: uploadedData,
+        status: true,
+      };
     } catch (error) {
       console.error('Error uploading media:', error);
-      throw new Error('Media upload failed');
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
     }
   }
-
-
-
 
   async findAllMedia(Id: number) {
     if (!Id) {
@@ -71,15 +86,12 @@ export class MediaService {
       .createQueryBuilder('media')
       .select([
         'media.id AS id',
-        `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
-        'media.type AS type',
-        'media.refId AS venueId',
-        'media.userId AS userId',
+        `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
+        'media.user_id AS userId',
         'media.name AS name',
+        'media.type AS type',
       ])
-      .where('media.refId = :Id', { Id })
-      .orWhere('media.userId = :Id', { Id })
-
+      .where('media.user_id = :Id', { Id })
       .getRawMany();
 
     if (media.length === 0) {
@@ -89,14 +101,7 @@ export class MediaService {
     return { message: 'Multimedia returned successfully', media };
   }
 
-
-
-  async updateMedia(
-    mediaId: number,
-    userId: any,
-    RefId: any,
-    uploadedFile: any
-  ) {
+  async updateMedia(mediaId: number, userId: any, uploadedFile: any) {
     // Initialize where clause to dynamically build the query
     const whereClause: any = {};
 
@@ -106,10 +111,7 @@ export class MediaService {
     }
 
     if (userId) {
-      whereClause.user = { id: userId }; // Add user condition if provided
-    }
-    if (RefId) {
-      whereClause.refId = { id: RefId };
+      whereClause.user_id = userId; // Add user condition if provided
     }
 
     // Check if media exists based on provided conditions
@@ -122,12 +124,11 @@ export class MediaService {
       await this.mediaRepository.update(media.id, {
         ...uploadedFile, // Update with new file details
       });
-      return { message: "Media updated successfully.", status: true };
+      return { message: 'Media updated successfully.', status: true };
     } else {
-      return { message: "Media Not Found.", status: false };
+      return { message: 'Media Not Found.', status: false };
     }
   }
-
 
   async deleteMedia(Id: number) {
     if (!Id) {
@@ -146,12 +147,10 @@ export class MediaService {
     // Delete the found media
     await this.mediaRepository.delete({ id: media.id });
 
-    return { message: 'Media deleted successfully' };
+    return { message: 'Media deleted successfully', status: true };
   }
 
-
-
-  async uploadUrl(uploadUrlDto: UploadUrlDto): Promise<Media> {
+  async uploadUrl(uploadUrlDto: UploadUrlDto) {
     const { url, userId, refId, type } = uploadUrlDto;
 
     if (!userId && !refId) {
@@ -168,14 +167,9 @@ export class MediaService {
       url,
       name,
       type: mediaType,
-      user: userId ? { id: userId } as any : null, // Associate user
-      refId,
+      user_id: userId ? ({ id: userId } as any) : null, // Associate user
     });
 
     return await this.mediaRepository.save(media);
   }
-
-
-
-
 }

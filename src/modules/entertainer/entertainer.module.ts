@@ -16,7 +16,14 @@ import { Media } from '../media/entities/media.entity';
 import { Rating } from './entities/rating.entity';
 import { RatingsService } from './rating.service';
 import { RatingsController } from './rating.controller';
-// import { VenueService } from '../venue/venue.service';
+import { Invoice } from '../invoice/entities/invoice.entity';
+import { MediaModule } from '../media/media.module';
+import { AvailabilityController } from './availability.controller';
+import { AvailabilityService } from './availability.service';
+import { WeeklyAvailability } from './entities/weekly-availability.entity';
+import { UnavailableDate } from './entities/unavailable.entity';
+import { VenueEvent } from '../event/entities/event.entity';
+import { EntertainerAvailability } from './entities/availability.entity';
 
 @Module({
   imports: [
@@ -31,10 +38,20 @@ import { RatingsController } from './rating.controller';
       Category,
       Media,
       Rating,
+      Invoice,
+      WeeklyAvailability,
+      UnavailableDate,
+      VenueEvent,
+      EntertainerAvailability,
     ]),
     BookingModule,
+    MediaModule,
   ],
-  controllers: [EntertainerController, RatingsController],
-  providers: [EntertainerService, RatingsService],
+  controllers: [
+    EntertainerController,
+    RatingsController,
+    AvailabilityController,
+  ],
+  providers: [EntertainerService, RatingsService, AvailabilityService],
 })
 export class EntertainerModule {}
