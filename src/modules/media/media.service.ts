@@ -2,26 +2,29 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Media } from './entities/media.entity';
 import { Repository } from 'typeorm';
 import { UploadedFile } from 'src/common/types/media.type';
+import { UploadMedia } from './dto/upload-media.dto';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MediaService {
   constructor(
     @InjectRepository(Media)
     private readonly mediaRepository: Repository<Media>,
+    private readonly config: ConfigService,
   ) {}
 
   async handleMediaUpload(
     userId: number,
     uploadedFiles: UploadedFile[],
-    venueId: number,
+    dto?: UploadMedia,
   ) {
-    console.log('Inside Media Service');
-    console.log(uploadedFiles);
+    const { venueId = null, eventId = null } = dto;
     try {
       for (const file of uploadedFiles) {
         if (!file || !file.type) continue; // Safety check
@@ -41,7 +44,8 @@ export class MediaService {
             const newHeadshot = this.mediaRepository.create({
               ...file,
               user: { id: userId },
-              refId: venueId ?? null,
+              refId: venueId,
+              eventId,
             });
             await this.mediaRepository.save(newHeadshot);
           }
@@ -52,7 +56,8 @@ export class MediaService {
         const media = this.mediaRepository.create({
           ...file,
           user: { id: userId },
-          refId: venueId ?? null,
+          refId: venueId,
+          eventId,
         });
         await this.mediaRepository.save(media);
       }
@@ -73,7 +78,7 @@ export class MediaService {
         .createQueryBuilder('media')
         .select([
           'media.id AS id',
-          `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+          `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
           'media.type AS type',
           'media.refId AS venueId',
           'media.name AS name',
@@ -93,7 +98,7 @@ export class MediaService {
       .createQueryBuilder('media')
       .select([
         'media.id AS id',
-        `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+        `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
         'media.type AS type',
         'media.name  AS name',
       ])
@@ -110,7 +115,6 @@ export class MediaService {
   }
 
   async updateMedia(mediaId: number, userId: number, uploadedFile) {
-    console.log(uploadedFile);
     // console.log('mediaId', typeof mediaId, mediaId);
     const media = await this.mediaRepository.findOne({
       where: { id: mediaId, user: { id: userId } },
@@ -126,5 +130,28 @@ export class MediaService {
     await this.mediaRepository.update({ id: media.id }, uploadedFile);
 
     return { message: 'Media updated Successfully', status: true };
+  }
+
+  async removeMedia(id: number, userId: number) {
+    const media = await this.mediaRepository.findOne({
+      where: { id, user: { id: userId } },
+    });
+
+    if (!media) {
+      throw new NotFoundException({
+        message: 'media not found',
+        status: false,
+      });
+    }
+
+    try {
+      await this.mediaRepository.remove(media);
+      return { message: 'media deleted successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 }

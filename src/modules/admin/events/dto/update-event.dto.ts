@@ -7,33 +7,45 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
+import { Recurring, Status } from 'src/common/enums/event.enum';
 
 export class UpdateEventDto {
-  @ApiProperty({ example: 3, description: 'Unique identifier of the event' })
-  @IsNotEmpty()
-  @IsNumber()
-  id: number;
-
   @ApiProperty({
     example: 1,
-    description: 'Venue for which the event is created',
+    description: 'Event Id which you want to Update.',
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
-  venueId?: number;
-
-  @ApiProperty({ example: 28, description: 'User ID of the event creator' })
-  @IsOptional()
-  @IsNumber()
-  userId?: number;
+  eventId: number; //  //  Update eventId in the request body.
 
   @ApiProperty({
-    example: 'Singing Concert',
-    description: 'Title of the event',
+    example: 'singing',
+    description: 'title of the event .',
   })
   @IsOptional()
   @IsString()
-  title?: string;
+  title: string;
+  // Use IsDateString to ensure that the date is in the correct 'YYYY-MM-DD' format
+  @ApiProperty({
+    example: '2025-02-13T14:30:00Z',
+    description: 'End dateTime of the event',
+  })
+  @IsOptional()
+  @IsString()
+  endTime: string;
+  // Use IsString for time field and ensure it's in the correct 'HH:MM:SS' format
+  @ApiProperty({
+    example: '2025-02-13T14:30:00Z',
+    description: 'Start dateTime of the event',
+  })
+  @IsOptional()
+  @IsString()
+  startTime: string;
+
+  @ApiProperty({ example: 'Noida', description: 'Type of event' })
+  @IsString()
+  @IsOptional()
+  location: string;
 
   @ApiProperty({
     example: '2025-02-13T14:30:00Z',
@@ -41,49 +53,32 @@ export class UpdateEventDto {
   })
   @IsOptional()
   @IsString()
-  startTime?: string;
+  description: string;
 
-  @ApiProperty({
-    example: '2025-02-13T16:30:00Z',
-    description: 'End dateTime of the event',
-  })
+  @ApiProperty({ example: false, description: 'Is Event creator Admin ?' })
   @IsOptional()
-  @IsString()
-  endTime?: string;
+  @IsBoolean()
+  isAdmin: boolean;
 
-  @ApiProperty({ example: 'Noida', description: 'Location of the event' })
+  @ApiProperty({ example: 'none', description: 'Describe event recurrence' })
+  @IsEnum(Recurring)
   @IsOptional()
-  @IsString()
-  location?: string;
-
-  @ApiProperty({ description: 'Description of the event' })
-  @IsOptional()
-  @IsString()
-  description?: string;
-
-  @ApiProperty({ example: 'none', description: 'Recurring type of the event' })
-  @IsOptional()
-  @IsEnum(['none', 'daily', 'weekly', 'monthly'])
-  recurring?: 'none' | 'daily' | 'weekly' | 'monthly';
+  recurring: Recurring;
 
   @ApiProperty({
     example: 'scheduled',
-    description: 'Current status of the event',
+    description: 'Status of the Event',
   })
+  @IsEnum(Status)
   @IsOptional()
-  @IsEnum(['unpublished', 'scheduled', 'confirmed', 'cancelled', 'completed'])
-  status?:
-    | 'unpublished'
-    | 'scheduled'
-    | 'confirmed'
-    | 'cancelled'
-    | 'completed';
+  status: Status;
 
-  @ApiProperty({
-    example: false,
-    description: 'Is the event creator an admin?',
-  })
+  @ApiProperty({ example: 1, description: 'Venue for  which event is created' })
   @IsOptional()
-  @IsBoolean()
-  isAdmin?: boolean;
+  @IsNumber()
+  venueId: number;
+
+  @IsOptional()
+  @IsNumber()
+  userId: number;
 }

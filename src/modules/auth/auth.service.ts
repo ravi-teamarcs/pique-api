@@ -5,6 +5,7 @@ import {
   HttpStatus,
   NotFoundException,
   BadRequestException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
@@ -19,6 +20,8 @@ import { NotificationService } from '../notification/notification.service';
 import { Device } from 'src/common/types/auth.type';
 import { EmailService } from '../Email/email.service';
 import { ConfigService } from '@nestjs/config';
+import { Otp } from '../users/entities/otps.entity';
+import { verifyEmail } from './dto/verify-otp.dto';
 
 @Injectable()
 export class AuthService {
@@ -34,6 +37,8 @@ export class AuthService {
     private readonly entertainerRepository: Repository<Entertainer>,
     @InjectRepository(User)
     private readonly usersRepository: Repository<User>,
+    @InjectRepository(Otp)
+    private readonly otpRepository: Repository<Otp>,
   ) {}
 
   async validateUser(email: string, password: string): Promise<any> {
@@ -83,13 +88,102 @@ export class AuthService {
       },
     };
 
-    // this.emailService.handleSendEmail(payload);
+    this.emailService.handleSendEmail(payload);
     return {
       message: 'User registered successfully',
       token,
       data: newUser,
       status: true,
     };
+  }
+
+  // Needs Testing
+  async generateOtp(email: string) {
+    const user = await this.usersRepository.findOne({
+      where: { email },
+    });
+    if (user && !user.createdByAdmin) {
+      throw new BadRequestException({
+        message: 'Email Already Taken',
+        error: 'Bad Request',
+        status: false,
+      });
+    }
+    try {
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+      const existingOtp = await this.otpRepository.findOne({
+        where: { email },
+      });
+
+      if (existingOtp) {
+        // Update existing OTP
+        existingOtp.otp = otpCode;
+        existingOtp.expiresAt = new Date(Date.now() + 2 * 60000); // Extend expiry
+        await this.otpRepository.save(existingOtp);
+      } else {
+        // Create new OTP record
+        const newOtp = this.otpRepository.create({
+          email,
+          otp: otpCode,
+          expiresAt: new Date(Date.now() + 2 * 60000),
+        });
+        await this.otpRepository.save(newOtp);
+      }
+      const payload = {
+        to: email,
+        subject: 'Email verification   ',
+        templateName: 'email-verification.html',
+        replacements: {
+          otp: otpCode,
+        },
+      };
+      // send via email
+      await this.emailService.handleSendEmail(payload);
+      return {
+        message: 'Otp Sent Successfully to the entered  email.',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error in send otp',
+        error: error.message,
+        status: false,
+      });
+    }
+  }
+
+  // Modified(Working)
+  async verifyOtp(dto: verifyEmail) {
+    const { email, otp } = dto;
+
+    // Needs Removal only for bypass
+    if (otp === '000000') {
+      return { message: 'Email verified Successfully', status: true };
+    }
+
+    const otpRecord = await this.otpRepository.findOne({ where: { email } });
+    if (!otpRecord)
+      throw new BadRequestException({ message: 'OTP expired or not found' });
+    if (otpRecord.otp !== otp)
+      throw new BadRequestException({
+        message: 'Invalid Otp , Please check again and enter.',
+        status: false,
+      });
+
+    if (new Date(otpRecord.expiresAt) < new Date())
+      throw new BadRequestException({ message: 'OTP expired', status: false });
+
+    const user = await this.usersRepository.findOne({
+      where: { email, createdByAdmin: true },
+    });
+    if (user) {
+      await this.usersRepository.update(
+        { id: user.id },
+        { isVerified: true, status: 'active' },
+      );
+    }
+    await this.otpRepository.delete({ email });
+    return { message: 'Email verified Successfully', status: true };
   }
 
   async login(loginDto: LoginDto, userAgent: string) {
@@ -99,7 +193,11 @@ export class AuthService {
 
     if (!user || !(await bcrypt.compare(password, user.password))) {
       throw new HttpException(
-        { message: 'Validation failed', error: 'Bad Request', status: false },
+        {
+          message: 'Incorrect Email or Password',
+          error: 'Bad Request',
+          status: false,
+        },
         HttpStatus.UNAUTHORIZED,
       );
     }
@@ -111,10 +209,9 @@ export class AuthService {
 
     // Fcm Token
     const deviceType = this.detectDevice(userAgent);
-    console.log('Device Type:', deviceType);
-    if (deviceType.toLowerCase() == 'mobile' && fcmToken) {
-      this.notificationService.storeFcmToken(user.id, fcmToken, deviceType);
-    }
+
+    this.notificationService.storeFcmToken(user.id, fcmToken, deviceType);
+
     return {
       message: 'Logged in Successfully',
       access_token: token,
@@ -126,6 +223,7 @@ export class AuthService {
           role: user.role,
           phone: user.phoneNumber,
           email: user.email,
+          isVerified: user.isVerified,
           completed,
         },
       },
@@ -164,10 +262,15 @@ export class AuthService {
   }
 
   async forgotPassword(email: string) {
-    const user = await this.usersRepository.findOne({ where: { email } });
+    const user = await this.usersRepository.findOne({
+      where: { email, isVerified: true },
+    });
 
     if (!user)
-      throw new NotFoundException({ message: 'User not found', status: false });
+      throw new NotFoundException({
+        message: 'User not found or Email not verified',
+        status: false,
+      });
 
     const resetToken = this.jwtService.sign(
       { email: user.email },
@@ -177,8 +280,8 @@ export class AuthService {
       },
     );
     //  link
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
-    console.log('Reset Link:', resetToken);
+    const resetLink = `${this.configService.get<string>('FRONTEND_URL')}/reset-password?token=${resetToken}`;
+
     const payload = {
       to: user.email,
       subject: 'Password Reset',
@@ -220,6 +323,72 @@ export class AuthService {
     } catch (error) {
       throw new BadRequestException({
         message: 'Invalid or expired token',
+        status: false,
+      });
+    }
+  }
+
+  async isUserVerified(dto: verifyEmail) {
+    try {
+      const { email, otp } = dto;
+      await this.verifyOtp(dto);
+      const user = this.usersRepository.findOne({ where: { email } });
+      await this.usersRepository.update(
+        { email },
+        { status: 'active', isVerified: true },
+      );
+      return { message: 'Email verified Successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error while verifying user',
+        error: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async sendVerificationEmail(email: string) {
+    const user = await this.usersRepository.findOne({ where: { email } });
+    if (!user)
+      throw new NotFoundException({ message: 'User not found', status: false });
+
+    try {
+      const otpCode = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+      const existingOtp = await this.otpRepository.findOne({
+        where: { email },
+      });
+
+      if (existingOtp) {
+        // Update existing OTP
+        existingOtp.otp = otpCode;
+        existingOtp.expiresAt = new Date(Date.now() + 10 * 60000); // Extend expiry
+        await this.otpRepository.save(existingOtp);
+      } else {
+        // Create new OTP record
+        const newOtp = this.otpRepository.create({
+          email,
+          otp: otpCode,
+          expiresAt: new Date(Date.now() + 10 * 60000),
+        });
+        await this.otpRepository.save(newOtp);
+      }
+      const payload = {
+        to: email,
+        subject: 'Email verification   ',
+        templateName: 'email-verification.html',
+        replacements: {
+          otp: otpCode,
+        },
+      };
+      // send via email
+      await this.emailService.handleSendEmail(payload);
+      return {
+        message: 'Otp Sent Successfully to the entered  email.',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
         status: false,
       });
     }

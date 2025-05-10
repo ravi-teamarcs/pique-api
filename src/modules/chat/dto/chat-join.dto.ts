@@ -1,10 +1,10 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class JoinDto {
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
-  userId: string;
-  @IsString()
+  userId: number;
+  @IsNumber()
   @IsNotEmpty()
-  receiverId: string;
+  receiverId: number;
 }

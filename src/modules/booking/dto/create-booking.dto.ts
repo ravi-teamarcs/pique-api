@@ -33,7 +33,6 @@ export class CreateBookingDto {
   @IsNumber()
   @IsNotEmpty()
   entertainerId: number;
-
   @ApiProperty({
     example: 1,
     description: 'Event id for which booking is created.',
@@ -41,4 +40,11 @@ export class CreateBookingDto {
   @IsNumber()
   @IsNotEmpty()
   eventId: number;
+
+  @ApiProperty({
+    example: 'soloist',
+    description: 'Performance type of entertainer',
+  })
+  @IsNotEmpty()
+  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 }

@@ -1,4 +1,11 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 
 export class CreateUserDto {
   @IsNotEmpty()
@@ -21,8 +28,4 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsEnum(['venue', 'entertainer'])
   role: 'venue' | 'entertainer';
-
-  @IsOptional()
-  @IsEnum(['active', 'inactive', 'pending'])
-  status?: 'active' | 'inactive' | 'pending';
 }

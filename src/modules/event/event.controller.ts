@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Patch,
   Post,
   Req,
@@ -53,5 +55,11 @@ export class EventController {
   updateEvent(@Body() updateEventDto: UpdateEventDto, @Req() req) {
     const { userId } = req.user;
     return this.eventService.handleUpdateEvent(updateEventDto, userId);
+  }
+  @Delete(':id')
+  @Roles('findAll')
+  deleteEvent(@Param('id') id: number, @Req() req) {
+    const { userId } = req.user;
+    return this.eventService.deleteEvent(userId, Number(id));
   }
 }

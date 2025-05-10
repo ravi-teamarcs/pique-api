@@ -18,6 +18,7 @@ import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './jwt.guard';
 import { LoginDto, RegisterDto } from './auth.dto';
 import { ResetPassword } from './dto/reset-password.dto';
+import { verifyEmail } from './dto/verify-otp.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -30,6 +31,22 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  @ApiOperation({ summary: 'Send the OTP to the mail.' })
+  @ApiResponse({ status: 200, description: 'Otp  sent Successfully.' })
+  @HttpCode(200)
+  @Post('send-otp')
+  async sendOtp(@Body('email') email: string) {
+    return this.authService.generateOtp(email);
+  }
+
+  @ApiOperation({ summary: 'Send the OTP to the mail.' })
+  @ApiResponse({ status: 200, description: 'Otp  sent Successfully.' })
+  @HttpCode(200)
+  @Post('verify-otp')
+  async verifyOtp(@Body() dto: verifyEmail) {
+    return await this.authService.verifyOtp(dto);
   }
 
   @ApiOperation({ summary: 'Log in and get a JWT token' })
@@ -80,5 +97,21 @@ export class AuthController {
   resetPassword(@Body() resetDto: ResetPassword) {
     const { token, newPassword } = resetDto;
     return this.authService.resetPassword(token, newPassword);
+  }
+
+  @ApiOperation({ summary: 'Send the OTP to the mail.' })
+  @ApiResponse({ status: 200, description: 'Email verified Successfully.' })
+  @HttpCode(200)
+  @Post('verify-email')
+  async verifyEmail(@Body() dto: verifyEmail) {
+    return await this.authService.isUserVerified(dto);
+  }
+
+  @ApiOperation({ summary: 'Send the OTP to the mail.' })
+  @ApiResponse({ status: 200, description: 'Email sent Successfully.' })
+  @HttpCode(200)
+  @Post('user-verification')
+  async sendVerificationMail(@Body('email') email: string) {
+    return await this.authService.sendVerificationEmail(email);
   }
 }

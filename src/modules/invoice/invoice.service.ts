@@ -4,77 +4,120 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-
 import { Repository } from 'typeorm';
-import { InvoiceDto } from './dto/create-invoice.dto';
-import { Invoice } from '../admin/invoice/Entity/invoices.entity';
 import { InvoiceStatus } from 'src/common/enums/invoice.enum';
 import { Booking } from '../booking/entities/booking.entity';
+import { Invoice } from './entities/invoice.entity';
+import { startOfMonth, endOfMonth } from 'date-fns';
 
 @Injectable()
 export class InvoiceService {
   constructor(
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
-    @InjectRepository(Invoice)
+    @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
   ) {}
 
+  // Invoice generation Logic for Entertainer
   async generateInvoice(userId: number) {
-    console.log('Inside generate invoice');
-    const bookingId = 2;
-
-    const booking = await this.bookingRepository
+    const now = new Date();
+    const start = startOfMonth(now);
+    const end = endOfMonth(now);
+    const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
-      .leftJoin('booking.eventId', 'event') // Proper way to join relations in TypeORM
-      .leftJoin('booking.venueUser', 'venueUser') // Joining the venueUser relation
-      .where('booking.id = :bookingId', { bookingId }) // First condition
-      .andWhere('venueUser.id = :userId', { userId })
+      .leftJoin('users', 'user', 'user.id = booking.entertainerUserId')
+      .leftJoin('entertainers', 'ent', 'ent.userId = booking.entertainerUserId')
+      .where('booking.entertainerUserId = :userId', { userId })
       .andWhere('booking.status = :status', { status: 'completed' })
-      .select(['booking.id AS id']) // Access venueUser's ID correctly
-      .getRawOne();
+      .andWhere('booking.startTime BETWEEN :start AND :end', { start, end }) // 👈 this is your main filter
+      .select([
+        'booking.id AS id',
+        'booking.eventId AS eventId',
+        'user.id AS uid',
+        'user.name AS uname',
+        'ent.pricePerEvent AS pricePerEvent',
+      ])
+      .getRawMany();
 
-    console.log('Booking', booking);
-    // Used Here So That Invoice Number is Unique.
-    const lastInvoice = await this.invoiceRepository
-      .createQueryBuilder('invoices')
-      .orderBy('invoices.id', 'DESC')
-      .limit(1)
-      .getOne();
+    for (const booking of bookings) {
+      const { id: bookingId, eventId, uid, uname, pricePerEvent } = booking;
 
-    // checks last invoice number and  increment it by one.
-    const lastInvoiceNumber = lastInvoice
-      ? parseInt(lastInvoice.invoice_number.split('-')[1])
-      : 1000;
+      const alreadyGenerated = await this.invoiceRepository.findOne({
+        where: {
+          user_id: userId,
+          booking_id: bookingId, // ✅ prevent duplicate invoice for same booking
+        },
+      });
 
-    const newInvoiceNumber = `INV-${lastInvoiceNumber + 1}`;
+      if (alreadyGenerated) continue;
 
-    console.log('New Invoice Number', newInvoiceNumber);
-    // const newInvoice = this.invoiceRepository.create({
-    //   invoice_number: newInvoiceNumber,
-    //   user_id: userId,
-    //   event_id: Number(event.id),
-    //   issue_date: new Date(issueDate).toISOString().split('T')[0],
-    //   due_date: new Date(dueDate).toISOString().split('T')[0],
-    //   total_amount: parseFloat(entertainer.pricePerEvent.toFixed(2)),
-    //   tax_rate: parseFloat(taxRate.toFixed(2)),
-    //   tax_amount: parseFloat(taxAmount.toFixed(2)),
-    //   total_with_tax: parseFloat(totalWithTax.toFixed(2)),
-    //   status: InvoiceStatus.PENDING,
-    //   payment_method: '',
-    //   payment_date: null,
-    // });
+      const lastInvoice = await this.invoiceRepository
+        .createQueryBuilder('invoices')
+        .orderBy('invoices.id', 'DESC')
+        .limit(1)
+        .getOne();
 
-    // await this.invoiceRepository.save(newInvoice);
+      // checks last invoice number and  increment it by one.
+      const lastInvoiceNumber = lastInvoice
+        ? parseInt(lastInvoice.invoice_number.split('-')[1])
+        : 1000;
 
-    return { message: 'Invoice generated Successfully', status: true };
+      const newInvoiceNumber = `INV-${lastInvoiceNumber + 1}`;
+      const taxRate = 10.0;
+      const taxAmount = (pricePerEvent * taxRate) / 100;
+      const totalWithTax = pricePerEvent + taxAmount;
+      const issueDate = new Date();
+      const dueDate = new Date(issueDate);
+      dueDate.setDate(dueDate.getDate() + 10);
+
+      const newInvoice = this.invoiceRepository.create({
+        invoice_number: newInvoiceNumber,
+        user_id: userId,
+        event_id: Number(eventId),
+        issue_date: issueDate.toISOString().split('T')[0],
+        due_date: new Date(dueDate).toISOString().split('T')[0],
+        total_amount: parseFloat(pricePerEvent.toFixed(2)),
+        tax_rate: parseFloat(taxRate.toFixed(2)),
+        tax_amount: parseFloat(taxAmount.toFixed(2)),
+        total_with_tax: parseFloat(totalWithTax.toFixed(2)),
+        status: InvoiceStatus.PENDING,
+        payment_method: '',
+        payment_date: null,
+        booking_id: Number(bookingId),
+      });
+      await this.invoiceRepository.save(newInvoice);
+    }
+
+    return { message: 'Invoices generated Successfully', status: true };
   }
-
+  // Fetch All Invoices for Entertainer
   async findAllInvoice(userId: number) {
-    console.log(userId, 'Inside get ');
-    const invoices = await this.invoiceRepository.find({
-      where: { venue_id: userId },
-    });
+    const invoices = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .leftJoin('event', 'event', 'invoices.event_id = event.id')
+      .where('invoices.user_id = :userId', { userId })
+      .select([
+        'invoices.id AS id ',
+        'invoices.invoice_number AS invoice_number',
+        'invoices.user_id AS user_id',
+        'invoices.event_id AS event_id',
+        'invoices.user_type AS user_type',
+        'invoices.issue_date AS issue_date',
+        'invoices.due_date AS due_date',
+        'invoices.total_amount AS total_amount',
+
+        'invoices.tax_rate AS tax_rate',
+        'invoices.tax_amount AS tax_amount',
+        'invoices.total_with_tax AS total_with_tax',
+        'invoices.status AS status',
+        'invoices.payment_method AS payment_method',
+        'invoices.payment_date AS payment_date',
+        'event.id',
+        'event.title',
+        'event.location',
+      ])
+      .getRawMany(); // Use getRawMany if you're not using relations
 
     return {
       message: 'Invoice returned Successfully',

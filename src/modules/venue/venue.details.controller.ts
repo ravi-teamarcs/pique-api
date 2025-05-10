@@ -35,6 +35,6 @@ export class VenueDetailsController {
   @Get(':id')
   async getContactDetails(@Request() req, @Param('id') id: number) {
     const { userId } = req.user;
-    return this.venueDetailService.getContactDetails(id, userId);
+    return this.venueDetailService.getContactDetails(Number(id), userId);
   }
 }

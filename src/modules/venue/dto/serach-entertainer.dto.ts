@@ -1,6 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsOptional, IsNumber, IsArray } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  IsArray,
+  IsString,
+} from 'class-validator';
 
 export class SearchEntertainerDto {
   @ApiProperty({ description: 'Name of the venue', required: false })
@@ -28,8 +34,6 @@ export class SearchEntertainerDto {
   })
   @IsOptional()
   @Transform(({ value }) => {
-    console.log('Received value:', value, 'Type:', typeof value);
-
     if (typeof value === 'string' && value.trim() !== '') {
       return value
         .split(',')
@@ -51,8 +55,6 @@ export class SearchEntertainerDto {
   price?: number[] | null;
 
   @Transform(({ value }) => {
-    console.log('Received value:', value, 'Type:', typeof value);
-
     if (typeof value === 'string' && value.trim() !== '') {
       return value
         .split(',')
@@ -85,4 +87,23 @@ export class SearchEntertainerDto {
   @IsNumber()
   @Transform(({ value }) => Number(value))
   city: number;
+  @ApiProperty({ description: 'Country Id', required: false })
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  country: number;
+
+  @ApiProperty({ description: 'Date', required: false })
+  @IsOptional()
+  @IsString()
+  date: string;
+
+  @ApiProperty({ description: 'Start Date', required: false })
+  @IsOptional()
+  @IsString()
+  startDate: string;
+  @ApiProperty({ description: 'End Date', required: false })
+  @IsOptional()
+  @IsString()
+  endDate: string;
 }

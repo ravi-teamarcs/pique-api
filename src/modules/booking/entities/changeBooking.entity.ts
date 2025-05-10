@@ -25,6 +25,8 @@ export class BookingRequest {
   @Column({ type: 'date' })
   reqShowDate: string;
 
+  @Column()
+  reqEventId: number;
   @Column({
     type: 'enum',
     enum: ['pending', 'approved', 'rejected'],

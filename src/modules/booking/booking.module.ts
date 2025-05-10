@@ -12,6 +12,7 @@ import { BookingRequest } from './entities/changeBooking.entity';
 import { BookingLog } from './entities/booking-log.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailModule } from '../Email/email.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { EmailModule } from '../Email/email.module';
       Entertainer,
     ]),
     EmailModule,
+    NotificationModule
   ],
   controllers: [BookingController],
   providers: [BookingService],

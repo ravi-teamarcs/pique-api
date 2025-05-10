@@ -19,6 +19,10 @@ import { ChatModule } from './modules/chat/chat.module';
 import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { MulterModule } from '@nestjs/platform-express';
+import { ToursModule } from './modules/tours/tours.module';
+import { SeriesModule } from './modules/series/series.module';
+import { InvoiceCronModule } from './modules/cron/invoice/invoice-cron.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
@@ -41,10 +45,11 @@ import { MulterModule } from '@nestjs/platform-express';
         entities: [join(process.cwd(), 'dist/**/*.entity.js')],
         // logging: true,
         // logger: 'advanced-console',
-        // maxQueryExecutionTime: 1000, // Good for debugging slow queries
-        // synchronize: true, // Set this to false in production
+        synchronize: true, // Set this to false in production
       }),
     }),
+
+    ScheduleModule.forRoot(), // For Nest Js Schedule Cron Job
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',
@@ -62,6 +67,9 @@ import { MulterModule } from '@nestjs/platform-express';
     ChatModule,
     GoogleCalendarModule,
     AdminModule,
+    ToursModule,
+    SeriesModule,
+    InvoiceCronModule,
   ],
   controllers: [AppController],
   providers: [AppService],

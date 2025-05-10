@@ -6,9 +6,11 @@ import {
   UpdateDateColumn,
   OneToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { User } from '../../users/entities/users.entity';
-// import { Booking } from '../../booking/entities/booking.entity';
+import { Tour } from '../../tours/entities/tour.entity';
+import { Gig } from '../../tours/entities/gig.entity';
 
 @Entity('entertainers')
 export class Entertainer {
@@ -49,9 +51,14 @@ export class Entertainer {
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
   availability: 'yes' | 'no';
 
-  @OneToOne(() => User, (user) => user.entertainer)
+  @OneToOne(() => User, (user) => user.entertainer, { onDelete: 'CASCADE' })
   @JoinColumn()
   user: User;
+  @OneToMany(() => Tour, (tour) => tour.entertainer)
+  tours: Tour[];
+
+  @OneToMany(() => Gig, (gig) => gig.entertainer)
+  gigs: Gig[];
 
   @Column()
   status: string;
@@ -66,6 +73,26 @@ export class Entertainer {
 
   @Column()
   socialLinks: string;
+
+  // New changes Introduced  (Latest Changes Both )  Can be Changed
+
+  @Column({ type: 'date' }) // Only stores YYYY-MM-DD, no time
+  dob: Date;
+
+  @Column()
+  address: string;
+
+  @Column()
+  zipCode: string;
+
+  @Column('simple-array')
+  services: string[];
+
+  @Column()
+  contact_person: string;
+
+  @Column()
+  contact_number: string;
 
   @CreateDateColumn()
   createdAt: Date;

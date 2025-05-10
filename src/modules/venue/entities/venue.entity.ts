@@ -7,7 +7,9 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { Gig } from '../../tours/entities/gig.entity';
 
 @Entity('venue')
 export class Venue {
@@ -29,7 +31,7 @@ export class Venue {
   @Column()
   addressLine2: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   description: string;
 
   @Column()
@@ -52,6 +54,9 @@ export class Venue {
 
   @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
   user: User;
+
+  @OneToMany(() => Gig, (gigs) => gigs.venue)
+  gigs: Gig[];
 
   @Column({ type: 'boolean', default: false })
   @Transform(({ value }) => Boolean(value))

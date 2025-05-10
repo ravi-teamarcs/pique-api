@@ -14,10 +14,12 @@ export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.venueBookings)
+  @ManyToOne(() => User, (user) => user.venueBookings, { onDelete: 'CASCADE' })
   venueUser: User;
 
-  @ManyToOne(() => User, (user) => user.entertainerBookings)
+  @ManyToOne(() => User, (user) => user.entertainerBookings, {
+    onDelete: 'CASCADE',
+  })
   entertainerUser: User;
 
   @Column({ nullable: false })
@@ -53,21 +55,15 @@ export class Booking {
   @Column({ type: 'date' })
   showDate: Date;
 
-  @Column({
-    type: 'enum',
-    enum: ['accepted', 'rejected', 'pending'],
-    default: 'pending',
-  })
-  isAccepted: 'accepted' | 'rejected' | 'pending';
-
   @Column()
   specialNotes: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  statusDate: Date;
-
-  @Column({ type: 'timestamp', nullable: true })
-  isAcceptedDate: Date;
+  @Column({
+    type: 'enum',
+    enum: ['soloist', 'duo', 'trio', 'ensemble'],
+    nullable: false,
+  })
+  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 
   @CreateDateColumn()
   createdAt: Date;

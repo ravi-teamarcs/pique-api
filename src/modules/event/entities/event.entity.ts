@@ -32,6 +32,8 @@ export class VenueEvent {
   @Column()
   endTime: Date;
 
+  @Column()
+  // duration: number;
   @Column({
     type: 'enum',
     enum: ['none', 'daily', 'weekly', 'monthly'],

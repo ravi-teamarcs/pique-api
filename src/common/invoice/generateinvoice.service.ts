@@ -2,13 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { log } from 'console';
-import { Entertainer } from 'src/modules/admin/entertainer/Entitiy/entertainer.entity';
-import { Event } from 'src/modules/admin/events/Entity/event.entity';
+import { Entertainer } from 'src/modules/admin/entertainer/entities/entertainer.entity';
+import { Event } from 'src/modules/admin/events/entities/event.entity';
 import {
   Invoice,
   InvoiceStatus,
   UserType,
-} from 'src/modules/admin/invoice/Entity/invoices.entity';
+} from 'src/modules/admin/invoice/entities/invoices.entity';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
 import { Repository, Between } from 'typeorm';
 
@@ -58,12 +58,15 @@ export class GenerateInvoiceService {
       ? today
       : new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
     const dueDate = new Date(issueDate);
-    dueDate.setDate(dueDate.getDate() + 30);  // Default 30-day due date
+    dueDate.setDate(dueDate.getDate() + 30); // Default 30-day due date
 
     const bookings = await this.bookingRepo
       .createQueryBuilder('booking')
       .where('booking.eventId = :eventId', { eventId: event.id })
-      .select('booking.entertainerUserId as eId')
+      .select([
+        'booking.entertainerUserId as eId',
+        'booking.venueUserId as venueUserId',
+      ])
       .getRawMany();
 
     for (const booking of bookings) {
@@ -71,8 +74,11 @@ export class GenerateInvoiceService {
       const entertainer = await this.entertainerRepo.findOne({
         where: { user: booking.eId },
       });
+
+      // Tax Rate
       const taxRate = 10.0;
 
+      // Tax Amount ()
       const taxAmount = (entertainer.pricePerEvent * taxRate) / 100;
       const totalWithTax = entertainer.pricePerEvent + taxAmount;
 
@@ -90,10 +96,8 @@ export class GenerateInvoiceService {
 
       const newInvoice = this.invoiceRepo.create({
         invoice_number: newInvoiceNumber,
-        entertainer_id: Number(entertainer.id),
-        venue_id: Number(event.venueId),
         event_id: Number(event.id),
-        user_type: UserType.ENTERTAINER,
+        user_type: UserType.VENUE,
         issue_date: new Date(issueDate).toISOString().split('T')[0],
         due_date: new Date(dueDate).toISOString().split('T')[0],
         total_amount: parseFloat(entertainer.pricePerEvent.toFixed(2)),
@@ -103,6 +107,8 @@ export class GenerateInvoiceService {
         status: InvoiceStatus.PENDING,
         payment_method: '',
         payment_date: null,
+        user_id: Number(booking.venueUserId),
+        booking_id: Number(booking.id),
       });
 
       await this.invoiceRepo.save(newInvoice);

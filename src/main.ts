@@ -5,7 +5,10 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    logger:
+      process.env.NODE_ENV === 'production' ? false : ['log', 'error', 'warn'],
+  });
   app.enableCors();
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
   app.use(compression());
@@ -21,6 +24,15 @@ async function bootstrap() {
   //writeFileSync('./swagger.json', JSON.stringify(document, null, 2));
   // Setup Swagger module
 
+  // Middleware  Process Total Request Time  (Middleware + Controller execution Time + DB Query execution Time + Response sent to Client.)
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      console.log(`${req.method} ${req.url} - ${duration}ms`);
+    });
+    next();
+  });
   SwaggerModule.setup('api-docs', app, document);
   const res = await app.listen(process.env.PORT ?? 3000);
   console.log(`Server is running on ${res.address().port}`);

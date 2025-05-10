@@ -1,10 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsNumber, IsEnum } from 'class-validator';
+import { Transform } from 'class-transformer';
 import {
-  Availability,
-  PerformanceType,
-  Vaccinated,
-} from 'src/common/enums/entertainer.enum';
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsEnum,
+  IsDateString,
+  IsOptional,
+  IsArray,
+} from 'class-validator';
+import { PerformanceType, Vaccinated } from 'src/common/enums/entertainer.enum';
 
 export class CreateEntertainerDto {
   @ApiProperty({
@@ -18,6 +23,7 @@ export class CreateEntertainerDto {
   @ApiProperty({ example: 1, description: 'Category  of the entertainer' })
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   category: number;
 
   @ApiProperty({
@@ -26,6 +32,7 @@ export class CreateEntertainerDto {
   })
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   specific_category: number;
 
   @ApiProperty({
@@ -37,22 +44,6 @@ export class CreateEntertainerDto {
   bio: string;
 
   @ApiProperty({
-    example: '9876543210',
-    description: 'Enter the Phone Number of Entertainer',
-  })
-  @IsString()
-  @IsNotEmpty()
-  phone1: string;
-
-  @ApiProperty({
-    example: '6230846541',
-    description: 'Enter the alternative Phone number of Entertainer',
-  })
-  @IsString()
-  @IsNotEmpty()
-  phone2: string;
-
-  @ApiProperty({
     example: 'solo',
     description: 'Role of entertainer (soloist , duo , trio)',
   })
@@ -61,18 +52,11 @@ export class CreateEntertainerDto {
   performanceRole: PerformanceType;
 
   @ApiProperty({
-    example: 'yes',
-    description: 'Availability schedule of the entertainer',
-  })
-  @IsEnum(Availability)
-  @IsNotEmpty()
-  availability: Availability;
-
-  @ApiProperty({
     example: 3000,
     description: 'Price per Event Entertainer Charges',
   })
   @IsNumber()
+  @Transform(({ value }) => Number(value))
   pricePerEvent: number;
 
   @ApiProperty({
@@ -80,13 +64,56 @@ export class CreateEntertainerDto {
     description: 'Social Media Link of Entertainer',
   })
   @IsString()
-  socialLinks: string;
+  socialLinks?: string;
 
   @ApiProperty({ example: 'yes', description: 'Vaccinated or Not' })
   @IsEnum(Vaccinated)
   vaccinated: Vaccinated;
 
-  @ApiProperty({ example: 'active', description: 'Status of Entertainer' })
+  @IsNumber()
+  @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
+  city: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
+  state: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
+  country: number;
+
   @IsString()
-  status: string;
+  @IsNotEmpty()
+  zipCode: string;
+
+  @IsString()
+  @IsNotEmpty()
+  address: string;
+
+  @IsNotEmpty()
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    // If it's already an array (e.g., services[]=A&services[]=B), return as-is
+    if (Array.isArray(value)) return value;
+    // If it's a comma-separated string: "A,B,C"
+    if (typeof value === 'string') return value.split(',').map(item => item.trim());
+    return [];
+  })
+  services: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  contactPerson: string;
+
+  @IsString()
+  @IsNotEmpty()
+  contactNumber: string;
+
+  @IsDateString()
+  @IsNotEmpty()
+  dob: string; // Accepts only date in ISO format, e.g. "2025-04-09"
 }

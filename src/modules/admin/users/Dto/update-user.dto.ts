@@ -1,9 +1,9 @@
 import { IsObject, IsNotEmpty } from 'class-validator';
 
 export class UpdateUserDto {
-    @IsNotEmpty()
-    id: number;
+  @IsNotEmpty()
+  id: number;
 
-    @IsObject()
-    fieldsToUpdate: Partial<Record<string, any>>;
+  @IsObject()
+  fieldsToUpdate: Partial<Record<string, any>>;
 }

@@ -17,6 +17,7 @@ import { BookingLog } from './entities/booking-log.entity';
 import { User } from '../users/entities/users.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailService } from '../Email/email.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class BookingService {
@@ -32,6 +33,7 @@ export class BookingService {
     @InjectRepository(Entertainer)
     private readonly entRepository: Repository<Entertainer>,
     private readonly emailService: EmailService,
+    private readonly notifyService: NotificationService,
   ) {}
 
   async createBooking(createBookingDto: CreateBookingDto, userId: number) {
@@ -87,7 +89,15 @@ export class BookingService {
       },
     };
 
-    // this.emailService.handleSendEmail(emailPayload);
+    this.emailService.handleSendEmail(emailPayload);
+    this.notifyService.sendPush(
+      {
+        title: 'Booking Request',
+        body: `You have new booking request from ${venue.name}`,
+        type: 'booking_req',
+      },
+      entertainerId,
+    );
 
     const payload = {
       bookingId: savedBooking.id,
@@ -137,7 +147,6 @@ export class BookingService {
       .where('booking.id = :id', { id: bookingId })
       .getRawOne();
 
-    console.log('Booking Response', booking);
     if (!booking) {
       throw new NotFoundException({
         message: 'Booking not found',
@@ -181,6 +190,16 @@ export class BookingService {
     };
 
     this.emailService.handleSendEmail(emailPayload);
+    // Notification Service
+    this.notifyService.sendPush(
+      {
+        title: 'Booking Response',
+        body: `${role.charAt(0).toUpperCase() + role.slice(1)} has ${status} the booking.`,
+        type: 'booking_response',
+      },
+
+      role === 'entertainer' ? booking.vid : booking.eid,
+    );
 
     const log = await this.generateBookingLog({
       bookingId,
@@ -241,6 +260,18 @@ export class BookingService {
         performedBy: 'venue',
       };
 
+      // Email
+
+      // Notification
+      this.notifyService.sendPush(
+        {
+          title: 'Booking Request',
+          body: `Booking date and time change.`,
+          type: 'change_date_time',
+        },
+        booking.eId,
+      );
+
       this.generateBookingLog(payload);
 
       // Notification
@@ -296,6 +327,7 @@ export class BookingService {
           status: res,
           showTime: request.reqShowTime,
           showDate: request.reqShowTime,
+          eventId: request.reqEventId,
         },
       );
       const payload = {

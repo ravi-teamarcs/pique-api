@@ -13,6 +13,9 @@ import {
   ParseIntPipe,
   ValidationPipe,
   UsePipes,
+  BadRequestException,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { VenueService } from './venue.service';
 import { CreateVenueDto } from './dto/create-venue.dto';
@@ -36,6 +39,10 @@ import { ChangeBooking } from './dto/change-booking.dto';
 import { VenueLocationDto } from './dto/add-location.dto';
 import { Data } from './dto/search-filter.dto';
 import { WishlistDto } from './dto/wishlist.dto';
+import { typeMap } from 'src/common/constants/media.constants';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { UploadedFile } from 'src/common/types/media.type';
+import { uploadFile } from 'src/common/middlewares/multer.middleware';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -47,13 +54,77 @@ export class VenueController {
     private readonly bookingService: BookingService,
   ) {}
 
+  @Roles('findAll')
   @Post()
-  @Roles('findAll') // Only users with the 'venue' role can access this route
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      fileFilter: (req, file, callback) => {
+        // Check file type from typeMap
+        const fileType = typeMap[file.fieldname];
+
+        if (!fileType) {
+          return callback(
+            new BadRequestException({
+              message: 'Invalid file field name',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        // Restrict video file size to 500MB
+        if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
+          return callback(
+            new BadRequestException({
+              message: 'Video file size cannot exceed 500 MB',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        callback(null, true);
+      },
+    }),
+  )
+  // Only users with the 'venue' role can access this route
+  @ApiOperation({ summary: 'Create a venue' })
+  @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
+  @ApiResponse({ status: 403, description: 'Forbidden.' })
+  async createVenue(
+    @Body() venueDto: CreateVenueDto,
+    @Request() req,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    const { userId } = req.user;
+    let uploadedFiles: UploadedFile[] = [];
+
+    if (files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: typeMap[file.fieldname],
+          };
+        }),
+      );
+    }
+    return this.venueService.createVenueWithMedia(
+      venueDto,
+      userId,
+      uploadedFiles,
+    );
+  }
+  @Roles('findAll')
+  @Post('add')
   @ApiOperation({ summary: 'Create a venue' })
   @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async create(@Body() venueDto: CreateVenueDto, @Request() req) {
     const { userId } = req.user;
+
     return this.venueService.create(venueDto, userId);
   }
 
@@ -73,7 +144,6 @@ export class VenueController {
   @ApiResponse({ status: 403, description: 'Forbidden.' })
   async findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
     const { userId } = req.user;
-
     return this.venueService.findVenueLocation(id, userId);
   }
 
@@ -91,7 +161,6 @@ export class VenueController {
   })
   search(@Query() query: SearchEntertainerDto, @Request() req) {
     const { userId } = req.user;
-
     return this.venueService.findAllEntertainers(query, userId);
   }
 
@@ -105,10 +174,11 @@ export class VenueController {
   })
   @ApiResponse({
     status: 404,
-    description: 'Cannot get entertainers.',
+    description: 'Entertainer not found.',
   })
-  GetEntertainerDetails(@Param('id', ParseIntPipe) userId: number) {
-    return this.venueService.findEntertainerDetails(Number(userId));
+  getEntertainerDetails(@Param('id', ParseIntPipe) id: number, @Request() req) {
+    const { userId } = req.user;
+    return this.venueService.findEntertainerDetails(Number(id), userId);
   }
 
   // Booking Request   and create a new requet
@@ -132,20 +202,18 @@ export class VenueController {
   @Get('booking/request')
   @Roles('findAll')
   getAllBooking(@Request() req) {
-    const userId = req.user.userId;
-
+    const { userId } = req.user;
     return this.venueService.findAllBooking(userId);
   }
-  @ApiOperation({ summary: 'Get list of all Booking' })
+  @ApiOperation({ summary: 'Respond to a Booking' })
   @ApiResponse({
     status: 200,
-    description: 'Booking list fetched Successfully .',
+    description: 'Successfully responded to booking .',
   })
   @Patch('booking/response')
   @Roles('findAll')
   bookingResponse(@Body() resDto: ResponseDto, @Request() req) {
     const { role, userId } = req.user;
-    // venueResponseDto['statusDate'] = new Date();
     return this.bookingService.handleBookingResponse(role, resDto, userId);
   }
 
@@ -175,8 +243,7 @@ export class VenueController {
   @Post('request-change')
   @Roles('findAll')
   requestChange(@Body() dateTimeChangeDto: ChangeBooking, @Request() req) {
-    const userId = req.user.userId;
-
+    const { userId } = req.user;
     return this.bookingService.handleChangeRequest(dateTimeChangeDto, userId);
   }
 
@@ -191,6 +258,11 @@ export class VenueController {
     return this.venueService.getSearchSuggestions(query);
   }
 
+  @ApiOperation({ summary: 'Get search Filters.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Filters Fetched Successfully.',
+  })
   @Get('search/filters')
   @Roles('findAll')
   async getAllCategory(@Query() query: Data) {
@@ -202,6 +274,11 @@ export class VenueController {
     return this.venueService.getAllEntertainersByCategory(cid);
   }
 
+  @ApiOperation({ summary: 'Add Venue Location' })
+  @ApiResponse({
+    status: 201,
+    description: 'Venue Location added Successfully',
+  })
   @Roles('findAll')
   @Post('/location/add')
   addLocation(@Body() locationDto: VenueLocationDto, @Request() req) {
@@ -209,12 +286,22 @@ export class VenueController {
     return this.venueService.addVenueLocation(userId, locationDto);
   }
 
+  @ApiOperation({ summary: 'Add Entertainer to the whishlist' })
+  @ApiResponse({
+    status: 201,
+    description: 'Entertainer added to wishlist.',
+  })
   @Roles('findAll')
   @Post('/toogle/wishlist')
   toggleWishList(@Body() wishDto: WishlistDto, @Request() req) {
     const { userId } = req.user;
     return this.venueService.toggleWishlist(userId, wishDto);
   }
+  @ApiOperation({ summary: 'Get Whishlist' })
+  @ApiResponse({
+    status: 200,
+    description: 'WishList fetched Successfully',
+  })
   @Roles('findAll')
   @Get('/entertainers/wishlist')
   getWishList(@Request() req) {
@@ -222,6 +309,11 @@ export class VenueController {
     return this.venueService.getWishlist(userId);
   }
 
+  @ApiOperation({ summary: 'Get enytertainer roles.' })
+  @ApiResponse({
+    status: 200,
+    description: 'Entertainer roles fetched Successfully.',
+  })
   @Roles('findAll')
   @Get('entertainer/roles')
   getRoles() {
@@ -230,5 +322,17 @@ export class VenueController {
       status: true,
       data: [{ role: 'soloist' }, { role: 'duo' }, { role: 'ensemble' }],
     };
+  }
+  @Roles('findAll')
+  @Delete('entertainer/wishlist/:id')
+  removeFromWishlist(@Request() req, @Param('id') id: number) {
+    const { userId } = req.user;
+    return this.venueService.removeFromWishlist(Number(id), userId);
+  }
+  @Roles('findAll')
+  @Get('events')
+  getEvents(@Request() req, @Param('id') id: number) {
+    const { userId } = req.user;
+    return this.venueService.removeFromWishlist(Number(id), userId);
   }
 }

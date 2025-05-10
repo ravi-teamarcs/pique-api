@@ -1,21 +1,25 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { UploadedFile } from 'src/common/types/media.type';
-import { Media } from './Entity/media.entity';
+import { Media } from './entities/media.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UploadUrlDto } from './Dto/UploadUrlDto.dto';
+import { Type } from 'src/common/enums/media.enum';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class MediaService {
   constructor(
     @InjectRepository(Media)
     private readonly mediaRepository: Repository<Media>,
-  ) { }
+    private readonly config: ConfigService,
+  ) {}
 
   async handleMediaUpload(
     userId: number,
     uploadedFiles: UploadedFile[],
     venueId: number,
+    eventId?: number,
   ) {
     try {
       for (const file of uploadedFiles) {
@@ -48,6 +52,7 @@ export class MediaService {
           ...file,
           user: { id: userId },
           refId: venueId ?? null,
+          eventId: eventId ?? null,
         });
         await this.mediaRepository.save(media);
       }
@@ -59,9 +64,6 @@ export class MediaService {
     }
   }
 
-
-
-
   async findAllMedia(Id: number) {
     if (!Id) {
       throw new BadRequestException('Id is required.');
@@ -71,7 +73,7 @@ export class MediaService {
       .createQueryBuilder('media')
       .select([
         'media.id AS id',
-        `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
+        `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
         'media.type AS type',
         'media.refId AS venueId',
         'media.userId AS userId',
@@ -89,13 +91,11 @@ export class MediaService {
     return { message: 'Multimedia returned successfully', media };
   }
 
-
-
   async updateMedia(
     mediaId: number,
     userId: any,
     RefId: any,
-    uploadedFile: any
+    uploadedFile: any,
   ) {
     // Initialize where clause to dynamically build the query
     const whereClause: any = {};
@@ -122,12 +122,11 @@ export class MediaService {
       await this.mediaRepository.update(media.id, {
         ...uploadedFile, // Update with new file details
       });
-      return { message: "Media updated successfully.", status: true };
+      return { message: 'Media updated successfully.', status: true };
     } else {
-      return { message: "Media Not Found.", status: false };
+      return { message: 'Media Not Found.', status: false };
     }
   }
-
 
   async deleteMedia(Id: number) {
     if (!Id) {
@@ -149,8 +148,6 @@ export class MediaService {
     return { message: 'Media deleted successfully' };
   }
 
-
-
   async uploadUrl(uploadUrlDto: UploadUrlDto): Promise<Media> {
     const { url, userId, refId, type } = uploadUrlDto;
 
@@ -168,14 +165,10 @@ export class MediaService {
       url,
       name,
       type: mediaType,
-      user: userId ? { id: userId } as any : null, // Associate user
+      user: userId ? ({ id: userId } as any) : null, // Associate user
       refId,
     });
 
     return await this.mediaRepository.save(media);
   }
-
-
-
-
 }

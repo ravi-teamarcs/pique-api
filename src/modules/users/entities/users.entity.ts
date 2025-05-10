@@ -65,8 +65,12 @@ export class User {
   media: Media[];
 
   // Invoice
-  @OneToMany(() => Invoice, (invoice) => invoice.customer)
-  invoices: Invoice[];
+
+  @Column({ default: false })
+  isVerified: boolean;
+ 
+  @Column({ default: false })
+  createdByAdmin: boolean;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdDate: Date;

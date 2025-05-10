@@ -50,7 +50,11 @@ export class VenueDetailService {
     });
 
     if (!contactDetails) {
-      throw new NotFoundException({ message: 'Details Not Found' });
+      return {
+        message: 'Contact Details returned Successfully',
+        status: true,
+        data: null,
+      };
     }
 
     return {

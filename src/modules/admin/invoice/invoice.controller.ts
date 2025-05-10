@@ -1,5 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
-import { Invoice, InvoiceStatus, UserType } from './Entity/invoices.entity';
+import { Invoice, InvoiceStatus, UserType } from './entities/invoices.entity';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
 import { InvoiceService } from './invoice.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';

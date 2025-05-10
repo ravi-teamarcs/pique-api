@@ -1,0 +1,43 @@
+import { Transform } from 'class-transformer';
+import {
+  IsArray,
+  IsEnum,
+  IsIn,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
+import { Status } from 'src/common/enums/event.enum';
+
+const allowedStatuses = [
+  'pending',
+  'accepted',
+  'completed',
+  'confirmed',
+  'cancelled',
+];
+class BookingQueryDto {
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  page: number;
+
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  @IsOptional()
+  pageSize: number;
+
+  @IsOptional()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.split(',') : value,
+  )
+  @IsArray()
+  @IsIn(allowedStatuses, { each: true })
+  status?: 'pending' | 'accepted' | 'completed' | 'confirmed' | 'cancelled';
+
+  @IsString()
+  @IsOptional()
+  search: string;
+}
+
+export { BookingQueryDto };

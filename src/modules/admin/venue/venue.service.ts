@@ -1,14 +1,17 @@
 import {
   BadRequestException,
   Injectable,
+  InternalServerErrorException,
   NotFoundException,
 } from '@nestjs/common';
-import { Venue } from './Entity/venue.entity';
+import { Venue } from './entities/venue.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Like, Repository } from 'typeorm';
 import { UpdateVenueDto } from './Dto/update-venue.dto';
 import { CreateVenueDto } from './Dto/create-venue.dto';
-import { User } from '../users/Entity/users.entity';
+import { User } from '../users/entities/users.entity';
+import { AddLocationDto } from './Dto/add-location.dto';
+import { UpdateLocationDto } from './Dto/update-location.dto';
 
 @Injectable()
 export class VenueService {
@@ -29,7 +32,10 @@ export class VenueService {
   }) {
     const skip = (page - 1) * pageSize; // Calculate records to skip
     const [records, total] = await this.venueRepository.findAndCount({
-      where: search ? { name: Like(`%${search}%`) } : {}, // Search by name
+      where: {
+        isParent: true,
+        ...(search ? { name: Like(`%${search}%`) } : {}), // Search by name if provided
+      },
       skip,
       take: pageSize,
       order: { id: 'DESC' },
@@ -38,6 +44,17 @@ export class VenueService {
     return {
       records,
       total,
+    };
+  }
+
+  async getAllVenuesDropdown() {
+    const venues = await this.venueRepository.find({
+      where: { isParent: true },
+    });
+    return {
+      message: 'venues returned Successfully',
+      records: venues,
+      status: true,
     };
   }
 
@@ -62,7 +79,10 @@ export class VenueService {
     });
 
     if (alreadyExists) {
-      throw new BadRequestException('Venue already exists for the user');
+      throw new BadRequestException({
+        message: 'Venue Already exists for the User',
+        status: false,
+      });
     }
     const venue = this.venueRepository.create({
       ...venueData,
@@ -77,7 +97,6 @@ export class VenueService {
   async updateVenue(updateVenueDto: UpdateVenueDto) {
     const { id, fieldsToUpdate } = updateVenueDto;
 
-    console.log('field To Update', fieldsToUpdate, 'id', id);
     const venue = await this.venueRepository.findOne({ where: { id } });
 
     if (!venue) {
@@ -93,19 +112,107 @@ export class VenueService {
     const venue = await this.venueRepository.findOne({ where: { id } });
 
     if (!venue) {
-      throw new NotFoundException(`Venue with ID ${id} not found`);
+      throw new NotFoundException({
+        message: `Venue with ID ${id} not found`,
+        status: false,
+      });
     }
 
     await this.venueRepository.remove(venue); // Removes the venue from the repository
+
+    return { message: 'Venue deleted successfully', status: true };
   }
 
   async searchEntertainers(query: string) {
-    return this.venueRepository
-      .createQueryBuilder('venue')
-      .where('LOWER(venue.name) LIKE :query', {
-        query: `%${query.toLowerCase()}%`,
-      })
-      .limit(10)
-      .getMany();
+    return await this.venueRepository.find({
+      where: { isParent: true },
+    });
   }
+
+  async addVenueLocation(locDto: AddLocationDto) {
+    const { venueId, ...rest } = locDto;
+    const parentVenue = await this.venueRepository.findOne({
+      where: { id: venueId, isParent: true },
+      relations: ['user'],
+    });
+
+    if (!parentVenue) {
+      throw new BadRequestException({
+        message: 'Can not Add venue Location',
+        status: false,
+        error: 'Parent venue do not exists',
+      });
+    }
+
+    const venueLoc = this.venueRepository.create({
+      ...rest,
+      name: parentVenue.name,
+      user: { id: parentVenue.user.id },
+      description: parentVenue.description,
+      parentId: parentVenue.id,
+      isParent: false,
+    });
+
+    await this.venueRepository.save(venueLoc);
+
+    try {
+      return { message: 'Location Added Successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error Adding Location',
+        status: false,
+      });
+    }
+  }
+
+  async updateLocation(id: number, dto: UpdateLocationDto) {
+    const venueExists = await this.venueRepository.findOne({
+      where: { id, isParent: false },
+    });
+    if (!venueExists) {
+      throw new NotFoundException({
+        message: 'Location not Found',
+        status: false,
+      });
+    }
+
+    try {
+      await this.venueRepository.update({ id: venueExists.id }, dto);
+      return {
+        message: 'Location updatesd Successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async removeLocation(id: number) {
+    const venueExists = await this.venueRepository.findOne({
+      where: { id, isParent: false },
+    });
+    if (!venueExists) {
+      throw new NotFoundException({
+        message: 'Location not Found',
+        status: false,
+      });
+    }
+    try {
+      await this.venueRepository.remove(venueExists);
+      return {
+        message: 'Location removed Successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async getVenueLocation(id: number) {}
 }

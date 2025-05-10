@@ -15,6 +15,8 @@ import { EndPoints } from './entities/endpoint.entity';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { NotificationModule } from '../notification/notification.module';
 import { EmailModule } from '../Email/email.module';
+import { Otp } from '../users/entities/otps.entity';
+import { Media } from '../media/entities/media.entity';
 
 @Module({
   imports: [
@@ -36,6 +38,8 @@ import { EmailModule } from '../Email/email.module';
       Role,
       Access,
       EndPoints,
+      Otp,
+      Media,
     ]),
   ],
   controllers: [AuthController],

@@ -10,15 +10,24 @@ import {
   Query,
   ParseIntPipe,
   UseGuards,
+  BadRequestException,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
 import { EventService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
-import { Event } from './Entity/event.entity';
+import { Event } from './entities/event.entity';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
+import { GetEventDto } from './dto/get-event.dto';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { typeMap } from 'src/common/constants/media.constants';
+import { UploadedFile } from 'src/common/types/media.type';
+import { uploadFile } from 'src/common/middlewares/multer.middleware';
+import { EventsQueryDto } from './dto/query.dto';
 
 @ApiTags('admin')
 @Controller('admin/events')
@@ -26,11 +35,63 @@ export class EventController {
   constructor(private readonly eventService: EventService) {}
 
   @Roles('super-admin')
+  @UseInterceptors(
+    AnyFilesInterceptor({
+      fileFilter: (req, file, callback) => {
+        // Check file type from typeMap
+        const fileType = typeMap[file.fieldname];
+
+        if (!fileType) {
+          return callback(
+            new BadRequestException({
+              message: 'Invalid file field name',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        // Restrict video file size to 500MB
+        if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
+          return callback(
+            new BadRequestException({
+              message: 'Video file size cannot exceed 500 MB',
+              status: false,
+            }),
+            false,
+          );
+        }
+
+        callback(null, true);
+      },
+    }),
+  )
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Post('create')
-  async create(@Body() createEventDto: CreateEventDto) {
-    return this.eventService.create(createEventDto);
+  async create(
+    @Body() createEventDto: CreateEventDto,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    let uploadedFiles: UploadedFile[] = [];
+
+    if (files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: typeMap[file.fieldname],
+          };
+        }),
+      );
+    }
+
+    return this.eventService.createEventWithMedia(
+      createEventDto,
+      uploadedFiles,
+    );
   }
 
   @Roles('super-admin')
@@ -42,8 +103,16 @@ export class EventController {
     @Query('page') page: number = 1,
     @Query('pageSize') pageSize: number = 10,
     @Query('search') search: string = '',
+    @Query('status')
+    status:
+      | 'unpublished'
+      | 'scheduled'
+      | 'confirmed'
+      | 'cancelled'
+      | 'completed'
+      | '',
   ) {
-    return this.eventService.findAll({ page, pageSize, search });
+    return this.eventService.findAll({ page, pageSize, search, status });
   }
 
   @Roles('super-admin')
@@ -61,16 +130,16 @@ export class EventController {
   async update(
     @Param('id') id: number,
     @Body() createEventDto: CreateEventDto,
-  ): Promise<Event> {
-    return this.eventService.update(id, createEventDto);
+  ) {
+    return this.eventService.update(Number(id), createEventDto);
   }
 
   @Roles('super-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Delete('deletebyid:id')
-  async remove(@Param('id') id: number): Promise<void> {
-    return this.eventService.remove(id);
+  @Delete('deletebyid/:id')
+  async remove(@Param('id') id: number) {
+    return this.eventService.remove(Number(id));
   }
 
   @Roles('super-admin')
@@ -81,5 +150,20 @@ export class EventController {
     @Param('eventId', ParseIntPipe) eventId: number,
   ): Promise<Booking[]> {
     return this.eventService.findBooking(eventId);
+  }
+  @Roles('super-admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Get('upcoming')
+  async getUpcomingEvent(@Query() query: GetEventDto) {
+    return this.eventService.getUpcomingEvent(query);
+  }
+
+  @Roles('super-admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Get('calendar')
+  async getEventCalendar(@Query() query: EventsQueryDto) {
+    return this.eventService.getEventDetailsByMonth(query);
   }
 }
