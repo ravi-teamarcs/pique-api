@@ -5,6 +5,7 @@ import {
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UploadedFiles,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -21,7 +22,7 @@ import { Venue } from './entities/venue.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
-import { UpdateVenueDto } from './dto/update-venue.dto';
+import { UpdateVenueDto, UpdateVenueRequest } from './dto/update-venue.dto';
 import { User } from '../users/entities/users.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { Media } from '../media/entities/media.entity';
@@ -346,6 +347,8 @@ export class VenueService {
         'venue.city AS city_code',
         'venue.state AS state_code',
         'venue.country AS country_code',
+        'venue.contactPerson AS contactPerson',
+        'venue.contactNumber AS contactNumber',
         'venue.zipCode AS zipCode',
         'city.name AS city',
         'state.name AS state',
@@ -380,6 +383,161 @@ export class VenueService {
     return { message: 'Venue fetched successfully', data: venue, status: true };
   }
 
+  // async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
+  //   const {
+  //     category = [],
+  //     sub_category = null,
+  //     page = 1,
+  //     pageSize = 10,
+  //     city = null,
+  //     date = '',
+  //     startDate,
+  //     endDate,
+  //   } = query;
+
+  //   // Pagination
+  //   const skip = (Number(page) - 1) * Number(pageSize);
+  //   const DEFAULT_MEDIA_URL =
+  //     'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+
+  //   try {
+  //     const res = this.entertainerRepository
+  //       .createQueryBuilder('entertainer')
+  //       .leftJoin('cities', 'city', 'city.id = entertainer.city') // Join on normal column
+  //       .leftJoin('states', 'state', 'state.id = entertainer.state') // Join on normal column
+  //       .leftJoin('countries', 'country', 'country.id = entertainer.country') // Join on normal column
+  //       .leftJoin(
+  //         'categories',
+  //         'category',
+  //         'category.id = entertainer.category',
+  //       ) // Join on normal column
+  //       .leftJoin(
+  //         'categories',
+  //         'subcat',
+  //         'entertainer.specific_category = subcat.id',
+  //       ) // Join on normal column (specific_category)
+  //       .addSelect((qb) => {
+  //         return qb
+  //           .select('1')
+  //           .from('wishlist', 'w')
+  //           .where('w.ent_id = entertainer.id')
+  //           .andWhere('w.user_id = :userId')
+  //           .limit(1);
+  //       }, 'isWishlisted')
+  //       // Join on normal column
+  //       .leftJoin(
+  //         (qb) =>
+  //           qb
+  //             .select([
+  //               'entertainer.id AS entertainer_id',
+  //               `
+  //           COALESCE(
+  //             MAX(CASE WHEN media.type = 'headshot' THEN CONCAT(:serverUri, media.url) END),
+  //             :defaultMediaUrl
+  //           ) AS media_url
+  //           `,
+  //             ])
+  //             .from('entertainers', 'entertainer')
+  //             .leftJoin('media', 'media', 'media.user_id = entertainer.id') // Join on normal column
+  //             .groupBy('entertainer.id'),
+  //         'media',
+  //         'media.entertainer_id = entertainer.id', // Join condition on normal column
+  //       )
+  //       .select([
+  //         'entertainer.id AS eid',
+  //         'entertainer.name AS name',
+  //         'entertainer.entertainer_name AS entertainer_name',
+  //         'entertainer.category AS category',
+  //         'entertainer.specific_category AS specific_category',
+  //         'entertainer.performanceRole AS performanceRole',
+  //         'entertainer.pricePerEvent AS pricePerEvent',
+  //         'entertainer.vaccinated AS vaccinated',
+  //         'entertainer.status AS status',
+  //         'entertainer.bio AS bio',
+  //         'city.name AS city',
+  //         'state.name AS state',
+  //         'country.name AS country',
+  //         'category.name AS category_name',
+  //         'subcat.name AS specific_category_name',
+  //         'media.media_url AS mediaUrl',
+  //         `CASE WHEN wish.ent_id IS NOT NULL THEN 1 ELSE 0 END AS isWishlisted`,
+  //         'wish.name AS record',
+  //       ])
+  //       .where("entertainer.status = 'active'")
+  //       .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+  //       .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
+  //       .setParameter('userId', userId);
+
+  //     // Apply filters if provided (category, sub_category, city, etc.)
+  //     if (category !== null && category.length > 0) {
+  //       res.andWhere('entertainer.category IN (:...category)', { category });
+  //     }
+
+  //     if (sub_category) {
+  //       res.andWhere('entertainer.specific_category = :sub_category', {
+  //         sub_category,
+  //       });
+  //     }
+
+  //     if (city) {
+  //       res.andWhere('entertainer.city = :city', { city });
+  //     }
+
+  //     if (date) {
+  //       res.andWhere(
+  //         (qb) => {
+  //           return `NOT EXISTS (
+  //         SELECT 1 FROM booking b
+  //         WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
+  //       )`;
+  //         },
+  //         { blockedDate: date },
+  //       );
+  //     }
+
+  //     // Fetch total count first without pagination
+  //     const totalCount = await res.getCount(); // No pagination here
+
+  //     // Fetch paginated results
+  //     const results = await res
+  //       .orderBy('entertainer.name', 'ASC') // Use alias here
+  //       .skip(skip) // Apply pagination here
+  //       .take(Number(pageSize)) // Apply pagination here
+  //       .getRawMany(); // Get raw results
+
+  //     // Process results
+  //     const arr = [3, 4, 5, 2, 1]; // Example ratings logic
+
+  //     const entertainers = results.map(
+  //       ({ eid, isWishlisted, vaccinated, ...item }, index) => {
+  //         return {
+  //           eid: Number(eid),
+  //           ...item,
+  //           isWishlisted: Boolean(isWishlisted),
+  //           vaccination_status:
+  //             vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+  //           ratings: arr[index % arr.length], // Example for ratings
+  //         };
+  //       },
+  //     );
+
+  //     return {
+  //       message: 'Entertainers fetched successfully',
+  //       totalCount,
+  //       page,
+  //       pageSize,
+  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
+  //       entertainers,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     if (error instanceof HttpException) {
+  //       throw error;
+  //     }
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
+
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
     const {
       category = [],
@@ -394,48 +552,80 @@ export class VenueService {
 
     // Pagination
     const skip = (Number(page) - 1) * Number(pageSize);
+    const take = Number(pageSize);
     const DEFAULT_MEDIA_URL =
       'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
 
     try {
-      const res = this.entertainerRepository
+      // Build base query with all conditions but without pagination
+      const baseQuery = this.entertainerRepository
         .createQueryBuilder('entertainer')
-        .leftJoin('cities', 'city', 'city.id = entertainer.city') // Join on normal column
-        .leftJoin('states', 'state', 'state.id = entertainer.state') // Join on normal column
-        .leftJoin('countries', 'country', 'country.id = entertainer.country') // Join on normal column
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
         .leftJoin(
           'categories',
           'category',
           'category.id = entertainer.category',
-        ) // Join on normal column
+        )
         .leftJoin(
           'categories',
           'subcat',
           'entertainer.specific_category = subcat.id',
-        ) // Join on normal column (specific_category)
+        )
         .leftJoin(
           'wishlist',
           'wish',
           'wish.ent_id = entertainer.id AND wish.user_id = :userId',
-        ) // Join on normal column
-        .leftJoin(
-          (qb) =>
-            qb
-              .select([
-                'entertainer.id AS entertainer_id',
-                `
-            COALESCE(
-              MAX(CASE WHEN media.type = 'headshot' THEN CONCAT(:serverUri, media.url) END),
-              :defaultMediaUrl
-            ) AS media_url
-            `,
-              ])
-              .from('entertainers', 'entertainer')
-              .leftJoin('media', 'media', 'media.user_id = entertainer.id') // Join on normal column
-              .groupBy('entertainer.id'),
-          'media',
-          'media.entertainer_id = entertainer.id', // Join condition on normal column
         )
+        .leftJoin(
+          'media',
+          'media',
+          'media.user_id = entertainer.id AND media.type = :mediaType',
+        )
+        .where("entertainer.status = 'active'")
+        .setParameter('userId', userId)
+        .setParameter('mediaType', 'headshot')
+        .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL);
+
+      // Apply filters if provided
+      if (category && category.length > 0) {
+        baseQuery.andWhere('entertainer.category IN (:...category)', {
+          category,
+        });
+      }
+
+      if (sub_category) {
+        baseQuery.andWhere('entertainer.specific_category = :sub_category', {
+          sub_category,
+        });
+      }
+
+      if (city) {
+        baseQuery.andWhere('entertainer.city = :city', { city });
+      }
+
+      if (date) {
+        baseQuery.andWhere(
+          `NOT EXISTS (
+          SELECT 1 FROM booking b
+          WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
+        )`,
+          { blockedDate: date },
+        );
+      }
+
+      // First query: Get total count using a subquery to prevent pagination conflict
+      const totalCount = await baseQuery
+        .clone()
+        .select('COUNT(DISTINCT entertainer.id)', 'count')
+        .getRawOne()
+        .then((result) => Number(result?.count || 0));
+
+      // Second query: Get paginated data with all details
+      // This is a completely separate query to ensure reliable pagination
+      const results = await baseQuery
         .select([
           'entertainer.id AS eid',
           'entertainer.name AS name',
@@ -452,51 +642,14 @@ export class VenueService {
           'country.name AS country',
           'category.name AS category_name',
           'subcat.name AS specific_category_name',
-          'media.media_url AS mediaUrl',
+          `COALESCE(CONCAT(:serverUri, media.url), :defaultMediaUrl) AS mediaUrl`,
           `CASE WHEN wish.ent_id IS NOT NULL THEN 1 ELSE 0 END AS isWishlisted`,
           'wish.name AS record',
         ])
-        .where("entertainer.status = 'active'")
-        .setParameter('serverUri', this.config.get<string>('BASE_URL'))
-        .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
-        .setParameter('userId', userId);
-
-      // Apply filters if provided (category, sub_category, city, etc.)
-      if (category !== null && category.length > 0) {
-        res.andWhere('entertainer.category IN (:...category)', { category });
-      }
-
-      if (sub_category) {
-        res.andWhere('entertainer.specific_category = :sub_category', {
-          sub_category,
-        });
-      }
-
-      if (city) {
-        res.andWhere('entertainer.city = :city', { city });
-      }
-
-      if (date) {
-        res.andWhere(
-          (qb) => {
-            return `NOT EXISTS (
-          SELECT 1 FROM booking b
-          WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
-        )`;
-          },
-          { blockedDate: date },
-        );
-      }
-
-      // Fetch total count first without pagination
-      const totalCount = await res.getCount(); // No pagination here
-
-      // Fetch paginated results
-      const results = await res
-        .orderBy('entertainer.name', 'ASC') // Use alias here
-        .skip(skip) // Apply pagination here
-        .take(Number(pageSize)) // Apply pagination here
-        .getRawMany(); // Get raw results
+        .orderBy('entertainer.name', 'ASC')
+        .offset(skip) // Use offset which is more explicit than skip for raw queries
+        .limit(take) // Use limit which is more explicit than take for raw queries
+        .getRawMany();
 
       // Process results
       const arr = [3, 4, 5, 2, 1]; // Example ratings logic
@@ -527,6 +680,7 @@ export class VenueService {
       if (error instanceof HttpException) {
         throw error;
       }
+
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -583,26 +737,47 @@ export class VenueService {
     };
   }
   // Update Venue
-  async updateVenue(venueId: number, dto: UpdateVenueDto) {
-    const venue = await this.venueRepository.findOne({
+  async updateVenueWithMedia(
+    venueId: number,
+    dto: UpdateVenueRequest,
+    uploadedFiles: UploadedFile[],
+  ) {
+    const { venue } = dto;
+    let res;
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    const existingVenue = await queryRunner.manager.findOne(Venue, {
       where: { id: venueId },
     });
 
-    if (!venue) {
-      throw new NotFoundException({
-        message: 'Venue not found',
-        error: 'Not Found',
-        status: 'false',
-      });
+    if (!existingVenue) {
+      throw new NotFoundException('Venue not Found.');
     }
     try {
-      await this.venueRepository.update({ id: venue.id }, dto);
-      return { message: 'Venue updated successfully', status: true };
+      await queryRunner.manager.update(Venue, { id: existingVenue.id }, venue);
+      if (uploadedFiles?.length > 0) {
+        res = await this.mediaService.handleMediaUpload(
+          existingVenue.id,
+          uploadedFiles,
+          { eventId: null },
+        );
+      }
+
+      const message = res
+        ? 'Venue updated successfully with Media'
+        : 'Venue Details updated Successfully';
+      return { message, status: true };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException({
         message: error.message,
         status: false,
       });
+    } finally {
+      await queryRunner.release();
     }
   }
 

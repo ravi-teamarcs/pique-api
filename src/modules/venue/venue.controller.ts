@@ -64,80 +64,6 @@ export class VenueController {
     private readonly bookingService: BookingService,
   ) {}
 
-  // @UseGuards(JwtAuthGuard)
-  // @UseInterceptors(
-  //   AnyFilesInterceptor({
-  //     fileFilter: (req, file, callback) => {
-  //       // Check file type from typeMap
-  //       const fileType = typeMap[file.fieldname];
-
-  //       if (!fileType) {
-  //         return callback(
-  //           new BadRequestException({
-  //             message: 'Invalid file field name',
-  //             status: false,
-  //           }),
-  //           false,
-  //         );
-  //       }
-
-  //       // Restrict video file size to 500MB
-  //       if (fileType === 'video' && file.size > 500 * 1024 * 1024) {
-  //         return callback(
-  //           new BadRequestException({
-  //             message: 'Video file size cannot exceed 500 MB',
-  //             status: false,
-  //           }),
-  //           false,
-  //         );
-  //       }
-
-  //       callback(null, true);
-  //     },
-  //   }),
-  // )
-  // // Only users with the 'venue' role can access this route
-  // @ApiOperation({ summary: 'Create a venue' })
-  // @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
-  // @ApiResponse({ status: 403, description: 'Forbidden.' })
-  // async createVenue(
-  //   @Body() venueDto: CreateVenueDto,
-  //   @Request() req,
-  //   @UploadedFiles() files: Array<Express.Multer.File>,
-  // ) {
-  //   const { userId } = req.user;
-  //   let uploadedFiles: UploadedFile[] = [];
-
-  //   if (files.length > 0) {
-  //     uploadedFiles = await Promise.all(
-  //       files.map(async (file) => {
-  //         const filePath = await uploadFile(file); // Wait for the upload
-  //         return {
-  //           url: filePath,
-  //           name: file.originalname,
-  //           type: typeMap[file.fieldname],
-  //         };
-  //       }),
-  //     );
-  //   }
-  //   return this.venueService.createVenueWithMedia(
-  //     venueDto,
-  //     userId,
-  //     uploadedFiles,
-  //   );
-  // }
-
-  // @Post('add')
-  // @UseGuards(JwtAuthGuard)
-  // @ApiOperation({ summary: 'Create a venue' })
-  // @ApiResponse({ status: 201, description: 'Venue created.', type: Venue })
-  // @ApiResponse({ status: 403, description: 'Forbidden.' })
-  // async create(@Body() venueDto: CreateVenueDto, @Request() req) {
-  //   const { userId } = req.user;
-
-  //   return this.venueService.create(venueDto, userId);
-  // }
-
   // New Flow Signup under testing
   @Post()
   @UseGuards(JwtAuthGuard)
@@ -336,7 +262,7 @@ export class VenueController {
   @Roles('findAll')
   @UseInterceptors(AnyFilesInterceptor())
   async updateVenueDetails(
-    @Body() UpdateVenueRequest,
+    @Body() dto: UpdateVenueRequest,
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Req() req,
   ) {
@@ -356,7 +282,7 @@ export class VenueController {
         }),
       );
     }
-    return this.venueService.updateVenue(refId, UpdateVenueDto);
+    return this.venueService.updateVenueWithMedia(refId, dto, uploadedFiles);
   }
 
   // Working
@@ -487,7 +413,7 @@ export class VenueController {
     return this.venueService.neighbourhoodById(id);
   }
 
-  @Post('neighbourhood')
+  @Post('neighbourhood/add')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   create(@Body() dto: CreateNeighbourhoodDto, @Request() req) {

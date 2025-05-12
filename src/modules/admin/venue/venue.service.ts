@@ -407,8 +407,6 @@ export class VenueService {
           venue.id,
           uploadedFiles,
         );
-
-        console.log('Response Data', res.data);
       }
       await queryRunner.commitTransaction();
       return { message: 'Venue updated with media Sucessfully ', status: true };
