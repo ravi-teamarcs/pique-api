@@ -685,56 +685,129 @@ export class VenueService {
     }
   }
 
+  // async findAllBooking(venueId: number, query: BookingQueryDto) {
+  //   const { page = 1, pageSize = 10, status = '' } = query;
+  //   const skip = (Number(page) - 1) * Number(pageSize);
+
+  //   const res = this.bookingRepository
+  //     .createQueryBuilder('booking')
+  //     .leftJoin('entertainers', 'entertainer', 'entertainer.id= booking.entId')
+  //     .leftJoin('event', 'event', 'booking.eventId = event.id')
+  //     .where('booking.venueId = :venueId', { venueId })
+  //     .select([
+  //       'booking.id AS id',
+  //       'booking.status AS status',
+  //       'booking.showDate AS showDate',
+  //       'booking.showTime AS showTime',
+  //       'booking.specialNotes AS specialNotes',
+  //       'booking.venueId AS vid',
+  //       'entertainer.id AS eid',
+  //       'entertainer.name AS name',
+  //       'entertainer.category AS category',
+  //       'entertainer.specific_category AS  specific_category',
+  //       'entertainer.performanceRole AS performanceRole',
+  //       'entertainer.pricePerEvent AS pricePerEvent',
+  //       'event.id AS event_id',
+  //       'event.title AS event_title',
+  //       'event.status AS event_status',
+  //       'event.recurring AS event_recurring',
+  //       'event.startTime AS event_start_time',
+  //       'event.endTime AS event_end_time',
+  //       'event.eventDate AS event_date',
+  //       'event.description AS event_description',
+  //     ]);
+  //   if (status) {
+  //     res.andWhere('booking.status=:status', { status });
+  //   }
+  //   const totalCount = await res.getCount();
+  //   const results = await res
+  //     .orderBy('booking.createdAt', 'DESC')
+  //     .skip(skip)
+  //     .take(Number(pageSize))
+  //     .getRawMany();
+
+  //   return {
+  //     message: 'Bookings returned successfully',
+  //     count: totalCount,
+  //     bookings: results,
+  //     totalPages: Math.ceil(totalCount / Number(pageSize)),
+  //     page,
+  //     pageSize,
+  //     status: true,
+  //   };
+  // }
+
   async findAllBooking(venueId: number, query: BookingQueryDto) {
     const { page = 1, pageSize = 10, status = '' } = query;
+
     const skip = (Number(page) - 1) * Number(pageSize);
+    const take = Number(pageSize);
 
-    const res = this.bookingRepository
-      .createQueryBuilder('booking')
-      .leftJoin('entertainers', 'entertainer', 'entertainer.id= booking.entId')
-      .leftJoin('event', 'event', 'booking.eventId = event.id')
-      .where('booking.venueId = :venueId', { venueId })
-      .select([
-        'booking.id AS id',
-        'booking.status AS status',
-        'booking.showDate AS showDate',
-        'booking.showTime AS showTime',
-        'booking.specialNotes AS specialNotes',
-        'booking.venueId AS vid',
-        'entertainer.id AS eid',
-        'entertainer.name AS name',
-        'entertainer.category AS category',
-        'entertainer.specific_category AS  specific_category',
-        'entertainer.performanceRole AS performanceRole',
-        'entertainer.pricePerEvent AS pricePerEvent',
-        'event.id AS event_id',
-        'event.title AS event_title',
-        'event.status AS event_status',
-        'event.recurring AS event_recurring',
-        'event.startTime AS event_start_time',
-        'event.endTime AS event_end_time',
-        'event.eventDate AS event_date',
-        'event.description AS event_description',
-      ]);
-    if (status) {
-      res.andWhere('booking.status=:status', { status });
+    try {
+      // Base query builder
+      const baseQuery = this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin(
+          'entertainers',
+          'entertainer',
+          'entertainer.id = booking.entId',
+        )
+        .leftJoin('event', 'event', 'booking.eventId = event.id')
+        .where('booking.venueId = :venueId', { venueId });
+
+      // Apply status filter if provided
+      if (status) {
+        baseQuery.andWhere('booking.status = :status', { status });
+      }
+
+      // Get total count
+      const totalCount = await baseQuery
+        .clone()
+        .select('COUNT(DISTINCT booking.id)', 'count')
+        .getRawOne()
+        .then((result) => Number(result?.count || 0));
+
+      // Get paginated results
+      const results = await baseQuery
+        .select([
+          'booking.id AS id',
+          'booking.status AS status',
+          'booking.showDate AS showDate',
+          'booking.showTime AS showTime',
+          'booking.specialNotes AS specialNotes',
+          'booking.venueId AS vid',
+          'entertainer.id AS eid',
+          'entertainer.name AS name',
+          'entertainer.category AS category',
+          'entertainer.specific_category AS specific_category',
+          'entertainer.performanceRole AS performanceRole',
+          'entertainer.pricePerEvent AS pricePerEvent',
+          'event.id AS event_id',
+          'event.title AS event_title',
+          'event.status AS event_status',
+          'event.recurring AS event_recurring',
+          'event.startTime AS event_start_time',
+          'event.endTime AS event_end_time',
+          'event.eventDate AS event_date',
+          'event.description AS event_description',
+        ])
+        .orderBy('booking.createdAt', 'DESC')
+        .offset(skip)
+        .limit(take)
+        .getRawMany();
+
+      return {
+        message: 'Bookings returned successfully',
+        count: totalCount,
+        bookings: results,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        page,
+        pageSize,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
     }
-    const totalCount = await res.getCount();
-    const results = await res
-      .orderBy('booking.createdAt', 'DESC')
-      .skip(skip)
-      .take(Number(pageSize))
-      .getRawMany();
-
-    return {
-      message: 'Bookings returned successfully',
-      count: totalCount,
-      bookings: results,
-      totalPages: Math.ceil(totalCount / Number(pageSize)),
-      page,
-      pageSize,
-      status: true,
-    };
   }
   // Update Venue
   async updateVenueWithMedia(
