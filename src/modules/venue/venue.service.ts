@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   HttpStatus,
   Injectable,
   InternalServerErrorException,
@@ -396,159 +397,144 @@ export class VenueService {
     const DEFAULT_MEDIA_URL =
       'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
 
-    const res = this.entertainerRepository
-      .createQueryBuilder('entertainer')
-      .leftJoin('cities', 'city', 'city.id = entertainer.city')
-      .leftJoin('states', 'state', 'state.id = entertainer.state')
-      .leftJoin('countries', 'country', 'country.id = entertainer.country')
-      .leftJoin('categories', 'category', 'category.id = entertainer.category')
-      .leftJoin('categories', 'subcat', 'specific_category = subcat.id')
-      .leftJoin(
-        'wishlist',
-        'wish',
-        'wish.ent_id = entertainer.id AND wish.user_id = :userId',
-      )
+    try {
+      const res = this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city') // Join on normal column
+        .leftJoin('states', 'state', 'state.id = entertainer.state') // Join on normal column
+        .leftJoin('countries', 'country', 'country.id = entertainer.country') // Join on normal column
+        .leftJoin(
+          'categories',
+          'category',
+          'category.id = entertainer.category',
+        ) // Join on normal column
+        .leftJoin(
+          'categories',
+          'subcat',
+          'entertainer.specific_category = subcat.id',
+        ) // Join on normal column (specific_category)
+        .leftJoin(
+          'wishlist',
+          'wish',
+          'wish.ent_id = entertainer.id AND wish.user_id = :userId',
+        ) // Join on normal column
+        .leftJoin(
+          (qb) =>
+            qb
+              .select([
+                'entertainer.id AS entertainer_id',
+                `
+            COALESCE(
+              MAX(CASE WHEN media.type = 'headshot' THEN CONCAT(:serverUri, media.url) END),
+              :defaultMediaUrl
+            ) AS media_url
+            `,
+              ])
+              .from('entertainers', 'entertainer')
+              .leftJoin('media', 'media', 'media.user_id = entertainer.id') // Join on normal column
+              .groupBy('entertainer.id'),
+          'media',
+          'media.entertainer_id = entertainer.id', // Join condition on normal column
+        )
+        .select([
+          'entertainer.id AS eid',
+          'entertainer.name AS name',
+          'entertainer.entertainer_name AS entertainer_name',
+          'entertainer.category AS category',
+          'entertainer.specific_category AS specific_category',
+          'entertainer.performanceRole AS performanceRole',
+          'entertainer.pricePerEvent AS pricePerEvent',
+          'entertainer.vaccinated AS vaccinated',
+          'entertainer.status AS status',
+          'entertainer.bio AS bio',
+          'city.name AS city',
+          'state.name AS state',
+          'country.name AS country',
+          'category.name AS category_name',
+          'subcat.name AS specific_category_name',
+          'media.media_url AS mediaUrl',
+          `CASE WHEN wish.ent_id IS NOT NULL THEN 1 ELSE 0 END AS isWishlisted`,
+          'wish.name AS record',
+        ])
+        .where("entertainer.status = 'active'")
+        .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
+        .setParameter('userId', userId);
 
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
-              'entertainer.id AS entertainer_id',
-              `
-              COALESCE(
-                MAX(CASE WHEN media.type = 'headshot' THEN CONCAT(:serverUri, media.url) END),
-                :defaultMediaUrl
-              ) AS media_url
-              `,
-            ])
-            .from('entertainers', 'entertainer')
-            .leftJoin('media', 'media', 'media.user_id = entertainer.id')
-            .groupBy('entertainer.id'),
-        'media',
-        'media.entertainer_id = entertainer.id',
-      )
+      // Apply filters if provided (category, sub_category, city, etc.)
+      if (category !== null && category.length > 0) {
+        res.andWhere('entertainer.category IN (:...category)', { category });
+      }
 
-      .select([
-        'entertainer.id AS eid',
-        'entertainer.name AS name',
-        'entertainer.entertainer_name AS entertainer_name',
-        'entertainer.category AS category',
-        'entertainer.specific_category AS specific_category',
-        'entertainer.performanceRole AS performanceRole',
-        'entertainer.pricePerEvent AS pricePerEvent',
-        'entertainer.vaccinated AS vaccinated',
-        'entertainer.status AS status',
-        'entertainer.bio AS bio',
-        'city.name AS city',
-        'state.name AS state',
-        'country.name AS country',
-        'category.name AS category_name',
-        'subcat.name AS specific_category_name',
-        'media.media_url As mediaUrl',
-        `CASE
-     WHEN wish.ent_id IS NOT NULL THEN 1
-     ELSE 0
-     END AS isWishlisted`,
-        'wish.name AS  record',
-      ])
-      .setParameter('serverUri', this.config.get<string>('BASE_URL'))
-      .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
-      .setParameter('userId', userId);
-
-    // Use getRawMany() to retrieve raw data
-
-    // **Category Filter (Applies Only If Not Null)**
-    if (category !== null && category.length > 0) {
-      res.andWhere('entertainer.category IN (:...category)', { category });
-    }
-
-    // **Sub-Category Filter**
-    if (sub_category) {
-      res.andWhere('entertainer.specific_category = :sub_category', {
-        sub_category,
-      });
-    }
-
-    // **Price Range Filter (Supports Multiple Ranges)**
-
-    if (city) {
-      res.andWhere('entertainer.city = :city', { city });
-    }
-
-    if (date) {
-      res.andWhere(
-        (qb) => {
-          return `NOT EXISTS (
-            SELECT 1 FROM booking b
-            WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
-          )`;
-        },
-        { blockedDate: date },
-      );
-    }
-
-    //  Logic for filter b/w dates (both are inclusive.)
-
-    if (startDate && endDate) {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      if (end < start) {
-        throw new BadRequestException({
-          message: 'endDate cannot be earlier than startDate',
-          status: false,
+      if (sub_category) {
+        res.andWhere('entertainer.specific_category = :sub_category', {
+          sub_category,
         });
       }
-      res.andWhere(
-        (qb) => {
-          return `NOT EXISTS (
-            SELECT 1 FROM booking b
-            WHERE b.entId = entertainer.id
-            AND b.showDate BETWEEN :startDate AND :endDate
-          )`;
+
+      if (city) {
+        res.andWhere('entertainer.city = :city', { city });
+      }
+
+      if (date) {
+        res.andWhere(
+          (qb) => {
+            return `NOT EXISTS (
+          SELECT 1 FROM booking b
+          WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
+        )`;
+          },
+          { blockedDate: date },
+        );
+      }
+
+      // Fetch total count first without pagination
+      const totalCount = await res.getCount(); // No pagination here
+
+      // Fetch paginated results
+      const results = await res
+        .orderBy('entertainer.name', 'ASC') // Use alias here
+        .skip(skip) // Apply pagination here
+        .take(Number(pageSize)) // Apply pagination here
+        .getRawMany(); // Get raw results
+
+      // Process results
+      const arr = [3, 4, 5, 2, 1]; // Example ratings logic
+
+      const entertainers = results.map(
+        ({ eid, isWishlisted, vaccinated, ...item }, index) => {
+          return {
+            eid: Number(eid),
+            ...item,
+            isWishlisted: Boolean(isWishlisted),
+            vaccination_status:
+              vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+            ratings: arr[index % arr.length], // Example for ratings
+          };
         },
-        { startDate, endDate },
       );
+
+      return {
+        message: 'Entertainers fetched successfully',
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        entertainers,
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(error.message);
     }
-
-    const totalCount = await res.getCount();
-    const results = await res
-      .orderBy('entertainer.name', 'ASC')
-      .skip(skip)
-      .take(Number(pageSize))
-      .getRawMany();
-
-    // Base Query
-    const arr = [3, 4, 5, 2, 1];
-
-    // Parse JSON fields
-    const entertainers = results.map(
-      ({ eid, isWishlisted, vaccinated, ...item }, index) => {
-        return {
-          eid: Number(eid),
-          ...item,
-          isWishlisted: Boolean(isWishlisted),
-          vaccination_status:
-            vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
-          ratings: arr[index % arr.length],
-        };
-      },
-    );
-
-    return {
-      message: 'Entertainers fetched successfully',
-      totalCount,
-      page,
-      pageSize,
-      totalPages: Math.ceil(totalCount / Number(pageSize)),
-      entertainers,
-      status: true,
-    };
   }
 
   async findAllBooking(venueId: number, query: BookingQueryDto) {
     const { page = 1, pageSize = 10, status = '' } = query;
     const skip = (Number(page) - 1) * Number(pageSize);
+
     const res = this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('entertainers', 'entertainer', 'entertainer.id= booking.entId')
@@ -573,6 +559,7 @@ export class VenueService {
         'event.recurring AS event_recurring',
         'event.startTime AS event_start_time',
         'event.endTime AS event_end_time',
+        'event.eventDate AS event_date',
         'event.description AS event_description',
       ]);
     if (status) {
@@ -650,6 +637,7 @@ export class VenueService {
       .leftJoin('cities', 'city', 'city.id = entertainer.city')
       .leftJoin('states', 'state', 'state.id = entertainer.state')
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
       .leftJoin('categories', 'category', 'category.id = entertainer.category')
       .leftJoin(
         'wishlist',
@@ -688,8 +676,13 @@ export class VenueService {
         'category.name AS category_name',
         'subcat.name AS specific_category_name',
         'entertainer.performanceRole AS performanceRole',
-        'entertainer.availability AS availability',
         'entertainer.pricePerEvent AS pricePerEvent',
+        'entertainer.contact_person AS contactPerson',
+        'entertainer.contact_number AS contactNumber',
+        'state.name AS stateName',
+        'country.name AS countryName',
+        'city.name AS cityName',
+        'code.StateCode AS stateCode',
 
         `CASE 
        WHEN entertainer.services IS NULL OR entertainer.services = '' 
@@ -719,7 +712,7 @@ export class VenueService {
         isWishlisted: Boolean(isWishlisted),
         vaccination_status:
           vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
-        services: JSON.parse(services),
+        services: services ? services.split(',') : [],
         media: JSON.parse(media),
       },
       status: true,
@@ -972,6 +965,7 @@ export class VenueService {
     return {
       message: 'Neighbourhood fetched successfully',
       data: res,
+      totalCount: res.length,
       status: true,
     };
   }
@@ -1019,14 +1013,13 @@ export class VenueService {
         .select([
           'event.id AS event_id',
           'event.title AS title',
+          'event.slug AS slug',
           'event.location AS location',
           'event.eventDate AS eventDate',
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
-          'event.recurring AS recurring',
           'event.status AS status',
-          'event.isAdmin AS isAdmin',
         ])
         .orderBy('event.eventDate', 'ASC');
 

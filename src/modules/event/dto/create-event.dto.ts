@@ -48,7 +48,7 @@ export class CreateEventDto {
   description: string;
 
   @ApiProperty({ description: 'Description of event' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
   neighbourhoodId: number;
 }

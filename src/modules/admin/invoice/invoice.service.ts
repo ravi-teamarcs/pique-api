@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -245,7 +246,6 @@ export class InvoiceService {
 
   // send Invoice
   async sendInvoice(id: number) {
-    console.log('send invoice called');
     const invoice = await this.invoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
@@ -311,6 +311,9 @@ export class InvoiceService {
       console.log('Email sent successfully', emailPayload);
       return { message: 'Invoice sent Successfully ', status: true };
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException({
         message: error.message,
         status: false,
@@ -380,54 +383,69 @@ export class InvoiceService {
   }
 
   async applyLateFee(invoiceId: number) {
-    const invoice = await this.invoiceRepository.findOne({
-      where: { id: invoiceId },
-    });
-
-    if (!invoice) {
-      throw new NotFoundException({
-        message: `Invoice with ID ${invoiceId} not found.`,
+    try {
+      const invoice = await this.invoiceRepository.findOne({
+        where: { id: invoiceId },
       });
+
+      if (!invoice) {
+        throw new NotFoundException({
+          message: `Invoice with ID ${invoiceId} not found.`,
+        });
+      }
+
+      const overdueDays = invoice.overdue || 0;
+
+      const lateFee = Number(overdueDays * 25);
+      // Add late fee to total_with_tax
+      invoice.total_with_tax += lateFee;
+
+      await this.invoiceRepository.save(invoice);
+
+      return {
+        message: 'Late fees applied Successfully.',
+        data: {
+          invoiceId: invoice.id,
+          overdueDays,
+          lateFee,
+          updatedTotal: invoice.total_with_tax,
+        },
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      throw new InternalServerErrorException(error.message);
     }
-
-    const overdueDays = invoice.overdue || 0;
-
-    const lateFee = Number(overdueDays * 25);
-    // Add late fee to total_with_tax
-    invoice.total_with_tax += lateFee;
-
-    await this.invoiceRepository.save(invoice);
-
-    return {
-      message: 'Late fees applied Successfully.',
-      data: {
-        invoiceId: invoice.id,
-        overdueDays,
-        lateFee,
-        updatedTotal: invoice.total_with_tax,
-      },
-      status: true,
-    };
   }
 
   async updateInvoiceStatus(invoiceId: number, dto: UpdateInvoiceStatus) {
     const { invAmountPaid, status, chequeNo, paymentDate } = dto;
 
-    const invoice = await this.invoiceRepository.findOne({
-      where: { id: invoiceId },
-    });
-    if (!invoice) {
-      throw new NotFoundException({
-        message: `Invoice with ID ${invoiceId} not found.`,
+    try {
+      const invoice = await this.invoiceRepository.findOne({
+        where: { id: invoiceId },
       });
+      if (!invoice) {
+        throw new NotFoundException({
+          message: `Invoice with ID ${invoiceId} not found.`,
+        });
+      }
+
+      this.invoiceRepository.update(
+        { id: invoice.id },
+        { status, chequeNo, invAmountPaid, payment_date: paymentDate },
+      );
+
+      await this.invoiceRepository.save(invoice);
+      return { message: 'Invoice returned Successfully', status: true }; // Save the updated invoice
+    } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new InternalServerErrorException(error.message);
     }
-
-    this.invoiceRepository.update(
-      { id: invoice.id },
-      { status, chequeNo, invAmountPaid, payment_date: paymentDate },
-    );
-
-    await this.invoiceRepository.save(invoice);
-    return { message: 'Invoice returned Successfully', status: true }; // Save the updated invoice
   }
 }

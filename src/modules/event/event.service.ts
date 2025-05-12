@@ -92,13 +92,12 @@ export class EventService {
     const [events, totalCount] = await this.eventRepository
       .createQueryBuilder('event')
       .where('event.venueId =:id', { id })
-      .andWhere('event.startTime > :now', { now: new Date() })
-      .orderBy('event.startTime', 'ASC')
+      .andWhere('event.eventDate > :now', { now: new Date() })
+      .orderBy('event.eventDate', 'ASC')
       .select([
         'event.id',
         'event.title',
         'event.location',
-        'event.userId',
         'event.venueId',
         'event.description',
         'event.startTime',
@@ -106,7 +105,7 @@ export class EventService {
         'event.recurring',
         'event.status',
         'event.slug',
-        'event.isAdmin',
+        'event.eventDate',
       ])
       .getManyAndCount();
     return {
@@ -128,14 +127,10 @@ export class EventService {
       });
     }
     try {
-      await this.eventRepository.remove(event);
-      return { message: 'Event deleted successfully', status: true };
+      const res = await this.eventRepository.remove(event);
+      return { message: 'Event deleted successfully', data: res, status: true };
     } catch (error) {
-      throw new InternalServerErrorException({
-        message: 'Error deleting event',
-        error: error.message,
-        status: false,
-      });
+      throw new InternalServerErrorException(error.message);
     }
   }
 

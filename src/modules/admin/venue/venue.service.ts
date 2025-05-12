@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -157,9 +158,7 @@ export class VenueService {
   }
 
   async getAllVenuesDropdown() {
-    const venues = await this.venueRepository.find({
-      where: { isParent: true },
-    });
+    const venues = await this.venueRepository.find();
     return {
       message: 'venues returned Successfully',
       records: venues,
@@ -245,7 +244,6 @@ export class VenueService {
 
   async createVenue(dto: CreateVenueRequestDto, uploadedFiles: UploadedFile[]) {
     const { createLogin, user, venue, neighbourhood } = dto;
-    console.log(dto, 'dto');
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -310,6 +308,10 @@ export class VenueService {
       };
     } catch (error) {
       await queryRunner.rollbackTransaction();
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException({
         message: error.mesage,
         status: false,
@@ -412,6 +414,9 @@ export class VenueService {
       return { message: 'Venue updated with media Sucessfully ', status: true };
     } catch (error) {
       await queryRunner.rollbackTransaction();
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException({
         message: error.message,
         status: false,
@@ -567,6 +572,8 @@ export class VenueService {
         relations: ['user'],
       });
 
+      if (!venue) throw new NotFoundException('Venue  not found');
+
       if (venue.user) {
         await this.userRepository.update({ id: venue.user.id }, { status });
       }
@@ -588,6 +595,9 @@ export class VenueService {
       this.emailService.handleSendEmail(emailPayload);
       return { message: 'Venue Status updated Successfully', status: true };
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException({
         message: error.message,
         status: false,
@@ -686,6 +696,9 @@ export class VenueService {
         status: true,
       };
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException({
         message: error.message,
         status: false,

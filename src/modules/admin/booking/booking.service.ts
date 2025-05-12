@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -120,6 +121,9 @@ export class BookingService {
         status: true,
       };
     } catch (error) {
+      if (error instanceof HttpException) {
+        throw error;
+      }
       throw new InternalServerErrorException({
         message: error.message,
         status: false,
@@ -290,9 +294,17 @@ export class BookingService {
             qb
               .select('booking_log.bookingId', 'bookingId')
               .addSelect(
-                "MAX(CASE WHEN booking_log.performedBy = 'venue' AND booking_log.status = 'confirmed' THEN booking_log.createdAt ELSE NULL END)",
+                `MAX(
+    CASE 
+      WHEN booking_log.performedBy IN ('venue', 'admin') 
+        AND booking_log.status = 'confirmed' 
+      THEN booking_log.createdAt 
+      ELSE NULL 
+    END
+  )`,
                 'venueConfirmation',
               )
+
               .from('booking_log', 'booking_log')
               .groupBy('booking_log.bookingId'),
           'log',

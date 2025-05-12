@@ -41,8 +41,8 @@ export class EventController {
   @Get()
   @Roles('findAll')
   getAllEvent(@Req() req) {
-    const id = 64;
-    return this.eventService.getAllEvents(id);
+    const { refId } = req.user;
+    return this.eventService.getAllEvents(refId);
   }
 
   @ApiOperation({ summary: 'Update an Event' })
@@ -58,11 +58,8 @@ export class EventController {
   }
   @Delete(':id')
   @Roles('findAll')
-  deleteEvent(
-    @Param('id') id: number,
-    @Req() req,
-    @Body('venueId') venueId: number,
-  ) {
-    return this.eventService.deleteEvent(venueId, Number(id));
+  deleteEvent(@Param('id', ParseIntPipe) id: number, @Req() req) {
+    const { refId } = req.user;
+    return this.eventService.deleteEvent(refId, Number(id));
   }
 }

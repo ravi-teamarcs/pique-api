@@ -334,7 +334,7 @@ export class VenueController {
   @Put()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
-  updateVenue(@Body() UpdateVenueDto: UpdateVenueDto, @Request() req) {
+  updateVenueDetails(@Body() UpdateVenueDto: UpdateVenueDto, @Request() req) {
     const { refId } = req.user;
     return this.venueService.updateVenue(refId, UpdateVenueDto);
   }
@@ -395,19 +395,6 @@ export class VenueController {
     return this.venueService.getAllEntertainersByCategory(cid);
   }
 
-  // @ApiOperation({ summary: 'Add Venue Location' })
-  // @ApiResponse({
-  //   status: 201,
-  //   description: 'Venue Location added Successfully',
-  // })
-  // @Roles('findAll')
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // @Post('/location/add')
-  // addLocation(@Body() locationDto: VenueLocationDto, @Request() req) {
-  //   const { userId } = req.user;
-  //   return this.venueService.addVenueLocation(userId, locationDto);
-  // }
-
   @ApiOperation({ summary: 'Add Entertainer to the whishlist' })
   @ApiResponse({
     status: 201,
@@ -464,6 +451,7 @@ export class VenueController {
     return this.venueService.removeFromWishlist(Number(id), refId);
   }
 
+  // Neighbourhood logic Lies here
   @Get('neighbourhoods/all')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
