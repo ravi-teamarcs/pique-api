@@ -134,8 +134,8 @@ export class InvoiceService {
     try {
       const invoices = await this.invoiceRepository
         .createQueryBuilder('invoices')
-
         .where('invoices.user_id = :userId', { userId })
+
         .select([
           'invoices.id AS id ',
           'invoices.invoice_number AS invoice_number',

@@ -32,7 +32,7 @@ import { Venue } from './entities/venue.entity';
 import { Roles } from '../auth/roles.decorator';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
-import { UpdateVenueDto } from './dto/update-venue.dto';
+import { UpdateVenueDto, UpdateVenueRequest } from './dto/update-venue.dto';
 import { BookingService } from '../booking/booking.service';
 import { CreateBookingDto } from '../booking/dto/create-booking.dto';
 import { ResponseDto } from '../booking/dto/booking-response-dto';
@@ -334,8 +334,28 @@ export class VenueController {
   @Put()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
-  updateVenueDetails(@Body() UpdateVenueDto: UpdateVenueDto, @Request() req) {
+  @UseInterceptors(AnyFilesInterceptor())
+  async updateVenueDetails(
+    @Body() UpdateVenueRequest,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+    @Req() req,
+  ) {
     const { refId } = req.user;
+
+    let uploadedFiles: UploadedFile[] = [];
+    if (files && files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file);
+          const type = getFileType(file.mimetype); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type,
+          };
+        }),
+      );
+    }
     return this.venueService.updateVenue(refId, UpdateVenueDto);
   }
 

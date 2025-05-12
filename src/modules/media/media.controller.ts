@@ -37,16 +37,17 @@ import { UploadedFile } from 'src/common/types/media.type';
 import { UploadMedia } from './dto/upload-media.dto';
 import { Roles } from '../auth/roles.decorator';
 import { ReturnDocument } from 'typeorm';
+import { RolesGuard } from '../auth/roles.guard';
 
 @ApiTags('Media')
 @Controller('media')
-@UseGuards(JwtAuthGuard)
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
   @ApiOperation({ summary: 'Upload User Multimedia' })
   @ApiResponse({ status: 201, description: 'Media uploaded successfully.' })
   @Post('uploads')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
@@ -103,6 +104,7 @@ export class MediaController {
   }
 
   @Get('uploads')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Get all the multimedia of the logged in User.',
   })
@@ -117,8 +119,9 @@ export class MediaController {
     return await this.mediaService.findById(id);
   }
 
-  @Roles('findAll')
   @Put(':mediaId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
@@ -174,8 +177,9 @@ export class MediaController {
     return this.mediaService.updateMedia(Number(mediaId), uploadedFile);
   }
 
-  @Roles('findAll')
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
   removeMedia(@Param('id') id: number) {
     return this.mediaService.removeMedia(Number(id));
   }

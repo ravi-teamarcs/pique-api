@@ -55,4 +55,12 @@ export class CreateVenueDto {
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))
   country: number;
+
+  @IsString()
+  @IsNotEmpty()
+  contactPerson: string;
+
+  @IsString()
+  @IsNotEmpty()
+  contactNumber: string;
 }

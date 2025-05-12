@@ -185,7 +185,7 @@ export class EntertainerController {
     return this.EntertainerService.categorybyId(id);
   }
 
-  @Get('maincategory')
+  @Get('maincategory/all')
   async getMainCategory(@Req() req) {
     return await this.EntertainerService.getMainCategory();
   }
