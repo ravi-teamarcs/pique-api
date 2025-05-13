@@ -113,7 +113,7 @@ export class VenueService {
 
   async updateVenueAddress(userId: number, dto: AddressDto) {
     try {
-      const venue = await this.venueRepository.findOneOrFail({
+      const venue = await this.venueRepository.findOne({
         where: {
           user: { id: userId },
           isProfileComplete: false,
@@ -153,12 +153,6 @@ export class VenueService {
       throw new NotFoundException('Venue not found');
     }
     try {
-      // const neighbourhood = this.neighbourRepository.create({
-      //   ...dto,
-      //   venueId: venue.id,
-      // });
-      // await this.neighbourRepository.save(neighbourhood);
-      // update other data
       await this.venueRepository.update(
         { id: venue.id },
         { ...dto, isProfileComplete: false, profileStep: 3 },
@@ -271,7 +265,7 @@ export class VenueService {
         where: { user: { id: userId } },
       });
       return {
-        message: 'Details updates sucessfully',
+        message: 'Details updated sucessfully',
         data: updatedVenue,
         status: true,
       };
@@ -303,7 +297,6 @@ export class VenueService {
       return {
         message: 'Contact details updated Successfully',
         data: dto,
-
         status: true,
       };
     } catch (error) {

@@ -27,12 +27,15 @@ import { EmailService } from 'src/modules/Email/email.service';
 import { Booking } from '../booking/entities/booking.entity';
 import { format, sub } from 'date-fns';
 import { BookingLog } from '../booking/entities/booking-log.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
 
 @Injectable()
 export class VenueService {
   constructor(
     @InjectRepository(Venue)
     private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(Entertainer)
+    private readonly entRepository: Repository<Entertainer>,
     @InjectRepository(Neighbourhood)
     private readonly neighbourRepository: Repository<Neighbourhood>,
     @InjectRepository(Booking)
@@ -688,6 +691,8 @@ export class VenueService {
         updatedBookings.push(bookingId);
       }
 
+      // Add Logic
+
       return {
         message: 'Booking status updated successfully',
         data: updatedBookings,
@@ -703,4 +708,51 @@ export class VenueService {
       });
     }
   }
+
+  // private async notSelectedforEvent(eventId: number) {
+  //   const confirmedBookings = [1, 2, 3, 4, 5];
+
+  //   const bookings = await this.bookingRepository
+  //     .createQueryBuilder('booking')
+  //     .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
+  //     .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+  //     .leftJoin('users', 'user', 'user.id = entertainer.userId')
+  //     .select([
+  //       'booking.id AS id',
+  //       'entertainer.entertainer_name AS entertainerName',
+  //       'user.email AS email',
+  //     ])
+  //     .getRawMany();
+
+  //   if (bookings && bookings.length > 0) {
+  //     const rejectedRequest = bookings.filter(
+  //       (item) => !confirmedBookings.includes(item.id),
+  //     );
+
+  //     for (const req of rejectedRequest) {
+  //       // if (entertainer.user) {
+  //       //   const emailPayload = {
+  //       //     to: entertainer.user.email,
+  //       //     subject: `Status Update for Your Booking Request`,
+  //       //     templateName: 'courtsey-message.html',
+  //       //     replacements: {
+  //       //       entertainerName: 'Dummy',
+  //       //       eventName: '',
+  //       //       eventDate: '',
+  //       //     },
+  //       //   };
+
+  //         // await this.emailService.handleSendEmail(emailPayload);
+
+  //         this.notifyService.sendPush(
+  //           {
+  //             title: 'Status Update for Your Booking Request',
+  //             body: `venue has ${status} the booking request.`,
+  //             type: 'booking_response',
+  //           },
+  //           req.entId,
+  //         );
+  //       }
+  //     }
+  //   }
 }

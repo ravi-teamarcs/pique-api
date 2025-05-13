@@ -1,20 +1,19 @@
 // dto/update-venue-booking-status.dto.ts
 import {
-    IsArray,
-    IsIn,
-    IsString,
-    ArrayNotEmpty,
-    IsNumber,
-  } from 'class-validator';
-  
-  export class UpdateBookingStatusDto {
-    @IsArray()
-    @ArrayNotEmpty()
-    @IsNumber({}, { each: true })
-    bookingIds: number[];
-  
-    @IsString()
-    @IsIn(['cancelled', 'confirmed'])
-    status: 'cancelled' | 'confirmed';
-  }
-  
+  IsArray,
+  IsIn,
+  IsString,
+  ArrayNotEmpty,
+  IsNumber,
+} from 'class-validator';
+
+export class UpdateBookingStatusDto {
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsNumber({}, { each: true })
+  bookingIds: number[];
+
+  @IsString()
+  @IsIn(['cancelled', 'confirmed'])
+  status: 'cancelled' | 'confirmed';
+}
