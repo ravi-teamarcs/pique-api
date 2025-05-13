@@ -445,4 +445,22 @@ export class VenueController {
     const { refId } = req.user;
     return this.venueService.getEventDetailsByMonth(refId, query);
   }
+
+  @Get('entertainer/:id/performance-history')
+  @UseGuards(JwtAuthGuard)
+  // @Roles('findAll')
+  entertainerPerformanceHistoryOnVenue(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() req,
+    @Query('page') page?: number,
+    @Query('pageSize') pageSize?: number,
+  ) {
+    const { refId } = req.user;
+    return this.venueService.entertainerPerformanceHistoryOnVenue(
+      id,
+      refId,
+      page,
+      pageSize,
+    );
+  }
 }

@@ -1282,5 +1282,44 @@ export class VenueService {
     }
   }
 
-  async entertainerPerformanceHistoryOnVenue(dto) {}
+  async entertainerPerformanceHistoryOnVenue(
+    id: number,
+    venueId: number,
+    page: number = 1,
+    pageSize: number = 10,
+  ) {
+    try {
+      const skip = (Number(page) - 1) * Number(pageSize);
+      const take = Number(pageSize);
+      const currentDate = new Date();
+      const history = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .select([
+          'booking.id AS id ',
+          'booking.showDate AS showDate',
+          'booking.showTime AS showTime',
+        ])
+        .where(
+          'booking.entId =:id AND booking.venueId =:venueId AND booking.status="confirmed"',
+          {
+            id,
+            venueId,
+          },
+        )
+        .andWhere('booking.showDate < :currentDate', { currentDate })
+        .andWhere('event.status = "completed"')
+        .orderBy('booking.showDate', 'DESC')
+        .offset(skip)
+        .limit(take)
+        .getRawMany();
+      return {
+        message: 'Entertainer Performance history fetched Successfully',
+        data: history,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
 }
