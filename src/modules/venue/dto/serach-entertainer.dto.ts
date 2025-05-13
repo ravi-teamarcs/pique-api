@@ -55,11 +55,10 @@ export class SearchEntertainerDto {
   @Transform(({ value }) => Number(value))
   pageSize: number;
 
-  @ApiProperty({ description: 'city code', required: false })
+  @ApiProperty({ description: 'state,123', required: false })
   @IsOptional()
-  @IsNumber()
-  @Transform(({ value }) => Number(value))
-  city: number;
+  @IsString()
+  location: string;
   @ApiProperty({ description: 'Country Id', required: false })
   @IsOptional()
   @IsNumber()

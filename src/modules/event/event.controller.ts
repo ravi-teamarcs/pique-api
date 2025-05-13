@@ -7,6 +7,8 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
+  Request,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -61,5 +63,18 @@ export class EventController {
   deleteEvent(@Param('id', ParseIntPipe) id: number, @Req() req) {
     const { refId } = req.user;
     return this.eventService.deleteEvent(refId, Number(id));
+  }
+
+  // event.controller.ts
+  @Put(':id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll') // adjust roles based on access level
+  async updateEventStatus(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('status') status,
+    @Req() req,
+  ) {
+    const { refId } = req.user; // assuming role is available in JWT
+    return this.eventService.updateEventStatus(id, refId, status);
   }
 }

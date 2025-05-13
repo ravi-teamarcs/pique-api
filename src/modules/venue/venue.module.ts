@@ -21,6 +21,8 @@ import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.
 import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
 import { NotificationModule } from '../notification/notification.module';
 import { Neighbourhood } from './entities/neighbourhood.entity';
+import { Cities } from '../location/entities/city.entity';
+import { States } from '../location/entities/state.entity';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { Neighbourhood } from './entities/neighbourhood.entity';
       Wishlist,
       VenueDetails,
       Neighbourhood,
+      Cities,
+      States,
     ]),
     BookingModule,
     MediaModule,

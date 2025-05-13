@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -170,5 +171,25 @@ export class EventService {
     const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName}/${name} in ${city},${stateCode}`;
 
     return slug;
+  }
+
+  // event.service.ts
+  async updateEventStatus(eventId: number, venueId: number, status) {
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId, venueId },
+    });
+
+    if (!event) {
+      throw new NotFoundException('Event not found');
+    }
+    try {
+      await this.eventRepository.update({ id: event.id }, { status });
+      return {
+        message: `Event with ${eventId} updated Successfully`,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }

@@ -448,7 +448,7 @@ export class VenueController {
 
   @Get('entertainer/:id/performance-history')
   @UseGuards(JwtAuthGuard)
-  // @Roles('findAll')
+  @Roles('findAll')
   entertainerPerformanceHistoryOnVenue(
     @Param('id', ParseIntPipe) id: number,
     @Request() req,
@@ -463,4 +463,7 @@ export class VenueController {
       pageSize,
     );
   }
+
+  // location.service.ts
+  // location.controller.ts
 }

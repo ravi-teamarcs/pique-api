@@ -47,6 +47,7 @@ import { UpdateAddressDto } from './dto/update-address.dto';
 import { CreateNeighbourhoodDto } from './dto/create-neighbourhood.dto';
 import { UpdateNeighbourhoodDto } from './dto/update-neighbourhood.dto';
 import { EventsByMonthDto } from '../entertainer/dto/get-events-bymonth.dto';
+import { Cities } from '../location/entities/city.entity';
 
 @Injectable()
 export class VenueService {
@@ -67,6 +68,10 @@ export class VenueService {
     private readonly wishRepository: Repository<Wishlist>,
     @InjectRepository(Neighbourhood)
     private readonly neighbourRepository: Repository<Neighbourhood>,
+    @InjectRepository(Neighbourhood)
+    private readonly stateRepository: Repository<Neighbourhood>,
+    @InjectRepository(Cities)
+    private readonly cityRepository: Repository<Cities>,
 
     private readonly config: ConfigService,
     private readonly mediaService: MediaService,
@@ -531,7 +536,7 @@ export class VenueService {
       sub_category = null,
       page = 1,
       pageSize = 10,
-      city = null,
+      location = null,
       date = '',
       startDate,
       endDate,
@@ -589,8 +594,19 @@ export class VenueService {
         });
       }
 
-      if (city) {
-        baseQuery.andWhere('entertainer.city = :city', { city });
+      if (location) {
+        const [type, idStr] = location.split(',');
+        const locationId = parseInt(idStr, 10);
+
+        if (type === 'city') {
+          baseQuery.andWhere('entertainer.city = :locationId', {
+            locationId,
+          });
+        } else if (type === 'state') {
+          baseQuery.andWhere('entertainer.state = :locationId', {
+            locationId,
+          });
+        }
       }
 
       if (date) {
