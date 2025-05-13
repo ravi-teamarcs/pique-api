@@ -177,15 +177,8 @@ export class VenueService {
   async uploadVenueMedia(userId: number, uploadedFiles: UploadedFile[]) {
     try {
       const venue = await this.venueRepository.findOneOrFail({
-        where: { user: { id: userId }, isProfileComplete: false },
+        where: { user: { id: userId } },
       });
-
-      if (venue.profileStep !== 3) {
-        throw new BadRequestException({
-          message: 'You must complete step 3 before proceeding.',
-          status: true,
-        });
-      }
 
       const { data } = await this.mediaService.handleMediaUpload(
         venue.id,
