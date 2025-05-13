@@ -6,6 +6,8 @@ import {
   Param,
   Request,
   UseGuards,
+  Query,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { AvailabilityService } from './availability.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -18,17 +20,12 @@ import { CreateEntertainerAvailabilityDto } from './dto/entertainer-availability
 export class AvailabilityController {
   constructor(private availabilityService: AvailabilityService) {}
 
-  @UseGuards(JwtAuthGuard)
-  @Roles('findAll')
-  @Post('create')
-  async create(@Body() dto: CreateEntertainerAvailabilityDto, @Request() req) {
-    const { refId } = req.user;
-    dto.entertainer_id = refId;
-    return this.availabilityService.create(dto);
-  }
-
-  @Get('get/:entertainer_id')
-  async getByEntertainerId(@Param('entertainer_id') id: number) {
-    return this.availabilityService.findByEntertainerId(+id);
+  @Get('/:id')
+  async getEntertainerAvailability(
+    @Param('id', ParseIntPipe) id: number,
+    @Query('year', ParseIntPipe) year: number,
+    @Query('month', ParseIntPipe) month: number,
+  ) {
+    return this.availabilityService.getEntertainerAvailability(id, year, month);
   }
 }

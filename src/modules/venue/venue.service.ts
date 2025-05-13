@@ -1281,4 +1281,6 @@ export class VenueService {
       });
     }
   }
+
+  async entertainerPerformanceHistoryOnVenue(dto) {}
 }

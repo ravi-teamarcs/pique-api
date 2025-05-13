@@ -204,4 +204,9 @@ export class VenueController {
   updateBookingStatus(@Body() dto: UpdateBookingStatusDto) {
     return this.venueService.updateBookingStatus(dto);
   }
+
+  @Get('entertainer/:id/performance-history')
+  entertainerPerformanceHistoryOnVenue(id: number) {
+    // return this.venueService.entertainerPerformanceHistoryOnVenue();
+  }
 }

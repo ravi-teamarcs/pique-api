@@ -1,40 +1,33 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-
 import { ConfigService } from '@nestjs/config';
-import { UnavailableDate } from './entities/unavailable.entity';
 import { EntertainerAvailability } from './entities/availability.entity';
-import { CreateEntertainerAvailabilityDto } from './dto/entertainer-availability-dto';
 
 @Injectable()
 export class AvailabilityService {
   constructor(
     @InjectRepository(EntertainerAvailability)
-    private readonly EntertainerAvailability: Repository<EntertainerAvailability>,
-    @InjectRepository(UnavailableDate)
-    private readonly unavailabilityRepo: Repository<UnavailableDate>,
+    private readonly availabilityRepository: Repository<EntertainerAvailability>,
     private readonly config: ConfigService,
   ) {}
 
-  async create(dto: CreateEntertainerAvailabilityDto) {
-    const availability = this.EntertainerAvailability.create(dto);
-    const savedAvailability =
-      await this.EntertainerAvailability.save(availability);
-    return {
-      message: 'Availability Saved Successfully',
-      status: true,
-      data: savedAvailability,
-    };
-  }
-  async findByEntertainerId(entertainer_id: number) {
-    const availability = await this.EntertainerAvailability.find({
-      where: { entertainer_id },
-    });
-    return {
-      message: 'Availability fetched Successfully',
-      status: true,
-      data: availability,
-    };
+  async getEntertainerAvailability(id: number, year: number, month: number) {
+    try {
+      const availability = await this.availabilityRepository.findOne({
+        where: { entertainer_id: id, year, month },
+      });
+
+      return {
+        message: 'Entertainer Availability returned Successfully',
+        data: availability,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
   }
 }
