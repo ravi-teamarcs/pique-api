@@ -314,6 +314,7 @@ export class VenueService {
               'media.user_id AS media_user_id', // expose user_id
               `JSON_ARRAYAGG(
               JSON_OBJECT(
+                "id",media.id,
                 "url", CONCAT(:serverUri, media.url),
                 "type", media.type
               )
