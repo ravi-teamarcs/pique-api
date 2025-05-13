@@ -178,7 +178,7 @@ export class MediaController {
   }
 
   @Delete(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard)
   @Roles('findAll')
   removeMedia(@Param('id') id: number) {
     return this.mediaService.removeMedia(Number(id));
