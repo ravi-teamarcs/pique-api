@@ -78,4 +78,8 @@ export class SearchEntertainerDto {
   @IsOptional()
   @IsString()
   endDate: string;
+
+  @IsOptional()
+  @IsString()
+  vaccinated: 'yes' | 'no';
 }

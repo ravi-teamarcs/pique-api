@@ -542,6 +542,7 @@ export class VenueService {
       date = '',
       startDate,
       endDate,
+      vaccinated,
     } = query;
 
     // Pagination
@@ -590,9 +591,9 @@ export class VenueService {
         });
       }
 
-      if (sub_category) {
-        baseQuery.andWhere('entertainer.specific_category = :sub_category', {
-          sub_category,
+      if (vaccinated) {
+        baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+          vaccinated,
         });
       }
 
