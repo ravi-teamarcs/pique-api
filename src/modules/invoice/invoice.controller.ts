@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   Post,
   Request,
   UseGuards,
@@ -45,10 +46,15 @@ export class InvoiceController {
     status: 200,
     description: 'All Invoices fetched successfully.',
   })
-  @Roles('findAll')
   @Get()
+  @Roles('findAll')
   getAllInvoices(@Request() req) {
     const { refId } = req.user;
     return this.invoiceService.findAllInvoice(refId);
+  }
+  @Get(':id')
+  @Roles('findAll')
+  async getInvoiceById(@Param('id', ParseIntPipe) id: number) {
+    return this.invoiceService.getInvoiceById(id);
   }
 }

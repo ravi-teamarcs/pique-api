@@ -134,6 +134,7 @@ export class InvoiceService {
     try {
       const invoices = await this.invoiceRepository
         .createQueryBuilder('invoices')
+        .leftJoin('event', 'event', 'event.id = invoice.eventId')
         .where('invoices.user_id = :userId', { userId })
 
         .select([
@@ -152,6 +153,8 @@ export class InvoiceService {
           'invoices.status AS status',
           'invoices.payment_method AS payment_method',
           'invoices.payment_date AS payment_date',
+          'event.slug AS slug',
+          'event.title AS Name',
         ])
         .getRawMany(); // Use getRawMany if you're not using relations
 
@@ -337,5 +340,43 @@ export class InvoiceService {
 
     await browser.close();
     return pdfBuffer;
+  }
+
+  async getInvoiceById(invoiceId: number) {
+    try {
+      const invoice = await this.invoiceRepository
+        .createQueryBuilder('invoices')
+        .leftJoin('event', 'event', 'event.id = invoices.event_id')
+        .where('invoices.id = :invoiceId', { invoiceId })
+
+        .select([
+          'invoices.id AS id ',
+          'invoices.invoice_number AS invoice_number',
+          'invoices.user_id AS user_id',
+          'invoices.event_id AS event_id',
+          'invoices.user_type AS user_type',
+          'invoices.issue_date AS issue_date',
+          'invoices.due_date AS due_date',
+          'invoices.total_amount AS total_amount',
+
+          'invoices.tax_rate AS tax_rate',
+          'invoices.tax_amount AS tax_amount',
+          'invoices.total_with_tax AS total_with_tax',
+          'invoices.status AS status',
+          'invoices.payment_method AS payment_method',
+          'invoices.payment_date AS payment_date',
+          'event.slug AS slug',
+          'event.title AS eventName',
+        ])
+        .getRawOne(); // Use getRawMany if you're not using relations
+
+      return {
+        message: 'Invoice returned Successfully',
+        status: true,
+        data: invoice,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({ message: error.message });
+    }
   }
 }
