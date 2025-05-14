@@ -66,6 +66,8 @@ export class VenueService {
     private readonly catRepository: Repository<Category>,
     @InjectRepository(Wishlist)
     private readonly wishRepository: Repository<Wishlist>,
+    @InjectRepository(VenueEvent)
+    private readonly eventRepository: Repository<VenueEvent>,
     @InjectRepository(Neighbourhood)
     private readonly neighbourRepository: Repository<Neighbourhood>,
     @InjectRepository(Neighbourhood)
@@ -1255,10 +1257,9 @@ export class VenueService {
     const skip = (page - 1) * pageSize;
 
     try {
-      const qb = this.bookingRepository
-        .createQueryBuilder('booking')
-        .innerJoin('event', 'event', 'event.id = booking.eventId')
-        .where('booking.venueId = :venueId', { venueId })
+      const qb = this.eventRepository
+        .createQueryBuilder('event')
+        .where('event.venueId = :venueId', { venueId })
         .andWhere('YEAR(event.eventDate) = :year', { year })
         .andWhere('MONTH(event.eventDate) = :month', { month })
         .select([

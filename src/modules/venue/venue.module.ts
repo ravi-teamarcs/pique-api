@@ -24,6 +24,7 @@ import { Neighbourhood } from './entities/neighbourhood.entity';
 import { Cities } from '../location/entities/city.entity';
 import { States } from '../location/entities/state.entity';
 import { EntertainerModule } from '../entertainer/entertainer.module';
+import { VenueEvent } from '../event/entities/event.entity';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { EntertainerModule } from '../entertainer/entertainer.module';
       Neighbourhood,
       Cities,
       States,
+      VenueEvent,
     ]),
     BookingModule,
     MediaModule,
