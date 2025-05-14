@@ -72,19 +72,22 @@ export class LocationService {
   // location.service.ts
   async searchCityAndState(query: string) {
     try {
-      const likeQuery = `%${query.toLowerCase()}%`; // Convert query to lowercase for case-insensitivity
+      const likeQuery = `%${query.toLowerCase()}%`; // lowercase for case-insensitive
 
       const [cities, states] = await Promise.all([
         this.cityRepository
           .createQueryBuilder('city')
-          .where('LOWER(city.name) LIKE :query', { query: likeQuery }) // Use LOWER() for case-insensitive search
+          .leftJoin('states', 'state', 'city.state_id = state.id')
+          .where('LOWER(city.name) LIKE :query', { query: likeQuery })
+          .andWhere('state.country_id = :countryId', { countryId: 231 }) // USA
           .select(['city.id', 'city.name'])
           .limit(5)
-          .getMany(),
+          .getMany(), // Use getMany() instead of getRawMany() for simplicity
 
         this.stateRepository
           .createQueryBuilder('state')
-          .where('LOWER(state.name) LIKE :query', { query: likeQuery }) // Same here for states
+          .where('LOWER(state.name) LIKE :query', { query: likeQuery })
+          .andWhere('state.country_id = :countryId', { countryId: 231 })
           .select(['state.id', 'state.name'])
           .limit(5)
           .getMany(),
@@ -103,7 +106,7 @@ export class LocationService {
       }));
 
       return {
-        message: 'Location fetched Successfully',
+        message: 'Location fetched successfully',
         data: [...cityResults, ...stateResults],
         status: true,
       };

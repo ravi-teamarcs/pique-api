@@ -23,6 +23,7 @@ import { NotificationModule } from '../notification/notification.module';
 import { Neighbourhood } from './entities/neighbourhood.entity';
 import { Cities } from '../location/entities/city.entity';
 import { States } from '../location/entities/state.entity';
+import { EntertainerModule } from '../entertainer/entertainer.module';
 
 @Module({
   imports: [

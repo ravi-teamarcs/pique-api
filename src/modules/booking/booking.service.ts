@@ -20,6 +20,8 @@ import { NotificationService } from '../notification/notification.service';
 import { format } from 'date-fns';
 import { GoogleCalendarServices } from '../google-calendar/google-calendar.service';
 import { BookingCalendarSync } from './entities/booking-sync.entity';
+import { AvailabilityService } from '../entertainer/availability.service';
+import { EntertainerAvailability } from '../entertainer/entities/availability.entity';
 
 @Injectable()
 export class BookingService {
@@ -34,6 +36,8 @@ export class BookingService {
     private readonly logRepository: Repository<BookingLog>,
     @InjectRepository(BookingLog)
     private readonly syncRepository: Repository<BookingCalendarSync>,
+    @InjectRepository(EntertainerAvailability)
+    private readonly availabilityRepository: Repository<EntertainerAvailability>,
     @InjectRepository(Entertainer)
     private readonly entRepository: Repository<Entertainer>,
     private readonly emailService: EmailService,
@@ -52,9 +56,15 @@ export class BookingService {
       throw new BadRequestException({
         message: 'Booking for event  already exists for this entertainer',
       });
+    // Check for Availability
+    const available = await this.checkAvailability(entertainerId, dto.showDate);
+
+    if (!available)
+      throw new BadRequestException(
+        'Entertainer is not Available on requested date.',
+      );
 
     // Create the booking
-
     const newBooking = this.bookingRepository.create({
       ...bookingData,
       venueId: venueId,
@@ -546,5 +556,28 @@ export class BookingService {
         status: false,
       });
     }
+  }
+
+  async checkAvailability(
+    entertainerId: number,
+    showDate: string,
+  ): Promise<boolean> {
+    const date = new Date(showDate);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const weekday = date.getDay();
+
+    const availability = await this.availabilityRepository.findOne({
+      where: { entertainer_id: entertainerId, year, month },
+    });
+
+    if (!availability) return true; // If not set, assume available
+
+    const isUnavailable = availability.unavailable_dates.includes(showDate);
+    const isOverride = availability.available_dates.includes(showDate);
+    const isWeekdayBlocked =
+      availability.unavailable_weekdays.includes(weekday);
+
+    return !isUnavailable && (!isWeekdayBlocked || isOverride);
   }
 }
