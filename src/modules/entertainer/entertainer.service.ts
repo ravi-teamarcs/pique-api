@@ -410,7 +410,7 @@ export class EntertainerService {
   async updateBasicDetails(dto: UpdateStep1Dto, userId: number) {
     const { step, ...rest } = dto;
     try {
-      this.entertainerRepository.update({ user: { id: userId } }, rest);
+     await this.entertainerRepository.update({ user: { id: userId } }, rest);
       return {
         message: 'Entertainer primary details updated successfully',
         status: true,
