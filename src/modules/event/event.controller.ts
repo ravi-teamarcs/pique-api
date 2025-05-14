@@ -47,6 +47,13 @@ export class EventController {
     return this.eventService.getAllEvents(refId);
   }
 
+  @Get(':id')
+  @Roles('findAll')
+  getEventById(@Req() req, @Param('id') id: number) {
+    const { refId } = req.user;
+    return this.eventService.getEventById(id, refId);
+  }
+
   @ApiOperation({ summary: 'Update an Event' })
   @ApiResponse({
     status: 200,

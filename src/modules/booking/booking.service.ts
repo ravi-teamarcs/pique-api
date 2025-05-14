@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -579,5 +580,49 @@ export class BookingService {
       availability.unavailable_weekdays.includes(weekday);
 
     return !isUnavailable && (!isWeekdayBlocked || isOverride);
+  }
+
+  async entertainerBookingDetailsByEvent(eventId: number, refId: number) {
+    try {
+      const bookingDetails = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin(
+          'entertainers',
+          'entertainer',
+          'entertainer.id = booking.entId',
+        )
+        .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
+        .leftJoin(
+          'categories',
+          'subcat',
+          'subcat.id = entertainer.specific_category',
+        )
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .select([
+          'booking.id',
+          'booking.showDate',
+          'booking.showTime',
+          'entertainer.name AS satge_name',
+          'entertainer.entertainer_name',
+          'subcat.name',
+          'cat.name',
+          'state.name',
+          'city.name',
+        ])
+        .where('booking.eventId = :eventId AND booking.venueId = :venueId', {
+          eventId,
+          venueId: refId,
+        })
+        .getRawMany();
+      return {
+        message: 'Details returned successfully',
+        status: true,
+        data: bookingDetails,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }

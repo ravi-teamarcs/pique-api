@@ -15,6 +15,7 @@ import { EmailModule } from '../Email/email.module';
 import { NotificationModule } from '../notification/notification.module';
 import { GoogleCalendarModule } from '../google-calendar/google-calendar.module';
 import { Event } from '../admin/events/entities/event.entity';
+import { EntertainerAvailability } from '../entertainer/entities/availability.entity';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { Event } from '../admin/events/entities/event.entity';
       BookingLog,
       User,
       Entertainer,
+      EntertainerAvailability,
       Event,
     ]),
     EmailModule,

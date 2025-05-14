@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -191,5 +192,13 @@ export class EventService {
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
+  }
+
+  async getEventById(id: number, venueId: number) {
+    const event = await this.eventRepository.findOne({
+      where: { id, venueId },
+    });
+    if (!event) throw new BadRequestException('Event not found');
+    return { message: 'Event returned Succesfully', status: true, data: event };
   }
 }
