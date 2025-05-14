@@ -408,9 +408,14 @@ export class EntertainerService {
   // Update Logic Lies Here
 
   async updateBasicDetails(dto: UpdateStep1Dto, userId: number) {
-    const { step, ...rest } = dto;
+    const { step, stageName, ...rest } = dto;
+    let newPayload = { ...rest };
+    if (stageName) newPayload['name'] = stageName;
     try {
-     await this.entertainerRepository.update({ user: { id: userId } }, rest);
+      await this.entertainerRepository.update(
+        { user: { id: userId } },
+        newPayload,
+      );
       return {
         message: 'Entertainer primary details updated successfully',
         status: true,
