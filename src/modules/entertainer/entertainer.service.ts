@@ -671,6 +671,71 @@ export class EntertainerService {
       });
     }
   }
+  async findEntertainerById(userId: number) {
+    const URL = this.config.get<string>('DEFAULT_MEDIA');
+    try {
+      const entertainer = await this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('users', 'user', 'user.id = entertainer.userId')
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin('categories', 'cat', 'cat.id = entertainer.category ')
+        .leftJoin(
+          'categories',
+          'subcat',
+          'subcat.id = entertainer.specific_category ',
+        )
+        .where('entertainer.id = :userId', { userId })
+        .select([
+          'user.id AS uid',
+          'entertainer.name AS stageName',
+          'user.name AS name',
+          'user.email AS email',
+          'user.phoneNumber AS phoneNumber',
+          'user.role AS role',
+          'city.name AS city',
+          'country.name AS country',
+          'state.name AS state',
+          'cat.name AS category_name',
+          'subcat.name AS specific_category_name',
+          'entertainer.bio AS bio',
+          'entertainer.pricePerEvent AS pricePerEvent',
+          'entertainer.performanceRole AS performanceRole',
+          'entertainer.city AS city',
+          'entertainer.state AS state',
+          'entertainer.country AS country',
+          'entertainer.zipCode AS zipCode',
+          'entertainer.address AS address',
+          'entertainer.services AS services',
+          'entertainer.dob AS dob',
+          'entertainer.vaccinated AS vaccinated',
+          'entertainer.socialLinks AS socialLinks',
+          'entertainer.contact_person AS contactPerson',
+          'entertainer.contact_number AS contactNumber',
+          'entertainer.category AS category',
+          'entertainer.specific_category AS specific_category',
+        ])
+        .addSelect(
+          `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM media m WHERE m.user_id= entertainer.id AND m.type = 'headshot' LIMIT 1)`,
+          'headshotUrl',
+        )
+        .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', URL)
+        .getRawOne();
+
+      return {
+        message: 'Entertainer Fetched Successfully',
+        data: entertainer ? entertainer : {},
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 
   async findOne(id: number, userId: number) {
     const entertainer = await this.entertainerRepository.findOne({

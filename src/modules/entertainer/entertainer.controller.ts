@@ -198,6 +198,14 @@ export class EntertainerController {
     return this.entertainerService.findEntertainer(refId);
   }
 
+  
+  @Get(':id')
+ 
+  @ApiOperation({ summary: 'Get details of  the logged-in user' })
+  findEntertainerById(@Param('id', ParseIntPipe) id: number) {
+    return this.entertainerService.findEntertainerById(id);
+  }
+
   @ApiOperation({ summary: 'Get  entertainers dashboard stats' })
   @ApiResponse({
     status: 200,
