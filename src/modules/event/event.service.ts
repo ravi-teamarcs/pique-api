@@ -203,14 +203,17 @@ export class EventService {
         venueId,
       })
       .select([
-        'event.id AS event_id',
-        'event.title AS event_name',
-        'event.venueId AS venue_id',
+        'event.id AS id',
+        'event.title AS title',
+        'event.description AS description',
+        'event.venueId AS venueId',
         'event.eventDate AS eventDate',
         'event.startTime AS startTime',
         'event.endTime AS endTime',
-        'hood.id AS hood_id',
-        'hood.name AS hood_name',
+        'event.slug AS slug',
+        'event.status AS status',
+        'hood.id AS neighbourhoodId',
+        'hood.name AS neighbourhoodName',
         'hood.contactPerson AS contactPerson',
         'hood.contactNumber AS contactName',
       ])
