@@ -88,12 +88,13 @@ export class EntertainerService {
         profileStep: 1,
         ...rest,
       });
-      await this.entertainerRepository.save(entertainer);
+      const savedEntertainer =
+        await this.entertainerRepository.save(entertainer);
       return {
         message: 'Entertainer primary details saved successfully',
         status: true,
         step: 1,
-        data: rest,
+        data: savedEntertainer,
         nextStep: Number('02'),
       };
     } catch (error) {
