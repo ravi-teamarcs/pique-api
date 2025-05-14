@@ -195,10 +195,35 @@ export class EventService {
   }
 
   async getEventById(id: number, venueId: number) {
-    const event = await this.eventRepository.findOne({
-      where: { id, venueId },
-    });
-    if (!event) throw new BadRequestException('Event not found');
-    return { message: 'Event returned Succesfully', status: true, data: event };
+    const event = await this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+      .where('event.id = :eventId AND event.venueId = :venueId', {
+        eventId: id,
+        venueId,
+      })
+      .select([
+        'event.id AS event_id',
+        'event.title AS event_name',
+        'event.venueId AS venue_id',
+        'event.eventDate AS eventDate',
+        'event.startTime AS startTime',
+        'event.endTime AS endTime',
+        'hood.id AS hood_id',
+        'hood.name AS hood_name',
+        'hood.contactPerson AS contactPerson',
+        'hood.contactNumber AS contactName',
+      ])
+      .getRawOne();
+
+    if (!event) {
+      throw new BadRequestException('Event not found');
+    }
+
+    return {
+      message: 'Event returned successfully',
+      status: true,
+      data: event,
+    };
   }
 }
