@@ -694,9 +694,10 @@ export class EntertainerService {
         )
         .where('entertainer.id = :userId', { userId })
         .select([
-          'user.id AS uid',
+          'entertainer.id AS id',
           'entertainer.name AS stageName',
-          'user.name AS name',
+          'entertainer.entertainer_name AS entertainerName',
+
           'user.email AS email',
           'user.phoneNumber AS phoneNumber',
           'user.role AS role',
@@ -714,7 +715,7 @@ export class EntertainerService {
           'entertainer.zipCode AS zipCode',
           'entertainer.address AS address',
           'entertainer.services AS services',
-          'entertainer.dob AS dob',
+
           'entertainer.vaccinated AS vaccinated',
           'entertainer.socialLinks AS socialLinks',
           'entertainer.contact_person AS contactPerson',
