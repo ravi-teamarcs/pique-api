@@ -506,10 +506,10 @@ export class EntertainerService {
     const { socialLinks } = dto;
 
     try {
-      // await this.entertainerRepository.update(
-      //   { user: { id: userId } },
-      //   // socialLinks,
-      // );
+      await this.entertainerRepository.update(
+        { user: { id: userId } },
+        { socialLinks: { ...socialLinks } },
+      );
       return {
         message: 'Social Links updated Successfully',
         status: true,
@@ -731,7 +731,7 @@ export class EntertainerService {
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
       const payload = {
-        socialLink: entertainer.socialLinks
+        socialLinks: entertainer.socialLinks
           ? JSON.parse(entertainer.socialLinks)
           : entertainer.socialLink,
         ...entertainer,
