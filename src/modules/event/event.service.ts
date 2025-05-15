@@ -100,8 +100,7 @@ export class EventService {
     const [events, totalCount] = await this.eventRepository
       .createQueryBuilder('event')
       .where('event.venueId =:id', { id })
-      .andWhere('event.eventDate > :now', { now: new Date() })
-      .orderBy('event.eventDate', 'ASC')
+      .orderBy('event.eventDate', 'DESC')
       .select([
         'event.id',
         'event.title',
@@ -116,6 +115,7 @@ export class EventService {
         'event.eventDate',
       ])
       .getManyAndCount();
+
     return {
       message: 'Events fetched successfully',
       count: totalCount,

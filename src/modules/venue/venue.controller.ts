@@ -373,8 +373,7 @@ export class VenueController {
     status: 200,
     description: 'Entertainer roles fetched Successfully.',
   })
-  @Roles('findAll')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard)
   @Get('entertainer/roles')
   getRoles() {
     return {
