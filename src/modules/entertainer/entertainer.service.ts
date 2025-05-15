@@ -730,10 +730,15 @@ export class EntertainerService {
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
-
+      const payload = {
+        socialLink: entertainer.socialLinks
+          ? JSON.parse(entertainer.socialLinks)
+          : entertainer.socialLink,
+        ...entertainer,
+      };
       return {
         message: 'Entertainer Fetched Successfully',
-        data: entertainer ? entertainer : {},
+        data: payload,
         status: true,
       };
     } catch (error) {
