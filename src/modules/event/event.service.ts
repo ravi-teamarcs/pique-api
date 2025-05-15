@@ -13,6 +13,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Venue } from '../venue/entities/venue.entity';
 import { format, parse } from 'date-fns';
+import { EmailService } from '../Email/email.service';
 
 @Injectable()
 export class EventService {
@@ -21,6 +22,9 @@ export class EventService {
     private readonly eventRepository: Repository<VenueEvent>,
     @InjectRepository(Venue)
     private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>,
+    private readonly emailService: EmailService,
   ) {}
 
   async createEvent(dto: CreateEventDto) {
@@ -185,6 +189,7 @@ export class EventService {
     }
     try {
       await this.eventRepository.update({ id: event.id }, { status });
+      await this.checkStatusAndSendEmail(status);
       return {
         message: `Event with ${eventId} updated Successfully`,
         status: true,
@@ -228,5 +233,40 @@ export class EventService {
       status: true,
       data: event,
     };
+  }
+
+  private async checkStatusAndSendEmail(status) {
+    if (status === 'cancelled') {
+      const bookings = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin('entertainers', 'entertainer', 'entertainer.id=booking.entId')
+        .leftJoin('users', 'user', 'user.id = entertainer.userId')
+        .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .select([
+          'user.email AS email',
+          'entertainer.name',
+          'event.slug AS slug ',
+          'event.eventDate AS eventDate',
+          'event.startTime AS startTime',
+        ])
+        .getRawMany();
+
+      for (const book of bookings) {
+        if (book.email) {
+          const emailPayload = {
+            to: book.email,
+            subject: `Event ${status}`,
+            templateName: 'cancelled-event-template.html',
+            replacements: {
+              eventName: book.slug,
+              eventDate: book.eventDate,
+              eventTime: book.startTime,
+              year: new Date().getFullYear(),
+            },
+          };
+          this.emailService.handleSendEmail(emailPayload);
+        }
+      }
+    }
   }
 }

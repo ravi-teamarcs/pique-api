@@ -465,7 +465,7 @@ export class BookingService {
     const updatedBookings = [];
     const { bookingIds, status } = dto;
     try {
-      for (const bookingId of dto.bookingIds) {
+      for (const bookingId of bookingIds) {
         const booking = await this.bookingRepository
           .createQueryBuilder('booking')
           .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
@@ -481,7 +481,7 @@ export class BookingService {
           .select([
             'booking.id AS id',
             'booking.status AS status',
-            'booking.venueId AS vid',
+            'booking.venueId AS venueId',
             'booking.showTime AS showTime',
             'booking.showDate AS showDate',
 
