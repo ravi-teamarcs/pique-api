@@ -241,17 +241,21 @@ export class EventService {
     if (status === 'cancelled') {
       const bookings = await this.bookingRepository
         .createQueryBuilder('booking')
-        .leftJoin('entertainers', 'entertainer', 'entertainer.id=booking.entId')
+        .leftJoin(
+          'entertainers',
+          'entertainer',
+          'entertainer.id = booking.entId',
+        )
         .leftJoin('users', 'user', 'user.id = entertainer.userId')
         .leftJoin('event', 'event', 'event.id = booking.eventId')
         .select([
           'user.email AS email',
-          'entertainer.name',
-          'event.slug AS slug ',
+          'entertainer.name AS entertainerName',
+          'event.slug AS slug',
           'event.eventDate AS eventDate',
           'event.startTime AS startTime',
         ])
-        .where('booking,eventId=:eventId', { eventId })
+        .where('booking.eventId = :eventId', { eventId })
         .getRawMany();
 
       for (const book of bookings) {
@@ -262,8 +266,8 @@ export class EventService {
             templateName: 'cancelled-event-template.html',
             replacements: {
               eventName: book.slug,
-              eventDate: book.eventDate,
-              eventTime: book.startTime,
+              eventDate: format(book.eventDate, 'dd MM yyyy'),
+              eventTime: format(book.startTime, 'hh:mm a'),
               year: new Date().getFullYear(),
             },
           };
