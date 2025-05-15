@@ -43,7 +43,7 @@ export class CreateEventDto {
   eventDate: string;
 
   @ApiProperty({ description: 'Description of event' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   description: string;
 

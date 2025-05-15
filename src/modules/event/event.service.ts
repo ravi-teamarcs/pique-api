@@ -68,6 +68,8 @@ export class EventService {
       const updatedEventDate = dto.eventDate ?? event.eventDate;
       let updatedStartTime = dto.startTime ?? event.startTime;
 
+      if (dto.startTime || dto.eventDate) payload['status'] = 'rescheduled';
+
       if (!(updatedStartTime instanceof Date)) {
         // Try to parse string to Date
         updatedStartTime = new Date(`1970-01-01T${updatedStartTime}`);
@@ -189,7 +191,7 @@ export class EventService {
     }
     try {
       await this.eventRepository.update({ id: event.id }, { status });
-      await this.checkStatusAndSendEmail(status);
+      await this.checkStatusAndSendEmail(status, eventId);
       return {
         message: `Event with ${eventId} updated Successfully`,
         status: true,
@@ -235,7 +237,7 @@ export class EventService {
     };
   }
 
-  private async checkStatusAndSendEmail(status) {
+  private async checkStatusAndSendEmail(status, eventId: number) {
     if (status === 'cancelled') {
       const bookings = await this.bookingRepository
         .createQueryBuilder('booking')
@@ -249,6 +251,7 @@ export class EventService {
           'event.eventDate AS eventDate',
           'event.startTime AS startTime',
         ])
+        .where('booking,eventId=:eventId', { eventId })
         .getRawMany();
 
       for (const book of bookings) {
