@@ -1260,6 +1260,7 @@ export class VenueService {
     try {
       const qb = this.eventRepository
         .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
         .where('event.venueId = :venueId', { venueId })
         .andWhere('YEAR(event.eventDate) = :year', { year })
         .andWhere('MONTH(event.eventDate) = :month', { month })
@@ -1267,7 +1268,7 @@ export class VenueService {
           'event.id AS event_id',
           'event.title AS title',
           'event.slug AS slug',
-          'event.location AS location',
+          `CONCAT(venue.addressLine1, ' ', venue.addressLine2) AS location`,
           'event.eventDate AS eventDate',
           'event.description AS description',
           'event.startTime AS startTime',
