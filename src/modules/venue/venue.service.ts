@@ -636,7 +636,7 @@ export class VenueService {
           (qb) => {
             return `NOT EXISTS (
             SELECT 1 FROM booking b
-            WHERE b.entertainerUserId = user.id
+            WHERE b.entId = .id
             AND b.showDate BETWEEN :startDate AND :endDate
           )`;
           },
