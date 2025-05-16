@@ -23,6 +23,7 @@ import { GoogleCalendarServices } from '../google-calendar/google-calendar.servi
 import { BookingCalendarSync } from './entities/booking-sync.entity';
 import { AvailabilityService } from '../entertainer/availability.service';
 import { EntertainerAvailability } from '../entertainer/entities/availability.entity';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class BookingService {
@@ -44,6 +45,7 @@ export class BookingService {
     private readonly emailService: EmailService,
     private readonly notifyService: NotificationService,
     private readonly googleCalService: GoogleCalendarServices,
+    private readonly configService: ConfigService,
   ) {}
 
   async createBooking(dto: CreateBookingDto, venueId: number) {
@@ -626,6 +628,39 @@ export class BookingService {
       };
     } catch (error) {
       if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getEntertainerDetailsPerEvent(eventId: number, refId: number) {
+    const baseUrl = this.configService.get<string>('BASE_URL');
+    try {
+      const entertainers = await this.bookingRepository
+        .createQueryBuilder('book')
+        .leftJoin('entertainers', 'ent', 'ent.id = book.entId')
+        .leftJoin('event', 'event', 'event.id = book.eventId')
+        .leftJoin(
+          'media',
+          'media',
+          'media.user_id = ent.id AND media.type ="headshot"',
+        )
+        .select([
+          'ent.name AS stageName',
+          'ent.id AS id',
+          `CONCAT(:baseUrl, IFNULL(media.url, 'default.jpg')) AS mediaUrl`,
+        ])
+        .where('book.eventId = :eventId', { eventId })
+        .andWhere('book.venueId = :refId', { refId })
+        .andWhere('event.status = :status', { status: 'completed' })
+        .setParameter('baseUrl', baseUrl)
+        .getRawMany();
+
+      return {
+        message: 'Entertainer Details based on Event',
+        data: entertainers,
+        status: true,
+      };
+    } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
   }

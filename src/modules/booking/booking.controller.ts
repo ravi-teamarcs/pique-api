@@ -54,4 +54,15 @@ export class BookingController {
     const { refId } = req.user;
     return this.bookingService.entertainerBookingDetailsByEvent(eventId, refId);
   }
+
+  @Get('entertainers/details/:eventId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async getDetailsBasedonEvent(
+    @Param('eventId', ParseIntPipe) eventId: number,
+    @Request() req,
+  ) {
+    const { refId } = req.user;
+    return this.bookingService.getEntertainerDetailsPerEvent(eventId, refId);
+  }
 }

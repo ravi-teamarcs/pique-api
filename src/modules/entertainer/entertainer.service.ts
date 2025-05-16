@@ -1269,7 +1269,7 @@ export class EntertainerService {
           'event.id AS event_id',
           'event.title AS title',
           'event.location AS location',
-
+          'event.slug AS slug',
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
@@ -1355,6 +1355,7 @@ export class EntertainerService {
           'event.endTime AS endTime',
           'event.recurring AS recurring',
           'event.status AS status',
+          'event.slug AS slug',
           'event.isAdmin AS isAdmin',
         ])
         .orderBy('event.eventDate', 'ASC');
