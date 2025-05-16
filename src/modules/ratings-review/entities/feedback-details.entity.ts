@@ -11,15 +11,15 @@ export class FeedbackAnswerDetail {
   @PrimaryGeneratedColumn('increment')
   id: number;
 
-  @Column()
-  feedback_id: number;
+  @Column({ name: 'feedback_id' })
+  feedbackId: number;
 
-  @Column()
-  question_id: number;
+  @Column({ name: 'question_id' })
+  questionId: number;
 
-  @Column({ nullable: true })
-  option_id: number;
+  @Column({ name: 'option_id', nullable: true })
+  optionId: number;
 
-  @Column({ type: 'text', nullable: true })
-  answer_text: string;
+  @Column({ name: 'answer_text', type: 'text', nullable: true })
+  answerText: string;
 }

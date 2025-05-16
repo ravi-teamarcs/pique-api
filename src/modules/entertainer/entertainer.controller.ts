@@ -198,9 +198,7 @@ export class EntertainerController {
     return this.entertainerService.findEntertainer(refId);
   }
 
-  
   @Get(':id')
- 
   @ApiOperation({ summary: 'Get details of  the logged-in user' })
   findEntertainerById(@Param('id', ParseIntPipe) id: number) {
     return this.entertainerService.findEntertainerById(id);
@@ -211,7 +209,7 @@ export class EntertainerController {
     status: 200,
     description: 'Entertainer Dashboard statistics returned Successfully',
   })
-  @Get('dashboard')
+  @Get('dashboard/stats')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getdashboardStats(@Request() req, @Query() query: DashboardDto) {

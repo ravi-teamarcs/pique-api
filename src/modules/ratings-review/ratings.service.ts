@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectEntityManager, InjectRepository } from '@nestjs/typeorm';
 import { FeedbackQuestion } from './entities/feedback-question.entity';
-import { In, Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { FeedbackAnswer } from './entities/feedback.entity';
 import { CreateFeedbackDto } from './dto/feedback.dto';
 import { FeedbackOption } from './entities/feedback-answer.entity';
@@ -16,8 +16,9 @@ export class RatingsService {
     private readonly feedbackRepo: Repository<FeedbackAnswer>,
     @InjectRepository(FeedbackOption)
     private readonly optionRepo: Repository<FeedbackOption>,
-    @InjectRepository(FeedbackOption)
+    @InjectRepository(FeedbackAnswerDetail)
     private readonly detailsRepo: Repository<FeedbackAnswerDetail>,
+    private readonly dataSource: DataSource,
   ) {}
 
   async getQuestionsByRole(role: 'venue' | 'entertainer') {
@@ -56,26 +57,38 @@ export class RatingsService {
 
   async saveFeedback(dto: CreateFeedbackDto) {
     const { answers, ...rest } = dto;
-    const payload = { ...rest };
-    const feedback = this.feedbackRepo.create(payload);
 
-    const savedFeedback = await this.feedbackRepo.save(feedback);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    //   Save  Answer details here
-    const answerData = answers.map((ans) =>
-      this.detailsRepo.create({
-        feedback_id: savedFeedback.id,
-        question_id: ans.question_id,
-        option_id: ans.option_id,
-        answer_text: ans.answer_text,
-      }),
-    );
+    try {
+      // Step 1: Save Feedback
+      const feedback = this.feedbackRepo.create(rest);
+      const savedFeedback = await queryRunner.manager.save(feedback);
 
-    await this.feedbackRepo.save(answerData);
+      // Step 2: Save Answers
+      const answerData = answers.map((ans) =>
+        this.detailsRepo.create({
+          feedbackId: savedFeedback.id,
+          ...ans,
+        }),
+      );
 
-    return {
-      message: 'Feedback submitted successfully',
-      status: true,
-    };
+      await queryRunner.manager.save(answerData);
+
+      // Commit transaction
+      await queryRunner.commitTransaction();
+
+      return {
+        message: 'Feedback submitted successfully',
+        status: true,
+      };
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException(error.message);
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

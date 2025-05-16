@@ -14,15 +14,15 @@ import { Type } from 'class-transformer';
 
 class AnswerDetailDto {
   @IsInt()
-  question_id: number;
+  questionId: number;
 
   @IsOptional()
   @IsInt()
-  option_id?: number;
+  optionId?: number;
 
   @IsOptional()
   @IsString()
-  answer_text?: string;
+  answerText?: string;
 }
 
 export class CreateFeedbackDto {

@@ -629,9 +629,9 @@ export class EntertainerService {
         )
         .where('entertainer.id = :userId', { userId })
         .select([
-          'user.id AS uid',
+          'entertainer.id AS id',
           'entertainer.name AS stageName',
-          'user.name AS name',
+          'entertainer.entertainer_name AS entertainerName',
           'user.email AS email',
           'user.phoneNumber AS phoneNumber',
           'user.role AS role',
@@ -665,9 +665,16 @@ export class EntertainerService {
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
 
+      const { socialLinks, id, ...rest } = entertainer;
+      const payload = {
+        id: Number(id),
+        ...rest,
+        socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
+      };
+
       return {
         message: 'Entertainer Fetched Successfully',
-        data: entertainer ? entertainer : {},
+        data: payload,
         status: true,
       };
     } catch (error) {
@@ -709,6 +716,7 @@ export class EntertainerService {
           'entertainer.bio AS bio',
           'entertainer.pricePerEvent AS pricePerEvent',
           'entertainer.performanceRole AS performanceRole',
+
           'entertainer.city AS city',
           'entertainer.state AS state',
           'entertainer.country AS country',
@@ -886,6 +894,7 @@ export class EntertainerService {
           'event.description AS event_description',
           'event.startTime AS event_startTime',
           'event.endTime AS event_endTime',
+          'event.slug AS event_slug',
           'venue.description AS description',
           'venue.state AS state',
           'venue.city AS city',
@@ -958,6 +967,7 @@ export class EntertainerService {
           'event.description AS event_description',
           'event.startTime AS event_startTime',
           'event.endTime AS event_endTime',
+          'event.slug AS event_slug',
           'venue.description AS description',
           'venue.state AS state',
           'venue.city AS city',
@@ -1030,17 +1040,18 @@ export class EntertainerService {
       .createQueryBuilder('booking')
       .leftJoin('event', 'event', 'event.id = booking.eventId')
       .leftJoin('media', 'media', 'media.eventId = booking.eventId')
-      .where('booking.entertainerUserId = :userId', { userId })
+      .where('booking.entId = :userId', { userId })
       .andWhere('booking.status = :status', { status: 'confirmed' })
       .select([
         'booking.id AS bookingId',
         'event.id AS id',
         'event.title AS title',
-        'event.location AS location',
         'event.status AS status',
         'event.description AS description',
         'event.startTime AS startTime',
         'event.endTime AS endTime',
+        'event.eventDate AS eventDate',
+        'event.slug AS slug',
         'event.status AS status',
         'event.recurring AS recurring',
         `COALESCE(CONCAT(:baseUrl, media.url), :defaultMediaUrl) AS image_url`,
@@ -1381,7 +1392,8 @@ export class EntertainerService {
         .select([
           'event.id AS event_id',
           'event.title AS title',
-          'event.location AS location',
+          'event.slug AS slug',
+          'event.eventDate AS eventDate',
 
           'event.description AS description',
           'event.startTime AS startTime',
