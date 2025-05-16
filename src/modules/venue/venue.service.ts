@@ -622,6 +622,28 @@ export class VenueService {
         );
       }
 
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        console.log('Inside start Date');
+        if (end < start) {
+          throw new BadRequestException({
+            message: 'endDate cannot be earlier than startDate',
+            status: false,
+          });
+        }
+        baseQuery.andWhere(
+          (qb) => {
+            return `NOT EXISTS (
+            SELECT 1 FROM booking b
+            WHERE b.entertainerUserId = user.id
+            AND b.showDate BETWEEN :startDate AND :endDate
+          )`;
+          },
+          { startDate, endDate },
+        );
+      }
+
       // First query: Get total count using a subquery to prevent pagination conflict
       const totalCount = await baseQuery
         .clone()
@@ -789,6 +811,7 @@ export class VenueService {
           'entertainer.performanceRole AS performanceRole',
           'entertainer.pricePerEvent AS pricePerEvent',
           'event.id AS event_id',
+          'event.slug AS slug',
           'event.title AS event_title',
           'event.status AS event_status',
           'event.recurring AS event_recurring',

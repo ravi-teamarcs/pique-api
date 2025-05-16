@@ -24,6 +24,7 @@ import { SeriesModule } from './modules/series/series.module';
 import { InvoiceCronModule } from './modules/cron/invoice/invoice-cron.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ReminderModule } from './modules/reminders/reminder.module';
+import { RatingsModule } from './modules/ratings-review/ratings.module';
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { ReminderModule } from './modules/reminders/reminder.module';
     SeriesModule,
     InvoiceCronModule,
     ReminderModule,
+    RatingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

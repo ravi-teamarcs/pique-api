@@ -14,8 +14,6 @@ import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Category } from './entities/categories.entity';
 import { Media } from '../media/entities/media.entity';
 import { Rating } from './entities/rating.entity';
-import { RatingsService } from './rating.service';
-import { RatingsController } from './rating.controller';
 import { Invoice } from '../invoice/entities/invoice.entity';
 import { MediaModule } from '../media/media.module';
 import { AvailabilityController } from './availability.controller';
@@ -47,11 +45,7 @@ import { EntertainerAvailability } from './entities/availability.entity';
     BookingModule,
     MediaModule,
   ],
-  controllers: [
-    EntertainerController,
-    RatingsController,
-    AvailabilityController,
-  ],
-  providers: [EntertainerService, RatingsService, AvailabilityService],
+  controllers: [EntertainerController, AvailabilityController],
+  providers: [EntertainerService, AvailabilityService],
 })
 export class EntertainerModule {}
