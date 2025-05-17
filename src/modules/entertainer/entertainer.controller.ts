@@ -323,4 +323,12 @@ export class EntertainerController {
     const { refId } = req.user;
     return this.entertainerService.getEventDetailsByMonth(refId, query);
   }
+
+  @Patch('set-distance')
+  @UseGuards(JwtAuthGuard, RolesGuard) // Use your auth strategy
+  @Roles('findAll') // If you're role-restricting
+  async setMaxDistance(@Request() req, @Body('distance') distance: number) {
+    const { userId } = req.user;
+    return this.entertainerService.setTravelDistance(userId, distance);
+  }
 }

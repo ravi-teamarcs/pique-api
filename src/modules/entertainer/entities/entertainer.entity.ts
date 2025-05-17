@@ -103,6 +103,9 @@ export class Entertainer {
   @Column({ default: false })
   isProfileComplete: boolean;
 
+  @Column({ name: 'max_travel_distance', type: 'float', nullable: true })
+  maxTravelDistanceMiles: number;
+
   @CreateDateColumn()
   createdAt: Date;
 

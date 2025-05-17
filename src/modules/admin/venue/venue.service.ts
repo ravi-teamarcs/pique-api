@@ -608,7 +608,7 @@ export class VenueService {
 
   async updateBookingStatus(dto) {
     const updatedBookings = [];
-    const { bookingIds, status } = dto;
+    const { bookingIds, status, eventId } = dto;
     try {
       for (const bookingId of dto.bookingIds) {
         const booking = await this.bookingRepository
@@ -676,7 +676,7 @@ export class VenueService {
             },
           };
 
-          this.emailService.handleSendEmail(emailPayload);
+          // this.emailService.handleSendEmail(emailPayload);
 
           this.notifyService.sendPush(
             {
@@ -692,7 +692,7 @@ export class VenueService {
       }
 
       // Add Logic
-
+      this.notSelectedforEvent(eventId, updatedBookings);
       return {
         message: 'Booking status updated successfully',
         data: updatedBookings,
@@ -709,50 +709,54 @@ export class VenueService {
     }
   }
 
-  // private async notSelectedforEvent(eventId: number) {
-  //   const confirmedBookings = [1, 2, 3, 4, 5];
+  private async notSelectedforEvent(eventId: number, confirmedBookings) {
+    const bookings = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoin('event', 'event', 'event.id = booking.eventId')
+      .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
+      .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+      .leftJoin('users', 'user', 'user.id = entertainer.userId')
+      .select([
+        'booking.id AS id',
+        'entertainer.entertainer_name AS entertainerName',
+        'user.email AS email',
+        'event.slug AS eventName',
+        'event.eventDate AS eventDate',
+        'user.id AS entId',
+      ])
+      .where('booking.eventId=:eventId', { eventId })
+      .getRawMany();
 
-  //   const bookings = await this.bookingRepository
-  //     .createQueryBuilder('booking')
-  //     .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
-  //     .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
-  //     .leftJoin('users', 'user', 'user.id = entertainer.userId')
-  //     .select([
-  //       'booking.id AS id',
-  //       'entertainer.entertainer_name AS entertainerName',
-  //       'user.email AS email',
-  //     ])
-  //     .getRawMany();
+    if (bookings && bookings.length > 0) {
+      const rejectedRequest = bookings.filter(
+        (item) => !confirmedBookings.includes(item.id),
+      );
 
-  //   if (bookings && bookings.length > 0) {
-  //     const rejectedRequest = bookings.filter(
-  //       (item) => !confirmedBookings.includes(item.id),
-  //     );
+      for (const req of rejectedRequest) {
+        if (req.email) {
+          const emailPayload = {
+            to: req.email,
+            subject: `Status update of Booking Request`,
+            templateName: 'cancellation.html',
+            replacements: {
+              entertainerName: req.entertainerName,
+              eventName: req.eventName,
+              eventDate: format(req.eventDate, 'dd MM yyyy'),
+            },
+          };
 
-  //     for (const req of rejectedRequest) {
-  //       // if (entertainer.user) {
-  //       //   const emailPayload = {
-  //       //     to: entertainer.user.email,
-  //       //     subject: `Status Update for Your Booking Request`,
-  //       //     templateName: 'courtsey-message.html',
-  //       //     replacements: {
-  //       //       entertainerName: 'Dummy',
-  //       //       eventName: '',
-  //       //       eventDate: '',
-  //       //     },
-  //       //   };
+          await this.emailService.handleSendEmail(emailPayload);
 
-  //         // await this.emailService.handleSendEmail(emailPayload);
-
-  //         this.notifyService.sendPush(
-  //           {
-  //             title: 'Status Update for Your Booking Request',
-  //             body: `venue has ${status} the booking request.`,
-  //             type: 'booking_response',
-  //           },
-  //           req.entId,
-  //         );
-  //       }
-  //     }
-  //   }
+          this.notifyService.sendPush(
+            {
+              title: 'Status Update of Your Booking ',
+              body: `Venue has cancelled booking `,
+              type: 'booking_response',
+            },
+            req.entId,
+          );
+        }
+      }
+    }
+  }
 }

@@ -5,6 +5,7 @@ import {
   IsString,
   ArrayNotEmpty,
   IsNumber,
+  IsNotEmpty,
 } from 'class-validator';
 
 export class UpdateBookingStatusDto {
@@ -16,4 +17,8 @@ export class UpdateBookingStatusDto {
   @IsString()
   @IsIn(['cancelled', 'confirmed'])
   status: 'cancelled' | 'confirmed';
+
+  @IsNumber()
+  @IsNotEmpty()
+  eventId: number;
 }

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -1418,6 +1419,27 @@ export class EntertainerService {
         message: error.message,
         status: true,
       });
+    }
+  }
+  // Setting Travel Distance
+
+  async setTravelDistance(userId: number, distance: number) {
+    try {
+      const entertainer = await this.entertainerRepository.findOne({
+        where: { user: { id: userId } },
+      });
+      if (!entertainer) throw new NotFoundException('Entertainer not found');
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        { maxTravelDistanceMiles: distance },
+      );
+      return {
+        message: 'Entertainer maximum travel distance set successfully ',
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
     }
   }
 }

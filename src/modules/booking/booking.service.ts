@@ -465,7 +465,7 @@ export class BookingService {
 
   async updateBookingStatus(dto, userId: number) {
     const updatedBookings = [];
-    const { bookingIds, status } = dto;
+    const { bookingIds, status, eventId } = dto;
     try {
       for (const bookingId of bookingIds) {
         const booking = await this.bookingRepository
@@ -547,6 +547,8 @@ export class BookingService {
         }
         updatedBookings.push(bookingId);
       }
+
+      this.notSelectedforEvent(eventId, updatedBookings);
 
       return {
         message: 'Booking status updated successfully',
@@ -662,6 +664,57 @@ export class BookingService {
       };
     } catch (error) {
       throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  private async notSelectedforEvent(eventId: number, confirmedBookings) {
+    const bookings = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoin('event', 'event', 'event.id = booking.eventId')
+      .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
+      .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+      .leftJoin('users', 'user', 'user.id = entertainer.userId')
+      .select([
+        'booking.id AS id',
+        'entertainer.entertainer_name AS entertainerName',
+        'user.email AS email',
+        'event.slug AS eventName',
+        'event.eventDate AS eventDate',
+        'user.id AS entId',
+      ])
+      .where('booking.eventId=:eventId', { eventId })
+      .getRawMany();
+
+    if (bookings && bookings.length > 0) {
+      const rejectedRequest = bookings.filter(
+        (item) => !confirmedBookings.includes(item.id),
+      );
+
+      for (const req of rejectedRequest) {
+        if (req.email) {
+          const emailPayload = {
+            to: req.email,
+            subject: `Status update of Booking Request`,
+            templateName: 'cancellation.html',
+            replacements: {
+              entertainerName: req.entertainerName,
+              eventName: req.eventName,
+              eventDate: format(req.eventDate, 'dd MM yyyy'),
+            },
+          };
+
+          await this.emailService.handleSendEmail(emailPayload);
+
+          this.notifyService.sendPush(
+            {
+              title: 'Status Update of Your Booking ',
+              body: `Venue has cancelled booking `,
+              type: 'booking_response',
+            },
+            req.entId,
+          );
+        }
+      }
     }
   }
 }
