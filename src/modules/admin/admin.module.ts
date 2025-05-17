@@ -28,6 +28,7 @@ import { Event } from './events/entities/event.entity';
 import { ReportModule } from './report/report.module';
 import { BookingModule } from './booking/booking.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ReportModule,
     BookingModule,
     DashboardModule,
+    SettingsModule,
   ],
   controllers: [AdminController],
   providers: [AdminService],

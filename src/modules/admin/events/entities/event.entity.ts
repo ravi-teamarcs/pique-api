@@ -70,6 +70,14 @@ export class Event {
   @Column({ type: 'boolean', default: true })
   isAdmin: boolean;
 
+  // events.entity.ts
+
+  @Column({ default: false })
+  emailSentAfter1Hour: boolean;
+
+  @Column({ default: false })
+  emailSentAfter24Hour: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

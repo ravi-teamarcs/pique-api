@@ -20,15 +20,20 @@ export class InvoiceCronService {
   async sendEventReminder() {
     await this.reminderService.eventReminder();
   }
-  // @Cron('0 0 * * *')
-  // async unrespondedBookingReminder() {
-  //   await this.reminderService.remindUnrespondedInvites();
-  // }
+  @Cron('0 0 * * *')
+  async unrespondedBookingReminder() {
+    await this.reminderService.remindUnrespondedInvites();
+  }
   @Cron('0 * * * *') // Runs at minute 0 of every hour
   async syncAdminLatestBooking() {}
 
   @Cron('0 0 * * *')
   async handleOverDues() {
     await this.invoiceService.handleOverdueInvoices();
+  }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async eventCompletion() {
+    await this.reminderService.handleEventCompletionReminders();
   }
 }

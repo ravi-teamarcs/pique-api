@@ -68,6 +68,14 @@ export class VenueEvent {
   @Column({ type: 'boolean' })
   isAdmin: boolean;
 
+  // events.entity.ts
+
+  @Column({ default: false })
+  emailSentAfter1Hour: boolean;
+
+  @Column({ default: false })
+  emailSentAfter24Hour: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 

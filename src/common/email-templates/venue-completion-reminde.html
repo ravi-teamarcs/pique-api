@@ -1,0 +1,52 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Event Status Update Reminder</title>
+  </head>
+  <body
+    style="
+      font-family: Arial, sans-serif;
+      background-color: #f8f8f8;
+      padding: 20px;
+    "
+  >
+    <div
+      style="
+        max-width: 600px;
+        margin: auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+      "
+    >
+      <h2 style="color: #333">Hi {{venueName}},</h2>
+      <p>
+        We hope your event <strong>{{eventName}}</strong> held on
+        <strong>{{eventDate}}</strong> went well!
+      </p>
+      <p>
+        To help keep your records up to date, please take a moment to update the
+        status of your event.
+      </p>
+      <p style="text-align: center; margin: 30px 0">
+        <a
+          href="{{updateLink}}"
+          style="
+            background-color: #4caf50;
+            color: white;
+            padding: 12px 24px;
+            text-decoration: none;
+            border-radius: 6px;
+          "
+        >
+          Update Event Status
+        </a>
+      </p>
+      <p>If you've already updated it, you can ignore this email.</p>
+      <p style="color: #999; font-size: 12px">
+        Thank you,<br />The Pique Entertainment Team
+      </p>
+    </div>
+  </body>
+</html>
