@@ -398,7 +398,8 @@ export class EventService {
         .where('venue.id = :id', { id: venueId })
         .getRawOne();
 
-    const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName ?? ''}/${name} in ${city ?? ''},${stateCode ?? ''}`;
+    const titleString = title ? `(${title})` : '';
+    const slug = `${formattedDate} at ${time12} ${titleString} at ${neighbourhoodName ?? ''}/${name} in ${city ?? ''},${stateCode ?? ''}`;
 
     return slug;
   }

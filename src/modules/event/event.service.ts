@@ -96,11 +96,13 @@ export class EventService {
     }
   }
   // Created for venues
-  async getAllEvents(id: number) {
+  async getAllEvents(id: number, page: number = 1, pageSize: number = 20) {
+    const skip = (Number(page) - 1) * Number(pageSize);
+    const take = Number(pageSize);
     const [events, totalCount] = await this.eventRepository
       .createQueryBuilder('event')
       .where('event.venueId =:id', { id })
-      .orderBy('event.eventDate', 'DESC')
+      .orderBy('event.createdAt', 'DESC')
       .select([
         'event.id',
         'event.title',
@@ -114,11 +116,16 @@ export class EventService {
         'event.slug',
         'event.eventDate',
       ])
+      .take(take)
+      .skip(skip)
       .getManyAndCount();
 
     return {
       message: 'Events fetched successfully',
       count: totalCount,
+      page,
+      pageSize,
+      totalPages: Math.ceil(totalCount / Number(pageSize)),
       data: events,
       status: true,
     };
@@ -175,7 +182,8 @@ export class EventService {
         .where('venue.id = :id', { id: venueId })
         .getRawOne();
 
-    const slug = `${formattedDate} at ${time12} (${title}) at ${neighbourhoodName ?? ''}/${name} in ${city ?? ''},${stateCode ?? ''}`;
+    const titleString = title ? `(${title})` : '';
+    const slug = `${formattedDate} at ${time12} ${titleString} at ${neighbourhoodName ?? ''}/${name} in ${city ?? ''},${stateCode ?? ''}`;
 
     return slug;
   }

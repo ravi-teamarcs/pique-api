@@ -11,6 +11,7 @@ import {
   Request,
   Req,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { EventService } from './event.service';
@@ -42,9 +43,14 @@ export class EventController {
   })
   @Get()
   @Roles('findAll')
-  getAllEvent(@Req() req) {
+  getAllEvent(
+    @Req() req,
+    @Query('page', ParseIntPipe) page: number,
+    @Query('pageSize', ParseIntPipe) pageSize: number,
+    @Query('status') status: string,
+  ) {
     const { refId } = req.user;
-    return this.eventService.getAllEvents(refId);
+    return this.eventService.getAllEvents(refId, page, pageSize);
   }
 
   @Get(':id')
