@@ -28,7 +28,6 @@ import { Booking } from '../booking/entities/booking.entity';
 import { Media } from '../media/entities/media.entity';
 import { Category } from '../entertainer/entities/categories.entity';
 import { VenueEvent } from '../event/entities/event.entity';
-import { VenueLocationDto } from './dto/add-location.dto';
 import { Data } from './dto/search-filter.dto';
 import { instanceToPlain } from 'class-transformer';
 import { Wishlist } from './entities/wishlist.entity';
@@ -378,161 +377,6 @@ export class VenueService {
     return { message: 'Venue fetched successfully', data: venue, status: true };
   }
 
-  // async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
-  //   const {
-  //     category = [],
-  //     sub_category = null,
-  //     page = 1,
-  //     pageSize = 10,
-  //     city = null,
-  //     date = '',
-  //     startDate,
-  //     endDate,
-  //   } = query;
-
-  //   // Pagination
-  //   const skip = (Number(page) - 1) * Number(pageSize);
-  //   const DEFAULT_MEDIA_URL =
-  //     'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
-
-  //   try {
-  //     const res = this.entertainerRepository
-  //       .createQueryBuilder('entertainer')
-  //       .leftJoin('cities', 'city', 'city.id = entertainer.city') // Join on normal column
-  //       .leftJoin('states', 'state', 'state.id = entertainer.state') // Join on normal column
-  //       .leftJoin('countries', 'country', 'country.id = entertainer.country') // Join on normal column
-  //       .leftJoin(
-  //         'categories',
-  //         'category',
-  //         'category.id = entertainer.category',
-  //       ) // Join on normal column
-  //       .leftJoin(
-  //         'categories',
-  //         'subcat',
-  //         'entertainer.specific_category = subcat.id',
-  //       ) // Join on normal column (specific_category)
-  //       .addSelect((qb) => {
-  //         return qb
-  //           .select('1')
-  //           .from('wishlist', 'w')
-  //           .where('w.ent_id = entertainer.id')
-  //           .andWhere('w.user_id = :userId')
-  //           .limit(1);
-  //       }, 'isWishlisted')
-  //       // Join on normal column
-  //       .leftJoin(
-  //         (qb) =>
-  //           qb
-  //             .select([
-  //               'entertainer.id AS entertainer_id',
-  //               `
-  //           COALESCE(
-  //             MAX(CASE WHEN media.type = 'headshot' THEN CONCAT(:serverUri, media.url) END),
-  //             :defaultMediaUrl
-  //           ) AS media_url
-  //           `,
-  //             ])
-  //             .from('entertainers', 'entertainer')
-  //             .leftJoin('media', 'media', 'media.user_id = entertainer.id') // Join on normal column
-  //             .groupBy('entertainer.id'),
-  //         'media',
-  //         'media.entertainer_id = entertainer.id', // Join condition on normal column
-  //       )
-  //       .select([
-  //         'entertainer.id AS eid',
-  //         'entertainer.name AS name',
-  //         'entertainer.entertainer_name AS entertainer_name',
-  //         'entertainer.category AS category',
-  //         'entertainer.specific_category AS specific_category',
-  //         'entertainer.performanceRole AS performanceRole',
-  //         'entertainer.pricePerEvent AS pricePerEvent',
-  //         'entertainer.vaccinated AS vaccinated',
-  //         'entertainer.status AS status',
-  //         'entertainer.bio AS bio',
-  //         'city.name AS city',
-  //         'state.name AS state',
-  //         'country.name AS country',
-  //         'category.name AS category_name',
-  //         'subcat.name AS specific_category_name',
-  //         'media.media_url AS mediaUrl',
-  //         `CASE WHEN wish.ent_id IS NOT NULL THEN 1 ELSE 0 END AS isWishlisted`,
-  //         'wish.name AS record',
-  //       ])
-  //       .where("entertainer.status = 'active'")
-  //       .setParameter('serverUri', this.config.get<string>('BASE_URL'))
-  //       .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
-  //       .setParameter('userId', userId);
-
-  //     // Apply filters if provided (category, sub_category, city, etc.)
-  //     if (category !== null && category.length > 0) {
-  //       res.andWhere('entertainer.category IN (:...category)', { category });
-  //     }
-
-  //     if (sub_category) {
-  //       res.andWhere('entertainer.specific_category = :sub_category', {
-  //         sub_category,
-  //       });
-  //     }
-
-  //     if (city) {
-  //       res.andWhere('entertainer.city = :city', { city });
-  //     }
-
-  //     if (date) {
-  //       res.andWhere(
-  //         (qb) => {
-  //           return `NOT EXISTS (
-  //         SELECT 1 FROM booking b
-  //         WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
-  //       )`;
-  //         },
-  //         { blockedDate: date },
-  //       );
-  //     }
-
-  //     // Fetch total count first without pagination
-  //     const totalCount = await res.getCount(); // No pagination here
-
-  //     // Fetch paginated results
-  //     const results = await res
-  //       .orderBy('entertainer.name', 'ASC') // Use alias here
-  //       .skip(skip) // Apply pagination here
-  //       .take(Number(pageSize)) // Apply pagination here
-  //       .getRawMany(); // Get raw results
-
-  //     // Process results
-  //     const arr = [3, 4, 5, 2, 1]; // Example ratings logic
-
-  //     const entertainers = results.map(
-  //       ({ eid, isWishlisted, vaccinated, ...item }, index) => {
-  //         return {
-  //           eid: Number(eid),
-  //           ...item,
-  //           isWishlisted: Boolean(isWishlisted),
-  //           vaccination_status:
-  //             vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
-  //           ratings: arr[index % arr.length], // Example for ratings
-  //         };
-  //       },
-  //     );
-
-  //     return {
-  //       message: 'Entertainers fetched successfully',
-  //       totalCount,
-  //       page,
-  //       pageSize,
-  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
-  //       entertainers,
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     if (error instanceof HttpException) {
-  //       throw error;
-  //     }
-  //     throw new InternalServerErrorException(error.message);
-  //   }
-  // }
-
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
     const {
       category = [],
@@ -544,6 +388,10 @@ export class VenueService {
       startDate,
       endDate,
       vaccinated,
+      latitude,
+      longitude,
+      isNearby,
+      radius,
     } = query;
 
     // Pagination
@@ -611,6 +459,27 @@ export class VenueService {
             locationId,
           });
         }
+      }
+
+      if (latitude && longitude) {
+        const defaultRadius = 100;
+        const searchRadius = isNearby ? radius || 50 : defaultRadius;
+
+        baseQuery
+          .andWhere(
+            `
+    3959 * acos(
+      cos(radians(:lat)) *
+      cos(radians(entertainer.latitude)) *
+      cos(radians(entertainer.longitude) - radians(:lng)) +
+      sin(radians(:lat)) *
+      sin(radians(entertainer.latitude))
+    ) <= LEAST(:searchRadius, entertainer.maxTravelDistance)
+  `,
+          )
+          .setParameter('lat', latitude)
+          .setParameter('lng', longitude)
+          .setParameter('searchRadius', searchRadius);
       }
 
       if (date) {
@@ -714,61 +583,8 @@ export class VenueService {
     }
   }
 
-  // async findAllBooking(venueId: number, query: BookingQueryDto) {
-  //   const { page = 1, pageSize = 10, status = '' } = query;
-  //   const skip = (Number(page) - 1) * Number(pageSize);
-
-  //   const res = this.bookingRepository
-  //     .createQueryBuilder('booking')
-  //     .leftJoin('entertainers', 'entertainer', 'entertainer.id= booking.entId')
-  //     .leftJoin('event', 'event', 'booking.eventId = event.id')
-  //     .where('booking.venueId = :venueId', { venueId })
-  //     .select([
-  //       'booking.id AS id',
-  //       'booking.status AS status',
-  //       'booking.showDate AS showDate',
-  //       'booking.showTime AS showTime',
-  //       'booking.specialNotes AS specialNotes',
-  //       'booking.venueId AS vid',
-  //       'entertainer.id AS eid',
-  //       'entertainer.name AS name',
-  //       'entertainer.category AS category',
-  //       'entertainer.specific_category AS  specific_category',
-  //       'entertainer.performanceRole AS performanceRole',
-  //       'entertainer.pricePerEvent AS pricePerEvent',
-  //       'event.id AS event_id',
-  //       'event.title AS event_title',
-  //       'event.status AS event_status',
-  //       'event.recurring AS event_recurring',
-  //       'event.startTime AS event_start_time',
-  //       'event.endTime AS event_end_time',
-  //       'event.eventDate AS event_date',
-  //       'event.description AS event_description',
-  //     ]);
-  //   if (status) {
-  //     res.andWhere('booking.status=:status', { status });
-  //   }
-  //   const totalCount = await res.getCount();
-  //   const results = await res
-  //     .orderBy('booking.createdAt', 'DESC')
-  //     .skip(skip)
-  //     .take(Number(pageSize))
-  //     .getRawMany();
-
-  //   return {
-  //     message: 'Bookings returned successfully',
-  //     count: totalCount,
-  //     bookings: results,
-  //     totalPages: Math.ceil(totalCount / Number(pageSize)),
-  //     page,
-  //     pageSize,
-  //     status: true,
-  //   };
-  // }
-
   async findAllBooking(venueId: number, query: BookingQueryDto) {
     const { page = 1, pageSize = 10, status = '' } = query;
-
     const skip = (Number(page) - 1) * Number(pageSize);
     const take = Number(pageSize);
 
@@ -1055,43 +871,6 @@ export class VenueService {
       data: entertainers,
       status: true,
     };
-  }
-
-  async addVenueLocation(userId: number, locDto: VenueLocationDto) {
-    const parentVenue = await this.venueRepository.findOne({
-      where: { user: { id: userId }, isParent: true },
-    });
-
-    if (!parentVenue) {
-      throw new BadRequestException({
-        message: 'Can not Add venue Location',
-        status: false,
-        error: 'Parent venue do not exists',
-      });
-    }
-
-    try {
-      const venueLoc = this.venueRepository.create({
-        ...locDto,
-        name: parentVenue.name,
-        user: { id: userId },
-        description: parentVenue.description,
-        parentId: parentVenue.id,
-        isParent: false,
-      });
-
-      await this.venueRepository.save(venueLoc);
-      return {
-        message: 'Venue location added successfully',
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: 'Error adding venue location',
-        status: false,
-        error: error.message,
-      });
-    }
   }
 
   async getAllCategories(query: Data) {

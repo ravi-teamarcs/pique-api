@@ -100,6 +100,12 @@ export class Entertainer {
   @Column({ default: false })
   isProfileComplete: boolean;
 
+  @Column('decimal', { precision: 9, scale: 6, nullable: true })
+  latitude?: number;
+
+  @Column('decimal', { precision: 9, scale: 6, nullable: true })
+  longitude?: number;
+
   @Column({ name: 'max_travel_distance', type: 'float', nullable: true })
   maxTravelDistanceMiles: number;
 

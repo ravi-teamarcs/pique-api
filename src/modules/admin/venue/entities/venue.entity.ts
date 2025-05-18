@@ -39,6 +39,12 @@ export class Venue {
   @Column({ name: 'contact_number', nullable: true })
   contactNumber: string;
 
+  @Column('decimal', { precision: 9, scale: 6, nullable: true })
+  latitude?: number;
+
+  @Column('decimal', { precision: 9, scale: 6, nullable: true })
+  longitude?: number;
+
   @Column({ type: 'text', nullable: true })
   description: string;
 

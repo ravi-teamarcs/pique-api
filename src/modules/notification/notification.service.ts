@@ -6,11 +6,12 @@ import {
 import * as admin from 'firebase-admin';
 import { sendNotificationDTO } from './dto/send-notification.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { FcmToken } from './entities/fcm-token.entity';
 import { Notification } from './entities/notification.entity';
 import { NotificationQueryDto } from './dto/notification-query-dto';
 import { ConfigService } from '@nestjs/config';
+import { subDays } from 'date-fns';
 
 @Injectable()
 export class NotificationService {
@@ -397,5 +398,19 @@ export class NotificationService {
         status: false,
       });
     }
+  }
+
+  // Cleanup Method
+
+  async deleteOldNotifications(): Promise<void> {
+    const thresholdDate = subDays(new Date(), 60); // 60 days ago
+
+    await this.notificationRepo.delete({
+      createdAt: LessThan(thresholdDate),
+    });
+
+    console.log(
+      `[NotificationCleaner] Deleted notifications older than 60 days.`,
+    );
   }
 }

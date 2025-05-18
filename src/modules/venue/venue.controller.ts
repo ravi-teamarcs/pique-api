@@ -37,7 +37,6 @@ import { BookingService } from '../booking/booking.service';
 import { CreateBookingDto } from '../booking/dto/create-booking.dto';
 import { ResponseDto } from '../booking/dto/booking-response-dto';
 import { ChangeBooking } from './dto/change-booking.dto';
-import { VenueLocationDto } from './dto/add-location.dto';
 import { Data } from './dto/search-filter.dto';
 import { WishlistDto } from './dto/wishlist.dto';
 import { typeMap } from 'src/common/constants/media.constants';
@@ -163,7 +162,7 @@ export class VenueController {
   async findOne(@Param('id', ParseIntPipe) id: number, @Request() req) {
     return this.venueService.findVenueById(id);
   }
-  // Under Testing  ()
+
   @Get('search/entertainers')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
@@ -362,7 +361,7 @@ export class VenueController {
   })
   @Roles('findAll')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Get('/entertainers/wishlist')
+  @Get('entertainers/wishlist')
   getWishList(@Request() req) {
     const { refId } = req.user;
     return this.venueService.getWishlist(refId);
@@ -462,7 +461,4 @@ export class VenueController {
       pageSize,
     );
   }
-
-  // location.service.ts
-  // location.controller.ts
 }

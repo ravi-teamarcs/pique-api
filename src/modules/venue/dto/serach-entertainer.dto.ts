@@ -82,4 +82,20 @@ export class SearchEntertainerDto {
   @IsOptional()
   @IsString()
   vaccinated: 'yes' | 'no';
+
+  @IsOptional()
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
+  @IsNumber()
+  isNearby?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  radius?: boolean;
 }

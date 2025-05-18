@@ -6,6 +6,7 @@ import { Entertainer } from '../../entertainer/entities/entertainer.entity';
 import { Repository } from 'typeorm';
 import { ReminderService } from 'src/modules/reminders/reminder.service';
 import { InvoiceService } from '../../admin/invoice/invoice.service';
+import { NotificationService } from 'src/modules/notification/notification.service';
 
 @Injectable()
 export class InvoiceCronService {
@@ -14,6 +15,7 @@ export class InvoiceCronService {
     private readonly entRepository: Repository<Entertainer>,
     private readonly reminderService: ReminderService,
     private readonly invoiceService: InvoiceService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   @Cron('0 0 * * *')
@@ -35,5 +37,10 @@ export class InvoiceCronService {
   @Cron(CronExpression.EVERY_HOUR)
   async eventCompletion() {
     await this.reminderService.handleEventCompletionReminders();
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
+  async handleCron() {
+    await this.notificationService.deleteOldNotifications();
   }
 }

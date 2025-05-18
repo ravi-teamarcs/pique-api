@@ -13,8 +13,7 @@ import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Media } from '../media/entities/media.entity';
 import { Category } from '../entertainer/entities/categories.entity';
 import { Wishlist } from './entities/wishlist.entity';
-import { VenueDetailsController } from './venue.details.controller';
-import { VenueDetailService } from './venue.details.service';
+
 import { VenueDetails } from './entities/venue.details.entity';
 import { MediaModule } from '../media/media.module';
 import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.entity';
@@ -51,7 +50,7 @@ import { Setting } from '../admin/settings/entities/setting.entity';
     MediaModule,
     NotificationModule,
   ],
-  controllers: [VenueController, VenueDetailsController],
-  providers: [VenueService, VenueDetailService],
+  controllers: [VenueController],
+  providers: [VenueService],
 })
 export class VenueModule {}
