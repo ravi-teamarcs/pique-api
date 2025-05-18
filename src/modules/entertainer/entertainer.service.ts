@@ -649,6 +649,7 @@ export class EntertainerService {
           'entertainer.country AS country',
           'entertainer.zipCode AS zipCode',
           'entertainer.address AS address',
+          'entertainer.maxTravelDistanceMiles AS maxTravelDistance',
           'entertainer.services AS services',
           'entertainer.dob AS dob',
           'entertainer.vaccinated AS vaccinated',
@@ -666,7 +667,7 @@ export class EntertainerService {
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
 
-      const { socialLinks, id, ...rest } = entertainer;
+      const { socialLinks, id,  ...rest } = entertainer;
       const payload = {
         id: Number(id),
         ...rest,

@@ -128,8 +128,8 @@ export class ReminderService {
       if (confirmedEvents && confirmedEvents.length < 1) return;
 
       for (const event of confirmedEvents) {
-        const actualDate = event.eventDate.toISOString().split('T')[0];
-        const eventEnd = new Date(`${actualDate}T${event.endTime}`); // Assuming ISO strings
+        // const actualDate = event.eventDate.toISOString().split('T')[0];
+        const eventEnd = new Date(`${event.eventDate}T${event.endTime}`); // Assuming ISO strings
         const oneHourLater = addHours(eventEnd, 1);
         const twentyFourLater = addHours(eventEnd, 24);
 
@@ -164,6 +164,7 @@ export class ReminderService {
           'title',
           'endTime',
           'startTime',
+          'eventDate',
           'slug',
           'id',
           'emailSentAfter1Hour',
@@ -208,8 +209,9 @@ export class ReminderService {
     const bookings = await this.bookingRepo
       .createQueryBuilder('booking')
       .leftJoin('event', 'event', 'event.id = booking.eventId')
+      .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
       .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
-      .leftJoin('users', 'user', 'user.id = entertainer.userId')
+      .leftJoin('users', 'user', 'user.id = ent.userId')
       .select([
         'ent.entertainerName AS entertainerName',
         'user.email AS email',
@@ -217,6 +219,7 @@ export class ReminderService {
         ' event.eventDate AS eventDate',
         'event.startTime AS startTime',
         'event.endTime AS endTime',
+        'venue.name AS venueName',
       ])
       .where('booking.eventId = :eventId', { eventId })
       .getRawMany();
@@ -230,8 +233,8 @@ export class ReminderService {
           replacements: {
             entertainerName: book.entertainerName,
             eventName: book.id,
-            venueName: book.reqShowTime,
-            eventDate: format(book.reqShowDate, 'dd MM yyyy'),
+            venueName: book.venueName,
+            eventDate: format(book.eventDate, 'dd MM yyyy'),
           },
         };
         this.emailService.handleSendEmail(emailPayload);

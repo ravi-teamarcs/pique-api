@@ -13,6 +13,7 @@ import { MediaModule } from '../media/media.module';
 import { EmailModule } from 'src/modules/Email/email.module';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
 import { EntertainerAvailability } from './entities/entertainer-availability.entity';
+import { Setting } from '../settings/entities/setting.entity';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { EntertainerAvailability } from './entities/entertainer-availability.ent
       AdminCreatedUser,
       Booking,
       EntertainerAvailability,
+      Setting,
     ]),
     MediaModule,
     EmailModule,

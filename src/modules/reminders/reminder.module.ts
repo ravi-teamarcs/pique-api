@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Booking } from '../booking/entities/booking.entity';
 import { VenueEvent } from '../event/entities/event.entity';
 import { EmailModule } from '../Email/email.module';
+import { ReminderController } from './reminder.controller';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { EmailModule } from '../Email/email.module';
     NotificationModule,
     EmailModule,
   ],
+  controllers:[ReminderController],
   exports: [ReminderService],
   providers: [ReminderService],
 })

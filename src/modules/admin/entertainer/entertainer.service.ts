@@ -31,6 +31,7 @@ import { Booking } from '../booking/entities/booking.entity';
 import { EntertainerAvailability } from './entities/entertainer-availability.entity';
 import { EntertainerAvailabilityDto } from './Dto/entertainer-availability.dto';
 import { UpdateAvailabilityDto } from './Dto/update-availability.dto';
+import { Setting } from '../settings/entities/setting.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -47,6 +48,8 @@ export class EntertainerService {
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(EntertainerAvailability)
     private readonly availabilityRepository: Repository<EntertainerAvailability>,
+    @InjectRepository(Setting)
+    private readonly settingRepo: Repository<Setting>,
 
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
@@ -80,6 +83,7 @@ export class EntertainerService {
         'entertainer.bio AS bio',
         'entertainer.performanceRole AS performanceRole',
         'entertainer.socialLinks AS socialLinks',
+        'entertainer.pricePerEvent AS pricePerEvent',
         'entertainer.zipCode AS ZipCode',
         "COALESCE(entertainer.services, '') AS services",
         'entertainer.contact_person AS contactPerson',
@@ -125,11 +129,15 @@ export class EntertainerService {
       .take(pageSize)
       .getRawMany();
 
-    const parsedRecords = records.map(({ services, id, ...rest }) => ({
-      // services: services ? services.split(',') : [],
-      id: Number(id),
-      ...rest,
-    }));
+    const parsedRecords = await Promise.all(
+      records.map(async ({ services, id, pricePerEvent, ...rest }) => ({
+        // services: services ? services.split(',') : [],
+        id: Number(id),
+        priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
+        pricePerEvent,
+        ...rest,
+      })),
+    );
 
     return {
       message: 'Entertainers fetched Sucessfully.',
@@ -826,5 +834,17 @@ export class EntertainerService {
         status: false,
       });
     }
+  }
+
+  private async addMarkupToEntertainer(basePrice: number) {
+    const res = await this.settingRepo.findOne({ where: { isActive: true } });
+    if (!res) return basePrice;
+    const { markupType, markupValue } = res;
+
+    let finalPrice =
+      markupType === 'fixed'
+        ? basePrice + markupValue
+        : basePrice + (markupValue / 100) * basePrice;
+    return finalPrice;
   }
 }

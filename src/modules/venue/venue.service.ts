@@ -48,6 +48,7 @@ import { CreateNeighbourhoodDto } from './dto/create-neighbourhood.dto';
 import { UpdateNeighbourhoodDto } from './dto/update-neighbourhood.dto';
 import { EventsByMonthDto } from '../entertainer/dto/get-events-bymonth.dto';
 import { Cities } from '../location/entities/city.entity';
+import { Setting } from '../admin/settings/entities/setting.entity';
 
 @Injectable()
 export class VenueService {
@@ -70,8 +71,8 @@ export class VenueService {
     private readonly eventRepository: Repository<VenueEvent>,
     @InjectRepository(Neighbourhood)
     private readonly neighbourRepository: Repository<Neighbourhood>,
-    @InjectRepository(Neighbourhood)
-    private readonly stateRepository: Repository<Neighbourhood>,
+    @InjectRepository(Setting)
+    private readonly settingRepo: Repository<Setting>,
     @InjectRepository(Cities)
     private readonly cityRepository: Repository<Cities>,
 
@@ -980,13 +981,17 @@ export class VenueService {
       .setParameter('venueId', venueId)
       .getRawOne();
 
-    // Parse JSON fields
+    const finalPrice = await this.addMarkupToEntertainer(
+      Number(res.pricePerEvent),
+    );
+
     const { services, media, vaccinated, isWishlisted, ...details } = res;
     return {
       message: 'Entertainer Details returned Successfully',
       data: {
         ...details,
         isWishlisted: Boolean(isWishlisted),
+        priceWithMarkup: finalPrice,
         vaccination_status:
           vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
         services: services ? services.split(',') : [],
@@ -1363,5 +1368,17 @@ export class VenueService {
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
+  }
+
+  private async addMarkupToEntertainer(basePrice: number) {
+    const res = await this.settingRepo.findOne({ where: { isActive: true } });
+    if (!res) return basePrice;
+    const { markupType, markupValue } = res;
+
+    let finalPrice =
+      markupType === 'fixed'
+        ? basePrice + markupValue
+        : basePrice + (markupValue / 100) * basePrice;
+    return finalPrice;
   }
 }
