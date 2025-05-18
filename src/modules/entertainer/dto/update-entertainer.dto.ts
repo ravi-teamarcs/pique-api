@@ -11,8 +11,15 @@ import {
   Step8Dto,
   Step9Dto,
 } from './create-entertainer.dto';
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
+import { PerformanceType } from 'src/common/enums/entertainer.enum';
 
 export class UpdateEntertainerDto extends PartialType(CreateEntertainerDto) {}
 
@@ -71,6 +78,75 @@ class UpdateStep9Dto extends PartialType(Step9Dto) {
   step: number;
 }
 
+class AddressDto {
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  city: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  state: number;
+
+  @IsString()
+  @IsOptional()
+  zipCode: string;
+
+  @IsString()
+  @IsOptional()
+  addressLine1: string;
+
+  @IsString()
+  @IsOptional()
+  addressLine2: string;
+}
+class socialLinksDto {
+  @IsOptional()
+  socialLinks?: Record<string, string>;
+}
+
+class GeneralInformationDto {
+  @IsString()
+  @IsOptional()
+  entertainerName: string;
+
+  @IsString()
+  @IsOptional()
+  stageName: string;
+
+  @IsEnum(PerformanceType)
+  @IsOptional()
+  performanceRole: PerformanceType;
+
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  category: number;
+
+  @IsNumber()
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  specific_category: number;
+
+  @IsString()
+  @IsOptional()
+  contactPerson: string;
+  @IsString()
+  @IsOptional()
+  contactNumber: string;
+ 
+  @IsOptional()
+  services: string[];
+  @IsNumber()
+  @IsOptional()
+  pricePerEvent: number;
+
+  @IsString()
+  @IsOptional()
+  description: string;
+}
+
 export {
   UpdateStep1Dto,
   UpdateStep2Dto,
@@ -81,4 +157,7 @@ export {
   UpdateStep7Dto,
   UpdateStep8Dto,
   UpdateStep9Dto,
+  AddressDto,
+  socialLinksDto,
+  GeneralInformationDto,
 };

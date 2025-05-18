@@ -29,6 +29,9 @@ import {
   Step9Dto,
 } from './dto/create-entertainer.dto';
 import {
+  AddressDto,
+  GeneralInformationDto,
+  socialLinksDto,
   UpdateEntertainerDto,
   UpdateStep1Dto,
   UpdateStep2Dto,
@@ -53,6 +56,7 @@ import { UpcomingEventDto } from './dto/upcoming-event.dto';
 import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
 import { BookingQueryDto } from './dto/booking-query-dto';
 import { VenueEvent } from '../event/entities/event.entity';
+import { GeneralInfoDto } from '../admin/entertainer/Dto/create-entertainer.dto';
 
 @Injectable()
 export class EntertainerService {
@@ -667,7 +671,7 @@ export class EntertainerService {
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
 
-      const { socialLinks, id,  ...rest } = entertainer;
+      const { socialLinks, id, ...rest } = entertainer;
       const payload = {
         id: Number(id),
         ...rest,
@@ -857,6 +861,73 @@ export class EntertainerService {
       });
     } finally {
       await queryRunner.release();
+    }
+  }
+
+  async updateEntertainerBasicDetails(
+    userId: number,
+    dto: GeneralInformationDto,
+    uploadedFiles: UploadedFile[],
+  ) {
+    const { contactPerson, contactNumber, stageName, ...rest } = dto;
+    const updatedPayload = { ...rest };
+    if (stageName) updatedPayload['name'] = stageName;
+    if (contactNumber) updatedPayload['contact_number'] = contactNumber;
+    if (contactPerson) updatedPayload['contact_person'] = contactPerson;
+
+    try {
+      const entertainer = await this.entertainerRepository.findOne({
+        where: { user: { id: userId } },
+      });
+
+      if (!entertainer) throw new NotFoundException('Entertainer not found');
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        updatedPayload,
+      );
+
+      if (uploadedFiles && uploadedFiles.length > 0) {
+        const mediaUploadResult = await this.mediaService.handleMediaUpload(
+          userId,
+          uploadedFiles,
+          { eventId: null },
+        );
+      }
+
+      return { message: 'General Info updated Successfully', status: true };
+    } catch (error) {
+      if (error instanceof HttpException)
+        throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async updateEntertainerAddress(userId: number, dto: AddressDto) {
+    try {
+      const entertainer = await this.entertainerRepository.findOne({
+        where: { user: { id: userId } },
+      });
+
+      if (!entertainer) throw new NotFoundException('Entertainer not found');
+      await this.entertainerRepository.update({ id: entertainer.id }, dto);
+      return { message: 'Address updated Successfully', status: true };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async updateEntertainerSocialLinks(userId: number, dto: socialLinksDto) {
+    try {
+      const entertainer = await this.entertainerRepository.findOne({
+        where: { user: { id: userId } },
+      });
+
+      if (!entertainer) throw new NotFoundException('Entertainer not found');
+      await this.entertainerRepository.update({ id: entertainer.id }, dto);
+      return { message: 'Social Links updated Successfully', status: true };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
     }
   }
 

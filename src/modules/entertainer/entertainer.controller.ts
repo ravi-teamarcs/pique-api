@@ -24,8 +24,11 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { EntertainerService } from './entertainer.service';
-import { CreateEntertainerDto } from './dto/create-entertainer.dto';
-import { UpdateEntertainerDto } from './dto/update-entertainer.dto';
+import {
+  AddressDto,
+  GeneralInformationDto,
+  socialLinksDto,
+} from './dto/update-entertainer.dto';
 import { RolesGuard } from '../auth/roles.guard';
 import { Entertainer } from './entities/entertainer.entity';
 import { Roles } from '../auth/roles.decorator';
@@ -155,14 +158,14 @@ export class EntertainerController {
     }
   }
 
-  // Full Details Update
+  // Multi Step change api ()
 
-  @Patch()
+  @Patch('general-information')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   @UseInterceptors(AnyFilesInterceptor())
   async update(
-    @Body() updateEntertainerDto: UpdateEntertainerDto,
+    @Body() dto: GeneralInformationDto,
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
   ) {
@@ -182,11 +185,30 @@ export class EntertainerController {
       );
     }
 
-    return this.entertainerService.update(
-      updateEntertainerDto,
+    return this.entertainerService.updateEntertainerBasicDetails(
       userId,
+      dto,
       uploadedFiles,
     );
+  }
+  @Patch('address')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async updateAddress(@Body() dto: AddressDto, @Request() req) {
+    const { userId } = req.user;
+
+    return this.entertainerService.updateEntertainerAddress(userId, dto);
+  }
+  @Patch('social-links')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async updateSocialLinks(
+    @Body() dto: socialLinksDto,
+    @Request()
+    req,
+  ) {
+    const { userId } = req.user;
+    return this.entertainerService.updateEntertainerSocialLinks(userId, dto);
   }
 
   @Get()

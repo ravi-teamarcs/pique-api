@@ -45,8 +45,8 @@ export class EventController {
   @Roles('findAll')
   getAllEvent(
     @Req() req,
-    @Query('page', ParseIntPipe) page: number,
-    @Query('pageSize', ParseIntPipe) pageSize: number,
+    @Query('page') page: number,
+    @Query('pageSize') pageSize: number,
     @Query('status') status: string,
   ) {
     const { refId } = req.user;
