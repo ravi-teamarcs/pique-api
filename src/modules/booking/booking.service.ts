@@ -62,7 +62,7 @@ export class BookingService {
     // Check for Availability
     const available = await this.checkAvailability(entertainerId, dto.showDate);
 
-    if (!available)
+    if (available === false)
       throw new BadRequestException(
         'Entertainer is not Available on requested date.',
       );
