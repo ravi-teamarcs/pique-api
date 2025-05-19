@@ -22,7 +22,6 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { CreateEventDto } from './dto/create-event.dto';
 @ApiTags('Events')
 @Controller('event')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class EventController {
   constructor(private readonly eventService: EventService) {}
   @ApiOperation({ summary: 'Create a new Event' })
@@ -31,6 +30,7 @@ export class EventController {
     description: 'Event has been  Created Sucessfully.',
   })
   @Post() // Working Fine
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   createEvent(@Body() createEventDto: CreateEventDto, @Req() req) {
     return this.eventService.createEvent(createEventDto);
@@ -42,6 +42,7 @@ export class EventController {
     description: 'Event fetched Successfully.',
   })
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getAllEvent(
     @Req() req,
@@ -54,6 +55,7 @@ export class EventController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getEventById(@Req() req, @Param('id') id: number) {
     const { refId } = req.user;
@@ -66,12 +68,14 @@ export class EventController {
     description: 'Event  updated Successfully.',
   })
   @Patch() // working fine
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   updateEvent(@Body() dto: UpdateEventDto, @Req() req) {
     const { refId } = req.user;
     return this.eventService.handleUpdateEvent(dto, refId);
   }
   @Delete(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   deleteEvent(@Param('id', ParseIntPipe) id: number, @Req() req) {
     const { refId } = req.user;
@@ -89,5 +93,11 @@ export class EventController {
   ) {
     const { refId } = req.user; // assuming role is available in JWT
     return this.eventService.updateEventStatus(id, refId, status);
+  }
+
+  // Api to get Venue Details  for FeedBack Api
+  @Get(':id/venue-details')
+  getVenueDetailsByEventId(@Param('id', ParseIntPipe) id: number) {
+    return this.eventService.getVenueDetailsById(id);
   }
 }

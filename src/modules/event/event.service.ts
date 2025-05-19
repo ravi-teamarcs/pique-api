@@ -284,4 +284,23 @@ export class EventService {
       }
     }
   }
+
+  async getVenueDetailsById(id: number) {
+    try {
+      const venueDetails = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId ')
+        .select(['venue.name AS venueName', 'venue.id AS venueId'])
+        .where('event.id =:id', { id })
+        .getRawOne();
+
+      return {
+        message: 'Venue Detail Fetched Successfully',
+        data: venueDetails,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
 }
