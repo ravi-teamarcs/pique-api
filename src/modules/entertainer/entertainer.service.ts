@@ -1533,7 +1533,7 @@ export class EntertainerService {
 
   async changeStatus(bookingId: number, status, entId: number) {
     const booking = await this.bookingRepository.findOne({
-      where: { id: bookingId  , entId},
+      where: { id: bookingId, entId },
     });
 
     if (!booking) throw new NotFoundException('Booking Not found');

@@ -11,5 +11,6 @@ import { GeocodingService } from './geocoding.service';
   imports: [TypeOrmModule.forFeature([Countries, Cities, States])],
   controllers: [LocationController],
   providers: [LocationService, GeocodingService],
+  exports: [GeocodingService],
 })
 export class LocationModule {}

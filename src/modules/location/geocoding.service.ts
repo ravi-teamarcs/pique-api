@@ -9,7 +9,9 @@ import axios from 'axios';
 @Injectable()
 export class GeocodingService {
   constructor(private readonly configService: ConfigService) {}
-  private readonly apiKey = process.env.GOOGLE_GEOCODE_API_KEY;
+  private readonly apiKey = this.configService.get<string>(
+    'GOOGLE_GEOCODE_API_KEY',
+  );
   private readonly endpoint =
     'https://maps.googleapis.com/maps/api/geocode/json';
 
