@@ -815,11 +815,15 @@ export class EntertainerService {
         .skip(skip)
         .take(pageSize)
         .getRawMany();
-      const parsedRecords = records.map(({ services, id, ...rest }) => ({
-        // services: services ? services.split(',') : [],
-        id: Number(id),
-        ...rest,
-      }));
+      const parsedRecords = await Promise.all(
+        records.map(async ({ services, id, pricePerEvent, ...rest }) => ({
+          // services: services ? services.split(',') : [],
+          id: Number(id),
+          priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
+          pricePerEvent,
+          ...rest,
+        })),
+      );
 
       return {
         message: 'Entertainers fetched Sucessfully.',
