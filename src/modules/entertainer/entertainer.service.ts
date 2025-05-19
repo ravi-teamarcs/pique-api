@@ -1514,4 +1514,32 @@ export class EntertainerService {
       throw new InternalServerErrorException(error.message);
     }
   }
+
+  async getTravelDistance(venueId: number) {
+    try {
+      const maxTravelDistance = await this.entertainerRepository.findOne({
+        where: { id: venueId },
+        select: ['maxTravelDistanceMiles'],
+      });
+      return {
+        message: 'Travel distance returned Successfully',
+        status: true,
+        data: maxTravelDistance,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async changeStatus(bookingId: number, status, entId: number) {
+    const booking = await this.bookingRepository.findOne({
+      where: { id: bookingId  , entId},
+    });
+
+    if (!booking) throw new NotFoundException('Booking Not found');
+
+    await this.bookingRepository.update({ id: bookingId }, { status });
+
+    return { message: 'Booking status updated Successfully', status: true };
+  }
 }

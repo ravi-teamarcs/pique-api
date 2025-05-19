@@ -353,4 +353,24 @@ export class EntertainerController {
     const { userId } = req.user;
     return this.entertainerService.setTravelDistance(userId, distance);
   }
+
+  @Get('travel/max-distance')
+  @UseGuards(JwtAuthGuard, RolesGuard) // Use your auth strategy
+  @Roles('findAll')
+  getMaxtravelDistance(@Request() req) {
+    const { refId } = req.user;
+    return this.entertainerService.getTravelDistance(refId);
+  }
+
+  @Patch('booking/status')
+  @UseGuards(JwtAuthGuard, RolesGuard) // Use your auth strategy
+  @Roles('findAll')
+  changeStatus(@Body() dto: { bookingId: number; status }, @Request() req) {
+    const { refId } = req.user;
+    return this.entertainerService.changeStatus(
+      dto.bookingId,
+      dto.status,
+      refId,
+    );
+  }
 }
