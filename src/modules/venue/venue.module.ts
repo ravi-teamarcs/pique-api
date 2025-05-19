@@ -25,6 +25,7 @@ import { States } from '../location/entities/state.entity';
 import { EntertainerModule } from '../entertainer/entertainer.module';
 import { VenueEvent } from '../event/entities/event.entity';
 import { Setting } from '../admin/settings/entities/setting.entity';
+import { LocationModule } from '../location/location.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { Setting } from '../admin/settings/entities/setting.entity';
     BookingModule,
     MediaModule,
     NotificationModule,
+    LocationModule,
   ],
   controllers: [VenueController],
   providers: [VenueService],

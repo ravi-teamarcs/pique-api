@@ -48,6 +48,8 @@ import { UpdateNeighbourhoodDto } from './dto/update-neighbourhood.dto';
 import { EventsByMonthDto } from '../entertainer/dto/get-events-bymonth.dto';
 import { Cities } from '../location/entities/city.entity';
 import { Setting } from '../admin/settings/entities/setting.entity';
+import { GeocodingService } from '../location/geocoding.service';
+import { States } from '../location/entities/state.entity';
 
 @Injectable()
 export class VenueService {
@@ -74,10 +76,13 @@ export class VenueService {
     private readonly settingRepo: Repository<Setting>,
     @InjectRepository(Cities)
     private readonly cityRepository: Repository<Cities>,
+    @InjectRepository(States)
+    private readonly stateRepository: Repository<States>,
 
     private readonly config: ConfigService,
     private readonly mediaService: MediaService,
     private readonly dataSource: DataSource,
+    private readonly geoService: GeocodingService,
   ) {}
 
   // New Flow   Venue Creation   Step:1
@@ -127,9 +132,22 @@ export class VenueService {
           profileStep: 1,
         },
       });
+      const city = await this.cityRepository.findOne({
+        where: { id: dto.city },
+        select: ['name'],
+      });
+      const state = await this.stateRepository.findOne({
+        where: { id: dto.state },
+        select: ['name'],
+      });
+
+      const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city.name}, ${state.name} ${dto.zipCode}`;
+
+      const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      const newPayload = { ...dto, latitude: lat, longitude: lng };
 
       // Assign address fields
-      Object.assign(venue, dto);
+      Object.assign(venue, newPayload);
 
       // Move to next step
       venue.profileStep = 2;
@@ -259,8 +277,22 @@ export class VenueService {
       where: { user: { id: userId } },
     });
 
+    const city = await this.cityRepository.findOne({
+      where: { id: dto.city },
+      select: ['name'],
+    });
+    const state = await this.stateRepository.findOne({
+      where: { id: dto.state },
+      select: ['name'],
+    });
+
+    const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city.name}, ${state.name} ${dto.zipCode}`;
+
+    const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+    const newPayload = { ...dto, latitude: lat, longitude: lng };
+
     try {
-      await this.venueRepository.update({ id: venue.id }, dto);
+      await this.venueRepository.update({ id: venue.id }, newPayload);
       const updatedVenue = await this.venueRepository.findOne({
         where: { user: { id: userId } },
       });
@@ -676,7 +708,25 @@ export class VenueService {
       throw new NotFoundException('Venue not Found.');
     }
     try {
-      await queryRunner.manager.update(Venue, { id: existingVenue.id }, venue);
+      const city = await this.cityRepository.findOne({
+        where: { id: venue.city },
+        select: ['name'],
+      });
+      const state = await this.stateRepository.findOne({
+        where: { id: venue.state },
+        select: ['name'],
+      });
+
+      const fullAddress = `${venue.addressLine1}, ${venue.addressLine2 ?? ''}, ${city.name}, ${state.name} ${venue.zipCode}`;
+
+      const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      const newPayload = { ...venue, latitude: lat, longitude: lng };
+
+      await queryRunner.manager.update(
+        Venue,
+        { id: existingVenue.id },
+        newPayload,
+      );
       if (uploadedFiles?.length > 0) {
         res = await this.mediaService.handleMediaUpload(
           existingVenue.id,

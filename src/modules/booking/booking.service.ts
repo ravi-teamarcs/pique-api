@@ -465,7 +465,7 @@ export class BookingService {
 
   async updateBookingStatus(dto, userId: number) {
     const updatedBookings = [];
-    const { bookingIds, status, eventId } = dto;
+    const { bookingIds, status } = dto;
     try {
       for (const bookingId of bookingIds) {
         const booking = await this.bookingRepository
@@ -548,7 +548,7 @@ export class BookingService {
         updatedBookings.push(bookingId);
       }
 
-      this.notSelectedforEvent(eventId, updatedBookings);
+      // this.notSelectedforEvent(eventId, updatedBookings);
 
       return {
         message: 'Booking status updated successfully',

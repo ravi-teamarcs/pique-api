@@ -22,6 +22,7 @@ import { WeeklyAvailability } from './entities/weekly-availability.entity';
 import { UnavailableDate } from './entities/unavailable.entity';
 import { VenueEvent } from '../event/entities/event.entity';
 import { EntertainerAvailability } from './entities/availability.entity';
+import { LocationModule } from '../location/location.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { EntertainerAvailability } from './entities/availability.entity';
     ]),
     BookingModule,
     MediaModule,
+    LocationModule,
   ],
   controllers: [EntertainerController, AvailabilityController],
   providers: [EntertainerService, AvailabilityService],

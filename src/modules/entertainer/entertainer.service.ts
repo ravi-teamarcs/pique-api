@@ -671,9 +671,10 @@ export class EntertainerService {
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
 
-      const { socialLinks, id, ...rest } = entertainer;
+      const { socialLinks, services, id, ...rest } = entertainer;
       const payload = {
         id: Number(id),
+        services: services === 'string' ? JSON.parse(services) : services,
         ...rest,
         socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
       };
@@ -906,6 +907,20 @@ export class EntertainerService {
       const entertainer = await this.entertainerRepository.findOne({
         where: { user: { id: userId } },
       });
+
+      // const city = await this.cityRepository.findOne({
+      //   where: { id: dto.city },
+      //   select: ['name'],
+      // });
+      // const state = await this.stateRepository.findOne({
+      //   where: { id: dto.state },
+      //   select: ['name'],
+      // });
+
+      // const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city.name}, ${state.name} ${dto.zipCode}`;
+
+      // const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      // const newPayload = { ...dto, latitude: lat, longitude: lng };
 
       if (!entertainer) throw new NotFoundException('Entertainer not found');
       await this.entertainerRepository.update({ id: entertainer.id }, dto);
