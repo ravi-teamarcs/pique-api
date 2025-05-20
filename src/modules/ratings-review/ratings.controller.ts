@@ -6,9 +6,13 @@ import {
   ParseIntPipe,
   Post,
   Query,
+  Request,
+  UseGuards,
 } from '@nestjs/common';
 import { RatingsService } from './ratings.service';
 import { CreateFeedbackDto } from './dto/feedback.dto';
+import { Roles } from '../auth/roles.decorator';
+import { JwtAuthGuard } from '../auth/jwt.guard';
 @Controller('ratings')
 export class RatingsController {
   constructor(private readonly ratingsService: RatingsService) {}
@@ -27,8 +31,10 @@ export class RatingsController {
     return this.ratingsService.saveFeedback(dto);
   }
 
-  @Get(':entId')
-  getRatingsById(@Param('entId', ParseIntPipe) entId: number) {
-    // return this.ratingsService.calculateAverageRating(entId);
+  @Get()
+  @UseGuards(JwtAuthGuard)
+  getRatingsById(@Request() req) {
+    const { refId } = req.user;
+    return this.ratingsService.calculateAverageRating(refId);
   }
 }

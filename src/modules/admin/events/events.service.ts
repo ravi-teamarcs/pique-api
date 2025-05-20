@@ -21,6 +21,7 @@ import { endOfMonth, format, parse, startOfMonth } from 'date-fns';
 import { Venue } from '../venue/entities/venue.entity';
 import { BookingService } from '../booking/booking.service';
 import { FilterEventDto } from './dto/filter-event.dto';
+import { Setting } from '../settings/entities/setting.entity';
 
 @Injectable()
 export class EventService {
@@ -31,6 +32,8 @@ export class EventService {
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(Venue)
     private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(Setting)
+    private readonly settingRepo: Repository<Setting>,
 
     private readonly mediaService: MediaService,
     private readonly bookingService: BookingService,
@@ -423,9 +426,21 @@ export class EventService {
 
       const totalCount = await events.getCount();
       const results = await events.getRawMany();
+
+      const updatedResults = await Promise.all(
+        results.map(async (result) => {
+          const priceWithMarkup = await this.addMarkupToEntertainer(
+            result.pricePerHour,
+          );
+          return {
+            ...result,
+            priceWithMarkup,
+          };
+        }),
+      );
       return {
         message: `Booking for Event Id ${eventId} fetched successfully`,
-        data: results,
+        data: updatedResults,
         totalCount,
         status: true,
       };
@@ -476,5 +491,16 @@ export class EventService {
         status: false,
       });
     }
+  }
+  private async addMarkupToEntertainer(basePrice: number) {
+    const res = await this.settingRepo.findOne({ where: { isActive: true } });
+    if (!res) return basePrice;
+    const { markupType, markupValue } = res;
+
+    let finalPrice =
+      markupType === 'fixed'
+        ? basePrice + markupValue
+        : basePrice + (markupValue / 100) * basePrice;
+    return finalPrice;
   }
 }

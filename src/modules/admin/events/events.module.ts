@@ -10,6 +10,7 @@ import { Capability } from '../auth/entities/capability.entity';
 import { MediaModule } from '../media/media.module';
 import { Venue } from 'src/modules/venue/entities/venue.entity';
 import { BookingModule } from '../booking/booking.module';
+import { Setting } from '../settings/entities/setting.entity';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { BookingModule } from '../booking/booking.module';
       Role,
       Capability,
       Venue,
+      Setting,
     ]),
     MediaModule,
     BookingModule,
