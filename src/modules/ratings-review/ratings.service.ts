@@ -102,28 +102,30 @@ export class RatingsService {
       .select('AVG(feedback.rating)', 'avg')
       .addSelect('COUNT(*)', 'total')
       .addSelect(
-        `SUM(CASE WHEN feedback.rating = 1 THEN 1 ELSE 0 END)`,
+        'SUM(CASE WHEN feedback.rating = 1 THEN 1 ELSE 0 END)',
         'count1',
       )
       .addSelect(
-        `SUM(CASE WHEN feedback.rating = 2 THEN 1 ELSE 0 END)`,
+        'SUM(CASE WHEN feedback.rating = 2 THEN 1 ELSE 0 END)',
         'count2',
       )
       .addSelect(
-        `SUM(CASE WHEN feedback.rating = 3 THEN 1 ELSE 0 END)`,
+        'SUM(CASE WHEN feedback.rating = 3 THEN 1 ELSE 0 END)',
         'count3',
       )
       .addSelect(
-        `SUM(CASE WHEN feedback.rating = 4 THEN 1 ELSE 0 END)`,
+        'SUM(CASE WHEN feedback.rating = 4 THEN 1 ELSE 0 END)',
         'count4',
       )
       .addSelect(
-        `SUM(CASE WHEN feedback.rating = 5 THEN 1 ELSE 0 END)`,
+        'SUM(CASE WHEN feedback.rating = 5 THEN 1 ELSE 0 END)',
         'count5',
       )
       .where('feedback.revieweeId = :entertainerId', { entertainerId })
+      .andWhere('EXTRACT(YEAR FROM feedback.created_at) = :year', {
+        year: currentYear,
+      })
       .getRawOne();
-
     // Get review count for this year
     const thisYearCount = await this.feedbackRepo
       .createQueryBuilder('feedback')

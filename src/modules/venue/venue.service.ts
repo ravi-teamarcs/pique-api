@@ -498,16 +498,18 @@ export class VenueService {
         const searchRadius = isNearby ? radius || 50 : defaultRadius;
 
         baseQuery
+          .andWhere('entertainer.latitude IS NOT NULL')
+          .andWhere('entertainer.longitude IS NOT NULL')
           .andWhere(
             `
-    3959 * acos(
-      cos(radians(:lat)) *
-      cos(radians(entertainer.latitude)) *
-      cos(radians(entertainer.longitude) - radians(:lng)) +
-      sin(radians(:lat)) *
-      sin(radians(entertainer.latitude))
-    ) <= LEAST(:searchRadius, entertainer.maxTravelDistance)
-  `,
+      3959 * acos(
+        cos(radians(:lat)) *
+        cos(radians(entertainer.latitude)) *
+        cos(radians(entertainer.longitude) - radians(:lng)) +
+        sin(radians(:lat)) *
+        sin(radians(entertainer.latitude))
+      ) <= LEAST(:searchRadius, entertainer.maxTravelDistance)
+    `,
           )
           .setParameter('lat', latitude)
           .setParameter('lng', longitude)
