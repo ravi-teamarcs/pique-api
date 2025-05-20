@@ -101,8 +101,23 @@ export class EntertainerService {
         profileStep: 1,
         ...rest,
       });
+
+      const city = await this.cityRepository.findOne({
+        where: { id: dto.city },
+        select: ['name'],
+      });
+      const state = await this.stateRepository.findOne({
+        where: { id: dto.state },
+        select: ['name'],
+      });
+
+      const fullAddress = `${dto.addressLine1 ?? ''}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
+
+      const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      const newPayload = { ...entertainer, latitude: lat, longitude: lng };
+
       const savedEntertainer =
-        await this.entertainerRepository.save(entertainer);
+        await this.entertainerRepository.save(newPayload);
       return {
         message: 'Entertainer primary details saved successfully',
         status: true,
@@ -424,6 +439,21 @@ export class EntertainerService {
     const { step, stageName, ...rest } = dto;
     let newPayload = { ...rest };
     if (stageName) newPayload['name'] = stageName;
+
+    const city = await this.cityRepository.findOne({
+      where: { id: dto.city },
+      select: ['name'],
+    });
+    const state = await this.stateRepository.findOne({
+      where: { id: dto.state },
+      select: ['name'],
+    });
+
+    const fullAddress = `${dto.addressLine1 ?? ''}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
+
+    const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+    newPayload['latitude'] = lat;
+    newPayload['latitude'] = lng;
     try {
       await this.entertainerRepository.update(
         { user: { id: userId } },
@@ -925,7 +955,7 @@ export class EntertainerService {
         select: ['name'],
       });
 
-      const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
+      const fullAddress = `${dto.addressLine1 ?? ''}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
 
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
       const newPayload = { ...dto, latitude: lat, longitude: lng };
@@ -1051,7 +1081,7 @@ export class EntertainerService {
         .leftJoin('states', 'state', 'state.id = venue.state')
         .leftJoin('countries', 'country', 'country.id = venue.country')
         .where('booking.entId = :userId', { userId })
-        .andWhere('booking.status = :status', { status: 'pending' })
+        .andWhere('booking.status = :status', { status: 'invited' })
         .select([
           'booking.id AS id',
           'booking.status AS status',

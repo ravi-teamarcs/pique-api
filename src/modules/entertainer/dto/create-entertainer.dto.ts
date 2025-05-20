@@ -162,6 +162,14 @@ class Step1Dto {
   @IsString()
   @IsOptional()
   zipCode: string;
+
+  @IsNotEmpty()
+  @IsString()
+  addressLine1: string;
+
+  @IsOptional()
+  @IsString()
+  addressLine2: string;
 }
 class Step2Dto {
   @IsNumber()
