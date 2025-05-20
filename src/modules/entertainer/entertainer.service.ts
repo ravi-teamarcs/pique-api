@@ -925,7 +925,7 @@ export class EntertainerService {
         select: ['name'],
       });
 
-      const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city.name}, ${state.name} ${dto.zipCode}`;
+      const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
 
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
       const newPayload = { ...dto, latitude: lat, longitude: lng };

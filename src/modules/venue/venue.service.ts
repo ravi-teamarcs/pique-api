@@ -132,6 +132,7 @@ export class VenueService {
           profileStep: 1,
         },
       });
+
       const city = await this.cityRepository.findOne({
         where: { id: dto.city },
         select: ['name'],
@@ -141,11 +142,10 @@ export class VenueService {
         select: ['name'],
       });
 
-      const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city.name}, ${state.name} ${dto.zipCode}`;
+      const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
 
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
       const newPayload = { ...dto, latitude: lat, longitude: lng };
-
       // Assign address fields
       Object.assign(venue, newPayload);
 
@@ -286,7 +286,7 @@ export class VenueService {
       select: ['name'],
     });
 
-    const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city.name}, ${state.name} ${dto.zipCode}`;
+    const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
 
     const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
     const newPayload = { ...dto, latitude: lat, longitude: lng };
@@ -717,7 +717,7 @@ export class VenueService {
         select: ['name'],
       });
 
-      const fullAddress = `${venue.addressLine1}, ${venue.addressLine2 ?? ''}, ${city.name}, ${state.name} ${venue.zipCode}`;
+      const fullAddress = `${venue.addressLine1}, ${venue.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${venue.zipCode}`;
 
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
       const newPayload = { ...venue, latitude: lat, longitude: lng };

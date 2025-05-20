@@ -7,6 +7,7 @@ import { VenueEvent } from '../event/entities/event.entity';
 import { addHours, format, isAfter, subHours } from 'date-fns';
 import { EmailService } from '../Email/email.service';
 import { BookingReminder } from './entities/booking-reminder';
+import { BookLater } from './dto/book-later.dto';
 
 @Injectable()
 export class ReminderService {
@@ -247,6 +248,52 @@ export class ReminderService {
 
   async handleReminders() {
     const oneHourAgo = subHours(new Date(), 1);
+    const reminders = await this.bookReminderRepo
+      .createQueryBuilder('reminder')
+      .leftJoin('venue', 'venue', 'venue.id = reminder.venue_id') // if you have relation
+      .leftJoin('users', 'user', 'user.id = venue.id') // if you have relation
+      .leftJoin(
+        'entertainers',
+        'entertainer',
+        'entertainer.id = reminder.entertainer_id',
+      ) // if you have relation
+      .select([
+        'reminder.id As id',
+        'venue.name AS venueName',
+        'user.email AS email',
+        'entertainer.name AS stageName',
+      ])
+      .where('reminder.createdAt <= :oneHourAgo', { oneHourAgo })
+      .andWhere('reminder.isOneHourEmailSent = :flag', { flag: false })
+      .getRawMany();
+
+    for (const reminder of reminders) {
+      const emailPayload = {
+        to: reminder.email,
+        subject: `Reminder for booking status`,
+        templateName: 'entertainer-completion-reminder.html',
+        replacements: {
+          entertainerName: reminder.entertainerName,
+          venueName: reminder.venueName,
+          bookingLink: 'http://dummyBooking',
+        },
+      };
+      await this.emailService.handleSendEmail(emailPayload);
+      await this.bookReminderRepo.update(
+        { id: reminder.id },
+        { isOneHourEmailSent: true },
+      );
+    }
+  }
+
+  async saveBookingReminder(dto: BookLater) {
+    const reminder = this.bookReminderRepo.create(dto);
+    await this.bookReminderRepo.save(reminder);
+    return { message: 'Booking Reminder stored Successfully', status: true };
+  }
+
+  async finalBookingReminder() {
+    const twentyFourHoursAgo = subHours(new Date(), 24);
 
     const reminders = await this.bookReminderRepo
       .createQueryBuilder('reminder')
@@ -257,30 +304,39 @@ export class ReminderService {
         'entertainer',
         'entertainer.id = reminder.entertainer_id',
       ) // if you have relation
-      .select(['venue'])
-      .where('reminder.createdAt <= :oneHourAgo', { oneHourAgo })
+      .select([
+        'reminder.id AS id',
+        'venue.name AS venueName',
+        'user.email AS email',
+        'entertainer.name AS stageName',
+      ])
+      .where('reminder.createdAt <= :twentyFourHoursAgo', {
+        twentyFourHoursAgo,
+      })
       .andWhere('reminder.isOneHourEmailSent = :flag', { flag: false })
       .getRawMany();
 
-    // for (const reminder of reminders) {
-    //  const
+    if (reminders.length > 0) {
+      for (const reminder of reminders) {
+        const emailPayload = {
+          to: reminder.email,
+          subject: `Reminder for booking status`,
+          templateName: 'entertainer-completion-reminder.html',
+          replacements: {
+            entertainerName: reminder.stageName,
+            venueName: reminder.venueName,
+            bookingLink: 'http://dummyBooking',
+          },
+        };
+        await this.emailService.handleSendEmail(emailPayload);
 
-    //   const emailPayload = {
-    //     to: book.email,
-    //     subject: `Reminder for booking status`,
-    //     templateName: 'entertainer-completion-reminder.html',
-    //     replacements: {
-    //       entertainerName: book.entertainerName,
-    //       eventName: book.id,
-    //       venueName: book.venueName,
-    //       eventDate: format(book.eventDate, 'dd MM yyyy'),
-    //     },
-    //   };
-    //   await this.emailService.handleSendEmail();
+        // Mark the 1-hour email as sent
 
-    //   // Mark the 1-hour email as sent
-    //   reminder.isOneHourEmailSent = true;
-    //   await this.reminderRepo.save(reminder);
-    // }
+        await this.bookReminderRepo.update(
+          { id: reminder.id },
+          { isTwentyFourHourEmailSent: true },
+        );
+      }
+    }
   }
 }
