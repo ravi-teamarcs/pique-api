@@ -74,6 +74,11 @@ export class AvailabilityService {
           { id: alreadyExists.id },
           { ...rest },
         );
+
+        return {
+          message: 'Entertainer Availability updated Successfully',
+          status: true,
+        };
       }
 
       const availability = this.availabilityRepository.create(dto);
@@ -81,7 +86,7 @@ export class AvailabilityService {
         await this.availabilityRepository.save(availability);
 
       return {
-        message: 'Entertainer Availability returned Successfully',
+        message: 'Entertainer Availability saved Successfully',
         data: savedAvailability,
         status: true,
       };

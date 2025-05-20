@@ -23,6 +23,8 @@ import { UnavailableDate } from './entities/unavailable.entity';
 import { VenueEvent } from '../event/entities/event.entity';
 import { EntertainerAvailability } from './entities/availability.entity';
 import { LocationModule } from '../location/location.module';
+import { Cities } from '../location/entities/city.entity';
+import { States } from '../location/entities/state.entity';
 
 @Module({
   imports: [
@@ -42,6 +44,8 @@ import { LocationModule } from '../location/location.module';
       UnavailableDate,
       VenueEvent,
       EntertainerAvailability,
+      Cities,
+      States,
     ]),
     BookingModule,
     MediaModule,

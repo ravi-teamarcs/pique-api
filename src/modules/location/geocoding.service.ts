@@ -29,14 +29,13 @@ export class GeocodingService {
 
       const data = response.data;
       if (data.status !== 'OK' || !data.results.length) {
-        throw new NotFoundException(`No results: ${data.status}`);
+        return { lat: null, lng: null };
       }
 
       const location = data.results[0].geometry.location;
       return { lat: location.lat, lng: location.lng };
     } catch (error) {
-      // Log the error as needed
-      throw new InternalServerErrorException(error.message);
+      return { lat: null, lng: null };
     }
   }
 

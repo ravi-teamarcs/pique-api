@@ -6,14 +6,15 @@ import { Booking } from '../booking/entities/booking.entity';
 import { VenueEvent } from '../event/entities/event.entity';
 import { EmailModule } from '../Email/email.module';
 import { ReminderController } from './reminder.controller';
+import { BookingReminder } from './entities/booking-reminder';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, VenueEvent]),
+    TypeOrmModule.forFeature([Booking, VenueEvent, BookingReminder]),
     NotificationModule,
     EmailModule,
   ],
-  controllers:[ReminderController],
+  controllers: [ReminderController],
   exports: [ReminderService],
   providers: [ReminderService],
 })

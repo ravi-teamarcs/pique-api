@@ -57,6 +57,9 @@ import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
 import { BookingQueryDto } from './dto/booking-query-dto';
 import { VenueEvent } from '../event/entities/event.entity';
 import { GeneralInfoDto } from '../admin/entertainer/Dto/create-entertainer.dto';
+import { GeocodingService } from '../location/geocoding.service';
+import { States } from '../location/entities/state.entity';
+import { Cities } from '../location/entities/city.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -77,9 +80,14 @@ export class EntertainerService {
     private readonly eventRepository: Repository<VenueEvent>,
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
+    @InjectRepository(Cities)
+    private readonly cityRepository: Repository<Cities>,
+    @InjectRepository(States)
+    private readonly stateRepository: Repository<States>,
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
     private readonly mediaService: MediaService,
+    private readonly geoService: GeocodingService,
   ) {}
 
   // New Flow // Step1
@@ -908,22 +916,25 @@ export class EntertainerService {
         where: { user: { id: userId } },
       });
 
-      // const city = await this.cityRepository.findOne({
-      //   where: { id: dto.city },
-      //   select: ['name'],
-      // });
-      // const state = await this.stateRepository.findOne({
-      //   where: { id: dto.state },
-      //   select: ['name'],
-      // });
+      const city = await this.cityRepository.findOne({
+        where: { id: dto.city },
+        select: ['name'],
+      });
+      const state = await this.stateRepository.findOne({
+        where: { id: dto.state },
+        select: ['name'],
+      });
 
-      // const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city.name}, ${state.name} ${dto.zipCode}`;
+      const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city.name}, ${state.name} ${dto.zipCode}`;
 
-      // const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
-      // const newPayload = { ...dto, latitude: lat, longitude: lng };
+      const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      const newPayload = { ...dto, latitude: lat, longitude: lng };
 
       if (!entertainer) throw new NotFoundException('Entertainer not found');
-      await this.entertainerRepository.update({ id: entertainer.id }, dto);
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        newPayload,
+      );
       return { message: 'Address updated Successfully', status: true };
     } catch (error) {
       if (error instanceof HttpException) throw error;

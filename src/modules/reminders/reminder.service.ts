@@ -1,11 +1,12 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Booking } from '../booking/entities/booking.entity';
-import { Repository } from 'typeorm';
+import { LessThanOrEqual, Repository } from 'typeorm';
 import { NotificationService } from '../notification/notification.service';
 import { VenueEvent } from '../event/entities/event.entity';
-import { addHours, format, isAfter } from 'date-fns';
+import { addHours, format, isAfter, subHours } from 'date-fns';
 import { EmailService } from '../Email/email.service';
+import { BookingReminder } from './entities/booking-reminder';
 
 @Injectable()
 export class ReminderService {
@@ -14,6 +15,8 @@ export class ReminderService {
     private readonly bookingRepo: Repository<Booking>,
     @InjectRepository(VenueEvent)
     private readonly eventRepo: Repository<VenueEvent>,
+    @InjectRepository(BookingReminder)
+    private readonly bookReminderRepo: Repository<BookingReminder>,
     private readonly notifyService: NotificationService,
     private readonly emailService: EmailService,
   ) {}
@@ -240,5 +243,44 @@ export class ReminderService {
         this.emailService.handleSendEmail(emailPayload);
       }
     }
+  }
+
+  async handleReminders() {
+    const oneHourAgo = subHours(new Date(), 1);
+
+    const reminders = await this.bookReminderRepo
+      .createQueryBuilder('reminder')
+      .leftJoin('venue', 'venue', 'venue.id = reminder.venue_id') // if you have relation
+      .leftJoin('users', 'user', 'user.id = venue.id') // if you have relation
+      .leftJoin(
+        'entertainers',
+        'entertainer',
+        'entertainer.id = reminder.entertainer_id',
+      ) // if you have relation
+      .select(['venue'])
+      .where('reminder.createdAt <= :oneHourAgo', { oneHourAgo })
+      .andWhere('reminder.isOneHourEmailSent = :flag', { flag: false })
+      .getRawMany();
+
+    // for (const reminder of reminders) {
+    //  const
+
+    //   const emailPayload = {
+    //     to: book.email,
+    //     subject: `Reminder for booking status`,
+    //     templateName: 'entertainer-completion-reminder.html',
+    //     replacements: {
+    //       entertainerName: book.entertainerName,
+    //       eventName: book.id,
+    //       venueName: book.venueName,
+    //       eventDate: format(book.eventDate, 'dd MM yyyy'),
+    //     },
+    //   };
+    //   await this.emailService.handleSendEmail();
+
+    //   // Mark the 1-hour email as sent
+    //   reminder.isOneHourEmailSent = true;
+    //   await this.reminderRepo.save(reminder);
+    // }
   }
 }
