@@ -38,7 +38,7 @@ export class InvoiceCronService {
   async eventCompletion() {
     await this.reminderService.handleEventCompletionReminders();
   }
-// added a cron job
+// added a cron job doen
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCron() {
     await this.notificationService.deleteOldNotifications();
