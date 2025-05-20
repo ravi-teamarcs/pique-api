@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { RatingsService } from './ratings.service';
 import { CreateFeedbackDto } from './dto/feedback.dto';
 @Controller('ratings')
@@ -17,5 +25,10 @@ export class RatingsController {
   @Post()
   async submitFeedback(@Body() dto: CreateFeedbackDto) {
     return this.ratingsService.saveFeedback(dto);
+  }
+
+  @Get(':entId')
+  getRatingsById(@Param('entId', ParseIntPipe) entId: number) {
+    // return this.ratingsService.calculateAverageRating(entId);
   }
 }
