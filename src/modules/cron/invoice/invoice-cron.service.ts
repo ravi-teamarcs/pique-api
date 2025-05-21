@@ -18,10 +18,13 @@ export class InvoiceCronService {
     private readonly notificationService: NotificationService,
   ) {}
 
+  // Cron Job for Event Reminder before  (Before 30 days , 10 days , 1 day).
   @Cron('0 0 * * *')
   async sendEventReminder() {
     await this.reminderService.eventReminder();
   }
+
+  // Cron Job to  remindUnresponded invites
   @Cron('0 0 * * *')
   async unrespondedBookingReminder() {
     await this.reminderService.remindUnrespondedInvites();
@@ -29,16 +32,29 @@ export class InvoiceCronService {
   @Cron('0 * * * *') // Runs at minute 0 of every hour
   async syncAdminLatestBooking() {}
 
+  // Cron Job To Add overdues day
   @Cron('0 0 * * *')
   async handleOverDues() {
     await this.invoiceService.handleOverdueInvoices();
   }
 
+  // Cron Job to apply late Fee
+  // @Cron(CronExpression.EVERY_6_HOURS)
+  // async applyLateFee() {
+  //   this.invoiceService.applyLateFee();
+  // }
+
+  // Event Completion sending email to complete event.
   @Cron(CronExpression.EVERY_HOUR)
   async eventCompletion() {
     await this.reminderService.handleEventCompletionReminders();
   }
-// added a cron job doen
+  //Reminder to Venues to book entertainer later.
+  @Cron(CronExpression.EVERY_HOUR)
+  async bookLaterReminders() {
+    await this.reminderService.handleReminders();
+  }
+  // Cron Job to delete notification older than 60 Days.
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async handleCron() {
     await this.notificationService.deleteOldNotifications();

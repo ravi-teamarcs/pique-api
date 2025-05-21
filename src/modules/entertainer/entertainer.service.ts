@@ -386,7 +386,7 @@ export class EntertainerService {
 
     if (!ent) {
       throw new BadRequestException({
-        message: 'Venue Not Found',
+        message: 'Entertainer Not Found',
         status: false,
       });
     }

@@ -6,7 +6,7 @@ import { NotificationService } from '../notification/notification.service';
 import { VenueEvent } from '../event/entities/event.entity';
 import { addHours, format, isAfter, subHours } from 'date-fns';
 import { EmailService } from '../Email/email.service';
-import { BookingReminder } from './entities/booking-reminder';
+import { BookingReminder } from './entities/booking-reminder.entity';
 import { BookLater } from './dto/book-later.dto';
 
 @Injectable()
@@ -229,7 +229,7 @@ export class ReminderService {
       .getRawMany();
 
     for (const book of bookings) {
-      if (book) {
+      if (book.email) {
         const emailPayload = {
           to: book.email,
           subject: `Reminder for booking status`,
@@ -284,6 +284,7 @@ export class ReminderService {
         { isOneHourEmailSent: true },
       );
     }
+    await this.finalBookingReminder();
   }
 
   async saveBookingReminder(dto: BookLater) {
@@ -318,18 +319,19 @@ export class ReminderService {
 
     if (reminders.length > 0) {
       for (const reminder of reminders) {
-        const emailPayload = {
-          to: reminder.email,
-          subject: `Reminder for booking status`,
-          templateName: 'entertainer-completion-reminder.html',
-          replacements: {
-            entertainerName: reminder.stageName,
-            venueName: reminder.venueName,
-            bookingLink: 'http://dummyBooking',
-          },
-        };
-        await this.emailService.handleSendEmail(emailPayload);
-
+        if (reminder.email) {
+          const emailPayload = {
+            to: reminder.email,
+            subject: `Reminder for booking status`,
+            templateName: 'entertainer-completion-reminder.html',
+            replacements: {
+              entertainerName: reminder.stageName,
+              venueName: reminder.venueName,
+              bookingLink: 'http://dummyBooking',
+            },
+          };
+          await this.emailService.handleSendEmail(emailPayload);
+        }
         // Mark the 1-hour email as sent
 
         await this.bookReminderRepo.update(

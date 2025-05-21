@@ -792,6 +792,7 @@ export class EntertainerService {
           'entertainer.contact_number AS ContactNumber',
           'entertainer.address AS address',
           'entertainer.status AS status',
+          'entertainer.pricePerEvent AS pricePerEvent',
           'entertainer.vaccinated AS vaccinated',
           'city.name AS city',
           'country.name AS country',

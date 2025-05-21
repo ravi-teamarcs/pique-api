@@ -6,7 +6,7 @@ import { Booking } from '../booking/entities/booking.entity';
 import { VenueEvent } from '../event/entities/event.entity';
 import { EmailModule } from '../Email/email.module';
 import { ReminderController } from './reminder.controller';
-import { BookingReminder } from './entities/booking-reminder';
+import { BookingReminder } from './entities/booking-reminder.entity';
 
 @Module({
   imports: [

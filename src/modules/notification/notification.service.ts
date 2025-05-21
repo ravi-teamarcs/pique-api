@@ -132,7 +132,11 @@ export class NotificationService {
 
       return { message: 'Notification Sent successfully ', status: true };
     } catch (error) {
-      console.error('Error sending FCM notification:', error);
+      return {
+        message: 'Email failed to send',
+        error: error.message,
+        status: false,
+      };
     }
   }
 

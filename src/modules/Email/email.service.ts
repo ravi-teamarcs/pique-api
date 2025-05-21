@@ -3,10 +3,13 @@ import * as nodemailer from 'nodemailer';
 import { EmailDto } from './dto/send-email.dto';
 import { ConfigService } from '@nestjs/config';
 import { loadEmailTemplate } from '../../common/email-templates/utils/email.utils';
+import { Logger } from '@nestjs/common';
+import { EmailController } from './email.controller';
 
 @Injectable()
 export class EmailService {
   private transporter: nodemailer.Transporter;
+  private readonly logger = new Logger(EmailService.name);
 
   constructor(private readonly configService: ConfigService) {
     this.transporter = nodemailer.createTransport({
@@ -39,11 +42,18 @@ export class EmailService {
 
       return { message: 'Email sent successfully', res, status: true };
     } catch (error) {
-      throw new InternalServerErrorException({
+      this.logger.error('Error sending email', {
+        to,
+        subject,
+        templateName,
+        error: error.message,
+      });
+
+      return {
         message: 'Error While Sending the Email',
         error: error.message,
         status: false,
-      });
+      };
     }
   }
 }

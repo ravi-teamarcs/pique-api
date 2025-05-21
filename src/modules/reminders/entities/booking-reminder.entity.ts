@@ -5,7 +5,7 @@ import {
   CreateDateColumn,
 } from 'typeorm';
 
-@Entity()
+@Entity('booking_reminders')
 export class BookingReminder {
   @PrimaryGeneratedColumn()
   id: number;
