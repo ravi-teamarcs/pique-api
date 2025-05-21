@@ -228,6 +228,7 @@ export class EntertainerService {
       return {
         message: 'Entertainer Details fetched Successfully',
         records: {
+          id: Number(res.id),
           ...res,
           media: JSON.parse(res.media),
           socialLinks: JSON.parse(res.socialLinks),

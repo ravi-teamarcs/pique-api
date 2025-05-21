@@ -749,6 +749,8 @@ export class EntertainerService {
           'entertainer.id AS id',
           'entertainer.name AS stageName',
           'entertainer.entertainer_name AS entertainerName',
+          'entertainer.addressLine1 AS addressLine1',
+          'entertainer.addressLine2 AS addressLine2',
 
           'user.email AS email',
           'user.phoneNumber AS phoneNumber',
@@ -766,7 +768,7 @@ export class EntertainerService {
           'entertainer.state AS state',
           'entertainer.country AS country',
           'entertainer.zipCode AS zipCode',
-          'entertainer.address AS address',
+
           'entertainer.services AS services',
 
           'entertainer.vaccinated AS vaccinated',
