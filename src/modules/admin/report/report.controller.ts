@@ -21,8 +21,8 @@ export class ReportController {
     return this.reportService.getEventData(query);
   }
 
-  @Get('download')
-  async downloadReport(@Query() dto: DownloadReport, @Res() res: Response) {
-    return this.reportService.generateReport(dto, res);
-  }
+  // @Get('download')
+  // async downloadReport(@Query() dto: DownloadReport, @Res() res: Response) {
+  //   return this.reportService.generateReport(dto, res);
+  // }
 }

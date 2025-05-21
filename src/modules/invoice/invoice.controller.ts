@@ -38,7 +38,7 @@ export class InvoiceController {
   @Roles('findAll')
   generateInvoicePdf(@Request() req, @Body('invoiceId') invoiceId: number) {
     const { refId } = req.user;
-    return this.invoiceService.generateInvoicePdf(invoiceId);
+    // return this.invoiceService.generateInvoicePdf(invoiceId);
   }
 
   @ApiOperation({ summary: 'Get All Invoices' })

@@ -13,7 +13,7 @@ import { InvoiceBooking } from './entities/invoice-booking.entity';
 import * as ejs from 'ejs';
 import * as path from 'path';
 import * as fs from 'fs';
-import * as puppeteer from 'puppeteer';
+
 import { EmailService } from '../Email/email.service';
 
 @Injectable()
@@ -169,119 +169,119 @@ export class InvoiceService {
   }
 
   // Calculate Duration
-  async generateInvoicePdf(invoiceId: number) {
-    try {
-      let total = 0;
-      const invoiceDetails = [];
+  // async generateInvoicePdf(invoiceId: number) {
+  //   try {
+  //     let total = 0;
+  //     const invoiceDetails = [];
 
-      const bookings = await this.invoiceBookingRepo.find({
-        where: { invoiceId: invoiceId },
-        select: ['bookingId', 'eventId'],
-      });
+  //     const bookings = await this.invoiceBookingRepo.find({
+  //       where: { invoiceId: invoiceId },
+  //       select: ['bookingId', 'eventId'],
+  //     });
 
-      for (const booking of bookings) {
-        const {
-          eventName,
-          invoiceNumber,
-          issueDate,
-          eventDescription,
-          eventStartTime,
-          eventEndTime,
-          bookingId,
-          eventId,
-          pricePerEvent,
-          totalWithTax,
-        } = await this.bookingRepository
-          .createQueryBuilder('booking')
-          .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
-          .leftJoin('event', 'event', 'event.id = booking.eventId')
-          .leftJoin('invoices', 'invoice', 'invoice.id =:invoiceId', {
-            invoiceId,
-          })
+  //     for (const booking of bookings) {
+  //       const {
+  //         eventName,
+  //         invoiceNumber,
+  //         issueDate,
+  //         eventDescription,
+  //         eventStartTime,
+  //         eventEndTime,
+  //         bookingId,
+  //         eventId,
+  //         pricePerEvent,
+  //         totalWithTax,
+  //       } = await this.bookingRepository
+  //         .createQueryBuilder('booking')
+  //         .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+  //         .leftJoin('event', 'event', 'event.id = booking.eventId')
+  //         .leftJoin('invoices', 'invoice', 'invoice.id =:invoiceId', {
+  //           invoiceId,
+  //         })
 
-          .where('booking.id=:bookingId', { bookingId: booking.bookingId })
-          .select([
-            'booking.id AS bookingId',
-            'booking.eventId AS eventId',
-            'event.slug AS eventName',
-            'event.description AS eventDescription',
-            'event.startTime AS eventStartTime',
-            'event.endTime AS eventEndTime',
-            'ent.pricePerEvent AS pricePerEvent',
-            'invoice.invoice_number  AS invoiceNumber',
-            'invoice.issue_date  AS issueDate',
-            'invoice.total_with_tax AS  totalWithTax',
-          ])
-          .getRawOne();
+  //         .where('booking.id=:bookingId', { bookingId: booking.bookingId })
+  //         .select([
+  //           'booking.id AS bookingId',
+  //           'booking.eventId AS eventId',
+  //           'event.slug AS eventName',
+  //           'event.description AS eventDescription',
+  //           'event.startTime AS eventStartTime',
+  //           'event.endTime AS eventEndTime',
+  //           'ent.pricePerEvent AS pricePerEvent',
+  //           'invoice.invoice_number  AS invoiceNumber',
+  //           'invoice.issue_date  AS issueDate',
+  //           'invoice.total_with_tax AS  totalWithTax',
+  //         ])
+  //         .getRawOne();
 
-        const durationInHours = this.getDurationInHours(
-          eventStartTime,
-          eventEndTime,
-        );
-        const totalAmount = pricePerEvent * durationInHours;
+  //       const durationInHours = this.getDurationInHours(
+  //         eventStartTime,
+  //         eventEndTime,
+  //       );
+  //       const totalAmount = pricePerEvent * durationInHours;
 
-        total += totalAmount;
+  //       total += totalAmount;
 
-        invoiceDetails.push({
-          bookingId,
-          eventId,
-          eventName,
-          pricePerEvent,
-          durationInHours,
-          totalAmount,
-        });
-      }
+  //       invoiceDetails.push({
+  //         bookingId,
+  //         eventId,
+  //         eventName,
+  //         pricePerEvent,
+  //         durationInHours,
+  //         totalAmount,
+  //       });
+  //     }
 
-      const { issue_date, invoice_number, total_with_tax } =
-        await this.invoiceRepository.findOne({
-          where: { id: invoiceId },
-          select: ['issue_date', 'invoice_number', 'total_with_tax'],
-        });
-      const htmlContent = await this.generateInvoiceHtml({
-        invoiceNumber: invoice_number,
-        issueDate: issue_date,
-        dueDate: '2025-05-10',
-        items: invoiceDetails,
-        totalWithTax: total,
-      });
+  //     const { issue_date, invoice_number, total_with_tax } =
+  //       await this.invoiceRepository.findOne({
+  //         where: { id: invoiceId },
+  //         select: ['issue_date', 'invoice_number', 'total_with_tax'],
+  //       });
+  //     const htmlContent = await this.generateInvoiceHtml({
+  //       invoiceNumber: invoice_number,
+  //       issueDate: issue_date,
+  //       dueDate: '2025-05-10',
+  //       items: invoiceDetails,
+  //       totalWithTax: total,
+  //     });
 
-      const pdfBuffer = await this.generatePDF(htmlContent);
-      // const buffer = Buffer.from(pdfBuffer);
-      // Send Email To client
-      console.log('pdfBuffer node ', pdfBuffer);
-      const emailPayload = {
-        to: 'anshulrangra495@gmail.com',
-        subject: 'Invoice For Event',
-        templateName: 'invoice-email.html',
-        replacements: {
-          eventDate: '12-04-2023',
-          venueName: 'Hi',
-          invoiceNumber: 'hi',
-          totalAmount: 'hi',
-          evevntName: 'hi',
-        },
-        attachments: [
-          {
-            filename: `invoice.pdf`,
-            content: pdfBuffer, // a Buffer from Puppeteer
-            contentType: 'application/pdf',
-          },
-        ],
-      };
+  //     // const pdfBuffer = await this.generatePDF(htmlContent);
+  //     // const buffer = Buffer.from(pdfBuffer);
+  //     // Send Email To client
+  //     console.log('pdfBuffer node ', pdfBuffer);
+  //     const emailPayload = {
+  //       to: 'anshulrangra495@gmail.com',
+  //       subject: 'Invoice For Event',
+  //       templateName: 'invoice-email.html',
+  //       replacements: {
+  //         eventDate: '12-04-2023',
+  //         venueName: 'Hi',
+  //         invoiceNumber: 'hi',
+  //         totalAmount: 'hi',
+  //         evevntName: 'hi',
+  //       },
+  //       attachments: [
+  //         {
+  //           filename: `invoice.pdf`,
+  //           content: pdfBuffer, // a Buffer from Puppeteer
+  //           contentType: 'application/pdf',
+  //         },
+  //       ],
+  //     };
 
-      await this.emailService.handleSendEmail(emailPayload);
-      return {
-        message: 'Pdf for Generated Successfully',
-        data: invoiceDetails,
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
-        status: false,
-      });
-    }
-  }
+  //     await this.emailService.handleSendEmail(emailPayload);
+  //     return {
+  //       message: 'Pdf for Generated Successfully',
+  //       data: invoiceDetails,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
   private getDurationInHours(startTime: string, endTime: string): number {
     const today = new Date().toISOString().split('T')[0]; // get current date as "YYYY-MM-DD"
     const start = parse(
@@ -327,20 +327,20 @@ export class InvoiceService {
     // console.log('HTML', html);
   }
 
-  private async generatePDF(htmlContent): Promise<Buffer> {
-    console.log('Inside Function', htmlContent);
-    const browser = await puppeteer.launch({
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      headless: true,
-    });
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+  // private async generatePDF(htmlContent): Promise<Buffer> {
+  //   console.log('Inside Function', htmlContent);
+  //   const browser = await puppeteer.launch({
+  //     args: ['--no-sandbox', '--disable-setuid-sandbox'],
+  //     headless: true,
+  //   });
+  //   const page = await browser.newPage();
+  //   await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
-    const pdfBuffer = await page.pdf({ format: 'a3' });
+  //   const pdfBuffer = await page.pdf({ format: 'a3' });
 
-    await browser.close();
-    return pdfBuffer;
-  }
+  //   await browser.close();
+  //   return pdfBuffer;
+  // }
 
   async getInvoiceById(invoiceId: number) {
     try {
