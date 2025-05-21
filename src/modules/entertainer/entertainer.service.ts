@@ -710,9 +710,10 @@ export class EntertainerService {
         .getRawOne();
 
       const { socialLinks, services, id, ...rest } = entertainer;
+      console.log(typeof services);
       const payload = {
         id: Number(id),
-        services: services === 'string' ? JSON.parse(services) : services,
+        services: services ? services.split(',') : [],
         ...rest,
         socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
       };
@@ -785,9 +786,10 @@ export class EntertainerService {
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
-      const { socialLinks, ...rest } = entertainer;
+      const { socialLinks, services, ...rest } = entertainer;
       const payload = {
         ...rest,
+        services: services ? services.split(',') : [],
         socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
       };
       return {
