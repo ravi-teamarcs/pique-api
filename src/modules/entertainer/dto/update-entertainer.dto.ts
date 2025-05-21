@@ -135,7 +135,7 @@ class GeneralInformationDto {
   @IsString()
   @IsOptional()
   contactNumber: string;
- 
+
   @IsOptional()
   services: string[];
   @IsNumber()
@@ -144,7 +144,7 @@ class GeneralInformationDto {
 
   @IsString()
   @IsOptional()
-  description: string;
+  bio: string;
 }
 
 export {

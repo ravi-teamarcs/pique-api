@@ -697,6 +697,9 @@ export class EntertainerService {
           'entertainer.vaccinated AS vaccinated',
           'entertainer.socialLinks AS socialLinks',
           'entertainer.contact_person AS contactPerson',
+          'entertainer.addressLine1 AS addressLine1',
+          'entertainer.addressLine2 AS addressLine2',
+          'entertainer.contact_person AS contactPerson',
           'entertainer.contact_number AS contactNumber',
           'entertainer.category AS category',
           'entertainer.specific_category AS specific_category',
@@ -924,8 +927,8 @@ export class EntertainerService {
       });
 
       if (!entertainer) throw new NotFoundException('Entertainer not found');
-      await this.entertainerRepository.update(
-        { id: entertainer.id },
+      const updated = await this.entertainerRepository.update(
+        { id: Number(entertainer.id) },
         updatedPayload,
       );
 
