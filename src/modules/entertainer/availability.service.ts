@@ -98,24 +98,24 @@ export class AvailabilityService {
     }
   }
 
-  // async getEntertainerAvailability(id: number, year: number, month: number) {
-  //   try {
-  //     const availability = await this.availabilityRepository.findOne({
-  //       where: { entertainer_id: id, year, month },
-  //     });
+  async entertainerAvailability(id: number, year: number, month: number) {
+    try {
+      const availability = await this.availabilityRepository.findOne({
+        where: { entertainer_id: id, year, month },
+      });
 
-  //     return {
-  //       message: 'Entertainer Availability returned Successfully',
-  //       data: availability,
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException({
-  //       message: error.message,
-  //       status: false,
-  //     });
-  //   }
-  // }
+      return {
+        message: 'Entertainer Availability returned Successfully',
+        data: availability,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 
   async updateEntertainerAvailability(id: number, dto: UpdateAvailabilityDto) {
     try {

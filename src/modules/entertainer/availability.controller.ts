@@ -33,7 +33,7 @@ export class AvailabilityController {
     @Request() req,
   ) {
     const { refId } = req.user;
-    return this.availabilityService.getEntertainerAvailability(
+    return this.availabilityService.entertainerAvailability(
       refId,
       year,
       month,
