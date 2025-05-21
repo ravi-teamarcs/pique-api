@@ -783,6 +783,8 @@ export class EntertainerService {
           'entertainer.contact_number AS contactNumber',
           'entertainer.category AS category',
           'entertainer.specific_category AS specific_category',
+          'entertainer.profileStep AS profileStep',
+          'entertainer.isProfileComplete AS isProfileComplete',
         ])
         .addSelect(
           `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM media m WHERE m.user_id= entertainer.id AND m.type = 'headshot' LIMIT 1)`,
