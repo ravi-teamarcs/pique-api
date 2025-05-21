@@ -701,6 +701,8 @@ export class EntertainerService {
           'entertainer.addressLine2 AS addressLine2',
           'entertainer.contact_person AS contactPerson',
           'entertainer.contact_number AS contactNumber',
+          'entertainer.profileStep AS profileStep',
+          'entertainer.isProfileComplete AS isProfileComplete',
           'entertainer.category AS category',
           'entertainer.specific_category AS specific_category',
         ])
