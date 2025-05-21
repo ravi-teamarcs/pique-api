@@ -139,6 +139,7 @@ class GeneralInformationDto {
   @IsOptional()
   services: string[];
   @IsNumber()
+  @Transform(({ value }) => Number(value))
   @IsOptional()
   pricePerEvent: number;
 
