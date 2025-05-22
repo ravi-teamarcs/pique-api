@@ -1,3 +1,4 @@
+import { Transform } from 'class-transformer';
 import { IsString, IsNotEmpty, IsOptional, IsNumber } from 'class-validator';
 
 export class CreateCategoryDto {
@@ -7,6 +8,7 @@ export class CreateCategoryDto {
 
   @IsOptional()
   @IsNumber()
+  @Transform(({ value }) => Number(value))
   parentId?: number;
 
   @IsOptional()

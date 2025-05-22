@@ -34,10 +34,13 @@ export class CreateVenueDto {
   description: string;
 
   @ApiProperty({ example: 23, description: 'Venue City' })
-  @IsNumber()
-  @Transform(({ value }) => Number(value))
-  @IsNotEmpty()
-  city: number;
+  @IsOptional()
+  @IsNumber({}, { message: 'City must be a valid number' })
+  @Transform(({ value }) => {
+    if (value === null || 'null') return null;
+    return Number(value);
+  })
+  city: number | null;
 
   @ApiProperty({ example: 43, description: 'Venue State' })
   @IsNumber()

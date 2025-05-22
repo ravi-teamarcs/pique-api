@@ -10,10 +10,13 @@ export class AddressDto {
   @IsString()
   addressLine2?: string;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @Transform(({ value }) => Number(value))
-  city: number;
+  @IsOptional()
+  @IsNumber({}, { message: 'City must be a valid number' })
+  @Transform(({ value }) => {
+    if (value === null || 'null') return null;
+    return Number(value);
+  })
+  city: number | null;
 
   @IsNotEmpty()
   @IsNumber()

@@ -79,10 +79,13 @@ class UpdateStep9Dto extends PartialType(Step9Dto) {
 }
 
 class AddressDto {
-  @IsNumber()
   @IsOptional()
-  @Transform(({ value }) => Number(value))
-  city: number;
+  @IsNumber({}, { message: 'City must be a valid number' })
+  @Transform(({ value }) => {
+    if (value === null || 'null') return null;
+    return Number(value);
+  })
+  city: number | null;
 
   @IsNumber()
   @IsOptional()
@@ -139,7 +142,9 @@ class GeneralInformationDto {
   @IsOptional()
   services: string[];
   @IsNumber()
-  @Transform(({ value }) =>{return  Number(value)})
+  @Transform(({ value }) => {
+    return Number(value);
+  })
   @IsOptional()
   pricePerEvent: number;
 

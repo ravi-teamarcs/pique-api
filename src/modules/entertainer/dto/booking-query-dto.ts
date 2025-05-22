@@ -10,7 +10,7 @@ import {
 import { Status } from 'src/common/enums/event.enum';
 
 const allowedStatuses = [
-  'pending',
+  'invited',
   'accepted',
   'completed',
   'confirmed',
@@ -35,7 +35,7 @@ class BookingQueryDto {
   @IsArray()
   @IsIn(allowedStatuses, { each: true })
   status?:
-    | 'pending'
+    | 'invited'
     | 'accepted'
     | 'completed'
     | 'confirmed'

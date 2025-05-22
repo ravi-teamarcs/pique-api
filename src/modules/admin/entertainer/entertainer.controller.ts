@@ -190,10 +190,9 @@ export class EntertainerController {
     return await this.EntertainerService.getMainCategory();
   }
 
-  @Post('subcategory')
-  async getSubCategory(@Body() body: { parentId: number }) {
-    const { parentId } = body; // Extract parentId from the request body
-    return await this.EntertainerService.getSubCategory(parentId); // Pass parentId to the service
+  @Get('subcategory/all')
+  async getSubCategory(@Query('categoryId') categoryId: number) {
+    return await this.EntertainerService.getSubCategory(Number(categoryId)); // Pass parentId to the service
   }
 
   @Post('createcat')

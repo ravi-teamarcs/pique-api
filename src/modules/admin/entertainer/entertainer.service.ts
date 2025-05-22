@@ -122,7 +122,7 @@ export class EntertainerService {
     // Clone for count
     const total = await baseQuery.getCount();
 
-    // Add selects for main query 
+    // Add selects for main query
     const records = await baseQuery
       .orderBy('entertainer.name', 'DESC')
       .skip(skip)

@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsNotEmpty,
   IsString,
@@ -38,9 +39,13 @@ export class UpdateLocationDto {
   addressLine2?: string;
 
   @ApiProperty({ example: 23, description: 'Venue City' })
-  @IsNumber()
-  @IsNotEmpty()
-  city: number;
+  @IsOptional()
+  @IsNumber({}, { message: 'City must be a valid number' })
+  @Transform(({ value }) => {
+    if (value === null || 'null') return null;
+    return Number(value);
+  })
+  city: number | null;
 
   @ApiProperty({ example: 43, description: 'Venue State' })
   @IsNumber()
