@@ -18,6 +18,7 @@ import { sendNotificationDTO } from './dto/send-notification.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { Roles } from '../auth/roles.decorator';
 import { NotificationQueryDto } from './dto/notification-query-dto';
+import { SaveFcmTokenDto } from './dto/save-fcm-token.dto';
 
 @ApiTags('Notification')
 @Controller('notification')
@@ -35,9 +36,21 @@ export class NotificationController {
     return this.notificationService.sendPush(pushNotification, userId);
   }
 
-  @Roles('findAll')
-  @UseGuards(JwtAuthGuard)
+  @Post('save-token')
+  async saveFcmToken(@Body() body: SaveFcmTokenDto, @Req() req) {
+    const userAgent = req.headers['user-agent'] || 'unknown';
+    const platform = this.isMobile(userAgent) ? 'mobile' : 'web';
+    const { userId, token } = body;
+
+    await this.notificationService.storeFcmToken(userId, token, platform);
+  }
+
+  private isMobile(userAgent: string): boolean {
+    return /android|iphone|ipad|ipod|mobile/i.test(userAgent);
+  }
+
   @Get()
+  @UseGuards(JwtAuthGuard)
   async getUserNotifications(@Query() query: NotificationQueryDto, @Req() req) {
     const { userId } = req.user; // assuming you attach user to request after auth
 
