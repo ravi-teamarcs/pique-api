@@ -145,13 +145,11 @@ class Step1Dto {
   @IsString()
   @IsOptional()
   stageName: string;
+
   @IsOptional()
-  @IsNumber({}, { message: 'City must be a valid number' })
-  @Transform(({ value }) => {
-    if (value === null || 'null') return null;
-    return Number(value);
-  })
-  city: number | null;
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  city: number;
 
   @IsNumber()
   @IsOptional()

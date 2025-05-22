@@ -34,13 +34,10 @@ export class CreateVenueDto {
   @IsNotEmpty()
   description: string;
 
-  @IsOptional()
-  @IsNumber({}, { message: 'City must be a valid number' })
-  @Transform(({ value }) => {
-    if (value === null || 'null') return null;
-    return Number(value);
-  })
-  city: number | null;
+  @IsNotEmpty()
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  city: number;
 
   @IsNumber()
   @IsNotEmpty()

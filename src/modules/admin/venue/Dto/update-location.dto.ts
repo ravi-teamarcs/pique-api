@@ -39,13 +39,10 @@ export class UpdateLocationDto {
   addressLine2?: string;
 
   @ApiProperty({ example: 23, description: 'Venue City' })
-  @IsOptional()
-  @IsNumber({}, { message: 'City must be a valid number' })
-  @Transform(({ value }) => {
-    if (value === null || 'null') return null;
-    return Number(value);
-  })
-  city: number | null;
+  @IsNumber()
+  @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
+  city: number;
 
   @ApiProperty({ example: 43, description: 'Venue State' })
   @IsNumber()
