@@ -178,30 +178,36 @@ export class NotificationService {
   }
 
   async getNotifications(userId: number, query: NotificationQueryDto) {
-    const { unread, page = 1, pageSize = 10 } = query;
+    const { page = 1, pageSize = 10 } = query;
 
     try {
-      const onlyUnread = unread;
-
-      const where: any = { userId };
-      if (onlyUnread) where.isRead = false;
+      // Fetch latest notifications (all)
       const [data, total] = await this.notificationRepo.findAndCount({
-        where,
+        where: { userId },
         order: { createdAt: 'DESC' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       });
 
+      // Count unread notifications separately
+      const unreadCount = await this.notificationRepo.count({
+        where: {
+          userId,
+          isRead: false,
+        },
+      });
+
       return {
-        message: 'notification fetched sucessfully',
+        message: 'Notifications fetched successfully',
         total,
         page,
         pageSize,
+        unreadCount,
         data,
       };
     } catch (error) {
       throw new InternalServerErrorException({
-        messge: error.message,
+        message: error.message,
         status: false,
       });
     }
