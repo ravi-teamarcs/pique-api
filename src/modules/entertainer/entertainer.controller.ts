@@ -11,6 +11,10 @@ import {
   Put,
   Req,
   Query,
+  BadRequestException,
+  UseInterceptors,
+  UploadedFiles,
+  ParseIntPipe,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -20,20 +24,28 @@ import {
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { EntertainerService } from './entertainer.service';
-import { CreateEntertainerDto } from './dto/create-entertainer.dto';
-import { UpdateEntertainerDto } from './dto/update-entertainer.dto';
+import {
+  AddressDto,
+  GeneralInformationDto,
+  socialLinksDto,
+} from './dto/update-entertainer.dto';
 import { RolesGuard } from '../auth/roles.guard';
 import { Entertainer } from './entities/entertainer.entity';
 import { Roles } from '../auth/roles.decorator';
-// import { Booking } from '../booking/entities/booking.entity';
 import { BookingService } from '../booking/booking.service';
 import { ResponseDto } from '../booking/dto/booking-response-dto';
-import { Category } from './entities/categories.entity';
+import { DashboardDto } from './dto/dashboard.dto';
+import { AnyFilesInterceptor } from '@nestjs/platform-express';
+import { getFileType, UploadedFile } from 'src/common/types/media.type';
+import { uploadFile } from 'src/common/middlewares/multer.middleware';
+import { UpcomingEventDto } from './dto/upcoming-event.dto';
+import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
+import { BookingQueryDto } from './dto/booking-query-dto';
+import { typeMap } from 'src/common/constants/media.constants';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
 @Controller('entertainers')
-@UseGuards(JwtAuthGuard, RolesGuard)
 export class EntertainerController {
   constructor(
     private readonly entertainerService: EntertainerService,
@@ -41,49 +53,190 @@ export class EntertainerController {
   ) {}
 
   @Post()
-  @Roles('findAll') // Only users with the 'venue' role can access this route
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Create a entertainer' })
   @ApiResponse({
     status: 201,
     description: 'entertainer created.',
   })
   @ApiResponse({ status: 403, description: 'Forbidden.' })
-  create(@Body() createEntertainerDto: CreateEntertainerDto, @Req() req) {
-    const userId = req.user.userId;
-    return this.entertainerService.create(createEntertainerDto, userId);
+  async create(@Body() body: any, @Request() req) {
+    const { step } = body;
+    const { userId } = req.user;
+
+    switch (step) {
+      case 1:
+        return this.entertainerService.saveBasicDetails(body, userId);
+      case 2:
+        return this.entertainerService.saveBio(body, userId);
+      case 3:
+        return this.entertainerService.vaccinationStatus(body, userId);
+      case 4:
+        return this.entertainerService.contactDetails(body, userId);
+      case 5:
+        return this.entertainerService.socialLinks(body, userId);
+      case 6:
+        return this.entertainerService.saveCategory(body, userId);
+      case 7:
+        return this.entertainerService.saveSpecificCategory(body, userId);
+      case 8:
+        return this.entertainerService.performanceRole(body, userId);
+      case 9:
+        return this.entertainerService.saveServices(body, userId);
+
+      default:
+        throw new BadRequestException({
+          message: 'Invalid Step',
+          status: false,
+        });
+    }
+  }
+
+  @Post('media')
+  @UseInterceptors(AnyFilesInterceptor())
+  @UseGuards(JwtAuthGuard)
+  async addMedia(
+    @UploadedFiles() files: Array<Express.Multer.File>,
+    @Request() req,
+  ) {
+    const { userId, refId } = req.user;
+
+    let uploadedFiles: UploadedFile[] = [];
+
+    if (files?.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: getFileType(file.mimetype),
+          };
+        }),
+      );
+    }
+    return this.entertainerService.uploadMedia(userId, uploadedFiles);
+  }
+
+  @Post('save')
+  @UseGuards(JwtAuthGuard)
+  async saveDetails(@Request() req) {
+    const { userId } = req.user;
+    return this.entertainerService.saveEntertainerDetails(userId);
+  }
+  // Update Entertainers Api  (Step Based Approach)
+  @Patch()
+  @UseGuards(JwtAuthGuard)
+  updateEntertainer(@Body() body: any, @Request() req) {
+    const { userId } = req.user;
+    const { step } = body;
+    switch (step) {
+      case 1:
+        return this.entertainerService.updateBasicDetails(body, userId);
+      case 2:
+        return this.entertainerService.updateBio(body, userId);
+      case 3:
+        return this.entertainerService.updateVaccinationStatus(body, userId);
+      case 4:
+        return this.entertainerService.updateContactDetails(body, userId);
+      case 5:
+        return this.entertainerService.updateSocialLinks(body, userId);
+      case 6:
+        return this.entertainerService.updateCategory(body, userId);
+      case 7:
+        return this.entertainerService.updateSpecificCategory(body, userId);
+      case 8:
+        return this.entertainerService.updatePerformanceRole(body, userId);
+      case 9:
+        return this.entertainerService.updateServices(body, userId);
+
+      default:
+        throw new BadRequestException({
+          message: 'Invalid Step',
+          status: false,
+        });
+    }
+  }
+
+  // Multi Step change api ()
+
+  @Patch('general-information')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  @UseInterceptors(AnyFilesInterceptor())
+  async update(
+    @Body() dto: GeneralInformationDto,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+    @Request() req,
+  ) {
+    const { userId } = req.user;
+    let uploadedFiles: UploadedFile[] = [];
+
+    if (files.length > 0) {
+      uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const filePath = await uploadFile(file); // Wait for the upload
+          return {
+            url: filePath,
+            name: file.originalname,
+            type: typeMap[file.fieldname],
+          };
+        }),
+      );
+    }
+
+    return this.entertainerService.updateEntertainerBasicDetails(
+      userId,
+      dto,
+      uploadedFiles,
+    );
+  }
+  @Patch('address')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async updateAddress(@Body() dto: AddressDto, @Request() req) {
+    const { userId } = req.user;
+
+    return this.entertainerService.updateEntertainerAddress(userId, dto);
+  }
+  @Patch('social-links')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async updateSocialLinks(
+    @Body() dto: socialLinksDto,
+    @Request()
+    req,
+  ) {
+    const { userId } = req.user;
+    return this.entertainerService.updateEntertainerSocialLinks(userId, dto);
   }
 
   @Get()
+  @UseGuards(JwtAuthGuard)
   @Roles('findAll')
-  @Roles('entertainer')
-  @ApiOperation({ summary: 'Get all entertainers for the logged-in user' })
-  findAll(@Request() req) {
-    return this.entertainerService.findAll(req.user.userId);
+  @ApiOperation({ summary: 'Get details of  the logged-in user' })
+  findOne(@Request() req) {
+    const { refId } = req.user;
+    return this.entertainerService.findEntertainer(refId);
   }
 
   @Get(':id')
-  @ApiOperation({ summary: 'Get a specific entertainer by ID' })
-  findOne(@Param('id') id: number, @Request() req) {
-    return this.entertainerService.findOne(+id, req.user.userId);
+  @ApiOperation({ summary: 'Get details of  the logged-in user' })
+  findEntertainerById(@Param('id', ParseIntPipe) id: number) {
+    return this.entertainerService.findEntertainerById(id);
   }
 
-  @Patch(':id')
-  @Roles('findAll')
-  @ApiOperation({ summary: 'Update a specific entertainer by ID' })
+  @ApiOperation({ summary: 'Get  entertainers dashboard stats' })
   @ApiResponse({
     status: 200,
-    description: 'Entertainer updated sucessfully.',
+    description: 'Entertainer Dashboard statistics returned Successfully',
   })
-  update(
-    @Param('id') id: number,
-    @Body() updateEntertainerDto: UpdateEntertainerDto,
-    @Request() req,
-  ) {
-    return this.entertainerService.update(
-      +id,
-      updateEntertainerDto,
-      req.user.userId,
-    );
+  @Get('dashboard/stats')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getdashboardStats(@Request() req, @Query() query: DashboardDto) {
+    const { refId } = req.user;
+    return this.entertainerService.getDashboardStatistics(refId, query);
   }
 
   @Delete(':id')
@@ -93,37 +246,51 @@ export class EntertainerController {
     description: 'Entertainer removed sucessfully.',
   })
   remove(@Param('id') id: number, @Request() req) {
-    return this.entertainerService.remove(+id, req.user.userId);
+    const { userId } = req.user;
+    return this.entertainerService.remove(+id, userId);
   }
 
-  // conflict in Rotes
+  // conflict in Routes
 
   @ApiOperation({ summary: 'Entertainer response to a Booking' })
   @ApiResponse({
     status: 200,
     description: 'Response registered Successfully',
   })
-  @
-  Patch('booking/response')
+  @Patch('booking/response')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   entertainerBookingResponse(@Body() resDto: ResponseDto, @Request() req) {
     const { role, userId } = req.user;
-
     return this.bookingService.handleBookingResponse(role, resDto, userId);
   }
 
   @Get('/booking/request')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   @ApiOperation({ summary: 'Get all the booking of the  Entertainer' })
   @ApiResponse({
     status: 200,
     description: 'Booking fetched Successfully.',
   })
-  getBooking(@Request() req) {
-    const { userId } = req.user;
-    console.log('userId', userId);
-    return this.entertainerService.findAllBooking(userId);
+  getBooking(@Request() req, @Query() query: BookingQueryDto) {
+    const { refId } = req.user;
+    return this.entertainerService.findAllBooking(refId, query);
   }
+
+  @Get('/booking/request/pending')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  @ApiOperation({ summary: 'Get all pending bookings of the Entertainer' })
+  @ApiResponse({
+    status: 200,
+    description: 'Pending bookings fetched successfully.',
+  })
+  getPendingBookings(@Request() req) {
+    const { refId } = req.user;
+    return this.entertainerService.findPendingBookings(refId);
+  }
+
   @ApiOperation({
     summary: 'Get  entertainers  categories and sub categories. ',
   })
@@ -132,13 +299,12 @@ export class EntertainerController {
     description: 'Categories fetched Successfully.',
   })
   @Get('categories/all')
-  @Roles('findAll')
   async getCategories() {
     return this.entertainerService.getCategories();
   }
+
   @Get('categories/subcategories')
-  @Roles('findAll')
-  getSubCategories(@Query('id') id: number) {
+  getSubCategories(@Query('id', ParseIntPipe) id: number) {
     return this.entertainerService.getSubCategories(id);
   }
 
@@ -149,10 +315,62 @@ export class EntertainerController {
     status: 200,
     description: 'Events  fetched Successfully.',
   })
-  @Get('event/all/details')
+  @Get('events')
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   getEventDetails(@Req() req) {
+    const { refId } = req.user;
+    return this.entertainerService.getEventDetails(refId);
+  }
+  @Get('events/upcoming')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  upcomingEvent(@Req() req, @Query() query: UpcomingEventDto) {
+    const { refId } = req.user;
+    return this.entertainerService.getUpcomingEvent(refId, query);
+  }
+
+  @Get('events/details/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getEventDetail(@Req() req, @Param('id') id: number) {
+    const { refId } = req.user;
+    return this.entertainerService.getEventDetailsById(refId, Number(id));
+  }
+
+  @Get('calendar/events')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async getUpcomingEvents(@Request() req, @Query() query: EventsByMonthDto) {
+    const { refId } = req.user;
+    return this.entertainerService.getEventDetailsByMonth(refId, query);
+  }
+
+  @Patch('set-distance')
+  @UseGuards(JwtAuthGuard, RolesGuard) // Use your auth strategy
+  @Roles('findAll') // If you're role-restricting
+  async setMaxDistance(@Request() req, @Body('distance') distance: number) {
     const { userId } = req.user;
-    return this.entertainerService.getEventDetails(userId);
+    return this.entertainerService.setTravelDistance(userId, distance);
+  }
+
+  @Get('travel/max-distance')
+  @UseGuards(JwtAuthGuard, RolesGuard) // Use your auth strategy
+  @Roles('findAll')
+  getMaxtravelDistance(@Request() req) {
+    const { refId } = req.user;
+    return this.entertainerService.getTravelDistance(refId);
+  }
+
+  @Patch('booking/status')
+  @UseGuards(JwtAuthGuard, RolesGuard) // Use your auth strategy
+  @Roles('findAll')
+  changeStatus(@Body() dto: { bookingId: number; status }, @Request() req) {
+    const { refId } = req.user;
+    return this.entertainerService.changeStatus(
+      dto.bookingId,
+      dto.status,
+      refId,
+    );
   }
 }

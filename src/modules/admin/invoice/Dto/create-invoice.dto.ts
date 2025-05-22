@@ -1,61 +1,34 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsString, IsDateString, IsOptional } from 'class-validator';
-import { InvoiceStatus, UserType } from '../Entity/invoices.entity';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsString,
+  IsDateString,
+  IsOptional,
+  IsBoolean,
+} from 'class-validator';
+import { InvoiceStatus, UserType } from '../entities/invoices.entity';
 
 export class CreateInvoiceDto {
-  @IsString()
+  @IsNumber()
   @IsNotEmpty()
-  invoice_number: string;
+  eventId: number;
 
   @IsNumber()
   @IsNotEmpty()
-  entertainer_id: number;
+  pricePerHour: number;
 
   @IsNumber()
   @IsNotEmpty()
-  event_id: number;
+  discountInPercent: number;
 
   @IsNumber()
   @IsNotEmpty()
-  venue_id: number;
+  platformFee: number;
 
-  @IsEnum(UserType)
+  @IsBoolean()
   @IsNotEmpty()
-  user_type: UserType;
-
-  @IsDateString()
-  @IsNotEmpty()
-  issue_date: string;
-
-  @IsDateString()
-  @IsNotEmpty()
-  due_date: string;
-
-  @IsString()
-  @IsNotEmpty()
-  total_amount: string;
-
-  @IsString()
-  @IsNotEmpty()
-  tax_rate: string;
-
-  @IsString()
-  @IsNotEmpty()
-  tax_amount: string;
-
-  @IsString()
-  @IsNotEmpty()
-  total_with_tax: string;
-
-  @IsEnum(InvoiceStatus)
-  @IsNotEmpty()
-  status: InvoiceStatus;
-
-  @IsString()
-  payment_method: string;
-
-  @IsOptional()
-  @IsDateString()
-  payment_date?: string;
+  isFixed: boolean;
 }
 
 export class UpdateInvoiceDto {

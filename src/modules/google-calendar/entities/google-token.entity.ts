@@ -14,12 +14,17 @@ export class UserGoogleToken {
 
   @Column()
   user: number;
+  @Column({ nullable: true, default: false })
+  isAdmin: boolean;
 
   @Column({ type: 'text' })
   accessToken: string;
 
   @Column({ type: 'text' })
   refreshToken: string;
+  // user.entity.ts
+  @Column({ nullable: true })
+  calendarSyncedAt: Date;
 
   @Column({ type: 'datetime' })
   expiresAt: Date;

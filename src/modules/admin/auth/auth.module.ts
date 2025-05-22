@@ -14,6 +14,7 @@ import { RoleCapability } from './entities/role-capabilities.entity';
 import { Capability } from '../adminuser/entities/capability.entity';
 import { RolesGuardAdmin } from './roles.guard';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { NotificationModule } from 'src/modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       }),
     }),
     TypeOrmModule.forFeature([AdminUser, Role, RoleCapability, Capability]),
+    NotificationModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, AdminuserService, RolesGuardAdmin],

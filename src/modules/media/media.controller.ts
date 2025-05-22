@@ -2,8 +2,11 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
+  NotFoundException,
   Param,
+  ParseIntPipe,
   Post,
   Put,
   Query,
@@ -14,26 +17,37 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { MediaService } from './media.service';
-import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConsumes,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import {
   AnyFilesInterceptor,
   FileFieldsInterceptor,
+  FileInterceptor,
 } from '@nestjs/platform-express';
 import { uploadFile } from 'src/common/middlewares/multer.middleware';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { MediaDto } from './dto/update-media.dto';
 import { typeMap } from 'src/common/constants/media.constants';
 import { UploadedFile } from 'src/common/types/media.type';
+import { UploadMedia } from './dto/upload-media.dto';
+import { Roles } from '../auth/roles.decorator';
+import { ReturnDocument } from 'typeorm';
+import { RolesGuard } from '../auth/roles.guard';
 
 @ApiTags('Media')
 @Controller('media')
-@UseGuards(JwtAuthGuard)
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
   @ApiOperation({ summary: 'Upload User Multimedia' })
   @ApiResponse({ status: 201, description: 'Media uploaded successfully.' })
   @Post('uploads')
+  @UseGuards(JwtAuthGuard)
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
@@ -66,15 +80,13 @@ export class MediaController {
     }),
   )
   async uploadMedia(
-    @Req() req: any,
     @UploadedFiles() files: Array<Express.Multer.File>,
-    @Body() body,
+    @Request() req,
+    @Body() uploaddto?: UploadMedia,
   ) {
     let uploadedFiles: UploadedFile[] = [];
+    const { refId } = req.user;
 
-    const { userId } = req.user;
-    const venueId =
-      body.venueId === undefined ? body.venueId : Number(body.venueId);
     if (files.length > 0) {
       uploadedFiles = await Promise.all(
         files.map(async (file) => {
@@ -88,86 +100,28 @@ export class MediaController {
       );
     }
 
-    return this.mediaService.handleMediaUpload(userId, uploadedFiles, venueId);
+    return this.mediaService.handleMediaUpload(refId, uploadedFiles, uploaddto);
   }
 
   @Get('uploads')
+  @UseGuards(JwtAuthGuard)
   @ApiOperation({
     summary: 'Get all the multimedia of the logged in User.',
   })
   @ApiResponse({ status: 200, description: 'Multimedia fetched Successfully.' })
-  getAllMedia(@Req() req: any, @Query('venueId') venueId?: number) {
-    const { userId } = req.user;
-    return this.mediaService.findAllMedia(userId, venueId);
+  getAllMedia(@Request() req) {
+    const { refId } = req.user;
+    return this.mediaService.findAllMedia(refId);
   }
 
-  // @Put(':mediaId')
-  // @ApiOperation({
-  //   summary: 'Update media by id.',
-  // })
-  // @ApiResponse({ status: 200, description: 'Multimedia updated Successfully.' })
-  // @UseInterceptors(
-  //   FileFieldsInterceptor(
-  //     [
-  //       { name: 'images', maxCount: 1 },
-  //       { name: 'videos', maxCount: 1 },
-  //       { name: 'headshot', maxCount: 1 },
-  //     ],
-  //     {
-  //       fileFilter: (req, file, callback) => {
-  //         if (file.fieldname === 'videos' && file.size > 500 * 1024 * 1024) {
-  //           // 500 MB in bytes
-  //           return callback(
-  //             new BadRequestException('Video file size cannot exceed 500 MB'),
-  //             false,
-  //           );
-  //         }
-  //         callback(null, true);
-  //       },
-  //     },
-  //   ),
-  // )
-  // async updateMedia(
-  //   @Param('mediaId') mediaId: number,
-  //   @UploadedFiles()
-  //   files: {
-  //     images?: Express.Multer.File[];
-  //     videos?: Express.Multer.File[];
-  //     headshot?: Express.Multer.File[];
-  //   },
-
-  //   @Req() req,
-  // ) {
-  //   const { userId } = req.user;
-  //   console.log('Files received', files, 'mediaId ', mediaId);
-  //   // Ensure exactly one file type is provided
-  //   // const fileTypes = Object.keys(files).filter(
-  //   //   (key) => files[key]?.length > 0, // Because of multiple images
-  //   // );
-
-  //   // console.log('FileTypes', fileTypes);
-  //   // if (fileTypes.length !== 1) {
-  //   //   throw new BadRequestException(
-  //   //     'You must upload exactly one media type (image, video, or headshot).',
-  //   //   );
-  //   // }
-
-  //   // const fileType = fileTypes[0]; // The provided file type
-  //   // const file = files[fileType][0]; // Get the single uploaded file
-  //   // const { fieldname } = file;
-  //   // const filePath = await uploadFile(file); // Call the upload function
-
-  //   // const uploadedFile = {
-  //   //   url: filePath,
-  //   //   name: file.originalname,
-  //   //   type: typeMap[fieldname],
-  //   // };
-
-  //   // console.log(uploadedFile);
-  //   // return this.mediaService.updateMedia(Number(mediaId), userId, uploadedFile);
-  // }
+  @Get(':id')
+  async getMediaById(@Param('id', ParseIntPipe) id: number) {
+    return await this.mediaService.findById(id);
+  }
 
   @Put(':mediaId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
   @UseInterceptors(
     AnyFilesInterceptor({
       fileFilter: (req, file, callback) => {
@@ -202,17 +156,14 @@ export class MediaController {
     @Req() req: any,
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Param('mediaId') mediaId: number,
-    @Body() body,
   ) {
-    const { userId } = req.user;
-
     if (files.length !== 1) {
       throw new BadRequestException(
         'You must upload exactly one media type (image, video, or headshot).',
       );
     }
 
-     // The provided file type
+    // The provided file type
     const file = files[0]; // Get the single uploaded file
     const { fieldname } = file;
     const filePath = await uploadFile(file); // Call the upload function
@@ -223,7 +174,13 @@ export class MediaController {
       type: typeMap[fieldname],
     };
 
-    console.log(uploadedFile);
-    return this.mediaService.updateMedia(Number(mediaId), userId, uploadedFile);
+    return this.mediaService.updateMedia(Number(mediaId), uploadedFile);
+  }
+
+  @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @Roles('findAll')
+  removeMedia(@Param('id') id: number) {
+    return this.mediaService.removeMedia(Number(id));
   }
 }

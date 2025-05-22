@@ -8,26 +8,27 @@ import { VenueModule } from './venue/venue.module';
 import { EntertainerModule } from './entertainer/entertainer.module';
 import { AdminuserModule } from './adminuser/adminuser.module';
 import { UsersModule } from './users/users.module';
-import { Venue } from './venue/Entity/venue.entity';
+import { Venue } from './venue/entities/venue.entity';
 import { AdminUser } from './adminuser/entities/AdminUser.entity';
 import { Capability } from './adminuser/entities/capability.entity';
 import { RoleCapability } from './auth/entities/role-capabilities.entity';
 import { Role } from './auth/entities/role.entity';
-import { Entertainer } from './entertainer/Entitiy/entertainer.entity';
+import { Entertainer } from './entertainer/entities/entertainer.entity';
 import { MediaModule } from './media/media.module';
-import { Media } from './media/Entity/media.entity';
-import { States } from './location/Entitiy/state.entity';
-import { Cities } from './location/Entitiy/city.entity';
-import { Countries } from './location/Entitiy/country.entity';
+import { Media } from './media/entities/media.entity';
+import { States } from './location/entities/state.entity';
+import { Cities } from './location/entities/city.entity';
+import { Countries } from './location/entities/country.entity';
 import { LocationModule } from './location/location.module';
-import { Invoice } from './invoice/Entity/invoices.entity';
+import { Invoice } from './invoice/entities/invoices.entity';
 import { InvoiceMod } from './invoice/invoice.module';
 import { EventsModule } from './events/events.module';
 import { Booking } from './booking/entities/booking.entity';
-import { Event } from './events/Entity/event.entity';
+import { Event } from './events/entities/event.entity';
 import { ReportModule } from './report/report.module';
 import { BookingModule } from './booking/booking.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { SettingsModule } from './settings/settings.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     ReportModule,
     BookingModule,
     DashboardModule,
+    SettingsModule,
   ],
   controllers: [AdminController],
   providers: [AdminService],

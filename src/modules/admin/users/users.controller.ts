@@ -1,7 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  HttpCode,
+  Param,
   Patch,
   Post,
   Put,
@@ -20,12 +23,12 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
-import { User } from './Entity/users.entity';
+import { User } from './entities/users.entity';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CreateUserDto } from './Dto/create-user.dto';
-import { REQUEST } from '@nestjs/core';
+import { ApprovalQuery } from './Dto/query.dto';
 
 @ApiTags('admin')
 @Controller('admin/users')
@@ -59,30 +62,20 @@ export class UsersController {
   @ApiBearerAuth()
   @Roles('super-admin')
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @ Post('create')
+  @Post('create')
   async createUser(
     @Body() createUserDto: CreateUserDto,
     @Request() req,
   ): Promise<any> {
-    console.log('Req', req.user);
     return this.userService.createUser(createUserDto);
   }
 
   @Roles('super-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Patch('updateuserstatus')
-  //@HttpCode(HttpStatus.OK) // Optional, ensure the response status is 200 OK
-  async updateStatus(
-    @Body() updateStatusDto: UpdateStatusDto,
-  ): Promise<string> {
-    try {
-      // Call the service method to update the status
-      return await this.userService.updateStatus(updateStatusDto);
-    } catch (error) {
-      // Handle any errors that occur during the update
-      throw new Error(`Failed to update status: ${error.message}`);
-    }
+  @Delete(':id')
+  async remove(@Param('id') id: number) {
+    return await this.userService.remove(Number(id));
   }
 
   @Roles('super-admin')
@@ -91,5 +84,19 @@ export class UsersController {
   @Put('updateuser')
   async updateUser(@Body() updateUserDto: UpdateUserDto) {
     return this.userService.updateUser(updateUserDto);
+  }
+  @Roles('super-admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Patch()
+  async updateStatus(@Body() dto: UpdateStatusDto) {
+    return this.userService.updateStatus(dto);
+  }
+  // To get List of all User who need approval
+  @Get('approval-request')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin')
+  getUserApprovalList(@Query() query: ApprovalQuery) {
+    return this.userService.getApprovalList(query);
   }
 }

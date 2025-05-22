@@ -1,19 +1,38 @@
 import { Module } from '@nestjs/common';
 import { EntertainerController } from './entertainer.controller';
 import { EntertainerService } from './entertainer.service';
-import { Entertainer } from './Entitiy/entertainer.entity';
+import { Entertainer } from './entities/entertainer.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Categories, } from './Entitiy/Category.entity';
+import { Categories } from './entities/Category.entity';
 import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../auth/entities/capability.entity';
-
+import { User } from '../users/entities/users.entity';
+import { AdminCreatedUser } from '../users/entities/admin.created.entity';
+import { MediaModule } from '../media/media.module';
+import { EmailModule } from 'src/modules/Email/email.module';
+import { Booking } from 'src/modules/booking/entities/booking.entity';
+import { EntertainerAvailability } from './entities/entertainer-availability.entity';
+import { Setting } from '../settings/entities/setting.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Entertainer, Categories,RoleCapability, Role, Capability]),
+    TypeOrmModule.forFeature([
+      Entertainer,
+      Categories,
+      RoleCapability,
+      Role,
+      Capability,
+      User,
+      AdminCreatedUser,
+      Booking,
+      EntertainerAvailability,
+      Setting,
+    ]),
+    MediaModule,
+    EmailModule,
   ],
   controllers: [EntertainerController],
-  providers: [EntertainerService]
+  providers: [EntertainerService],
 })
-export class EntertainerModule { }
+export class EntertainerModule {}

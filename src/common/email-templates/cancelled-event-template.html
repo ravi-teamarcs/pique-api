@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Event Cancelled</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f8f8f8;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        background-color: #ffffff;
+        max-width: 600px;
+        margin: 30px auto;
+        border-radius: 10px;
+        overflow: hidden;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        background-color: #f4c430; /* saffron */
+        color: white;
+        text-align: center;
+        padding: 20px 10px;
+      }
+      .content {
+        padding: 30px;
+        color: #333;
+      }
+      .content h2 {
+        color: #f4c430;
+      }
+      .button {
+        display: inline-block;
+        margin-top: 20px;
+        padding: 10px 20px;
+        background-color: #f4c430;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+      .footer {
+        text-align: center;
+        padding: 20px;
+        font-size: 12px;
+        color: #999;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>Event Cancelled</h1>
+      </div>
+      <div class="content">
+        <h2>We're sorry to inform you</h2>
+        <p>
+          The event <strong>{{eventName}}</strong> scheduled on
+          <strong>{{eventDate}}</strong> at <strong>{{eventTime}}</strong> has
+          been <strong>cancelled</strong>.
+        </p>
+        <p>
+          We apologize for the inconvenience. If you have any questions, feel
+          free to reach out to our support team.
+        </p>
+        <a href="{{supportLink}}" class="button">Contact Support</a>
+      </div>
+      <div class="footer">
+        &copy; {{year}} Pique Entertainment . All rights reserved.
+      </div>
+    </div>
+  </body>
+</html>

@@ -9,7 +9,6 @@ class WishlistDto {
   @IsNotEmpty()
   url: string;
 
-  
   @IsString()
   @IsNotEmpty()
   username: string;

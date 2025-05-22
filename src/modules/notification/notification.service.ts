@@ -1,70 +1,149 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import * as admin from 'firebase-admin';
 import { sendNotificationDTO } from './dto/send-notification.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { LessThan, Repository } from 'typeorm';
 import { FcmToken } from './entities/fcm-token.entity';
+import { Notification } from './entities/notification.entity';
+import { NotificationQueryDto } from './dto/notification-query-dto';
+import { ConfigService } from '@nestjs/config';
+import { subDays } from 'date-fns';
 
 @Injectable()
 export class NotificationService {
   constructor(
     @InjectRepository(FcmToken)
     private readonly fcmTokenRepo: Repository<FcmToken>,
+    @InjectRepository(Notification)
+    private readonly notificationRepo: Repository<Notification>,
+    private readonly configService: ConfigService,
   ) {}
+
   async sendPush(notification: sendNotificationDTO, userId: number) {
-    const { title, body, data } = notification;
+    const { title, body, type, data } = notification;
+
+    // First Store the notification in db.
+
+    const notify = this.notificationRepo.create({ userId, title, body, type });
+    await this.notificationRepo.save(notify);
 
     const res = await this.getUserTokens(userId);
 
-    let message = {
-      tokens: res.data,
+    // let message = {
+    //   tokens: res.data,
+    //   notification: {
+    //     title,
+    //     body,
+    //   },
+
+    //   fcmOptions: {
+    //     analyticsLabel: 'my-label',
+    //   },
+    //   android: { ttl: 3600 * 1000 },
+    //   apns: {
+    //     payload: {
+    //       aps: {
+    //         alert: {
+    //           titleLocKey: 'key1',
+    //           locKey: 'key2',
+    //           locArgs: ['value1'],
+    //         },
+    //       },
+    //       contentAvailable: true,
+    //     },
+    //   },
+    // };
+
+    const message = {
+      tokens: res.data, // Array of device tokens
+
       notification: {
         title,
         body,
       },
-      data,
 
-      fcmOptions: {
-        analyticsLabel: 'my-label',
+      android: {
+        ttl: 3600 * 1000,
+        notification: {
+          icon: 'ic_launcher', // must be present in app resources
+          color: '#f45342',
+          sound: 'default',
+          clickAction: 'FLUTTER_NOTIFICATION_CLICK', // Optional for Android
+        },
       },
 
       apns: {
         payload: {
           aps: {
             alert: {
-              titleLocKey: 'key1',
-              locKey: 'key2',
-              locArgs: ['value1'],
+              title,
+              body,
             },
+            sound: 'default',
+            contentAvailable: true,
           },
-          contentAvailable: true,
         },
+        headers: {
+          'apns-priority': '10',
+        },
+      },
+
+      webpush: {
+        notification: {
+          title,
+          body,
+          icon: 'https://your-site.com/icon.png',
+          click_action: 'https://your-site.com/notifications',
+          vibrate: [100, 50, 100],
+          badge: 'https://your-site.com/badge.png',
+        },
+        fcmOptions: {
+          link: 'https://your-site.com/notifications',
+        },
+      },
+
+      fcmOptions: {
+        analyticsLabel: 'my-unified-push',
       },
     };
 
     try {
-      const { responses } = await admin
-        .messaging()
-        .sendEachForMulticast(message);
+      if (res.data.length > 0) {
+        const { responses } = await admin
+          .messaging()
+          .sendEachForMulticast(message);
 
-      const failedTokens = res.data.filter(
-        (token, index) => !responses[index].success,
-      );
+        console.log(responses);
 
-      if (failedTokens.length > 0) {
-        failedTokens.map(
-          async (token) => await this.fcmTokenRepo.delete({ token }),
+        const failedTokens = res.data.filter(
+          (token, index) => !responses[index].success,
         );
+
+        if (failedTokens.length > 0) {
+          failedTokens.map(
+            async (token) => await this.fcmTokenRepo.delete({ token }),
+          );
+        }
       }
 
       return { message: 'Notification Sent successfully ', status: true };
     } catch (error) {
-      console.error('Error sending FCM notification:', error);
+      return {
+        message: 'Email failed to send',
+        error: error.message,
+        status: false,
+      };
     }
   }
 
   async storeFcmToken(userId: number, token: string, deviceType: string) {
-    const existingToken = await this.fcmTokenRepo.findOne({ where: { token } });
+    const existingToken = await this.fcmTokenRepo.findOne({
+      where: { userId, deviceType, token },
+    });
 
     // If the token exists, no need to save again
     if (existingToken)
@@ -75,13 +154,12 @@ export class NotificationService {
       };
 
     const newToken = this.fcmTokenRepo.create({ userId, token, deviceType });
-    this.fcmTokenRepo.save(newToken);
+    await this.fcmTokenRepo.save(newToken);
     return { message: 'Token saved successfully', status: true };
   }
 
   async removeFcmToken(token: string) {
     await this.fcmTokenRepo.delete({ token });
-
     return { message: 'Token removed successfully', status: true };
   }
 
@@ -97,5 +175,246 @@ export class NotificationService {
       data: tokenList,
       status: true,
     };
+  }
+
+  async getNotifications(userId: number, query: NotificationQueryDto) {
+    const { unread, page = 1, pageSize = 10 } = query;
+
+    try {
+      const onlyUnread = unread;
+
+      const where: any = { userId };
+      if (onlyUnread) where.isRead = false;
+      const [data, total] = await this.notificationRepo.findAndCount({
+        where,
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      });
+
+      return {
+        message: 'notification fetched sucessfully',
+        total,
+        page,
+        pageSize,
+        data,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        messge: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async markAsRead(id: number) {
+    const notification = await this.notificationRepo.findOne({ where: { id } });
+
+    if (!notification) {
+      throw new NotFoundException({
+        message: 'Notification not found',
+        status: false,
+      });
+    }
+
+    if (!notification.isRead) {
+      notification.isRead = true;
+      notification.readAt = new Date();
+      await this.notificationRepo.save(notification);
+    }
+
+    return { message: 'Notification marked as read', status: true };
+  }
+
+  async markAllAsRead(userId: number) {
+    await this.notificationRepo.update(
+      { userId, isRead: false },
+      { isRead: true, readAt: new Date() },
+    );
+
+    return { message: 'All notifications marked as read', status: true };
+  }
+
+  async saveNotification(userId: number, payload) {
+    const { title, body, type } = payload;
+    try {
+      const notify = this.notificationRepo.create({
+        userId,
+        title,
+        body,
+        type,
+      });
+      await this.notificationRepo.save(notify);
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  // Admin Related Tasks
+  async storeAdminFcmToken(userId: number, token: string) {
+    const existingToken = await this.fcmTokenRepo.findOne({
+      where: { userId, token, isAdmin: true },
+    });
+
+    // If the token exists, no need to save again
+    if (existingToken)
+      return {
+        message: 'Token exists Already',
+        data: existingToken,
+        status: true,
+      };
+
+    const newToken = this.fcmTokenRepo.create({
+      userId,
+      token,
+      deviceType: 'web',
+      isAdmin: true,
+    });
+    await this.fcmTokenRepo.save(newToken);
+    return { message: 'Token saved successfully', status: true };
+  }
+
+  async getAdminFcmToken(userId: number) {
+    const tokensData = await this.fcmTokenRepo.findOne({
+      where: { userId, isAdmin: true },
+      select: ['token'],
+    });
+    return tokensData;
+  }
+
+  async sendAdminPush(notification: sendNotificationDTO) {
+    const { title, body, type, data } = notification;
+
+    const adminId = this.configService.get<number>('ADMIN_ID');
+    // 1. Store notification in DB
+    const notify = this.notificationRepo.create({
+      userId: adminId,
+      title,
+      body,
+      type,
+      isAdmin: true,
+    });
+    await this.notificationRepo.save(notify);
+
+    // 2. Get admin token (only 1 expected, web-only)
+    const tokenRecord = await this.getAdminFcmToken(adminId);
+
+    if (!tokenRecord) {
+      throw new NotFoundException({ message: 'No FCM token found for admin.' });
+    }
+
+    const message = {
+      token: tokenRecord.token, // single token for admin
+
+      notification: { title, body },
+
+      android: {
+        ttl: 3600 * 1000,
+        notification: {
+          icon: 'ic_launcher',
+          color: '#f45342',
+          sound: 'default',
+          clickAction: 'FLUTTER_NOTIFICATION_CLICK',
+        },
+      },
+
+      apns: {
+        payload: {
+          aps: {
+            alert: { title, body },
+            sound: 'default',
+            contentAvailable: true,
+          },
+        },
+        headers: { 'apns-priority': '10' },
+      },
+
+      webpush: {
+        notification: {
+          title,
+          body,
+          icon: 'https://your-site.com/icon.png',
+          click_action: 'https://your-site.com/notifications',
+          vibrate: [100, 50, 100],
+          badge: 'https://your-site.com/badge.png',
+        },
+        fcmOptions: {
+          link: 'https://your-site.com/notifications',
+        },
+      },
+
+      fcmOptions: {
+        analyticsLabel: 'admin-push',
+      },
+    };
+
+    try {
+      const response = await admin.messaging().send(message);
+      console.log('Admin Push Response:', response);
+      return { message: 'Notification sent to admin', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async getAdminNotification(adminId: number) {
+    try {
+      const notifications = await this.notificationRepo.find({
+        where: {
+          userId: adminId,
+          isAdmin: true,
+        },
+        order: {
+          createdAt: 'DESC',
+        },
+        take: 10,
+      });
+      return {
+        message: 'Notification returned successfully',
+        data: notifications,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({ message: error.message });
+    }
+  }
+
+  async saveAdminNotification(payload) {
+    const { title, body, type } = payload;
+    const adminId = this.configService.get<number>('ADMIN_ID');
+    try {
+      const notify = this.notificationRepo.create({
+        userId: adminId,
+        title,
+        body,
+        type,
+        isAdmin: true,
+      });
+      await this.notificationRepo.save(notify);
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  // Cleanup Method
+
+  async deleteOldNotifications(): Promise<void> {
+    const thresholdDate = subDays(new Date(), 60); // 60 days ago
+
+    await this.notificationRepo.delete({
+      createdAt: LessThan(thresholdDate),
+    });
+
+    console.log(
+      `[NotificationCleaner] Deleted notifications older than 60 days.`,
+    );
   }
 }

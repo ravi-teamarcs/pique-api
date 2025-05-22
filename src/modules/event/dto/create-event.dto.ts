@@ -5,8 +5,8 @@ import {
   IsNotEmpty,
   IsBoolean,
   IsEnum,
+  IsOptional,
 } from 'class-validator';
-import { Recurring, Status } from 'src/common/enums/event.enum';
 
 export class CreateEventDto {
   @ApiProperty({ example: 1, description: 'Venue for  which event is created' })
@@ -18,7 +18,7 @@ export class CreateEventDto {
     example: 'singing concert',
     description: 'Title of the event',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   title: string;
 
@@ -38,36 +38,17 @@ export class CreateEventDto {
   @IsString()
   endTime: string;
 
-  @ApiProperty({ example: 'Noida', description: 'Type of event' })
   @IsNotEmpty()
   @IsString()
-  location: string;
+  eventDate: string;
 
   @ApiProperty({ description: 'Description of event' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   description: string;
 
-  // @ApiProperty({ example: 'singing', description: 'Type of the event' })
-  // @IsNotEmpty()
-  // @IsString()
-  // type: string;
-
-  @ApiProperty({ example: false, description: 'Is Event creator Admin ?' })
-  @IsBoolean()
-  @IsNotEmpty()
-  isAdmin: boolean;
-
-  @ApiProperty({ example: 'none', description: 'Describe event recurrence' })
-  @IsEnum(Recurring)
-  @IsNotEmpty()
-  recurring: Recurring;
-
-  @ApiProperty({
-    example: 'scheduled',
-    description: 'Status of the Event',
-  })
-  @IsEnum(Status)
-  @IsNotEmpty()
-  status: Status;
+  @ApiProperty({ description: 'Description of event' })
+  @IsOptional()
+  @IsNumber()
+  neighbourhoodId: number;
 }

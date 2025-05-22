@@ -11,26 +11,32 @@ export class VenueEvent {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   title: string;
 
-  @Column()
-  location: string;
+  @Column({ type: 'text' })
+  slug: string;
 
-  @Column()
-  userId: number;
+  @Column({ nullable: true })
+  location: string;
 
   @Column()
   venueId: number;
 
+  @Column({ nullable: true })
+  sub_venue_id: number;
+
   @Column()
   description: string;
 
-  @Column()
+  @Column({ type: 'time' })
   startTime: Date;
 
-  @Column()
+  @Column({ type: 'time' })
   endTime: Date;
+
+  @Column({ type: 'date' })
+  eventDate: Date;
 
   @Column({
     type: 'enum',
@@ -41,13 +47,34 @@ export class VenueEvent {
 
   @Column({
     type: 'enum',
-    enum: ['unpublished', 'scheduled', 'confirmed', 'cancelled', 'completed'],
+    enum: [
+      'unpublished',
+      'published',
+      'confirmed',
+      'cancelled',
+      'completed',
+      'rescheduled',
+    ],
     default: 'unpublished',
   })
-  status: 'unpublished' | 'scheduled' | 'confirmed' | 'cancelled' | 'completed';
+  status:
+    | 'unpublished'
+    | 'scheduled'
+    | 'confirmed'
+    | 'cancelled'
+    | 'completed'
+    | 'published';
 
   @Column({ type: 'boolean' })
   isAdmin: boolean;
+
+  // events.entity.ts
+
+  @Column({ default: false })
+  emailSentAfter1Hour: boolean;
+
+  @Column({ default: false })
+  emailSentAfter24Hour: boolean;
 
   @CreateDateColumn()
   createdAt: Date;

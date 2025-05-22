@@ -1,7 +1,14 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Length } from 'class-validator';
+import {
+  IsEmail,
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  Length,
+} from 'class-validator';
 
 export class CreateUserDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   name: string;
 
@@ -13,7 +20,7 @@ export class CreateUserDto {
   @IsString()
   password: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   @Length(10, 13)
   phoneNumber: string;
@@ -21,8 +28,4 @@ export class CreateUserDto {
   @IsNotEmpty()
   @IsEnum(['venue', 'entertainer'])
   role: 'venue' | 'entertainer';
-
-  @IsOptional()
-  @IsEnum(['active', 'inactive', 'pending'])
-  status?: 'active' | 'inactive' | 'pending';
 }

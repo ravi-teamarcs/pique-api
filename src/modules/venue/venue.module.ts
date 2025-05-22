@@ -13,9 +13,19 @@ import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Media } from '../media/entities/media.entity';
 import { Category } from '../entertainer/entities/categories.entity';
 import { Wishlist } from './entities/wishlist.entity';
-import { VenueDetailsController } from './venue.details.controller';
-import { VenueDetailService } from './venue.details.service';
+
 import { VenueDetails } from './entities/venue.details.entity';
+import { MediaModule } from '../media/media.module';
+import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.entity';
+import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
+import { NotificationModule } from '../notification/notification.module';
+import { Neighbourhood } from './entities/neighbourhood.entity';
+import { Cities } from '../location/entities/city.entity';
+import { States } from '../location/entities/state.entity';
+import { EntertainerModule } from '../entertainer/entertainer.module';
+import { VenueEvent } from '../event/entities/event.entity';
+import { Setting } from '../admin/settings/entities/setting.entity';
+import { LocationModule } from '../location/location.module';
 
 @Module({
   imports: [
@@ -31,10 +41,18 @@ import { VenueDetails } from './entities/venue.details.entity';
       Category,
       Wishlist,
       VenueDetails,
+      Neighbourhood,
+      Cities,
+      States,
+      VenueEvent,
+      Setting,
     ]),
     BookingModule,
+    MediaModule,
+    NotificationModule,
+    LocationModule,
   ],
-  controllers: [VenueController, VenueDetailsController],
-  providers: [VenueService, VenueDetailService],
+  controllers: [VenueController],
+  providers: [VenueService],
 })
 export class VenueModule {}

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Countries } from './entities/country.entity';
 import { Repository } from 'typeorm';
@@ -66,6 +66,52 @@ export class LocationService {
       };
     } catch (error) {
       throw new Error(error.message);
+    }
+  }
+
+  // location.service.ts
+  async searchCityAndState(query: string) {
+    try {
+      const likeQuery = `%${query.toLowerCase()}%`; // lowercase for case-insensitive
+
+      const [cities, states] = await Promise.all([
+        this.cityRepository
+          .createQueryBuilder('city')
+          .leftJoin('states', 'state', 'city.state_id = state.id')
+          .where('LOWER(city.name) LIKE :query', { query: likeQuery })
+          .andWhere('state.country_id = :countryId', { countryId: 231 }) // USA
+          .select(['city.id', 'city.name'])
+          .limit(5)
+          .getMany(), // Use getMany() instead of getRawMany() for simplicity
+
+        this.stateRepository
+          .createQueryBuilder('state')
+          .where('LOWER(state.name) LIKE :query', { query: likeQuery })
+          .andWhere('state.country_id = :countryId', { countryId: 231 })
+          .select(['state.id', 'state.name'])
+          .limit(5)
+          .getMany(),
+      ]);
+
+      const cityResults = cities.map((city) => ({
+        id: city.id,
+        name: city.name,
+        type: 'city',
+      }));
+
+      const stateResults = states.map((state) => ({
+        id: state.id,
+        name: state.name,
+        type: 'state',
+      }));
+
+      return {
+        message: 'Location fetched successfully',
+        data: [...cityResults, ...stateResults],
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
     }
   }
 }

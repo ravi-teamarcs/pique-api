@@ -50,4 +50,9 @@ export class LocationController {
   getAllCities(@Query('stateId') stateId: number) {
     return this.locationService.findAllCities(stateId);
   }
+
+  @Get('/suggestions')
+  async searchLocations(@Query('query') query: string) {
+    return this.locationService.searchCityAndState(query);
+  }
 }

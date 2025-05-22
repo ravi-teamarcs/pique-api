@@ -10,6 +10,7 @@ import {
   HttpStatus,
   UseGuards,
   Req,
+  Query,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -25,51 +26,13 @@ import { User } from './entities/users.entity';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { ApprovalQuery } from '../admin/users/Dto/query.dto';
 
 @ApiTags('Users')
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  /**
-   * Create a new user
-   */
-  //   @Post()
-  //   @ApiOperation({ summary: 'Create a new user' })
-  //   @ApiResponse({ status: 201, description: 'The user has been successfully created.', type: User })
-  //   @ApiResponse({ status: 400, description: 'Invalid input.' })
-  //   async createUser(@Body() createUserDto: CreateUserDto): Promise<User> {
-  //     try {
-  //       return await this.usersService.create(createUserDto);
-  //     } catch (error) {
-  //       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
-  //     }
-  //   }
-
-  /**
-   * Get all users
-   */
-  // @Get()
-  // @Roles('findAll')
-  // @ApiBearerAuth() // Swagger UI will ask for the Bearer token
-  // @ApiOperation({ summary: 'Get all users' })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: 'Returns a list of all users.',
-  //   type: [User],
-  // })
-  // @ApiResponse({
-  //   status: 401,
-  //   description: 'Unauthorized. Invalid or missing JWT token.',
-  // })
-  // @UseGuards(JwtAuthGuard, RolesGuard)
-  // async getAllUsers(@Request() req): Promise<User[]> {
-  //   return this.usersService.findAll();
-  // }
-
-  /**
-   * Get a user by ID
-   */
   @Get(':id')
   // @Roles('admin')
   @ApiOperation({ summary: 'Get user by ID' })
@@ -108,22 +71,6 @@ export class UsersController {
     return updatedUser;
   }
 
-  /**
-   * Delete a user by ID
-   */
-  // @Delete(':id')
-  // @ApiOperation({ summary: 'Delete user by ID' })
-  // @ApiParam({ name: 'id', description: 'User ID', example: 1 })
-  // @ApiResponse({ status: 200, description: 'The user has been deleted.' })
-  // @ApiResponse({ status: 404, description: 'User not found.' })
-  // async deleteUser(@Param('id') id: number): Promise<{ message: string }> {
-  //   const deleted = await this.usersService.delete(id);
-  //   if (!deleted) {
-  //     throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-  //   }
-  //   return { message: 'User successfully deleted' };
-  // }
-
   @Get('loggedIn/profile')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
@@ -134,9 +81,8 @@ export class UsersController {
   })
   getUserprofile(@Req() req) {
     const { userId, role } = req.user;
-
-    console.log(req.user);
-
     return this.usersService.handleGetUserProfile(userId, role);
   }
+
+ 
 }

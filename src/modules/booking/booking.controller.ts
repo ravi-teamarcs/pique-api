@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Param,
+  ParseIntPipe,
   Post,
   Request,
   UseGuards,
@@ -26,7 +28,7 @@ import { BookingReqResponse } from './dto/request-booking.dto';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
-
+  //Change
   @ApiOperation({
     description: 'Enable Admin And Entertainer to review booking ',
   })
@@ -41,5 +43,26 @@ export class BookingController {
   ) {
     const { userId } = req.user;
     return this.bookingService.approveChange(requestId, reqDto, userId);
+  }
+
+  @Get('by-event/:eventId')
+  @Roles('findAll')
+  async getBookingsByEvent(
+    @Param('eventId', ParseIntPipe) eventId: number,
+    @Request() req,
+  ) {
+    const { refId } = req.user;
+    return this.bookingService.entertainerBookingDetailsByEvent(eventId, refId);
+  }
+
+  @Get('entertainers/details/:eventId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async getDetailsBasedonEvent(
+    @Param('eventId', ParseIntPipe) eventId: number,
+    @Request() req,
+  ) {
+    const { refId } = req.user;
+    return this.bookingService.getEntertainerDetailsPerEvent(eventId, refId);
   }
 }

@@ -22,7 +22,7 @@ export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ type: 'varchar', length: 255 })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   name: string;
 
   @Column({ type: 'varchar', length: 255, unique: true })
@@ -31,7 +31,7 @@ export class User {
   @Column({ type: 'varchar', length: 255 })
   password: string;
 
-  @Column({ type: 'varchar', length: 13 })
+  @Column({ type: 'varchar', length: 13, nullable: true })
   phoneNumber: string;
 
   @Column({ type: 'enum', enum: ['venue', 'entertainer'] })
@@ -39,10 +39,10 @@ export class User {
 
   @Column({
     type: 'enum',
-    enum: ['active', 'inactive', 'pending'],
+    enum: ['active', 'inactive', 'pending' ,'rejected'],
     default: 'pending',
   })
-  status: 'active' | 'inactive' | 'pending';
+  status: 'active' | 'inactive' | 'pending' | 'rejected';
 
   @OneToOne(() => Entertainer, (entertainer) => entertainer.user, {
     cascade: true,
@@ -52,21 +52,13 @@ export class User {
   @OneToMany(() => Venue, (venue) => venue.user, { cascade: true })
   venue: Venue[];
 
-  // Booking
-  @OneToMany(() => Booking, (booking) => booking.venueUser)
-  venueBookings: Booking[];
-
-  @OneToMany(() => Booking, (booking) => booking.entertainerUser)
-  entertainerBookings: Booking[];
-  // Relation with Media
-
-  // Media
-  @OneToMany(() => Media, (media) => media.user, { cascade: true })
-  media: Media[];
-
   // Invoice
-  @OneToMany(() => Invoice, (invoice) => invoice.customer)
-  invoices: Invoice[];
+
+  @Column({ default: false })
+  isVerified: boolean;
+
+  @Column({ default: false })
+  createdByAdmin: boolean;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdDate: Date;

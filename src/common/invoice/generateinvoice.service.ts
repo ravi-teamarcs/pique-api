@@ -2,13 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { log } from 'console';
-import { Entertainer } from 'src/modules/admin/entertainer/Entitiy/entertainer.entity';
-import { Event } from 'src/modules/admin/events/Entity/event.entity';
+import { Entertainer } from 'src/modules/admin/entertainer/entities/entertainer.entity';
+import { Event } from 'src/modules/admin/events/entities/event.entity';
 import {
   Invoice,
   InvoiceStatus,
   UserType,
-} from 'src/modules/admin/invoice/Entity/invoices.entity';
+} from 'src/modules/admin/invoice/entities/invoices.entity';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
 import { Repository, Between } from 'typeorm';
 
@@ -58,51 +58,56 @@ export class GenerateInvoiceService {
       ? today
       : new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
     const dueDate = new Date(issueDate);
-    dueDate.setDate(dueDate.getDate() + 30);  // Default 30-day due date
+    dueDate.setDate(dueDate.getDate() + 30); // Default 30-day due date
 
     const bookings = await this.bookingRepo
       .createQueryBuilder('booking')
       .where('booking.eventId = :eventId', { eventId: event.id })
-      .select('booking.entertainerUserId as eId')
+      .select(['booking.entId as eId', 'booking.venueId as venueId'])
       .getRawMany();
 
     for (const booking of bookings) {
       // Process sequentially instead of in parallel
       const entertainer = await this.entertainerRepo.findOne({
-        where: { user: booking.eId },
+        where: { id: booking.entId },
       });
+
+      // Tax Rate
       const taxRate = 10.0;
 
+      // Tax Amount ()
       const taxAmount = (entertainer.pricePerEvent * taxRate) / 100;
       const totalWithTax = entertainer.pricePerEvent + taxAmount;
 
-      // Get the latest invoice (ensure sequential number generation)
+      // Check for latest Invoice Number (e.g., INV-1001)
       const lastInvoice = await this.invoiceRepo
         .createQueryBuilder('invoices')
         .orderBy('invoices.id', 'DESC')
         .limit(1)
         .getOne();
 
+      // Generate invoice Number
       const lastInvoiceNumber = lastInvoice
         ? parseInt(lastInvoice.invoice_number.split('-')[1])
         : 1000;
       const newInvoiceNumber = `INV-${lastInvoiceNumber + 1}`;
 
+      // Create Invoice Object
       const newInvoice = this.invoiceRepo.create({
         invoice_number: newInvoiceNumber,
-        entertainer_id: Number(entertainer.id),
-        venue_id: Number(event.venueId),
         event_id: Number(event.id),
-        user_type: UserType.ENTERTAINER,
+        user_type: UserType.VENUE,
         issue_date: new Date(issueDate).toISOString().split('T')[0],
         due_date: new Date(dueDate).toISOString().split('T')[0],
         total_amount: parseFloat(entertainer.pricePerEvent.toFixed(2)),
         tax_rate: parseFloat(taxRate.toFixed(2)),
         tax_amount: parseFloat(taxAmount.toFixed(2)),
         total_with_tax: parseFloat(totalWithTax.toFixed(2)),
-        status: InvoiceStatus.PENDING,
+        // status: InvoiceStatus.PENDING,
         payment_method: '',
         payment_date: null,
+        user_id: Number(booking.venueId),
+        booking_id: Number(booking.id),
       });
 
       await this.invoiceRepo.save(newInvoice);
