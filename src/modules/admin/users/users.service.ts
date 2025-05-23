@@ -254,7 +254,10 @@ export class UsersService {
           // 'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods', // Handle empty neighbourhoods array with COALESCE
         ])
         .orderBy('venue.id', 'DESC') // Sort by venue ID
-        .where("venue.status = 'pending' AND venue.userId IS NOT NULL");
+        .where("venue.status = 'pending' AND venue.userId IS NOT NULL")
+        .andWhere('ent.isProfileComplete =:isProfileComplete', {
+          isProfileComplete: true,
+        });
 
       if (search) {
         res.andWhere('(venue.name LIKE :search OR user.email LIKE :search)', {
@@ -300,7 +303,10 @@ export class UsersService {
           'country.name As country_name',
           'state.name As state_name',
         ])
-        .where("ent.status = 'pending' AND ent.userId IS NOT NULL");
+        .where("ent.status = 'pending' AND ent.userId IS NOT NULL")
+        .andWhere('ent.isProfileComplete =:isProfileComplete', {
+          isProfileComplete: true,
+        });
       if (search) {
         res.andWhere('(ent.name LIKE :search OR user.email LIKE :search)', {
           search: `%${search}%`,
