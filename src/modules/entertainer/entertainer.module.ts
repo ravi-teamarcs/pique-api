@@ -25,6 +25,8 @@ import { EntertainerAvailability } from './entities/availability.entity';
 import { LocationModule } from '../location/location.module';
 import { Cities } from '../location/entities/city.entity';
 import { States } from '../location/entities/state.entity';
+import { NotificationModule } from '../notification/notification.module';
+import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
 
 @Module({
   imports: [
@@ -46,10 +48,12 @@ import { States } from '../location/entities/state.entity';
       EntertainerAvailability,
       Cities,
       States,
+      AdminUser,
     ]),
     BookingModule,
     MediaModule,
     LocationModule,
+    NotificationModule,
   ],
   controllers: [EntertainerController, AvailabilityController],
   providers: [EntertainerService, AvailabilityService],

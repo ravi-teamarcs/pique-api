@@ -54,7 +54,17 @@ export class NotificationController {
   async getUserNotifications(@Query() query: NotificationQueryDto, @Req() req) {
     const { userId } = req.user; // assuming you attach user to request after auth
 
-    return await this.notificationService.getNotifications(userId, query);
+    return this.notificationService.getNotifications(userId, query);
+  }
+
+  @Get('admin')
+  @UseGuards(JwtAuthGuard)
+  async getAdminNotifications(
+    @Query() query: NotificationQueryDto,
+    @Req() req,
+  ) {
+    const { userId } = req.user;
+    return this.notificationService.getAdminNotification(userId, query);
   }
 
   @Patch(':id/read')

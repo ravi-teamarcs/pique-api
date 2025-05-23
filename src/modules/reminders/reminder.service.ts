@@ -4,10 +4,17 @@ import { Booking } from '../booking/entities/booking.entity';
 import { LessThanOrEqual, Repository } from 'typeorm';
 import { NotificationService } from '../notification/notification.service';
 import { VenueEvent } from '../event/entities/event.entity';
-import { addHours, format, isAfter, subHours } from 'date-fns';
+import {
+  addHours,
+  differenceInDays,
+  format,
+  isAfter,
+  subHours,
+} from 'date-fns';
 import { EmailService } from '../Email/email.service';
 import { BookingReminder } from './entities/booking-reminder.entity';
 import { BookLater } from './dto/book-later.dto';
+import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
 
 @Injectable()
 export class ReminderService {
@@ -18,6 +25,8 @@ export class ReminderService {
     private readonly eventRepo: Repository<VenueEvent>,
     @InjectRepository(BookingReminder)
     private readonly bookReminderRepo: Repository<BookingReminder>,
+    @InjectRepository(AdminUser)
+    private readonly adminRepository: Repository<AdminUser>,
     private readonly notifyService: NotificationService,
     private readonly emailService: EmailService,
   ) {}
@@ -89,6 +98,7 @@ export class ReminderService {
   async remindUnrespondedInvites() {
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+    const today = new Date();
 
     const unrespondedBookings = await this.bookingRepo
       .createQueryBuilder('booking')
@@ -105,7 +115,8 @@ export class ReminderService {
       .getRawMany();
 
     for (const booking of unrespondedBookings) {
-      const message = `Reminder: You have a booking invitation (ID: ${booking.bookingId}) pending for over 3 days. Please respond.`;
+      const daysPassed = differenceInDays(today, new Date(booking.createdAt));
+      const message = `Reminder: You have a booking invitation (ID: ${booking.bookingId}) pending for over ${daysPassed} days. Please respond.`;
 
       const notificationPayload = {
         title: 'Pending Booking Response',
@@ -119,9 +130,19 @@ export class ReminderService {
           booking.entertainerUser,
         );
       }
-      this.notifyService.saveAdminNotification(notificationPayload);
-      this.notifyService.sendAdminPush(notificationPayload);
-      // Optional: track that the reminder was sent
+      let admins = await this.adminRepository.find({ where: { role: '1' } });
+      if (admins?.length > 0) {
+        for (const admin of admins) {
+          await this.notifyService.saveAdminNotification(
+            notificationPayload,
+            Number(admin.id),
+          );
+          await this.notifyService.sendAdminPush(
+            notificationPayload,
+            Number(admin.id),
+          );
+        }
+      }
     }
   }
 

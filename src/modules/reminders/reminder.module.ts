@@ -7,10 +7,11 @@ import { VenueEvent } from '../event/entities/event.entity';
 import { EmailModule } from '../Email/email.module';
 import { ReminderController } from './reminder.controller';
 import { BookingReminder } from './entities/booking-reminder.entity';
+import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, VenueEvent, BookingReminder]),
+    TypeOrmModule.forFeature([Booking, VenueEvent, BookingReminder, AdminUser]),
     NotificationModule,
     EmailModule,
   ],

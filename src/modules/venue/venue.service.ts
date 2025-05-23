@@ -50,6 +50,8 @@ import { Cities } from '../location/entities/city.entity';
 import { Setting } from '../admin/settings/entities/setting.entity';
 import { GeocodingService } from '../location/geocoding.service';
 import { States } from '../location/entities/state.entity';
+import { NotificationService } from '../notification/notification.service';
+import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
 
 @Injectable()
 export class VenueService {
@@ -78,11 +80,14 @@ export class VenueService {
     private readonly cityRepository: Repository<Cities>,
     @InjectRepository(States)
     private readonly stateRepository: Repository<States>,
+    @InjectRepository(AdminUser)
+    private readonly adminRepository: Repository<AdminUser>,
 
     private readonly config: ConfigService,
     private readonly mediaService: MediaService,
     private readonly dataSource: DataSource,
     private readonly geoService: GeocodingService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   // New Flow   Venue Creation   Step:1
@@ -234,6 +239,26 @@ export class VenueService {
         { id: venue.id },
         { isProfileComplete: true, profileStep: 4 },
       );
+
+      let admins = await this.adminRepository.find({ where: { role: '1' } });
+      if (admins?.length > 0) {
+        const message = `A Venue has completed their profile. Please review and approve.`;
+        const notification_payload = {
+          title: 'New Venue Profile Submitted',
+          body: message,
+          type: 'profile_completion',
+        };
+        for (const admin of admins) {
+          await this.notificationService.saveAdminNotification(
+            notification_payload,
+            Number(admin.id),
+          );
+          await this.notificationService.sendAdminPush(
+            notification_payload,
+            Number(admin.id),
+          );
+        }
+      }
 
       return {
         message: 'Venue is created sucessfully with media.',

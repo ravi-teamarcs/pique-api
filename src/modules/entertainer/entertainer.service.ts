@@ -60,6 +60,8 @@ import { GeneralInfoDto } from '../admin/entertainer/Dto/create-entertainer.dto'
 import { GeocodingService } from '../location/geocoding.service';
 import { States } from '../location/entities/state.entity';
 import { Cities } from '../location/entities/city.entity';
+import { NotificationService } from '../notification/notification.service';
+import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -84,10 +86,13 @@ export class EntertainerService {
     private readonly cityRepository: Repository<Cities>,
     @InjectRepository(States)
     private readonly stateRepository: Repository<States>,
+    @InjectRepository(AdminUser)
+    private readonly adminRepository: Repository<AdminUser>,
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
     private readonly mediaService: MediaService,
     private readonly geoService: GeocodingService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   // New Flow // Step1
@@ -421,11 +426,32 @@ export class EntertainerService {
         { isProfileComplete: true, profileStep: 10 },
       );
 
+      let admins = await this.adminRepository.find({ where: { role: '1' } });
+      if (admins?.length > 0) {
+        const message = `An entertainer has completed their profile. Please review and approve.`;
+        const notification_payload = {
+          title: 'New Entertainer Profile Submitted',
+          body: message,
+          type: 'profile_completion',
+        };
+        for (const admin of admins) {
+          await this.notificationService.saveAdminNotification(
+            notification_payload,
+            Number(admin.id),
+          );
+          await this.notificationService.sendAdminPush(
+            notification_payload,
+            Number(admin.id),
+          );
+        }
+      }
+
       return {
         message: 'Entertainer  is created sucessfully with media.',
         step: 10,
         status: true,
       };
+      // Notification to Admin
     } catch (error) {
       throw new InternalServerErrorException({
         message: error.message,

@@ -195,6 +195,9 @@ export class NotificationService {
           userId,
           isRead: false,
         },
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       });
 
       return {
@@ -290,10 +293,9 @@ export class NotificationService {
     return tokensData;
   }
 
-  async sendAdminPush(notification: sendNotificationDTO) {
+  async sendAdminPush(notification: sendNotificationDTO, adminId: number) {
     const { title, body, type, data } = notification;
 
-    const adminId = this.configService.get<number>('ADMIN_ID');
     // 1. Store notification in DB
     const notify = this.notificationRepo.create({
       userId: adminId,
@@ -308,7 +310,7 @@ export class NotificationService {
     const tokenRecord = await this.getAdminFcmToken(adminId);
 
     if (!tokenRecord) {
-      throw new NotFoundException({ message: 'No FCM token found for admin.' });
+      return `Token Not Found`;
     }
 
     const message = {
@@ -358,41 +360,56 @@ export class NotificationService {
 
     try {
       const response = await admin.messaging().send(message);
-      console.log('Admin Push Response:', response);
       return { message: 'Notification sent to admin', status: true };
     } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
+      return {
+        message: 'Email failed to send',
+        error: error.message,
         status: false,
-      });
+      };
     }
   }
 
-  async getAdminNotification(adminId: number) {
+  async getAdminNotification(adminId: number, query: NotificationQueryDto) {
+    const { page = 1, pageSize = 10 } = query;
+
     try {
-      const notifications = await this.notificationRepo.find({
+      // Fetch latest notifications (all)
+      const [data, total] = await this.notificationRepo.findAndCount({
+        where: { userId: adminId, isAdmin: true },
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      });
+
+      // Count unread notifications separately
+      const unreadCount = await this.notificationRepo.count({
         where: {
           userId: adminId,
           isAdmin: true,
+          isRead: false,
         },
-        order: {
-          createdAt: 'DESC',
-        },
-        take: 10,
+        order: { createdAt: 'DESC' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
       });
+
       return {
-        message: 'Notification returned successfully',
-        data: notifications,
-        status: true,
+        message: 'Notifications fetched successfully',
+        total,
+        page,
+        pageSize,
+        unreadCount,
+        data,
       };
     } catch (error) {
       throw new InternalServerErrorException({ message: error.message });
     }
   }
 
-  async saveAdminNotification(payload) {
+  async saveAdminNotification(payload, adminId: number) {
     const { title, body, type } = payload;
-    const adminId = this.configService.get<number>('ADMIN_ID');
+
     try {
       const notify = this.notificationRepo.create({
         userId: adminId,
