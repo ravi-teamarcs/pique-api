@@ -115,8 +115,8 @@ export class BookingService {
       replacements: {
         venueName: venue.name,
         entertainerName: ent.name,
-        bookingDate: savedBooking.showDate,
-        bookingTime: savedBooking.showTime,
+        bookingDate: format(savedBooking.showDate, 'dd MMM yyyy').toUpperCase(),
+        bookingTime: format(savedBooking.showTime, 'hh:mm a'),
         vname: venue.name,
         vemail: venue.email,
         vphone: venue.phoneNumber,
@@ -257,8 +257,8 @@ export class BookingService {
         venueName: booking.vname,
         entertainerName: booking.ename,
         id: booking.id,
-        bookingTime: booking.showTime,
-        bookingDate: booking.showDate,
+        bookingTime: format(booking.showTime, 'hh:mm a'),
+        bookingDate: format(booking.showDate, 'dd MMM yyyy').toUpperCase(),
       },
     };
 
@@ -528,7 +528,7 @@ export class BookingService {
               venueName: booking.vname,
               entertainerName: booking.ename,
               id: booking.id,
-              bookingTime: booking.showTime,
+              bookingTime: format(booking.showTime, 'hh:mm a'),
               bookingDate: formattedDate,
             },
           };

@@ -12,7 +12,7 @@ import { VenueEvent } from './entities/event.entity';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Venue } from '../venue/entities/venue.entity';
-import { format, parse } from 'date-fns';
+import { format, parse, startOfDay } from 'date-fns';
 import { EmailService } from '../Email/email.service';
 
 @Injectable()
@@ -97,11 +97,14 @@ export class EventService {
   }
   // Created for venues
   async getAllEvents(id: number, page: number = 1, pageSize: number = 20) {
+    const today = startOfDay(new Date());
     const skip = (Number(page) - 1) * Number(pageSize);
     const take = Number(pageSize);
     const [events, totalCount] = await this.eventRepository
       .createQueryBuilder('event')
-      .where('event.venueId =:id', { id })
+      .where('event.venueId = :id', { id })
+      .andWhere('event.eventDate <= :today', { today })
+      .andWhere('event.status != :status', { status: 'completed' })
       .orderBy('event.createdAt', 'DESC')
       .select([
         'event.id',
