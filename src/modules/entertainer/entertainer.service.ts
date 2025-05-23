@@ -942,6 +942,7 @@ export class EntertainerService {
 
   async updateEntertainerBasicDetails(
     userId: number,
+    refId: number,
     dto: GeneralInformationDto,
     uploadedFiles: UploadedFile[],
   ) {
@@ -964,7 +965,7 @@ export class EntertainerService {
 
       if (uploadedFiles && uploadedFiles.length > 0) {
         const mediaUploadResult = await this.mediaService.handleMediaUpload(
-          userId,
+          refId,
           uploadedFiles,
           { eventId: null },
         );

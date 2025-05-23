@@ -176,7 +176,7 @@ export class EntertainerController {
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
   ) {
-    const { userId } = req.user;
+    const { userId, refId } = req.user;
     let uploadedFiles: UploadedFile[] = [];
 
     if (files.length > 0) {
@@ -194,6 +194,7 @@ export class EntertainerController {
 
     return this.entertainerService.updateEntertainerBasicDetails(
       userId,
+      refId,
       dto,
       uploadedFiles,
     );
