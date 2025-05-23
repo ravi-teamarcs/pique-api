@@ -107,18 +107,20 @@ export class EntertainerController {
       uploadedFiles = await Promise.all(
         files.map(async (file) => {
           const filePath = await uploadFile(file); // Wait for the upload
-          if (file.fieldname == 'headshot')
+
+          if (file.fieldname == 'headshot') {
             return {
               url: filePath,
               name: file.originalname,
-              type: getFileType(file.mimetype),
+              type: typeMap[file.fieldname],
             };
-
-          return {
-            url: filePath,
-            name: file.originalname,
-            type: typeMap[file.fieldname],
-          };
+          } else {
+            return {
+              url: filePath,
+              name: file.originalname,
+              type: typeMap[`${getFileType(file.mimetype)}s`],
+            };
+          }
         }),
       );
     }

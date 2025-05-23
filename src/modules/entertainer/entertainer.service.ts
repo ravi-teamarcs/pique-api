@@ -397,7 +397,7 @@ export class EntertainerService {
     }
     try {
       const { data } = await this.mediaService.handleMediaUpload(
-        ent.id,
+        Number(ent.id),
         uploadedFiles,
         { eventId: null },
       );
