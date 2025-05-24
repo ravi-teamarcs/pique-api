@@ -270,7 +270,10 @@ export class EventService {
       // Step 2: Paginate with join and select raw fields
       const results = await this.eventRepository
         .createQueryBuilder('event')
-        .leftJoin('venue', 'venue', 'venue.id = event.venueId') // manual join
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('states', 'state', 'state.id = venue.state')
+        .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
         .where('event.eventDate > :now', { now })
         .select([
           'event.id AS event_id',
@@ -286,6 +289,11 @@ export class EventService {
           'event.isAdmin AS isAdmin',
           'venue.id AS venue_id',
           'venue.name AS venue_name',
+          'venue.addressLine1 AS adressLine1',
+          'venue.addressLine2 AS adressLine2',
+          'city.name AS cityName',
+          'state.name AS stateName',
+          'code.StateCode AS stateCode',
         ])
         .orderBy('event.eventDate', 'ASC')
         .offset(skip)
