@@ -583,21 +583,38 @@ export class VenueService {
 
       const currentYear = new Date().getFullYear();
       // Send Email to the User
-      const emailPayload = {
-        to: venue.user.email,
-        subject: 'Account Status',
-        templateName:
-          status === 'active'
-            ? 'account-approved.html'
-            : 'account-rejected.html',
-        replacements: { name: venue.user.name, year: currentYear },
-      };
       const statusToMessageMap = {
         active: 'activated',
         rejected: 'rejected',
         inactive: 'deactivated',
       };
 
+      const statusToPayloadMap = {
+        active: {
+          to: venue.user.email,
+          subject: 'Account Status',
+          templateName: 'account-approved.html',
+          replacements: { name: venue.user.name, year: currentYear },
+        },
+        inactive: {
+          to: venue.user.email,
+          subject: 'Account Status',
+          templateName: 'account-deactivation.html',
+          replacements: {
+            User: venue.user.name,
+            Date: new Date().getFullYear(),
+            Year: currentYear,
+          },
+        },
+        rejected: {
+          to: venue.user.email,
+          subject: 'Account Status',
+          templateName: 'account-rejected.html',
+          replacements: { name: venue.user.name, year: currentYear },
+        },
+      };
+
+      const emailPayload = statusToPayloadMap[status];
       this.emailService.handleSendEmail(emailPayload);
       return {
         message: `Venue profile has been ${statusToMessageMap[status]} Successfully`,

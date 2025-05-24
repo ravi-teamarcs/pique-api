@@ -522,16 +522,32 @@ export class EntertainerService {
         inactive: 'deactivated',
       };
 
-      const emailPayload = {
-        to: entertainer.user.email,
-        subject: 'Account Status',
-        templateName:
-          status === 'active'
-            ? 'account-approved.html'
-            : 'account-rejected.html',
-        replacements: { name: entertainer.user.name, year: currentYear },
+      const statusToPayloadMap = {
+        active: {
+          to: entertainer.user.email,
+          subject: 'Account Status',
+          templateName: 'account-approved.html',
+          replacements: { name: entertainer.user.name, year: currentYear },
+        },
+        inactive: {
+          to: entertainer.user.email,
+          subject: 'Account Status',
+          templateName: 'account-deactivation.html',
+          replacements: {
+            User: entertainer.user.name,
+            Date: new Date().getFullYear(),
+            Year: currentYear,
+          },
+        },
+        rejected: {
+          to: entertainer.user.email,
+          subject: 'Account Status',
+          templateName: 'account-rejected.html',
+          replacements: { name: entertainer.user.name, year: currentYear },
+        },
       };
 
+      const emailPayload = statusToPayloadMap[status];
       this.emailService.handleSendEmail(emailPayload);
       return {
         message: `Entertainer profile ${statusToMessageMap[status]} Successfully`,
