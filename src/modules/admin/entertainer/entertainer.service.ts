@@ -516,6 +516,12 @@ export class EntertainerService {
       await this.entertainerRepository.update({ id }, { status });
       const currentYear = new Date().getFullYear();
       // Send Email to the User
+      const statusToMessageMap = {
+        active: 'activated',
+        rejected: 'rejected',
+        inactive: 'deactivated',
+      };
+
       const emailPayload = {
         to: entertainer.user.email,
         subject: 'Account Status',
@@ -528,7 +534,7 @@ export class EntertainerService {
 
       this.emailService.handleSendEmail(emailPayload);
       return {
-        message: 'Entertainer Status updated Successfully',
+        message: `Entertainer profile ${statusToMessageMap[status]} Successfully`,
         status: true,
       };
     } catch (error) {

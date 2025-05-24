@@ -206,34 +206,49 @@ export class UsersService {
 
   async getApprovalList(query: ApprovalQuery) {
     const { page = 1, pageSize = 10, role, search } = query;
-    const skip = (Number(page) - 1) * Number(pageSize);
 
-    if (role === 'venue') {
+    try {
+      if (role === 'venue') {
+        return this.getVenueApprovalList(page, pageSize, search);
+      } else return this.getEntertainerApprovalList(page, pageSize, search);
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  private async getVenueApprovalList(
+    page: number,
+    pageSize: number,
+    search: string,
+  ) {
+    const skip = (Number(page) - 1) * Number(pageSize);
+    try {
       const res = this.venueRepository
         .createQueryBuilder('venue')
-        .leftJoin('users', 'user', ' user.id = venue.userId ') // Join the 'venue' table
-        .leftJoin('cities', 'city', 'city.id = venue.city') // Join 'cities' table based on 'venue.city'
-        .leftJoin('states', 'state', 'state.id = venue.state') // Join 'states' table based on 'venue.state'
-        .leftJoin('countries', 'country', 'country.id = venue.country') // Join 'countries' table based on 'venue.country'
-        // .leftJoin(
-        //   (qb) =>
-        //     qb
-        //       .select([
-        //         'neighbourhood.venue_id AS nh_venue_id', // Selecting 'venueId' from 'neighbourhood' as 'nh_venue_id'
-        //         `JSON_ARRAYAGG(
-        //     JSON_OBJECT(
-        //       "id", neighbourhood.id,
-        //       "name", neighbourhood.name,
-        //       "contactPerson", neighbourhood.contact_person,
-        //       "contactNumber", neighbourhood.contact_number
-        //     )
-        //   ) AS neighbourhoodDetails`, // Aggregate neighbourhoods into JSON array
-        //       ])
-        //       .from('neighbourhood', 'neighbourhood') // From 'neighbourhood' table
-        //       .groupBy('neighbourhood.venue_id'), // Group by 'venueId' to match venues with neighbourhoods
-        //   'neighbourhoods', // Alias for the subquery
-        //   'neighbourhoods.nh_venue_id = venue.id', // Join condition for neighbourhoods based on venue id
-        // )
+        .leftJoin('users', 'user', ' user.id = venue.userId ')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('states', 'state', 'state.id = venue.state')
+        .leftJoin('countries', 'country', 'country.id = venue.country')
+        .leftJoin(
+          (qb) =>
+            qb
+              .select([
+                'neighbourhood.venue_id AS nh_venue_id', // Selecting 'venueId' from 'neighbourhood' as 'nh_venue_id'
+                `JSON_ARRAYAGG(
+           JSON_OBJECT(
+             "id", neighbourhood.id,
+             "name", neighbourhood.name,
+             "contactPerson", neighbourhood.contact_person,
+             "contactNumber", neighbourhood.contact_number
+           )
+         ) AS neighbourhoodDetails`, // Aggregate neighbourhoods into JSON array
+              ])
+              .from('neighbourhood', 'neighbourhood') // From 'neighbourhood' table
+              .groupBy('neighbourhood.venue_id'), // Group by 'venueId' to match venues with neighbourhoods
+          'neighbourhoods', // Alias for the subquery
+          'neighbourhoods.nh_venue_id = venue.id', // Join condition for neighbourhoods based on venue id
+        )
         .select([
           'venue.id AS id',
           'venue.name AS name',
@@ -251,9 +266,9 @@ export class UsersService {
           'state.name AS state',
           'country.name AS country',
           'user.email AS email',
-          // 'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods', // Handle empty neighbourhoods array with COALESCE
+          'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods',
         ])
-        .orderBy('venue.id', 'DESC') // Sort by venue ID
+        .orderBy('venue.id', 'DESC')
         .where("venue.status = 'pending' AND venue.userId IS NOT NULL")
         .andWhere('venue.isProfileComplete =:isProfileComplete', {
           isProfileComplete: true,
@@ -271,9 +286,9 @@ export class UsersService {
         .skip(skip)
         .take(Number(pageSize))
         .getRawMany();
-      const parsedResult = results.map(({ ...rest }) => ({
+      const parsedResult = results.map(({ neighbourhoods, ...rest }) => ({
         ...rest,
-        // neighbourhoods: JSON.parse(neighbourhoods),
+        neighbourhoods: JSON.parse(neighbourhoods),
       }));
 
       return {
@@ -285,7 +300,17 @@ export class UsersService {
         data: parsedResult,
         status: true,
       };
-    } else {
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+  private async getEntertainerApprovalList(
+    page: number,
+    pageSize: number,
+    search: string,
+  ) {
+    const skip = (Number(page) - 1) * Number(pageSize);
+    try {
       const res = this.entertainerRepository
         .createQueryBuilder('ent')
         .leftJoin('users', 'user', ` user.id = ent.userId`)
@@ -294,7 +319,7 @@ export class UsersService {
         .leftJoin('countries', 'country', `country.id = ent.country`)
 
         .select([
-          `ent.*`, // select all fields from venue/entertainer
+          `ent.*`,
           'user.id AS user_id',
           'user.email AS user_email',
           'user.status AS user_status',
@@ -320,13 +345,16 @@ export class UsersService {
         .take(Number(pageSize))
         .getRawMany();
 
-      const parsedResult = results.map(({ services, ...rest }) => ({
-        ...rest,
-        services:
-          typeof services === 'string' && services.trim() !== ''
-            ? services.split(',')
-            : [],
-      }));
+      const parsedResult = results.map(
+        ({ services, socialLinks, ...rest }) => ({
+          ...rest,
+          socialLinks: socialLinks ? JSON.parse(socialLinks) : null,
+          services:
+            services && typeof services === 'string' && services.trim() !== ''
+              ? services.split(',')
+              : [],
+        }),
+      );
 
       return {
         message: `Entertainer approval list fetched successfully`,
@@ -337,6 +365,8 @@ export class UsersService {
         data: parsedResult,
         status: true,
       };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
     }
   }
 }

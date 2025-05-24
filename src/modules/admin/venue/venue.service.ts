@@ -573,7 +573,7 @@ export class VenueService {
         relations: ['user'],
       });
 
-      if (!venue) throw new NotFoundException('Venue  not found');
+      if (!venue) throw new NotFoundException('Venue not found .');
 
       if (venue.user) {
         await this.userRepository.update({ id: venue.user.id }, { status });
@@ -592,9 +592,17 @@ export class VenueService {
             : 'account-rejected.html',
         replacements: { name: venue.user.name, year: currentYear },
       };
+      const statusToMessageMap = {
+        active: 'activated',
+        rejected: 'rejected',
+        inactive: 'deactivated',
+      };
 
       this.emailService.handleSendEmail(emailPayload);
-      return { message: 'Venue Status updated Successfully', status: true };
+      return {
+        message: `Venue profile has been ${statusToMessageMap[status]} Successfully`,
+        status: true,
+      };
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;
