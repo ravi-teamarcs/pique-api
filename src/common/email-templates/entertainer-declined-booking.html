@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Booking Declined</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f8f9fa;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        background-color: #ffffff;
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 20px 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        font-size: 22px;
+        font-weight: bold;
+        color: #dc3545;
+        margin-bottom: 20px;
+      }
+      .content {
+        font-size: 16px;
+        color: #333333;
+        line-height: 1.5;
+      }
+      .footer {
+        margin-top: 30px;
+        font-size: 14px;
+        color: #999999;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">Booking Request Declined</div>
+      <div class="content">
+        Hello {{venueName}},<br /><br />
+        We regret to inform you that your booking request for
+        <strong>{{eventTitle}}</strong> on <strong>{{eventDate}}</strong> has
+        been declined by the entertainer {{entertainerName}}.<br /><br />
+
+        You may consider browsing other entertainers or rescheduling your event
+        request.<br /><br />
+
+        If you have any questions or need assistance, feel free to reach out to
+        our support team.
+      </div>
+      <div class="footer">
+        Thank you,<br />
+        Pique Entertainment
+      </div>
+    </div>
+  </body>
+</html>

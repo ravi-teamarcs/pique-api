@@ -255,7 +255,7 @@ export class UsersService {
         ])
         .orderBy('venue.id', 'DESC') // Sort by venue ID
         .where("venue.status = 'pending' AND venue.userId IS NOT NULL")
-        .andWhere('ent.isProfileComplete =:isProfileComplete', {
+        .andWhere('venue.isProfileComplete =:isProfileComplete', {
           isProfileComplete: true,
         });
 
@@ -320,13 +320,21 @@ export class UsersService {
         .take(Number(pageSize))
         .getRawMany();
 
+      const parsedResult = results.map(({ services, ...rest }) => ({
+        ...rest,
+        services:
+          typeof services === 'string' && services.trim() !== ''
+            ? services.split(',')
+            : [],
+      }));
+
       return {
         message: `Entertainer approval list fetched successfully`,
         totalCount,
         page,
         pageSize,
         totalPages: Math.ceil(totalCount / Number(pageSize)),
-        data: results,
+        data: parsedResult,
         status: true,
       };
     }

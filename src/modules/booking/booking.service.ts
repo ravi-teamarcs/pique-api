@@ -18,12 +18,14 @@ import { BookingLog } from './entities/booking-log.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailService } from '../Email/email.service';
 import { NotificationService } from '../notification/notification.service';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import { GoogleCalendarServices } from '../google-calendar/google-calendar.service';
 import { BookingCalendarSync } from './entities/booking-sync.entity';
 import { AvailabilityService } from '../entertainer/availability.service';
 import { EntertainerAvailability } from '../entertainer/entities/availability.entity';
 import { ConfigService } from '@nestjs/config';
+import { eventNames } from 'process';
+import { VenueEvent } from '../event/entities/event.entity';
 
 @Injectable()
 export class BookingService {
@@ -32,6 +34,8 @@ export class BookingService {
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(Venue)
     private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(VenueEvent)
+    private readonly eventRepository: Repository<VenueEvent>,
     @InjectRepository(BookingRequest)
     private readonly reqRepository: Repository<BookingRequest>,
     @InjectRepository(BookingLog)
@@ -51,103 +55,114 @@ export class BookingService {
   async createBooking(dto: CreateBookingDto, venueId: number) {
     const { entertainerId, ...bookingData } = dto;
 
-    const booking = await this.bookingRepository.findOne({
-      where: { entId: entertainerId, eventId: dto.eventId },
-    });
-
-    if (booking)
-      throw new BadRequestException({
-        message: 'Booking for event  already exists for this entertainer',
+    try {
+      const booking = await this.bookingRepository.findOne({
+        where: { entId: entertainerId, eventId: dto.eventId },
       });
-    // Check for Availability
-    const available = await this.checkAvailability(entertainerId, dto.showDate);
 
-    if (available === false)
-      throw new BadRequestException(
-        'Entertainer is not Available on requested date.',
+      if (booking)
+        throw new BadRequestException({
+          message: 'Booking for event  already exists for this entertainer',
+        });
+
+      // Check for Availability
+      const available = await this.checkAvailability(
+        entertainerId,
+        dto.showDate,
       );
 
-    // Create the booking
-    const newBooking = this.bookingRepository.create({
-      ...bookingData,
-      venueId: venueId,
-      entId: entertainerId,
-    });
+      if (available === false)
+        throw new BadRequestException(
+          'Entertainer is not Available on requested date.',
+        );
 
-    // Save the booking
-    if (!newBooking) {
-      throw new Error('Failed to create booking');
+      // Create the booking
+      const newBooking = this.bookingRepository.create({
+        ...bookingData,
+        venueId: venueId,
+        entId: entertainerId,
+      });
+
+      // changes must be there
+      const savedBooking = await this.bookingRepository.save(newBooking);
+
+      const entUserId = savedBooking.entId;
+
+      const ent = await this.entRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('entertainer.user', 'user')
+        .select(['entertainer.name AS name', 'user.email AS email'])
+        .where('entertainer.id =:id', { id: entUserId })
+        .getRawOne();
+
+      const venue = await this.venueRepository
+        .createQueryBuilder('venue')
+        .leftJoin('venue.user', 'user')
+
+        .select([
+          'venue.name AS name',
+          'user.email AS email',
+          'user.phoneNumber AS phoneNumber',
+          'venue.contactNumber AS contactNumber',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+        ])
+        .where('venue.id =:id', { id: venueId })
+        .getRawOne();
+      const event = await this.eventRepository.findOne({
+        where: { id: savedBooking.eventId },
+        select: ['slug', 'title'],
+      });
+
+      if (ent.email) {
+        // let parsedTime = parse(savedBooking.showTime, 'HH:mm:ss', new Date());
+        // check Later
+        const emailPayload = {
+          to: ent.email,
+          subject: 'New Booking Request',
+          templateName: 'booking-request.html',
+          replacements: {
+            venueName: venue.name,
+            eventName: event?.slug || '',
+            entertainerName: ent.name,
+            bookingDate: format(savedBooking.showDate, 'dd MMM yyyy'),
+            bookingTime: savedBooking.showTime,
+            vname: venue.name,
+            vemail: venue.email,
+            vphone: venue.contactNumber,
+            Address: `${venue.addressLine1},${venue.addressLine2}`,
+          },
+        };
+
+        this.emailService.handleSendEmail(emailPayload);
+        this.notifyService.sendPush(
+          {
+            title: 'Booking Request',
+            body: `You have new booking request from ${venue.name}`,
+            type: 'booking_req',
+          },
+          entertainerId,
+        );
+      }
+
+      const payload = {
+        bookingId: savedBooking.id,
+        status: savedBooking.status,
+        user: savedBooking.venueId,
+        performedBy: 'venue',
+      };
+
+      this.generateBookingLog(payload);
+
+      return {
+        message: 'Booking invitation sent successfully .',
+        booking: bookingData,
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
     }
-
-    // changes must be there
-    const savedBooking = await this.bookingRepository.save(newBooking);
-
-    if (!savedBooking) {
-      throw new InternalServerErrorException('Failed to save Booking');
-    }
-    const entUserId = savedBooking.entId;
-
-    const ent = await this.entRepository
-      .createQueryBuilder('entertainer')
-      .leftJoin('entertainer.user', 'user')
-      .select(['entertainer.name AS name', 'user.email AS email'])
-      .where('entertainer.id =:id', { id: entUserId })
-      .getRawOne();
-
-    const venue = await this.venueRepository
-      .createQueryBuilder('venue')
-      .leftJoin('venue.user', 'user')
-      .select([
-        'venue.name AS name',
-        'user.email AS email',
-        'user.phoneNumber AS phoneNumber',
-        'venue.addressLine1 AS addressLine1',
-        'venue.addressLine2 AS addressLine2',
-      ])
-      .where('venue.id =:id', { id: venueId })
-      .getRawOne();
-
-    const emailPayload = {
-      to: ent.email,
-      subject: 'New Booking Request',
-      templateName: 'booking-request.html',
-
-      replacements: {
-        venueName: venue.name,
-        entertainerName: ent.name,
-        bookingDate: format(savedBooking.showDate, 'dd MMM yyyy').toUpperCase(),
-        bookingTime: format(savedBooking.showTime, 'hh:mm a'),
-        vname: venue.name,
-        vemail: venue.email,
-        vphone: venue.phoneNumber,
-        Address: `${venue.addressLine1}, ${venue.addressLine2}`,
-      },
-    };
-
-    this.emailService.handleSendEmail(emailPayload);
-    this.notifyService.sendPush(
-      {
-        title: 'Booking Request',
-        body: `You have new booking request from ${venue.name}`,
-        type: 'booking_req',
-      },
-      entertainerId,
-    );
-
-    const payload = {
-      bookingId: savedBooking.id,
-      status: savedBooking.status,
-      user: savedBooking.venueId,
-      performedBy: 'venue',
-    };
-
-    this.generateBookingLog(payload);
-
-    return {
-      message: 'Booking created successfully',
-      booking: bookingData,
-      status: true,
-    };
   }
 
   async handleBookingResponse(
@@ -157,136 +172,161 @@ export class BookingService {
   ) {
     const { bookingId, status } = payload;
 
-    const booking = await this.bookingRepository
-      .createQueryBuilder('booking')
-      .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
-      .leftJoin('event', 'event', 'event.id = booking.eventId')
-      .leftJoin('users', 'vuser', 'vuser.id = venue.userId') // venue's user
-      .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
-      .leftJoin('users', 'euser', 'euser.id = entertainer.userId') // entertainer's user
+    try {
+      const booking = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+        .leftJoin('event', 'event', 'event.id = booking.eventId')
 
-      // Join venue table
-      .select([
-        'booking.id AS id',
-        'booking.status AS status',
-        'booking.venueId AS vid',
-        'booking.showTime AS showTime',
-        'booking.showDate AS showDate',
+        .leftJoin('users', 'vuser', 'vuser.id = venue.userId')
+        .leftJoin(
+          'entertainers',
+          'entertainer',
+          'entertainer.id = booking.entId',
+        )
+        .leftJoin('users', 'euser', 'euser.id = entertainer.userId')
 
-        'euser.email AS eEmail',
-        'euser.name AS ename',
-        'euser.id AS eid ',
-        'euser.phoneNumber AS ephone',
+        .select([
+          'booking.id AS id',
+          'booking.status AS status',
+          'booking.venueId AS vid',
+          'booking.showTime AS showTime',
+          'booking.showDate AS showDate',
+          'event.slug AS slug',
+          'event.title AS title',
 
-        'venue.name  As  vname',
-        'vuser.email As vemail',
-        'vuser.phoneNumber As vphone',
-        'vuser.id As vid',
+          'euser.email AS eEmail',
+          'euser.name AS ename',
+          'euser.id AS eid ',
+          'entertainer.name AS stageName',
+          'euser.phoneNumber AS ephone',
+          'venue.name  As  vname',
+          'vuser.email As vemail',
+          'vuser.phoneNumber As vphone',
+          'vuser.id As vid',
 
-        'event.title AS  eventTitle',
-        'event.description AS  eventDescription',
-        'event.startTime AS startTime',
-        'event.endTime AS endTime',
-        'event.eventDate AS eventDate',
-      ])
-      .where('booking.id = :id', { id: bookingId })
-      .getRawOne();
+          'event.title AS  eventTitle',
+          'event.description AS  eventDescription',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'event.eventDate AS eventDate',
+        ])
+        .where('booking.id = :id', { id: bookingId })
+        .getRawOne();
 
-    if (!booking) {
-      throw new NotFoundException({
-        message: 'Booking not found',
-        status: false,
-      });
-    }
+      if (!booking) {
+        throw new NotFoundException('Booking not found.');
+      }
 
-    if (
-      role === 'entertainer' &&
-      !['invited', 'rescheduled'].includes(booking.status)
-    ) {
-      return {
-        message: 'You have already responded to this booking',
-        status: false,
-      };
-    }
-
-    await this.bookingRepository.update({ id: booking.id }, { status });
-
-    // New Logic starts
-    if (status === 'confirmed') {
-      const participants = [booking.venueId, booking.entId];
-
-      for (const id of participants) {
-        const data = await this.googleCalService.checkUserhasSyncCalendar(
-          Number(id),
-        );
-        if (!data) continue;
-
-        const GoogleEventPayload = {
-          title: booking.eventTitle,
-          description: booking.eventDescription,
-          eventDate: booking.eventDate,
-          startTime: booking.startTime,
-          endTime: booking.endTime,
+      if (
+        role === 'entertainer' &&
+        !['invited', 'rescheduled'].includes(booking.status)
+      ) {
+        return {
+          message: 'You have already responded to this booking',
+          status: false,
         };
+      }
 
-        const bookingRecord = await this.syncRepository.findOne({
-          where: { bookingId: bookingId, userId: id },
-        });
+      await this.bookingRepository.update({ id: booking.id }, { status });
 
-        if (!bookingRecord) {
-          // save event to google calendar
-          const res = await this.googleCalService.createCalendarEvent(
-            data,
-            GoogleEventPayload,
+      // New Logic starts
+      if (status === 'confirmed') {
+        const participants = [booking.venueId, booking.entId];
+
+        for (const id of participants) {
+          const data = await this.googleCalService.checkUserhasSyncCalendar(
+            Number(id),
           );
-          // save synced booking
-          this.googleCalService.saveSyncedBooking(booking.id, id, res.id);
+          if (!data) continue;
+
+          const GoogleEventPayload = {
+            title: booking.eventTitle,
+            description: booking.eventDescription,
+            eventDate: booking.eventDate,
+            startTime: booking.startTime,
+            endTime: booking.endTime,
+          };
+
+          const bookingRecord = await this.syncRepository.findOne({
+            where: { bookingId: bookingId, userId: id },
+          });
+
+          if (!bookingRecord) {
+            // save event to google calendar
+            const res = await this.googleCalService.createCalendarEvent(
+              data,
+              GoogleEventPayload,
+            );
+            // save synced booking
+            this.googleCalService.saveSyncedBooking(booking.id, id, res.id);
+          }
         }
       }
+      // Ends Here
+      if (booking.eEmail || booking.vemail) {
+        const parsedTime = parse(booking.showTime, 'HH:mm:ss', new Date());
+        const statusToTemplateMap = {
+          accepted: 'request-accepted.html',
+          declined: 'entertainer-declined-booking.html',
+          confirmed: '',
+        };
+
+        const statusToReplacementMap = {
+          accepted: {
+            venueName: booking.vname,
+            entertainerName: booking.stageName,
+            eventName: booking.slug,
+            id: booking.id,
+            bookingTime: format(parsedTime, 'hh:mm a'),
+            bookingDate: format(booking.showDate, 'dd MMM yyyy'),
+          },
+
+          declined: {
+            venueName: booking.vname,
+            eventTitle: booking.slug,
+            eventDate: format(booking.showDate, 'dd MMM yyyy'),
+            entertainerName: booking.stageName,
+          },
+        };
+
+        const template = statusToTemplateMap[status];
+
+        const emailPayload = {
+          to: role === 'entertainer' ? booking.vemail : booking.eEmail,
+          subject: `Booking Request ${status}`,
+          templateName: template,
+          replacements: statusToReplacementMap[status],
+        };
+
+        this.emailService.handleSendEmail(emailPayload);
+
+        this.notifyService.sendPush(
+          {
+            title: 'Booking Response',
+            body: `${role.charAt(0).toUpperCase() + role.slice(1)} has ${status} the booking request.`,
+            type: 'booking_response',
+          },
+
+          role === 'entertainer' ? booking.vid : booking.eid,
+        );
+      }
+
+      await this.generateBookingLog({
+        bookingId,
+        status: status,
+        user: userId,
+        performedBy: role,
+      });
+
+      return {
+        message: `Request ${status} successfully`,
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
     }
-    // Ends Here
-    const emailPayload = {
-      to: role === 'entertainer' ? booking.vemail : booking.eEmail,
-      subject: `Booking Request ${status}`,
-      templateName:
-        role === 'entertainer'
-          ? 'request-accepted.html'
-          : 'confirmed-booking.html',
-
-      replacements: {
-        venueName: booking.vname,
-        entertainerName: booking.ename,
-        id: booking.id,
-        bookingTime: format(booking.showTime, 'hh:mm a'),
-        bookingDate: format(booking.showDate, 'dd MMM yyyy').toUpperCase(),
-      },
-    };
-
-    this.emailService.handleSendEmail(emailPayload);
-
-    // Notification Service  Booking (Venue and )
-
-    this.notifyService.sendPush(
-      {
-        title: 'Booking Response',
-        body: `${role.charAt(0).toUpperCase() + role.slice(1)} has ${status} the booking request.`,
-        type: 'booking_response',
-      },
-
-      role === 'entertainer' ? booking.vid : booking.eid,
-    );
-
-    const log = await this.generateBookingLog({
-      bookingId,
-      status: status,
-      user: userId,
-      performedBy: role,
-    });
-
-    return {
-      message: `Request ${status} successfully`,
-      status: true,
-    };
   }
 
   async handleChangeRequest(bookingdto: ChangeBooking, userId: number) {

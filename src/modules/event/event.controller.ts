@@ -54,6 +54,14 @@ export class EventController {
     return this.eventService.getAllEvents(refId, page, pageSize);
   }
 
+  @Get('dropdown/list')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getEventDropdownList(@Req() req) {
+    const { refId } = req.user;
+    return this.eventService.getEventListDropdown(Number(refId));
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')

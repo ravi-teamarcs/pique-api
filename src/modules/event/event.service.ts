@@ -97,43 +97,80 @@ export class EventService {
   }
   // Created for venues
   async getAllEvents(id: number, page: number = 1, pageSize: number = 20) {
-    const today = startOfDay(new Date());
-    const skip = (Number(page) - 1) * Number(pageSize);
-    const take = Number(pageSize);
-    const [events, totalCount] = await this.eventRepository
-      .createQueryBuilder('event')
-      .where('event.venueId = :id', { id })
-      .andWhere('event.eventDate <= :today', { today })
-      .andWhere('event.status != :status', { status: 'completed' })
-      .orderBy('event.createdAt', 'DESC')
-      .select([
-        'event.id',
-        'event.title',
-        'event.location',
-        'event.venueId',
-        'event.description',
-        'event.startTime',
-        'event.endTime',
-        'event.recurring',
-        'event.status',
-        'event.slug',
-        'event.eventDate',
-      ])
-      .take(take)
-      .skip(skip)
-      .getManyAndCount();
+    try {
+      const today = startOfDay(new Date());
+      const skip = (Number(page) - 1) * Number(pageSize);
+      const take = Number(pageSize);
+      const [events, totalCount] = await this.eventRepository
+        .createQueryBuilder('event')
+        .where('event.venueId = :id', { id })
+        .orderBy('event.createdAt', 'DESC')
+        .select([
+          'event.id',
+          'event.title',
+          'event.location',
+          'event.venueId',
+          'event.description',
+          'event.startTime',
+          'event.endTime',
+          'event.recurring',
+          'event.status',
+          'event.slug',
+          'event.eventDate',
+        ])
+        .take(take)
+        .skip(skip)
+        .getManyAndCount();
 
-    return {
-      message: 'Events fetched successfully',
-      count: totalCount,
-      page,
-      pageSize,
-      totalPages: Math.ceil(totalCount / Number(pageSize)),
-      data: events,
-      status: true,
-    };
+      return {
+        message: 'Events fetched successfully',
+        count: totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        data: events,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
   }
   // Api Working
+  async getEventListDropdown(id: number) {
+    try {
+      const today = startOfDay(new Date());
+      const [events, totalCount] = await this.eventRepository
+        .createQueryBuilder('event')
+        .where('event.venueId = :id', { id })
+        .andWhere('event.eventDate >= :today', { today })
+        .andWhere('event.status != :status', { status: 'completed' })
+        .orderBy('event.createdAt', 'DESC')
+        .select([
+          'event.id',
+          'event.title',
+          'event.location',
+          'event.venueId',
+          'event.description',
+          'event.startTime',
+          'event.endTime',
+          'event.recurring',
+          'event.status',
+          'event.slug',
+          'event.eventDate',
+        ])
+        .getManyAndCount();
+
+      return {
+        message: 'Events dropdown list fetched successfully',
+        count: totalCount,
+        data: events,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.messsage);
+    }
+  }
+
   async deleteEvent(venueId: number, eventId: number) {
     const event = await this.eventRepository.findOne({
       where: { id: eventId, venueId },

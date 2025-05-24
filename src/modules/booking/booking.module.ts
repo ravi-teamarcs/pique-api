@@ -16,6 +16,7 @@ import { NotificationModule } from '../notification/notification.module';
 import { GoogleCalendarModule } from '../google-calendar/google-calendar.module';
 import { Event } from '../admin/events/entities/event.entity';
 import { EntertainerAvailability } from '../entertainer/entities/availability.entity';
+import { VenueEvent } from '../event/entities/event.entity';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { EntertainerAvailability } from '../entertainer/entities/availability.en
       Entertainer,
       EntertainerAvailability,
       Event,
+      VenueEvent,
     ]),
     EmailModule,
     NotificationModule,
