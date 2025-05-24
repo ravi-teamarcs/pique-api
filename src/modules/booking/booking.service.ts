@@ -230,46 +230,13 @@ export class BookingService {
 
       await this.bookingRepository.update({ id: booking.id }, { status });
 
-      // New Logic starts
-      if (status === 'confirmed') {
-        const participants = [booking.venueId, booking.entId];
-
-        for (const id of participants) {
-          const data = await this.googleCalService.checkUserhasSyncCalendar(
-            Number(id),
-          );
-          if (!data) continue;
-
-          const GoogleEventPayload = {
-            title: booking.eventTitle,
-            description: booking.eventDescription,
-            eventDate: booking.eventDate,
-            startTime: booking.startTime,
-            endTime: booking.endTime,
-          };
-
-          const bookingRecord = await this.syncRepository.findOne({
-            where: { bookingId: bookingId, userId: id },
-          });
-
-          if (!bookingRecord) {
-            // save event to google calendar
-            const res = await this.googleCalService.createCalendarEvent(
-              data,
-              GoogleEventPayload,
-            );
-            // save synced booking
-            this.googleCalService.saveSyncedBooking(booking.id, id, res.id);
-          }
-        }
-      }
       // Ends Here
       if (booking.eEmail || booking.vemail) {
         const parsedTime = parse(booking.showTime, 'HH:mm:ss', new Date());
         const statusToTemplateMap = {
           accepted: 'request-accepted.html',
           declined: 'entertainer-declined-booking.html',
-          confirmed: '',
+          confirmed: 'entertainer-confirmed.html',
         };
 
         const statusToReplacementMap = {
@@ -287,6 +254,12 @@ export class BookingService {
             eventTitle: booking.slug,
             eventDate: format(booking.showDate, 'dd MMM yyyy'),
             entertainerName: booking.stageName,
+          },
+          confirmed: {
+            eventName: booking.slug,
+            EntertainerName: booking.stageName,
+            venueName: booking.vname,
+            Year: new Date().getFullYear(),
           },
         };
 
