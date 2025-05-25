@@ -1654,8 +1654,8 @@ export class EntertainerService {
           'event.startTime AS startTime',
           'event.endTime AS endTime',
           'venue.name AS venueName',
-          'venue.name AS addressLine1',
-          'venue.name AS addressLine',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine',
         ])
         .where('booking.entId = :id', { id })
         .andWhere('booking.status = :bStatus', { bStatus: 'completed' })
