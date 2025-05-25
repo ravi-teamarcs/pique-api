@@ -1205,13 +1205,14 @@ export class VenueService {
           'booking.showTime AS showTime',
         ])
         .where(
-          'booking.entId =:id AND booking.venueId =:venueId AND booking.status="confirmed"',
+          'booking.entId =:id AND booking.venueId =:venueId AND booking.status IN (:...status)',
           {
             id,
             venueId,
+            status: ['completed'],
           },
         )
-        .andWhere('booking.showDate < :currentDate', { currentDate })
+        .andWhere('booking.showDate <= :currentDate', { currentDate })
         .andWhere('event.status = "completed"')
         .orderBy('booking.showDate', 'DESC')
         .offset(skip)

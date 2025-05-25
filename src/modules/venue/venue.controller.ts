@@ -297,13 +297,13 @@ export class VenueController {
     return this.venueService.handleRemoveVenue(Number(id));
   }
   // Need More Working
-  @Post('request-change')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('findAll')
-  requestChange(@Body() dateTimeChangeDto: ChangeBooking, @Request() req) {
-    const { refId } = req.user;
-    return this.bookingService.handleChangeRequest(dateTimeChangeDto, refId);
-  }
+  // @Post('request-change')
+  // @UseGuards(JwtAuthGuard, RolesGuard)
+  // @Roles('findAll')
+  // requestChange(@Body() dateTimeChangeDto: ChangeBooking, @Request() req) {
+  //   const { refId } = req.user;
+  //   return this.bookingService.handleChangeRequest(dateTimeChangeDto, refId);
+  // }
 
   // Working
   @ApiOperation({ summary: 'Get search suggestions based on category' })

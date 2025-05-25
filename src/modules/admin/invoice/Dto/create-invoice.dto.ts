@@ -8,6 +8,7 @@ import {
   IsBoolean,
 } from 'class-validator';
 import { InvoiceStatus, UserType } from '../entities/invoices.entity';
+import { Transform } from 'class-transformer';
 
 export class CreateInvoiceDto {
   @IsNumber()
@@ -16,10 +17,11 @@ export class CreateInvoiceDto {
 
   @IsNumber()
   @IsNotEmpty()
+  @Transform(({ value }) => Number(value))
   pricePerHour: number;
 
   @IsNumber()
-  @IsNotEmpty()
+  @IsOptional()
   discountInPercent: number;
 
   @IsNumber()

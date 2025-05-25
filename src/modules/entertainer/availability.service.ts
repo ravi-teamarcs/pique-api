@@ -11,6 +11,7 @@ import { UpdateAvailabilityDto } from './dto/update-entertainer-availability.dto
 import { EntertainerAvailabilityDto } from '../admin/entertainer/Dto/entertainer-availability.dto';
 import { Booking } from '../booking/entities/booking.entity';
 import { endOfMonth, startOfMonth } from 'date-fns';
+import { dataform_v1beta1 } from 'googleapis';
 
 @Injectable()
 export class AvailabilityService {
@@ -24,6 +25,7 @@ export class AvailabilityService {
 
   async getEntertainerAvailability(id: number, year: number, month: number) {
     try {
+      let data: Record<string, any> = {};
       const availability = await this.availabilityRepository.findOne({
         where: { entertainer_id: id, year, month },
         select: [
@@ -47,10 +49,13 @@ export class AvailabilityService {
         },
         select: ['showDate'],
       });
-      availability['alradyBookedFor'] = bookingHistory;
+      if (availability) availability['alreadyBookedFor'] = bookingHistory;
+      else {
+        data['alreadyBookedFor'] = bookingHistory;
+      }
       return {
         message: 'Entertainer Availability returned Successfully',
-        data: availability,
+        data: availability ?? data,
         status: true,
       };
     } catch (error) {

@@ -751,7 +751,16 @@ export class EntertainerService {
       });
 
       if (!availability) {
-        throw new BadRequestException({ message: 'Availability not found' });
+        const avail = this.availabilityRepository.create({
+          entertainer_id: id,
+          ...dto,
+        });
+        const savedAvailability = await this.availabilityRepository.save(avail);
+        return {
+          message: 'Entertainer availability Saved successfully',
+          data: savedAvailability,
+          status: true,
+        };
       }
 
       const updatedAvailability = await this.availabilityRepository.update(
@@ -759,7 +768,7 @@ export class EntertainerService {
         dto,
       );
       return {
-        message: 'Entertainer Availability updated Successfully',
+        message: 'Entertainer availability updated successfully',
         data: dto,
         status: true,
       };

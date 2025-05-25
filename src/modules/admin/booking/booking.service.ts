@@ -19,6 +19,7 @@ import { BookingRequest } from './entities/modify-booking.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Event } from '../events/entities/event.entity';
 import { BookingLog } from './entities/booking-log.entity';
+import { format } from 'date-fns';
 
 @Injectable()
 export class BookingService {
@@ -429,17 +430,20 @@ export class BookingService {
       .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
       .leftJoin('event', 'event', 'event.id = booking.eventId')
       .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
-      .leftJoin('users', 'user', 'user.id = booking.entId')
+      .leftJoin('users', 'user', 'user.id = entertainer.userId')
       .select([
         'booking.id AS id',
         'booking.status AS status',
         'entertainer.id AS eid',
-        'entertainer.entertainerName AS entertainer_name',
+        'entertainer.entertainerName AS entertainerName',
         'venue.id AS vuid',
         'user.id AS entertainer_user_id',
         'user.email AS entertainer_email',
         'event.id AS event_id',
         'event.title AS event_title',
+        'event.slug AS eventSlug',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
       ])
       .where('booking.eventId = :id', { id })
       .getRawMany();
@@ -475,15 +479,22 @@ export class BookingService {
 
         if (booking.entertainer_email) {
           // Send Email to Entertainer
+          const newTime = format(
+            new Date(`1970-01-01T${reqShowTime.slice(0, 5)}:00`),
+            'hh:mm a',
+          );
+          const newDate = format(reqShowDate, 'dd MMM yyyy');
           const emailPayload = {
             to: booking.entertainer_email,
             subject: `Event Date and Time Change`,
             templateName: 'modify-booking.html',
             replacements: {
-              recipientName: booking.entertainer_name,
-              bookingId: booking.id,
-              newStartTime: booking.reqShowTime,
-              newDate: booking.reqShowDate,
+              EntertainerName: booking.entertainerName,
+              EventName: booking.eventSlug,
+              NewTime: newTime,
+              NewDate: newDate,
+              Location: `${booking.addressLine1 ?? ''}${booking.addressLine2 ?? ''}`,
+              Year: new Date().getFullYear(),
             },
           };
           await this.emailService.handleSendEmail(emailPayload);
@@ -493,7 +504,7 @@ export class BookingService {
           this.notifyService.sendPush(
             {
               title: 'Event Date and Time Change',
-              body: `Your booking with ID ${booking.id} has been rescheduled to ${booking.reqShowDate} at ${booking.reqShowTime}`,
+              body: `Your booking with ID ${booking.id} has been rescheduled to ${newDate} at ${newTime}`,
               type: 'booking_date_time_change',
             },
             booking.entertainer_user_id,

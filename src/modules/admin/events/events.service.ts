@@ -232,7 +232,21 @@ export class EventService {
       payload['slug'] = slug;
       await this.eventRepository.update({ id: event.id }, payload);
 
-      if (dto.eventDate || dto.startTime) {
+      const hasDateChanged =
+        dto.eventDate &&
+        dto.eventDate !== format(new Date(event.eventDate), 'yyyy-MM-dd');
+
+      const hasStartTimeChanged =
+        dto.startTime &&
+        dto.startTime !==
+          format(new Date(`1970-01-01T${event.startTime}`), 'HH:mm:ss');
+
+      const hasEndTimeChanged =
+        dto.endTime &&
+        dto.endTime !==
+          format(new Date(`1970-01-01T${event.endTime}`), 'HH:mm:ss');
+
+      if (hasDateChanged || hasStartTimeChanged || hasEndTimeChanged) {
         this.bookingService.handleChangeRequest(Number(event.id), {
           reqShowDate: new Date(updatedEventDate).toISOString().split('T')[0],
           reqShowTime: updatedStartTime,
