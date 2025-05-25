@@ -289,4 +289,5 @@ export class EntertainerController {
   ) {
     return this.EntertainerService.updateEntertainerAvailability(id, dto);
   }
+  // Api for
 }

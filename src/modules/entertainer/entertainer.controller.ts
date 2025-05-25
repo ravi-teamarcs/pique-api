@@ -383,4 +383,16 @@ export class EntertainerController {
       refId,
     );
   }
+
+  @Get('events/completed')
+  @UseGuards(JwtAuthGuard, RolesGuard) // Use your auth strategy
+  @Roles('findAll')
+  completedEvents(
+    @Request() req,
+    @Query('month', ParseIntPipe) month: number,
+    @Query('year', ParseIntPipe) year: number,
+  ) {
+    const { refId } = req.user;
+    return this.entertainerService.getCompletedEvents(refId, month, year);
+  }
 }

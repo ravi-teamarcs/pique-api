@@ -1636,4 +1636,46 @@ export class EntertainerService {
 
     return { message: 'Booking status updated Successfully', status: true };
   }
+
+  async getCompletedEvents(id: number, month: number, year: number) {
+    try {
+      const fromDate = new Date(year, month - 1, 1);
+      const toDate = new Date(year, month, 1);
+
+      const completedEvents = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+        .select([
+          'event.id AS eventId',
+          'booking.id AS bookingId',
+          'event.slug AS slug',
+          'event.eventDate AS eventDate',
+          'event.startTime AS startTime',
+          'event.endTime AS endTime',
+          'venue.name AS venueName',
+          'venue.name AS addressLine1',
+          'venue.name AS addressLine',
+        ])
+        .where('booking.entId = :id', { id })
+        .andWhere('booking.status = :bStatus', { bStatus: 'completed' })
+        .andWhere('event.status = :eStatus', { eStatus: 'completed' })
+        .andWhere(
+          'event.eventDate >= :fromDate AND event.eventDate < :toDate',
+          {
+            fromDate,
+            toDate,
+          },
+        )
+        .orderBy('event.eventDate', 'DESC')
+        .getRawMany();
+      return {
+        message: `Completed Events fetched successfully.`,
+        data: completedEvents,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
 }

@@ -73,17 +73,9 @@ export class ReminderService {
         };
         // Send reminders
         if (venueUser) {
-          await this.notifyService.saveNotification(
-            venueUser,
-            notificationPayload,
-          );
           await this.notifyService.sendPush(notificationPayload, venueUser);
         }
         if (entertainerUser) {
-          await this.notifyService.saveNotification(
-            entertainerUser,
-            notificationPayload,
-          );
           await this.notifyService.sendPush(
             notificationPayload,
             entertainerUser,
@@ -107,6 +99,8 @@ export class ReminderService {
         'booking.id AS bookingId',
         'booking.createdAt AS createdAt',
         'entertainer.userId AS entertainerUser',
+        'entertainer.name AS stagename',
+        'entertainer.entertainerName AS entertainerName',
       ])
       .where('booking.status = :status', { status: 'invited' })
       .andWhere('booking.createdAt <= :threeDaysAgo', {
@@ -116,11 +110,19 @@ export class ReminderService {
 
     for (const booking of unrespondedBookings) {
       const daysPassed = differenceInDays(today, new Date(booking.createdAt));
+
       const message = `Reminder: You have a booking invitation (ID: ${booking.bookingId}) pending for over ${daysPassed} days. Please respond.`;
 
+      const adminMessage = `Reminder:${booking.name} has a booking invitation (ID: ${booking.bookingId}) pending for over ${daysPassed} days. Please review and take necessary action.`;
+
       const notificationPayload = {
-        title: 'Pending Booking Response',
+        title: 'Pending Booking Invitation',
         body: message,
+        type: 'booking_invitation_reminder',
+      };
+      const adminNotificationPayload = {
+        title: 'Pending Booking Invitation',
+        body: adminMessage,
         type: 'booking_invitation_reminder',
       };
 
@@ -134,11 +136,11 @@ export class ReminderService {
       if (admins?.length > 0) {
         for (const admin of admins) {
           await this.notifyService.saveAdminNotification(
-            notificationPayload,
+            adminNotificationPayload,
             Number(admin.id),
           );
           await this.notifyService.sendAdminPush(
-            notificationPayload,
+            adminNotificationPayload,
             Number(admin.id),
           );
         }
