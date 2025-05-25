@@ -216,6 +216,94 @@ export class UsersService {
       throw new InternalServerErrorException(error.message);
     }
   }
+  //Older
+  // private async getVenueApprovalList(
+  //   page: number,
+  //   pageSize: number,
+  //   search: string,
+  // ) {
+  //   const skip = (Number(page) - 1) * Number(pageSize);
+  //   try {
+  //     const res = this.venueRepository
+  //       .createQueryBuilder('venue')
+  //       .leftJoin('users', 'user', ' user.id = venue.userId ')
+  //       .leftJoin('cities', 'city', 'city.id = venue.city')
+  //       .leftJoin('states', 'state', 'state.id = venue.state')
+  //       .leftJoin('countries', 'country', 'country.id = venue.country')
+  //       .leftJoin(
+  //         (qb) =>
+  //           qb
+  //             .select([
+  //               'neighbourhood.venue_id AS nh_venue_id', // Selecting 'venueId' from 'neighbourhood' as 'nh_venue_id'
+  //               `JSON_ARRAYAGG(
+  //          JSON_OBJECT(
+  //            "id", neighbourhood.id,
+  //            "name", neighbourhood.name,
+  //            "contactPerson", neighbourhood.contact_person,
+  //            "contactNumber", neighbourhood.contact_number
+  //          )
+  //        ) AS neighbourhoodDetails`, // Aggregate neighbourhoods into JSON array
+  //             ])
+  //             .from('neighbourhood', 'neighbourhood') // From 'neighbourhood' table
+  //             .groupBy('neighbourhood.venue_id'), // Group by 'venueId' to match venues with neighbourhoods
+  //         'neighbourhoods', // Alias for the subquery
+  //         'neighbourhoods.nh_venue_id = venue.id', // Join condition for neighbourhoods based on venue id
+  //       )
+  //       .select([
+  //         'venue.id AS id',
+  //         'venue.name AS name',
+  //         'venue.addressLine1 AS addressLine1',
+  //         'venue.addressLine2 AS addressLine2',
+  //         'venue.description AS description',
+  //         'venue.city AS city_code',
+  //         'venue.contactPerson AS contactPerson',
+  //         'venue.contactNumber AS contactNumber',
+  //         'venue.city AS city_code',
+  //         'venue.state AS state_code',
+  //         'venue.country AS country_code',
+  //         'venue.zipCode AS zipCode',
+  //         'city.name AS city',
+  //         'state.name AS state',
+  //         'country.name AS country',
+  //         'user.email AS email',
+  //         'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods',
+  //       ])
+  //       .orderBy('venue.id', 'DESC')
+  //       .where("venue.status = 'pending' AND venue.userId IS NOT NULL")
+  //       .andWhere('venue.isProfileComplete =:isProfileComplete', {
+  //         isProfileComplete: true,
+  //       });
+
+  //     if (search) {
+  //       res.andWhere('(venue.name LIKE :search OR user.email LIKE :search)', {
+  //         search: `%${search}%`,
+  //       });
+  //     }
+
+  //     const totalCount = await res.getCount();
+  //     const results = await res
+  //       .orderBy(`user.id`, 'DESC')
+  //       .skip(skip)
+  //       .take(Number(pageSize))
+  //       .getRawMany();
+  //     const parsedResult = results.map(({ neighbourhoods, ...rest }) => ({
+  //       ...rest,
+  //       neighbourhoods: JSON.parse(neighbourhoods),
+  //     }));
+
+  //     return {
+  //       message: `Venue approval list fetched successfully`,
+  //       totalCount,
+  //       page,
+  //       pageSize,
+  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
+  //       data: parsedResult,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
 
   private async getVenueApprovalList(
     page: number,
@@ -224,7 +312,8 @@ export class UsersService {
   ) {
     const skip = (Number(page) - 1) * Number(pageSize);
     try {
-      const res = this.venueRepository
+      // Build base query with all conditions
+      const baseQuery = this.venueRepository
         .createQueryBuilder('venue')
         .leftJoin('users', 'user', ' user.id = venue.userId ')
         .leftJoin('cities', 'city', 'city.id = venue.city')
@@ -249,6 +338,26 @@ export class UsersService {
           'neighbourhoods', // Alias for the subquery
           'neighbourhoods.nh_venue_id = venue.id', // Join condition for neighbourhoods based on venue id
         )
+        .where("venue.status = 'pending' AND venue.userId IS NOT NULL")
+        .andWhere('venue.isProfileComplete = :isProfileComplete', {
+          isProfileComplete: true,
+        });
+
+      // Add search condition
+      if (search) {
+        baseQuery.andWhere(
+          '(venue.name LIKE :search OR user.email LIKE :search)',
+          {
+            search: `%${search}%`,
+          },
+        );
+      }
+
+      // Get total count first
+      const totalCount = await baseQuery.getCount();
+
+      // Get paginated results using limit and offset
+      const results = await baseQuery
         .select([
           'venue.id AS id',
           'venue.name AS name',
@@ -268,24 +377,11 @@ export class UsersService {
           'user.email AS email',
           'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods',
         ])
-        .orderBy('venue.id', 'DESC')
-        .where("venue.status = 'pending' AND venue.userId IS NOT NULL")
-        .andWhere('venue.isProfileComplete =:isProfileComplete', {
-          isProfileComplete: true,
-        });
-
-      if (search) {
-        res.andWhere('(venue.name LIKE :search OR user.email LIKE :search)', {
-          search: `%${search}%`,
-        });
-      }
-
-      const totalCount = await res.getCount();
-      const results = await res
-        .orderBy(`user.id`, 'DESC')
-        .skip(skip)
-        .take(Number(pageSize))
+        .orderBy('user.id', 'DESC')
+        .limit(Number(pageSize))
+        .offset(skip)
         .getRawMany();
+
       const parsedResult = results.map(({ neighbourhoods, ...rest }) => ({
         ...rest,
         neighbourhoods: JSON.parse(neighbourhoods),
@@ -304,6 +400,71 @@ export class UsersService {
       throw new InternalServerErrorException(error.message);
     }
   }
+  // private async getEntertainerApprovalList(
+  //   page: number,
+  //   pageSize: number,
+  //   search: string,
+  // ) {
+  //   const skip = (Number(page) - 1) * Number(pageSize);
+  //   try {
+  //     const res = this.entertainerRepository
+  //       .createQueryBuilder('ent')
+  //       .leftJoin('users', 'user', ` user.id = ent.userId`)
+  //       .leftJoin('cities', 'city', `city.id = ent.city`)
+  //       .leftJoin('states', 'state', `state.id = ent.state`)
+  //       .leftJoin('countries', 'country', `country.id = ent.country`)
+
+  //       .select([
+  //         `ent.*`,
+  //         'user.id AS user_id',
+  //         'user.email AS user_email',
+  //         'user.status AS user_status',
+  //         'user.isVerified AS user_is_verified',
+  //         'city.name As city_name',
+  //         'country.name As country_name',
+  //         'state.name As state_name',
+  //       ])
+  //       .where("ent.status = 'pending' AND ent.userId IS NOT NULL")
+  //       .andWhere('ent.isProfileComplete =:isProfileComplete', {
+  //         isProfileComplete: true,
+  //       });
+  //     if (search) {
+  //       res.andWhere('(ent.name LIKE :search OR user.email LIKE :search)', {
+  //         search: `%${search}%`,
+  //       });
+  //     }
+
+  //     const totalCount = await res.getCount();
+  //     const results = await res
+  //       .orderBy(`user.id`, 'DESC')
+  //       .skip(skip)
+  //       .take(Number(pageSize))
+  //       .getRawMany();
+
+  //     const parsedResult = results.map(
+  //       ({ services, socialLinks, ...rest }) => ({
+  //         ...rest,
+  //         socialLinks: socialLinks ? JSON.parse(socialLinks) : null,
+  //         services:
+  //           services && typeof services === 'string' && services.trim() !== ''
+  //             ? services.split(',')
+  //             : [],
+  //       }),
+  //     );
+
+  //     return {
+  //       message: `Entertainer approval list fetched successfully`,
+  //       totalCount,
+  //       page,
+  //       pageSize,
+  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
+  //       data: parsedResult,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
   private async getEntertainerApprovalList(
     page: number,
     pageSize: number,
@@ -311,13 +472,33 @@ export class UsersService {
   ) {
     const skip = (Number(page) - 1) * Number(pageSize);
     try {
-      const res = this.entertainerRepository
+      // Build base query with all conditions
+      const baseQuery = this.entertainerRepository
         .createQueryBuilder('ent')
         .leftJoin('users', 'user', ` user.id = ent.userId`)
         .leftJoin('cities', 'city', `city.id = ent.city`)
         .leftJoin('states', 'state', `state.id = ent.state`)
         .leftJoin('countries', 'country', `country.id = ent.country`)
+        .where("ent.status = 'pending' AND ent.userId IS NOT NULL")
+        .andWhere('ent.isProfileComplete = :isProfileComplete', {
+          isProfileComplete: true,
+        });
 
+      // Add search condition
+      if (search) {
+        baseQuery.andWhere(
+          '(ent.name LIKE :search OR user.email LIKE :search)',
+          {
+            search: `%${search}%`,
+          },
+        );
+      }
+
+      // Get total count first
+      const totalCount = await baseQuery.getCount();
+
+      // Get paginated results using limit and offset
+      const results = await baseQuery
         .select([
           `ent.*`,
           'user.id AS user_id',
@@ -328,21 +509,9 @@ export class UsersService {
           'country.name As country_name',
           'state.name As state_name',
         ])
-        .where("ent.status = 'pending' AND ent.userId IS NOT NULL")
-        .andWhere('ent.isProfileComplete =:isProfileComplete', {
-          isProfileComplete: true,
-        });
-      if (search) {
-        res.andWhere('(ent.name LIKE :search OR user.email LIKE :search)', {
-          search: `%${search}%`,
-        });
-      }
-
-      const totalCount = await res.getCount();
-      const results = await res
         .orderBy(`user.id`, 'DESC')
-        .skip(skip)
-        .take(Number(pageSize))
+        .limit(Number(pageSize))
+        .offset(skip)
         .getRawMany();
 
       const parsedResult = results.map(

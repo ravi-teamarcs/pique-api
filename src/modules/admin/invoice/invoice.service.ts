@@ -32,10 +32,74 @@ export class InvoiceService {
     private readonly emailService: EmailService,
   ) {}
 
+  // async findAll(dto: InvoiceQueryDto) {
+  //   const { page = 1, pageSize = 10, search = '', role } = dto;
+  //   const skip = (page - 1) * pageSize;
+
+  //   const baseQuery = this.invoiceRepository
+  //     .createQueryBuilder('invoices')
+  //     .leftJoin('event', 'event', 'event.id = invoices.event_id')
+  //     .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
+  //     .leftJoin('states', 'state', 'state.id = venue.state')
+  //     .leftJoin('countries', 'country', 'country.id = venue.country')
+  //     .leftJoin('cities', 'city', 'city.id = venue.city')
+  //     .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+  //     .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+  //     .select([
+  //       'invoices.*',
+  //       'event.id AS eventId',
+  //       'event.slug AS eventSlug',
+  //       // venue Info
+  //       'venue.name AS venueName',
+  //       'venue.addressLine1 AS venueAddressLine1',
+  //       'venue.addressLine2 AS venueAddressLine2',
+  //       'venue.contactPerson As contactPerson',
+  //       'venue.contactNumber As contactNumber',
+  //       'state.name AS stateName',
+  //       'city.name AS cityName',
+  //       'code.stateCode AS StateCode',
+  //       // Neighbourhood Info
+  //       'hood.name AS neighbourhoodName',
+  //       'hood.contactPerson AS neighbourhoodContactPerson',
+  //       'hood.contactNumber AS neighbourhoodContactNumber',
+  //     ])
+  //     .where('invoices.user_type = :role', { role });
+
+  //   if (search) {
+  //     baseQuery.andWhere('LOWER(invoices.invoice_number) LIKE LOWER(:search)', {
+  //       search: `%${search}%`,
+  //     });
+  //   }
+
+  //   // Clone the query for count before applying pagination
+  //   const countQuery = baseQuery.clone();
+
+  //   const records = await baseQuery
+  //     .orderBy('invoices.id', 'DESC')
+  //     .skip(skip)
+  //     .take(pageSize)
+  //     .getRawMany();
+
+  //   const total = await countQuery.getCount();
+
+  //   return {
+  //     message: 'Invoices fetched successfully',
+  //     records,
+  //     total,
+  //     page,
+  //     pageSize,
+  //     totalPages: Math.ceil(total / pageSize),
+  //     status: true,
+  //   };
+  // }
+
+  // Get a specific invoice by ID
+
   async findAll(dto: InvoiceQueryDto) {
     const { page = 1, pageSize = 10, search = '', role } = dto;
     const skip = (page - 1) * pageSize;
 
+    // Build base query with all conditions
     const baseQuery = this.invoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('event', 'event', 'event.id = invoices.event_id')
@@ -45,6 +109,20 @@ export class InvoiceService {
       .leftJoin('cities', 'city', 'city.id = venue.city')
       .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+      .where('invoices.user_type = :role', { role });
+
+    // Add search condition
+    if (search) {
+      baseQuery.andWhere('LOWER(invoices.invoice_number) LIKE LOWER(:search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    // Get total count first
+    const total = await baseQuery.getCount();
+
+    // Get paginated records using limit and offset
+    const records = await baseQuery
       .select([
         'invoices.*',
         'event.id AS eventId',
@@ -63,24 +141,10 @@ export class InvoiceService {
         'hood.contactPerson AS neighbourhoodContactPerson',
         'hood.contactNumber AS neighbourhoodContactNumber',
       ])
-      .where('invoices.user_type = :role', { role });
-
-    if (search) {
-      baseQuery.andWhere('LOWER(invoices.invoice_number) LIKE LOWER(:search)', {
-        search: `%${search}%`,
-      });
-    }
-
-    // Clone the query for count before applying pagination
-    const countQuery = baseQuery.clone();
-
-    const records = await baseQuery
       .orderBy('invoices.id', 'DESC')
-      .skip(skip)
-      .take(pageSize)
+      .limit(pageSize)
+      .offset(skip)
       .getRawMany();
-
-    const total = await countQuery.getCount();
 
     return {
       message: 'Invoices fetched successfully',
@@ -93,7 +157,6 @@ export class InvoiceService {
     };
   }
 
-  // Get a specific invoice by ID
   async findOne(id: number) {
     const invoice = await this.invoiceRepository
       .createQueryBuilder('invoices')

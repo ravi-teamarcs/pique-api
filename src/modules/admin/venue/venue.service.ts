@@ -55,6 +55,111 @@ export class VenueService {
     private readonly config: ConfigService,
   ) {}
 
+  // async getAllVenue({
+  //   page,
+  //   pageSize,
+  //   search,
+  // }: {
+  //   page: number;
+  //   pageSize: number;
+  //   search: string;
+  // }) {
+  //   const skip = (page - 1) * pageSize;
+
+  //   const res = this.venueRepository
+  //     .createQueryBuilder('venue')
+  //     .leftJoinAndSelect('venue.user', 'user')
+  //     .leftJoin('cities', 'city', 'city.id = venue.city')
+  //     .leftJoin('states', 'state', 'state.id = venue.state')
+  //     .leftJoin('countries', 'country', 'country.id = venue.country')
+  //     .leftJoin(
+  //       (qb) =>
+  //         qb
+  //           .select([
+  //             'media.user_id AS media_user_id',
+  //             `JSON_ARRAYAGG(
+  //           JSON_OBJECT(
+  //             "url", CONCAT(:serverUri, media.url),
+  //             "type", media.type,
+  //             "id", media.id
+  //           )
+  //         ) AS mediaDetails`,
+  //           ])
+  //           .from('media', 'media')
+  //           .groupBy('media.user_id'),
+  //       'media',
+  //       'media.media_user_id = venue.id',
+  //     )
+  //     .leftJoin(
+  //       (qb) =>
+  //         qb
+  //           .select([
+  //             'neighbourhood.venueId AS nh_venue_id',
+  //             `JSON_ARRAYAGG(
+  //           JSON_OBJECT(
+  //             "id", neighbourhood.id,
+  //             "name", neighbourhood.name,
+  //             "contactPerson", neighbourhood.contact_person,
+  //             "contactNumber", neighbourhood.contact_number
+  //           )
+  //         ) AS neighbourhoodDetails`,
+  //           ])
+  //           .from('neighbourhood', 'neighbourhood')
+  //           .groupBy('neighbourhood.venueId'),
+  //       'neighbourhoods',
+  //       'neighbourhoods.nh_venue_id = venue.id',
+  //     )
+  //     .select([
+  //       'venue.id AS id',
+  //       'venue.name AS name',
+  //       'venue.addressLine1 AS addressLine1',
+  //       'venue.addressLine2 AS addressLine2',
+  //       'venue.description AS description',
+  //       'venue.city AS city_code',
+  //       'venue.state AS state_code',
+  //       'venue.country AS country_code',
+  //       'venue.zipCode AS zipCode',
+  //       'city.name AS city',
+  //       'state.name AS state',
+  //       'country.name AS country',
+  //       'user.email AS email',
+  //       'venue.status AS status',
+  //       'COALESCE(media.mediaDetails, "[]") AS media',
+  //       'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods',
+  //     ])
+  //     .where('venue.status IN (:...statuses)', {
+  //       statuses: ['active', 'inactive'],
+  //     })
+
+  //     .orderBy('venue.id', 'DESC')
+  //     .setParameter('serverUri', this.config.get<string>('BASE_URL'));
+
+  //   if (search) {
+  //     res.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
+  //       search: `%${search}%`,
+  //     });
+  //   }
+
+  //   const totalCount = await res.getCount();
+
+  //   // Paginate
+  //   const venues = await res.skip(skip).take(pageSize).getRawMany();
+  //   const parsedVenues = venues.map((v) => ({
+  //     ...v,
+  //     media: JSON.parse(v.media),
+  //     neighbourhoods: JSON.parse(v.neighbourhoods),
+  //   }));
+
+  //   return {
+  //     message: 'Venue Details fetched Successfully',
+  //     records: parsedVenues,
+  //     total: totalCount,
+  //     page,
+  //     pageSize,
+  //     pageCount: Math.ceil(totalCount / pageSize),
+  //   };
+  // }
+
   async getAllVenue({
     page,
     pageSize,
@@ -66,7 +171,7 @@ export class VenueService {
   }) {
     const skip = (page - 1) * pageSize;
 
-    const res = this.venueRepository
+    const baseQuery = this.venueRepository
       .createQueryBuilder('venue')
       .leftJoinAndSelect('venue.user', 'user')
       .leftJoin('cities', 'city', 'city.id = venue.city')
@@ -109,6 +214,23 @@ export class VenueService {
         'neighbourhoods',
         'neighbourhoods.nh_venue_id = venue.id',
       )
+      .where('venue.status IN (:...statuses)', {
+        statuses: ['active', 'inactive'],
+      })
+      .setParameter('serverUri', this.config.get<string>('BASE_URL'));
+
+    // Add search condition
+    if (search) {
+      baseQuery.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    // Get total count first
+    const totalCount = await baseQuery.getCount();
+
+    // Get paginated records using limit and offset
+    const venues = await baseQuery
       .select([
         'venue.id AS id',
         'venue.name AS name',
@@ -127,23 +249,11 @@ export class VenueService {
         'COALESCE(media.mediaDetails, "[]") AS media',
         'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods',
       ])
-      .where('venue.status IN (:...statuses)', {
-        statuses: ['active', 'inactive'],
-      })
-
       .orderBy('venue.id', 'DESC')
-      .setParameter('serverUri', this.config.get<string>('BASE_URL'));
+      .limit(pageSize)
+      .offset(skip)
+      .getRawMany();
 
-    if (search) {
-      res.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
-        search: `%${search}%`,
-      });
-    }
-
-    const totalCount = await res.getCount();
-
-    // Paginate
-    const venues = await res.skip(skip).take(pageSize).getRawMany();
     const parsedVenues = venues.map((v) => ({
       ...v,
       media: JSON.parse(v.media),
@@ -758,11 +868,11 @@ export class VenueService {
       );
       // Cancelled the booking First then send them the Booking Request
       for (const req of rejectedRequest) {
-       const res= await this.bookingRepository.update(
+        const res = await this.bookingRepository.update(
           { id: req.id },
           { status: 'cancelled' },
         );
-       console.log("Rejected Request" , res)
+        console.log('Rejected Request', res);
         if (req.email) {
           const emailPayload = {
             to: req.email,

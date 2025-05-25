@@ -57,10 +57,101 @@ export class EntertainerService {
     private readonly emailService: EmailService,
   ) {}
 
-  async getAllEntertainers(query: GetEntertainerDto) {
-    const { page = 1, pageSize = 10, search = '', vaccinated, date } = query; // Default values for pagination
-    const skip = (page - 1) * pageSize; // Calculate records to skip
+  // async getAllEntertainers(query: GetEntertainerDto) {
+  //   const { page = 1, pageSize = 10, search = '', vaccinated, date } = query; // Default values for pagination
+  //   const skip = (page - 1) * pageSize; // Calculate records to skip
 
+  //   const baseQuery = this.entertainerRepository
+  //     .createQueryBuilder('entertainer')
+  //     .leftJoin('countries', 'country', 'country.id = entertainer.country')
+  //     .leftJoin('states', 'state', 'state.id = entertainer.state')
+  //     .leftJoin('cities', 'city', 'city.id = entertainer.city')
+  //     .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
+  //     .leftJoin(
+  //       'categories',
+  //       'subcat',
+  //       'subcat.id = entertainer.specific_category',
+  //     )
+  //     .where('entertainer.status IN (:...statuses)', {
+  //       statuses: ['active', 'inactive'],
+  //     })
+  //     .select([
+  //       'entertainer.id AS id',
+  //       'entertainer.name AS name',
+  //       'entertainer.entertainer_name AS entertainer_name',
+  //       'entertainer.dob AS dob',
+  //       'entertainer.bio AS bio',
+  //       'entertainer.performanceRole AS performanceRole',
+  //       'entertainer.socialLinks AS socialLinks',
+  //       'entertainer.pricePerEvent AS pricePerEvent',
+  //       'entertainer.zipCode AS ZipCode',
+  //       "COALESCE(entertainer.services, '') AS services",
+  //       'entertainer.contact_person AS contactPerson',
+  //       'entertainer.contact_number AS ContactNumber',
+  //       'entertainer.address AS address',
+  //       'entertainer.status AS status',
+  //       'entertainer.vaccinated AS vaccinated',
+  //       'city.name AS city',
+  //       'country.name AS country',
+  //       'state.name AS state',
+  //     ]);
+
+  //   if (search) {
+  //     baseQuery.where('entertainer.name LIKE :search', {
+  //       search: `%${search}%`,
+  //     });
+  //   }
+  //   if (vaccinated) {
+  //     baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+  //       vaccinated,
+  //     });
+  //   }
+
+  //   if (date) {
+  //     baseQuery.andWhere(
+  //       (qb) => {
+  //         return `NOT EXISTS (
+  //           SELECT 1 FROM booking b
+  //           WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
+  //         )`;
+  //       },
+  //       { blockedDate: date },
+  //     );
+  //   }
+
+  //   // Clone for count
+  //   const total = await baseQuery.getCount();
+
+  //   // Add selects for main query
+  //   const records = await baseQuery
+  //     .orderBy('entertainer.name', 'DESC')
+  //     .skip(skip)
+  //     .take(pageSize)
+  //     .getRawMany();
+
+  //   const parsedRecords = await Promise.all(
+  //     records.map(async ({ services, id, pricePerEvent, ...rest }) => ({
+  //       // services: services ? services.split(',') : [],
+  //       id: Number(id),
+  //       priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
+  //       pricePerEvent,
+  //       ...rest,
+  //     })),
+  //   );
+
+  //   return {
+  //     message: 'Entertainers fetched Sucessfully.',
+  //     records: parsedRecords,
+  //     total,
+  //     pageSize,
+  //     currentPage: page, // Total count of entertainers
+  //   };
+  // }
+  async getAllEntertainers(query: GetEntertainerDto) {
+    const { page = 1, pageSize = 10, search = '', vaccinated, date } = query;
+    const skip = (page - 1) * pageSize;
+
+    // Build the base query with all conditions
     const baseQuery = this.entertainerRepository
       .createQueryBuilder('entertainer')
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
@@ -74,7 +165,38 @@ export class EntertainerService {
       )
       .where('entertainer.status IN (:...statuses)', {
         statuses: ['active', 'inactive'],
-      })
+      });
+
+    // Add search condition
+    if (search) {
+      baseQuery.andWhere('entertainer.name LIKE :search', {
+        search: `%${search}%`,
+      });
+    }
+
+    // Add vaccination filter
+    if (vaccinated !== undefined) {
+      baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+        vaccinated,
+      });
+    }
+
+    // Add date availability filter
+    if (date) {
+      baseQuery.andWhere(
+        `NOT EXISTS (
+        SELECT 1 FROM booking b 
+        WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
+      )`,
+        { blockedDate: date },
+      );
+    }
+
+    // Get total count BEFORE adding pagination
+    const total = await baseQuery.getCount();
+
+    // Get paginated records with all select fields using LIMIT and OFFSET
+    const records = await baseQuery
       .select([
         'entertainer.id AS id',
         'entertainer.name AS name',
@@ -94,57 +216,33 @@ export class EntertainerService {
         'city.name AS city',
         'country.name AS country',
         'state.name AS state',
-      ]);
-
-    if (search) {
-      baseQuery.where('entertainer.name LIKE :search', {
-        search: `%${search}%`,
-      });
-    }
-    if (vaccinated) {
-      baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
-        vaccinated,
-      });
-    }
-
-    if (date) {
-      baseQuery.andWhere(
-        (qb) => {
-          return `NOT EXISTS (
-            SELECT 1 FROM booking b
-            WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
-          )`;
-        },
-        { blockedDate: date },
-      );
-    }
-
-    // Clone for count
-    const total = await baseQuery.getCount();
-
-    // Add selects for main query
-    const records = await baseQuery
+      ])
       .orderBy('entertainer.name', 'DESC')
-      .skip(skip)
-      .take(pageSize)
+      .limit(pageSize)
+      .offset(skip)
       .getRawMany();
 
+    // Process the records
     const parsedRecords = await Promise.all(
-      records.map(async ({ services, id, pricePerEvent, ...rest }) => ({
-        // services: services ? services.split(',') : [],
-        id: Number(id),
-        priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
-        pricePerEvent,
-        ...rest,
-      })),
+      records.map(
+        async ({ services, socialLinks, id, pricePerEvent, ...rest }) => ({
+          id: Number(id),
+          services: services ? services.split(',') : [],
+          socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
+          priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
+          pricePerEvent,
+          ...rest,
+        }),
+      ),
     );
 
     return {
-      message: 'Entertainers fetched Sucessfully.',
+      message: 'Entertainers fetched Successfully.',
       records: parsedRecords,
       total,
       pageSize,
-      currentPage: page, // Total count of entertainers
+      currentPage: page,
+      totalPages: Math.ceil(total / pageSize), // Added for better pagination info
     };
   }
 
