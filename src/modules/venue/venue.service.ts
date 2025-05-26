@@ -480,7 +480,7 @@ export class VenueService {
           'wish.ent_id = entertainer.id AND wish.user_id = :userId',
         )
         .leftJoin(
-          'media',
+          'entertainer_media',
           'media',
           'media.user_id = entertainer.id AND media.type = :mediaType',
         )
@@ -825,18 +825,18 @@ export class VenueService {
         (qb) =>
           qb
             .select([
-              'media.user_id AS media_user_id', // expose user_id
+              'media.user_id AS media_user_id',
               `JSON_ARRAYAGG(
-                JSON_OBJECT(
-                  "url", CONCAT(:serverUri, media.url),
-                  "type", media.type
-                )
-              ) AS mediaDetails`,
+          JSON_OBJECT(
+            "url", CONCAT(:serverUri, media.url),
+            "type", media.type
+          )
+        ) AS mediaDetails`,
             ])
-            .from('media', 'media')
+            .from('entertainer_media', 'media') // ✅ changed table name only
             .groupBy('media.user_id'),
-        'media', // alias for the subquery
-        'media.media_user_id = entertainer.id', // now using the alias correctly
+        'media', // keep subquery alias same
+        'media.media_user_id = entertainer.id', // join condition unchanged
       )
 
       .select([

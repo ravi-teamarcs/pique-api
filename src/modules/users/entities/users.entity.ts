@@ -39,7 +39,7 @@ export class User {
 
   @Column({
     type: 'enum',
-    enum: ['active', 'inactive', 'pending' ,'rejected'],
+    enum: ['active', 'inactive', 'pending', 'rejected'],
     default: 'pending',
   })
   status: 'active' | 'inactive' | 'pending' | 'rejected';

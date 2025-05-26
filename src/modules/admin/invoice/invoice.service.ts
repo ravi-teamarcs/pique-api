@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Invoice, InvoiceStatus, UserType } from './entities/invoices.entity';
-import { Like, Repository } from 'typeorm';
+import { Admin, Like, Repository } from 'typeorm';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Venue } from '../venue/entities/venue.entity';
@@ -19,6 +19,8 @@ import { EmailService } from 'src/modules/Email/email.service';
 import * as pdf from 'html-pdf';
 import { UpdateInvoiceStatus } from './Dto/update-invoice-status.dto';
 import { paymentsresellersubscription } from 'googleapis/build/src/apis/paymentsresellersubscription';
+import { NotificationService } from 'src/modules/notification/notification.service';
+import { AdminUser } from '../adminuser/entities/AdminUser.entity';
 
 @Injectable()
 export class InvoiceService {
@@ -27,9 +29,12 @@ export class InvoiceService {
     private readonly invoiceRepository: Repository<Invoice>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(AdminUser)
+    private readonly adminRepository: Repository<AdminUser>,
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
     private readonly emailService: EmailService,
+    private readonly notifyService: NotificationService,
   ) {}
 
   // async findAll(dto: InvoiceQueryDto) {
@@ -424,9 +429,17 @@ export class InvoiceService {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Normalize to midnight
 
-    const invoices = await this.invoiceRepository.find({
-      where: { status: 'unpaid', user_type: UserType.VENUE },
-    }); // Adjust based on your ORM
+    // const invoices = await this.invoiceRepository.find({
+    //   where: { status: 'unpaid', user_type: UserType.VENUE },
+    // }); // Adjust based on your ORM
+    const invoices = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
+      .leftJoin('users', 'user', 'user.id = venue.userId')
+      .select(['venue.name As venueName', 'invoices.*', 'user.id As userId'])
+      .where('invoices.status = :status', { status: InvoiceStatus.UNPAID })
+      .andWhere('invoices.user_type = :userType', { userType: UserType.VENUE })
+      .getRawMany();
 
     for (const invoice of invoices) {
       const dueDate = new Date(invoice.due_date);
@@ -440,30 +453,39 @@ export class InvoiceService {
           invoice.overdue = overdueDays;
           await this.invoiceRepository.save(invoice);
         }
+
+        const message = `Dear Venue ${invoice.venueName}, \n\nThis is a reminder that your payment for the invoice number ${invoice.invoice_number} is overdue by ${invoice.overdue} days. Please make the payment at your earliest convenience to avoid any late fees.\n\nThank you.`;
+        const adminMessage = `Dear Admin, \n\nThe payment for the invoice number ${invoice.invoice_number} from Venue ${invoice.venueName} is overdue by ${invoice.overdue} days. Please take necessary actions to follow up with the venue.\n\nThank you.`;
+
+        const notificationPayload = {
+          title: 'Payment Overdue Reminder',
+          body: message,
+          type: 'payment_alert_reminder',
+        };
+
+        const adminNotificationPayload = {
+          title: 'Payment Overdue Reminder',
+          body: adminMessage,
+          type: 'payment_alert_reminder',
+        };
+
+        if (invoice.userId) {
+          await this.notifyService.sendPush(
+            notificationPayload,
+            invoice.userId,
+          );
+        }
+        let admins = await this.adminRepository.find({ where: { role: '1' } });
+        if (admins?.length > 0) {
+          for (const admin of admins) {
+            await this.notifyService.sendAdminPush(
+              adminNotificationPayload,
+              Number(admin.id),
+            );
+          }
+        }
       }
     }
-
-    //  const adminNotificationPayload = {
-    //     title: 'Pending Booking Invitation',
-    //     body: adminMessage,
-    //     type: 'booking_invitation_reminder',
-    //   };
-
-    //   if (booking.entertainerUser) {
-    //     await this.notifyService.sendPush(
-    //       notificationPayload,
-    //       booking.entertainerUser,
-    //     );
-    //   }
-    // let admins = await this.adminRepository.find({ where: { role: '1' } });
-    // if (admins?.length > 0) {
-    //   for (const admin of admins) {
-    //     await this.notifyService.sendAdminPush(
-    //       adminNotificationPayload,
-    //       Number(admin.id),
-    //     );
-    //   }
-    // }
   }
 
   async applyLateFee(invoiceId: number) {

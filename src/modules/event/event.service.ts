@@ -86,7 +86,7 @@ export class EventService {
       };
       const slug = await this.generateSlug(slugPayload);
       payload['slug'] = slug;
-      await this.eventRepository.update({ id: eventId }, payload);
+
       const hasDateChanged =
         dto.eventDate &&
         dto.eventDate !== format(new Date(event.eventDate), 'yyyy-MM-dd');
@@ -100,6 +100,11 @@ export class EventService {
         dto.endTime &&
         dto.endTime !==
           format(new Date(`1970-01-01T${event.endTime}`), 'HH:mm:ss');
+
+      if (hasDateChanged || hasStartTimeChanged || hasEndTimeChanged) {
+        payload['status'] = 'rescheduled';
+      }
+      await this.eventRepository.update({ id: eventId }, payload);
 
       if (hasDateChanged || hasStartTimeChanged || hasEndTimeChanged) {
         this.bookingService.handleChangeRequest(Number(event.id), {
@@ -117,13 +122,56 @@ export class EventService {
     }
   }
   // Created for venues
+  // async getAllEvents(id: number, page: number = 1, pageSize: number = 20) {
+  //   try {
+  //     const today = startOfDay(new Date());
+  //     const skip = (Number(page) - 1) * Number(pageSize);
+  //     const take = Number(pageSize);
+  //     const [events, totalCount] = await this.eventRepository
+  //       .createQueryBuilder('event')
+  //       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+  //       .where('event.venueId = :id', { id })
+  //       .orderBy('event.createdAt', 'DESC')
+  //       .select([
+  //         'event.id',
+  //         'event.title',
+  //         'event.location',
+  //         'event.venueId',
+  //         'event.description',
+  //         'event.startTime',
+  //         'event.endTime',
+  //         'event.recurring',
+  //         'event.status',
+  //         'event.slug',
+  //         'event.eventDate',
+  //         'hood.id AS neighbourhoodId',
+  //       ])
+  //       .take(take)
+  //       .skip(skip)
+  //       .getManyAndCount();
+
+  //     return {
+  //       message: 'Events fetched successfully',
+  //       count: totalCount,
+  //       page,
+  //       pageSize,
+  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
+  //       data: events,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
   async getAllEvents(id: number, page: number = 1, pageSize: number = 20) {
     try {
       const today = startOfDay(new Date());
       const skip = (Number(page) - 1) * Number(pageSize);
       const take = Number(pageSize);
+
       const [events, totalCount] = await this.eventRepository
         .createQueryBuilder('event')
+        .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
         .where('event.venueId = :id', { id })
         .orderBy('event.createdAt', 'DESC')
         .select([
@@ -138,6 +186,8 @@ export class EventService {
           'event.status',
           'event.slug',
           'event.eventDate',
+          'event.createdAt', // ✅ Fix: include this because you're ordering by it
+          'hood.id AS neighbourhoodId',
         ])
         .take(take)
         .skip(skip)
@@ -156,15 +206,19 @@ export class EventService {
       throw new InternalServerErrorException(error.message);
     }
   }
+
   // Api Working
   async getEventListDropdown(id: number) {
     try {
       const today = startOfDay(new Date());
+
       const [events, totalCount] = await this.eventRepository
         .createQueryBuilder('event')
         .where('event.venueId = :id', { id })
         .andWhere('event.eventDate >= :today', { today })
-        .andWhere('event.status != :status', { status: 'completed' })
+        .andWhere('event.status IN (:...status)', {
+          status: ['confirmed', 'published', 'rescheduled'],
+        })
         .orderBy('event.createdAt', 'DESC')
         .select([
           'event.id',
@@ -188,7 +242,7 @@ export class EventService {
         status: true,
       };
     } catch (error) {
-      throw new InternalServerErrorException(error.messsage);
+      throw new InternalServerErrorException(error.message); // fixed typo
     }
   }
 

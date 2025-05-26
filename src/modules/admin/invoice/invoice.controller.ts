@@ -114,4 +114,9 @@ export class InvoiceController {
   async applyLateFee(@Param('id', ParseIntPipe) id: number) {
     return this.invoiceService.applyLateFee(id);
   }
+
+  @Get('testing-route')
+  testingRoute() {
+    return this.invoiceService.handleOverdueInvoices();
+  }
 }

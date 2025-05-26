@@ -230,7 +230,6 @@ export class EventService {
       };
       const slug = await this.generateSlug(slugPayload);
       payload['slug'] = slug;
-      await this.eventRepository.update({ id: event.id }, payload);
 
       const hasDateChanged =
         dto.eventDate &&
@@ -245,6 +244,11 @@ export class EventService {
         dto.endTime &&
         dto.endTime !==
           format(new Date(`1970-01-01T${event.endTime}`), 'HH:mm:ss');
+
+      if (hasDateChanged || hasStartTimeChanged || hasEndTimeChanged) {
+        payload['status'] = 'rescheduled';
+      }
+      await this.eventRepository.update({ id: event.id }, payload);
 
       if (hasDateChanged || hasStartTimeChanged || hasEndTimeChanged) {
         this.bookingService.handleChangeRequest(Number(event.id), {

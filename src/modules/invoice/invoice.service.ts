@@ -36,7 +36,6 @@ export class InvoiceService {
       const invoiceDetails = [];
       for (const eventid of eventIds) {
         const {
-          eventName,
           eventStartTime,
           eventEndTime,
           bookingId,
@@ -46,11 +45,11 @@ export class InvoiceService {
           .createQueryBuilder('booking')
           .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
           .leftJoin('event', 'event', 'event.id = booking.eventId')
-
           .where('booking.entId = :userId AND  booking.eventId=:eventid', {
             userId,
             eventid,
           })
+
           .select([
             'booking.id AS bookingId',
             'booking.eventId AS eventId',

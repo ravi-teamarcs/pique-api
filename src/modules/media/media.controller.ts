@@ -183,4 +183,32 @@ export class MediaController {
   removeMedia(@Param('id') id: number) {
     return this.mediaService.removeMedia(Number(id));
   }
+
+  // All Entertainer Specific Endpoint
+
+  // Get All By Token
+
+  @Get('entertainer/uploads/all')
+  @UseGuards(JwtAuthGuard)
+  @ApiOperation({
+    summary: 'Get all the multimedia of the logged in User.',
+  })
+  @ApiResponse({ status: 200, description: 'Multimedia fetched Successfully.' })
+  getAllEntertainerMedia(@Request() req) {
+    const { refId } = req.user;
+    return this.mediaService.findAllEntertainerMedia(refId);
+  }
+
+  //  For Signup
+  @Get('entertainer/:id')
+  async getEntertainerMediaById(@Param('id', ParseIntPipe) id: number) {
+    return await this.mediaService.findEntertainerMediaById(id);
+  }
+
+  @Delete('entertainer/:id')
+  @UseGuards(JwtAuthGuard)
+  @Roles('findAll')
+  removeEntertainerMedia(@Param('id') id: number) {
+    return this.mediaService.removeEntertainerMedia(Number(id));
+  }
 }

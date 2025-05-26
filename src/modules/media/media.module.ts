@@ -7,9 +7,19 @@ import { Media } from './entities/media.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
+import { EntertainerMedia } from './entities/entertainer-media.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([User, Media, Role, Access, EndPoints])],
+  imports: [
+    TypeOrmModule.forFeature([
+      User,
+      Media,
+      Role,
+      Access,
+      EndPoints,
+      EntertainerMedia,
+    ]),
+  ],
   providers: [MediaService],
   controllers: [MediaController],
   exports: [MediaService],

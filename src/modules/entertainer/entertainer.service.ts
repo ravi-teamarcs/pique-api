@@ -396,7 +396,7 @@ export class EntertainerService {
       });
     }
     try {
-      const { data } = await this.mediaService.handleMediaUpload(
+      const { data } = await this.mediaService.handleEntertainerMediaUpload(
         Number(ent.id),
         uploadedFiles,
         { eventId: null },
@@ -733,7 +733,7 @@ export class EntertainerService {
           'entertainer.specific_category AS specific_category',
         ])
         .addSelect(
-          `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM media m WHERE m.user_id= entertainer.id AND m.type = 'headshot' LIMIT 1)`,
+          `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM entertainer_media m WHERE m.user_id= entertainer.id AND m.type = 'headshot' LIMIT 1)`,
           'headshotUrl',
         )
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
@@ -813,7 +813,7 @@ export class EntertainerService {
           'entertainer.isProfileComplete AS isProfileComplete',
         ])
         .addSelect(
-          `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM media m WHERE m.user_id= entertainer.id AND m.type = 'headshot' LIMIT 1)`,
+          `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM entertainer_media m WHERE m.user_id= entertainer.id AND m.type = 'headshot' LIMIT 1)`,
           'headshotUrl',
         )
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
@@ -964,11 +964,12 @@ export class EntertainerService {
       );
 
       if (uploadedFiles && uploadedFiles.length > 0) {
-        const mediaUploadResult = await this.mediaService.handleMediaUpload(
-          refId,
-          uploadedFiles,
-          { eventId: null },
-        );
+        const mediaUploadResult =
+          await this.mediaService.handleEntertainerMediaUpload(
+            refId,
+            uploadedFiles,
+            { eventId: null },
+          );
       }
 
       return { message: 'General Info updated Successfully', status: true };

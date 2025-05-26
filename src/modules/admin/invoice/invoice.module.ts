@@ -12,6 +12,8 @@ import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../auth/entities/capability.entity';
 import { EmailModule } from 'src/modules/Email/email.module';
+import { NotificationModule } from 'src/modules/notification/notification.module';
+import { AdminUser } from '../auth/entities/AdminUser.entity';
 
 @Module({
   imports: [
@@ -23,8 +25,10 @@ import { EmailModule } from 'src/modules/Email/email.module';
       RoleCapability,
       Role,
       Capability,
+      AdminUser,
     ]),
     EmailModule,
+    NotificationModule,
   ],
   providers: [InvoiceService, GenerateInvoiceService],
   controllers: [InvoiceController],
