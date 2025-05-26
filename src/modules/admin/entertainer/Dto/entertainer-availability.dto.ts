@@ -14,7 +14,7 @@ export class EntertainerAvailabilityDto {
   @IsArray()
   @ArrayUnique()
   @IsDateString({}, { each: true }) // Ensure dates are valid ISO strings
-  unavailable_dates: string[];
+  unavailable_dates?: string[];
 
   @IsArray()
   @ArrayUnique()

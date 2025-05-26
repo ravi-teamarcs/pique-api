@@ -442,6 +442,28 @@ export class InvoiceService {
         }
       }
     }
+
+    //  const adminNotificationPayload = {
+    //     title: 'Pending Booking Invitation',
+    //     body: adminMessage,
+    //     type: 'booking_invitation_reminder',
+    //   };
+
+    //   if (booking.entertainerUser) {
+    //     await this.notifyService.sendPush(
+    //       notificationPayload,
+    //       booking.entertainerUser,
+    //     );
+    //   }
+    // let admins = await this.adminRepository.find({ where: { role: '1' } });
+    // if (admins?.length > 0) {
+    //   for (const admin of admins) {
+    //     await this.notifyService.sendAdminPush(
+    //       adminNotificationPayload,
+    //       Number(admin.id),
+    //     );
+    //   }
+    // }
   }
 
   async applyLateFee(invoiceId: number) {

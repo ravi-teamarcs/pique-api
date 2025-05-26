@@ -99,7 +99,7 @@ export class ReminderService {
         'booking.id AS bookingId',
         'booking.createdAt AS createdAt',
         'entertainer.userId AS entertainerUser',
-        'entertainer.name AS stagename',
+        'entertainer.name AS stageName',
         'entertainer.entertainerName AS entertainerName',
       ])
       .where('booking.status = :status', { status: 'invited' })
@@ -113,7 +113,7 @@ export class ReminderService {
 
       const message = `Reminder: You have a booking invitation (ID: ${booking.bookingId}) pending for over ${daysPassed} days. Please respond.`;
 
-      const adminMessage = `Reminder:${booking.name} has a booking invitation (ID: ${booking.bookingId}) pending for over ${daysPassed} days. Please review and take necessary action.`;
+      const adminMessage = `Reminder:${booking.stageName} has a booking invitation (ID: ${booking.bookingId}) pending for over ${daysPassed} days. Please review and take necessary action.`;
 
       const notificationPayload = {
         title: 'Pending Booking Invitation',
@@ -135,10 +135,6 @@ export class ReminderService {
       let admins = await this.adminRepository.find({ where: { role: '1' } });
       if (admins?.length > 0) {
         for (const admin of admins) {
-          await this.notifyService.saveAdminNotification(
-            adminNotificationPayload,
-            Number(admin.id),
-          );
           await this.notifyService.sendAdminPush(
             adminNotificationPayload,
             Number(admin.id),

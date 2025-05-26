@@ -122,6 +122,33 @@ export class AvailabilityService {
     }
   }
 
+  // async updateEntertainerAvailability(id: number, dto: UpdateAvailabilityDto) {
+  //   try {
+  //     const availability = await this.availabilityRepository.findOne({
+  //       where: { entertainer_id: id, year: dto.year, month: dto.month },
+  //     });
+
+  //     if (!availability) {
+  //       throw new BadRequestException({ message: 'Availability not found' });
+  //     }
+
+  //     const updatedAvailability = await this.availabilityRepository.update(
+  //       { id: availability.id },
+  //       dto,
+  //     );
+  //     return {
+  //       message: 'Entertainer Availability updated Successfully',
+  //       data: dto,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
   async updateEntertainerAvailability(id: number, dto: UpdateAvailabilityDto) {
     try {
       const availability = await this.availabilityRepository.findOne({
@@ -129,7 +156,16 @@ export class AvailabilityService {
       });
 
       if (!availability) {
-        throw new BadRequestException({ message: 'Availability not found' });
+        const avail = this.availabilityRepository.create({
+          entertainer_id: id,
+          ...dto,
+        });
+        const savedAvailability = await this.availabilityRepository.save(avail);
+        return {
+          message: 'Entertainer availability Saved successfully',
+          data: savedAvailability,
+          status: true,
+        };
       }
 
       const updatedAvailability = await this.availabilityRepository.update(
@@ -137,7 +173,7 @@ export class AvailabilityService {
         dto,
       );
       return {
-        message: 'Entertainer Availability updated Successfully',
+        message: 'Entertainer availability updated successfully',
         data: dto,
         status: true,
       };
