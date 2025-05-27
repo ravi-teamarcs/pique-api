@@ -214,13 +214,13 @@ export class MediaService {
         }
 
         // For non-headshot files, create a new media entry
-        const media = this.mediaRepository.create({
+        const media = this.entertainerMediaRepository.create({
           ...file,
           user_id: userId,
           eventId: eventId ?? null,
         });
 
-        const savedMedia = await this.mediaRepository.save(media);
+        const savedMedia = await this.entertainerMediaRepository.save(media);
         uploadedData.push(savedMedia);
       }
 
@@ -255,5 +255,28 @@ export class MediaService {
     await this.entertainerMediaRepository.delete({ id: media.id });
 
     return { message: 'Media deleted successfully', status: true };
+  }
+  async findEntertainerAllMedia(Id: number) {
+    if (!Id) {
+      throw new BadRequestException('Id is required.');
+    }
+
+    const media = await this.entertainerMediaRepository
+      .createQueryBuilder('media')
+      .select([
+        'media.id AS id',
+        `CONCAT('${this.config.get<string>('BASE_URL')}', media.url) AS url`,
+        'media.user_id AS userId',
+        'media.name AS name',
+        'media.type AS type',
+      ])
+      .where('media.user_id = :Id', { Id })
+      .getRawMany();
+
+    if (media.length === 0) {
+      throw new BadRequestException('Media Not Found');
+    }
+
+    return { message: 'Multimedia returned successfully', media };
   }
 }

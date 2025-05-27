@@ -70,8 +70,6 @@ export class EventService {
       const updatedEventDate = dto.eventDate ?? event.eventDate;
       let updatedStartTime = dto.startTime ?? event.startTime;
 
-      if (dto.startTime || dto.eventDate) payload['status'] = 'rescheduled';
-
       if (!(updatedStartTime instanceof Date)) {
         // Try to parse string to Date
         updatedStartTime = new Date(`1970-01-01T${updatedStartTime}`);

@@ -36,4 +36,9 @@ export class UpdateEventDto {
   @IsOptional()
   @IsString()
   description: string;
+
+  @IsOptional()
+  @IsOptional()
+  @IsNumber()
+  neighbourhoodId: number;
 }

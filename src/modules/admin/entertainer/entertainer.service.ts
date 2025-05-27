@@ -266,21 +266,22 @@ export class EntertainerService {
               .select([
                 'media.user_id AS media_user_id',
                 `IFNULL(
-                  JSON_ARRAYAGG(
-                    JSON_OBJECT(
-                      'id', media.id,
-                      'url', CONCAT(:serverUri, media.url),
-                      'type', media.type
-                    )
-                  ), 
-                  JSON_ARRAY()
-                ) AS mediaDetails`,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'id', media.id,
+              'url', CONCAT(:serverUri, media.url),
+              'type', media.type
+            )
+          ), 
+          JSON_ARRAY()
+        ) AS mediaDetails`,
               ])
-              .from('media', 'media')
+              .from('entertainer_media', 'media')
               .groupBy('media.user_id'),
           'media',
           'media.media_user_id = entertainer.id',
         )
+
         .select([
           'entertainer.id AS id',
           'entertainer.name AS name',
@@ -397,7 +398,7 @@ export class EntertainerService {
       const savedEntertainer = await queryRunner.manager.save(newEntertainer);
 
       if (uploadedFiles?.length > 0) {
-        await this.mediaService.handleMediaUpload(
+        await this.mediaService.handleEntertainerMediaUpload(
           savedEntertainer.id,
           uploadedFiles,
         );
@@ -441,7 +442,7 @@ export class EntertainerService {
 
   async uploadMedia(id: number, uploadedFiles: UploadedFile[]) {
     try {
-      await this.mediaService.handleMediaUpload(id, uploadedFiles);
+      await this.mediaService.handleEntertainerMediaUpload(id, uploadedFiles);
 
       return {
         message: 'Media uploaded Successfully',
@@ -567,7 +568,7 @@ export class EntertainerService {
       );
 
       if (uploadedFiles?.length > 0) {
-        await this.mediaService.handleMediaUpload(
+        await this.mediaService.handleEntertainerMediaUpload(
           entertainer.id,
           uploadedFiles,
         );

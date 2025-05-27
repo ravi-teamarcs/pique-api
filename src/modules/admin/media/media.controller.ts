@@ -239,11 +239,11 @@ export class MediaController {
   async uploadUrl(@Body() uploadUrlDto: UploadUrlDto): Promise<any> {
     return this.mediaService.uploadUrl(uploadUrlDto);
   }
-
+  // New routes specially for Entertainers.
   @Roles('super-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Delete('entertainert/:Id')
+  @Delete('entertainer/:Id')
   async deleteEntertainerMedia(@Query('Id') Id?: number) {
     // Ensure the Id parameter is provided
     if (!Id) {
@@ -251,5 +251,17 @@ export class MediaController {
     }
 
     return this.mediaService.deleteMedia(Id);
+  }
+
+  @Roles('super-admin')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Get('entertainer')
+  getEntertainerAllMedia(@Query('Id') Id?: number) {
+    // Ensure at least one of the parameters is provided
+    if (!Id) {
+      throw new BadRequestException('Either userId or venueId is required.');
+    }
+
+    return this.mediaService.findEntertainerAllMedia(Number(Id));
   }
 }
