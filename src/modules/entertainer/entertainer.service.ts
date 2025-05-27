@@ -822,7 +822,7 @@ export class EntertainerService {
       const { socialLinks, services, ...rest } = entertainer;
       const payload = {
         ...rest,
-        services: services ? services.split(',') : [],
+        services: services,
         socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
       };
       return {
@@ -1300,7 +1300,7 @@ export class EntertainerService {
 
       // Convert bookings to structured format
       const bookingStats = {
-        pending: { current: 0, previous: 0 },
+        invited: { current: 0, previous: 0 },
         accepted: { current: 0, previous: 0 },
         completed: { current: 0, previous: 0 },
       };
@@ -1328,8 +1328,8 @@ export class EntertainerService {
         previousTotalBookings,
       );
       const pendingChange = calculateChange(
-        bookingStats.pending.current,
-        bookingStats.pending.previous,
+        bookingStats.invited.current,
+        bookingStats.invited.previous,
       );
       const acceptedChange = calculateChange(
         bookingStats.accepted.current,
@@ -1365,9 +1365,9 @@ export class EntertainerService {
                   ? 'decrease'
                   : 'same',
           },
-          pending: {
-            currentMonthBookings: bookingStats.pending.current,
-            previousMonthBookings: bookingStats.pending.previous,
+          invited: {
+            currentMonthBookings: bookingStats.invited.current,
+            previousMonthBookings: bookingStats.invited.previous,
             bookingChangePercentage: pendingChange,
             bookingTrend:
               pendingChange > 0

@@ -63,7 +63,7 @@ export class BookingService {
 
       if (booking)
         throw new BadRequestException({
-          message: 'Booking for event  already exists for this entertainer',
+          message: 'Booking already exists for the date.',
         });
 
       // Check for Availability
@@ -74,7 +74,7 @@ export class BookingService {
 
       if (available === false)
         throw new BadRequestException(
-          'Entertainer is not Available on requested date.',
+          'Entertainer is not available on requested date.',
         );
 
       // Create the booking
