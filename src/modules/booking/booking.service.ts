@@ -760,7 +760,7 @@ export class BookingService {
         .leftJoin('entertainers', 'ent', 'ent.id = book.entId')
         .leftJoin('event', 'event', 'event.id = book.eventId')
         .leftJoin(
-          'media',
+          'entertainer_media',
           'media',
           'media.user_id = ent.id AND media.type ="headshot"',
         )

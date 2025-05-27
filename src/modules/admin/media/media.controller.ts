@@ -239,4 +239,17 @@ export class MediaController {
   async uploadUrl(@Body() uploadUrlDto: UploadUrlDto): Promise<any> {
     return this.mediaService.uploadUrl(uploadUrlDto);
   }
+
+  @Roles('super-admin')
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Delete('entertainert/:Id')
+  async deleteEntertainerMedia(@Query('Id') Id?: number) {
+    // Ensure the Id parameter is provided
+    if (!Id) {
+      throw new BadRequestException('Id is required.');
+    }
+
+    return this.mediaService.deleteMedia(Id);
+  }
 }

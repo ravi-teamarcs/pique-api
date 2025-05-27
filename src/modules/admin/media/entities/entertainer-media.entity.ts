@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-@Entity('media')
+@Entity('entertainer_media')
 export class EntertainerMedia {
   @PrimaryGeneratedColumn()
   id: number;

@@ -10,12 +10,16 @@ import { Repository } from 'typeorm';
 import { UploadUrlDto } from './Dto/UploadUrlDto.dto';
 import { Type } from 'src/common/enums/media.enum';
 import { ConfigService } from '@nestjs/config';
+import { EntertainerMedia } from 'src/modules/media/entities/entertainer-media.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
 
 @Injectable()
 export class MediaService {
   constructor(
     @InjectRepository(Media)
     private readonly mediaRepository: Repository<Media>,
+    @InjectRepository(EntertainerMedia)
+    private readonly entertainerMediaRepository: Repository<EntertainerMedia>,
     private readonly config: ConfigService,
   ) {}
 
@@ -171,5 +175,85 @@ export class MediaService {
     });
 
     return await this.mediaRepository.save(media);
+  }
+
+  // Handle Entertainer Media Upload
+
+  async handleEntertainerMediaUpload(
+    userId: number,
+    uploadedFiles: UploadedFile[],
+    eventId?: number | null,
+  ) {
+    try {
+      const uploadedData = [];
+      for (const file of uploadedFiles) {
+        if (!file || !file.type) continue; // Safety check
+
+        // Here user user_id instead of relation(VenueId or Entertainer id)
+        if (file.type === 'headshot') {
+          const existsAlready = await this.entertainerMediaRepository.findOne({
+            where: { user_id: userId, type: 'headshot' },
+          });
+
+          if (existsAlready) {
+            await this.entertainerMediaRepository.update(
+              { id: existsAlready.id },
+              { url: file.url, name: file.name },
+            );
+          } else {
+            // Create a new headshot if none exists
+            const newHeadshot = this.entertainerMediaRepository.create({
+              ...file,
+              user_id: userId,
+            });
+            const saved =
+              await this.entertainerMediaRepository.save(newHeadshot);
+            uploadedData.push(saved);
+          }
+          continue;
+        }
+
+        // For non-headshot files, create a new media entry
+        const media = this.mediaRepository.create({
+          ...file,
+          user_id: userId,
+          eventId: eventId ?? null,
+        });
+
+        const savedMedia = await this.mediaRepository.save(media);
+        uploadedData.push(savedMedia);
+      }
+
+      return {
+        message: 'Files Saved Successfully',
+        data: uploadedData,
+        status: true,
+      };
+    } catch (error) {
+      console.error('Error uploading media:', error);
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async deleteEntertainerMedia(Id: number) {
+    if (!Id) {
+      throw new BadRequestException('Id is required.');
+    }
+
+    // Find media based on the provided Id (use findOne for a single result)
+    const media = await this.entertainerMediaRepository.findOne({
+      where: { id: Id }, // Use 'id' in lowercase for correct database column reference
+    });
+
+    if (!media) {
+      throw new BadRequestException('Media not found.');
+    }
+
+    // Delete the found media
+    await this.entertainerMediaRepository.delete({ id: media.id });
+
+    return { message: 'Media deleted successfully', status: true };
   }
 }
