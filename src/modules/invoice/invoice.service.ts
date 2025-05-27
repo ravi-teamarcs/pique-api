@@ -128,40 +128,105 @@ export class InvoiceService {
     }
   }
 
+  //   userId: number,
+  //   page: number = 1,
+  //   pageSize: number = 20,
+  // ) {
+  //   try {
+  //     const offset = (Number(page) - 1) * Number(pageSize);
+  //     const limit = Number(pageSize);
+
+  //     // Single query with JSON aggregation for events
+  //     const invoices = await this.invoiceRepository
+  //       .createQueryBuilder('invoices')
+  //       .leftJoin('invoice_booking', 'ib', 'ib.invoice_id = invoices.id')
+  //       .leftJoin('event', 'event', 'event.id = ib.event_id')
+  //       .leftJoin('entertainers', 'ent', 'ent.id = invoices.user_id')
+  //       .leftJoin('cities', 'city', 'city.id = ent.city')
+  //       .leftJoin('states', 'state', 'state.id = ent.state')
+  //       .where('invoices.user_id = :userId', { userId })
+  //       .select([
+  //         'invoices.id AS id',
+  //         'invoices.invoice_number AS invoice_number',
+  //         'invoices.user_id AS user_id',
+  //         'invoices.event_id AS event_id',
+  //         'invoices.user_type AS user_type',
+  //         'invoices.issue_date AS issue_date',
+  //         'invoices.due_date AS due_date',
+  //         'invoices.total_amount AS total_amount',
+  //         'invoices.tax_rate AS tax_rate',
+  //         'invoices.tax_amount AS tax_amount',
+  //         'invoices.total_with_tax AS total_with_tax',
+  //         'invoices.status AS status',
+  //         'invoices.payment_method AS payment_method',
+  //         'invoices.payment_date AS payment_date',
+  //         'ent.name AS entertainerName',
+  //         'ent.addressLine1 AS addressLine1',
+  //         'ent.addressLine2 AS addressLine2',
+  //         'ent.city AS city_code',
+  //         'ent.state AS state_code',
+  //         'state.name AS stateName',
+  //         'city.name AS cityName',
+  //         `JSON_ARRAYAGG(
+  //         CASE
+  //           WHEN event.id IS NOT NULL
+  //           THEN JSON_OBJECT(
+  //             'd', event.id,
+  //             'slug', event.slug,
+  //             'title', event.title,
+  //             'description', event.description,
+  //             'location', event.location,
+  //             'startTime', event.startTime,
+  //             'endTime', event.endTime,
+  //             'eventDate', event.eventDate,
+  //             'status', event.status
+  //           )
+  //           ELSE NULL
+  //         END
+  //       ) AS events`,
+  //       ])
+  //       .groupBy('invoices.id')
+  //       .orderBy('invoices.id', 'DESC')
+  //       .limit(limit)
+  //       .offset(offset)
+  //       .getRawMany();
+
+  //     // Get total count for pagination
+  //     const totalCount = await this.invoiceRepository
+  //       .createQueryBuilder('invoices')
+  //       .where('invoices.user_id = :userId', { userId })
+  //       .getCount();
+
+  //     // Process events to remove null values and parse JSON
+  //     const processedInvoices = invoices.map((invoice) => ({
+  //       ...invoice,
+  //       events: invoice.events
+  //         ? JSON.parse(invoice.events).filter((event) => event !== null)
+  //         : [],
+  //     }));
+
+  //     return {
+  //       message: 'Invoices fetched successfully',
+  //       count: totalCount,
+  //       page: Number(page),
+  //       pageSize: Number(pageSize),
+  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
+  //       data: processedInvoices,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
+
   // Fetch All Invoices for Entertainer
-  async findAllInvoice(userId: number) {
+  async findAllInvoice(userId: number, role, page = 1, pageSize = 10) {
     try {
-      const invoices = await this.invoiceRepository
-        .createQueryBuilder('invoices')
-        .leftJoin('event', 'event', 'event.id = invoices.event_id')
-        .where('invoices.user_id = :userId', { userId })
-
-        .select([
-          'invoices.id AS id ',
-          'invoices.invoice_number AS invoice_number',
-          'invoices.user_id AS user_id',
-          'invoices.event_id AS event_id',
-          'invoices.user_type AS user_type',
-          'invoices.issue_date AS issue_date',
-          'invoices.due_date AS due_date',
-          'invoices.total_amount AS total_amount',
-
-          'invoices.tax_rate AS tax_rate',
-          'invoices.tax_amount AS tax_amount',
-          'invoices.total_with_tax AS total_with_tax',
-          'invoices.status AS status',
-          'invoices.payment_method AS payment_method',
-          'invoices.payment_date AS payment_date',
-          'event.slug AS slug',
-          'event.title AS Name',
-        ])
-        .getRawMany(); // Use getRawMany if you're not using relations
-
-      return {
-        message: 'Invoice returned Successfully',
-        status: true,
-        data: invoices,
-      };
+      if (role === 'entertainer') {
+        return await this.getEntertainerInvoice(userId, page, pageSize);
+      } else {
+        return await this.getInvoices(userId, page, pageSize);
+      }
     } catch (error) {
       throw new InternalServerErrorException({ message: error.message });
     }
@@ -377,5 +442,129 @@ export class InvoiceService {
     } catch (error) {
       throw new InternalServerErrorException({ message: error.message });
     }
+  }
+
+  // New One Created for Entertainer Invoice
+  private async getEntertainerInvoice(
+    userId: number,
+    page: number = 1,
+    pageSize: number = 10,
+  ) {
+    const data = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .leftJoin('entertainers', 'ent', 'ent.id = invoices.user_id')
+      .leftJoin('cities', 'city', 'city.id = ent.city')
+      .leftJoin('states', 'state', 'state.id = ent.state')
+      .where('invoices.user_id = :userId', { userId })
+      .select([
+        'invoices.id AS id',
+        'invoices.invoice_number AS invoice_number',
+        'invoices.user_id AS user_id',
+        'invoices.issue_date AS issue_date',
+        'invoices.due_date AS due_date',
+        'invoices.total_amount AS total_amount',
+        'invoices.tax_rate AS tax_rate',
+        'invoices.tax_amount AS tax_amount',
+        'invoices.total_with_tax AS total_with_tax',
+        'invoices.status AS status',
+        'invoices.payment_method AS payment_method',
+        'invoices.payment_date AS payment_date',
+
+        'ent.name AS entertainerName',
+        'ent.addressLine1 AS addressLine1',
+        'ent.addressLine2 AS addressLine2',
+        'ent.city AS city_code',
+        'ent.state AS state_code',
+        'state.name AS stateName',
+        'city.name AS cityName',
+
+        // This subquery gets all events in one JSON array for this invoice
+        `(SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'slug', e.slug,
+      'title', e.title,
+      'eventDate', e.eventDate,
+      'startTime', e.startTime,
+      'endTime', e.endTime
+    )
+  )
+  FROM invoice_bookings ib
+  JOIN event e ON e.id = ib.event_id
+  WHERE ib.invoice_id = invoices.id
+) AS events`,
+      ])
+      .orderBy('invoices.issue_date', 'DESC')
+      .offset((page - 1) * pageSize)
+      .limit(pageSize)
+      .getRawMany();
+    const parsedResults = data.map(({ events, ...rest }) => {
+      return {
+        ...rest,
+        events: events ? JSON.parse(events) : [], // Parse JSON string to object
+      };
+    });
+    const totalCount = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .where('invoices.user_id = :userId', { userId })
+      .getCount();
+
+    return {
+      message: 'Invoices fetched successfully',
+      status: true,
+      data: parsedResults,
+      page,
+      totalCount,
+      totalPages: Math.ceil(totalCount / pageSize),
+      pageSize,
+    };
+  }
+
+  private async getInvoices(
+    userId: number,
+    page: number = 1,
+    pageSize: number = 10,
+  ) {
+    const offset = (page - 1) * pageSize;
+
+    const invoices = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .leftJoin('event', 'event', 'event.id = invoices.event_id')
+      .where('invoices.user_id = :userId', { userId })
+      .select([
+        'invoices.id AS id',
+        'invoices.invoice_number AS invoice_number',
+        'invoices.user_id AS user_id',
+        'invoices.event_id AS event_id',
+        'invoices.user_type AS user_type',
+        'invoices.issue_date AS issue_date',
+        'invoices.due_date AS due_date',
+        'invoices.total_amount AS total_amount',
+        'invoices.tax_rate AS tax_rate',
+        'invoices.tax_amount AS tax_amount',
+        'invoices.total_with_tax AS total_with_tax',
+        'invoices.status AS status',
+        'invoices.payment_method AS payment_method',
+        'invoices.payment_date AS payment_date',
+        'event.slug AS slug',
+        'event.title AS Name',
+      ])
+      .offset(offset)
+      .limit(pageSize)
+      .getRawMany();
+
+    // Optional: Get total count for pagination metadata
+    const totalCount = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .where('invoices.user_id = :userId', { userId })
+      .getCount();
+
+    return {
+      message: 'Invoice fetched Successfully',
+      status: true,
+      data: invoices,
+      totalCount,
+      page,
+      pageSize,
+    };
   }
 }

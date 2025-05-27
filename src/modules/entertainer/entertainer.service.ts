@@ -1691,6 +1691,7 @@ export class EntertainerService {
           `NOT EXISTS (
       SELECT 1 FROM invoice_bookings ib
       WHERE ib.event_id = event.id
+      AND ib.booking_id = booking.id
     )`,
         )
         .select([

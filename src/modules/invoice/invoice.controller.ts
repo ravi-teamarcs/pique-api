@@ -5,6 +5,7 @@ import {
   Param,
   ParseIntPipe,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -48,9 +49,13 @@ export class InvoiceController {
   })
   @Get()
   @Roles('findAll')
-  getAllInvoices(@Request() req) {
-    const { refId } = req.user;
-    return this.invoiceService.findAllInvoice(refId);
+  getAllInvoices(
+    @Request() req,
+    @Query('page') page: number,
+    @Query('pageSize') pageSize: number,
+  ) {
+    const { refId, role } = req.user;
+    return this.invoiceService.findAllInvoice(refId, role, page, pageSize);
   }
   @Get(':id')
   @Roles('findAll')
