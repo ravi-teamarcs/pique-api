@@ -302,6 +302,7 @@ export class EntertainerService {
           'entertainer.performanceRole AS performanceRole',
           'entertainer.socialLinks AS socialLinks',
           'entertainer.zipCode AS ZipCode',
+          'entertainer.vaccinated AS vaccinated',
           "COALESCE(entertainer.services, '') AS services",
           'entertainer.contact_person AS contactPerson',
           'entertainer.contact_number AS ContactNumber',

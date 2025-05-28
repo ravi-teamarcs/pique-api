@@ -61,6 +61,10 @@ class GeneralInfoDto {
     return [];
   })
   services: string[];
+
+  @IsString()
+  @IsNotEmpty()
+  vaccinated: 'yes' | 'no';
 }
 
 export class CreateEntertainerDto {
