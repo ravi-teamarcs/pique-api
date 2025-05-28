@@ -1301,6 +1301,7 @@ export class EntertainerService {
       // Convert bookings to structured format
       const bookingStats = {
         invited: { current: 0, previous: 0 },
+        confirmed: { current: 0, previous: 0 },
         accepted: { current: 0, previous: 0 },
         completed: { current: 0, previous: 0 },
       };
@@ -1331,6 +1332,10 @@ export class EntertainerService {
         bookingStats.invited.current,
         bookingStats.invited.previous,
       );
+      const confirmedChange = calculateChange(
+        bookingStats.invited.current,
+        bookingStats.invited.previous,
+      );
       const acceptedChange = calculateChange(
         bookingStats.accepted.current,
         bookingStats.accepted.previous,
@@ -1339,7 +1344,7 @@ export class EntertainerService {
         bookingStats.completed.current,
         bookingStats.completed.previous,
       );
-
+      console.log(bookingStats);
       // ✅ Final API Response
       const res = {
         revenue: {
@@ -1387,6 +1392,17 @@ export class EntertainerService {
                   ? 'decrease'
                   : 'same',
           },
+          confirmed: {
+            currentMonthBookings: bookingStats.confirmed.current,
+            previousMonthBookings: bookingStats.confirmed.previous,
+            bookingChangePercentage: confirmedChange,
+            bookingTrend:
+              confirmedChange > 0
+                ? 'increase'
+                : confirmedChange < 0
+                  ? 'decrease'
+                  : 'same',
+          },
           completed: {
             currentMonthBookings: bookingStats.completed.current,
             previousMonthBookings: bookingStats.completed.previous,
@@ -1423,15 +1439,13 @@ export class EntertainerService {
       const events = this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin('event', 'event', 'event.id = booking.eventId') // simple join
-        .leftJoin(
-          'venue',
-          'venue',
-          'venue.id = booking.venueId AND event.startTime > :now',
-          { now: new Date() },
-        )
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId') // simple join
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('states', 'state', 'state.id = venue.state')
         .leftJoin('media', 'media', 'media.eventId = event.id')
         .where('booking.entId = :userId', { userId })
         .andWhere('booking.status = :status', { status: 'confirmed' })
+        .andWhere('booking.eventDate >= :now', { now: new Date() })
 
         .select([
           'event.id AS event_id',
@@ -1445,6 +1459,10 @@ export class EntertainerService {
           'event.recurring AS recurring',
           'event.status AS status',
           'event.isAdmin AS isAdmin',
+          'state.name AS stateName',
+          'city.name AS cityName',
+          'venue.state AS stateCode',
+          'venue.city AS cityCode',
           'venue.id AS venue_id',
           'venue.name AS venue_name',
           'venue.addressLine1 AS venue_addressLine1',
@@ -1510,9 +1528,13 @@ export class EntertainerService {
       const qb = this.bookingRepository
         .createQueryBuilder('booking')
         .innerJoin('event', 'event', 'event.id = booking.eventId')
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId') // simple join
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('states', 'state', 'state.id = venue.state')
         .where('booking.entId = :userId', { userId })
         .andWhere('YEAR(event.eventDate) = :year', { year })
         .andWhere('MONTH(event.eventDate) = :month', { month })
+
         .select([
           'event.id AS event_id',
           'event.title AS title',
@@ -1525,6 +1547,13 @@ export class EntertainerService {
           'event.status AS status',
           'event.slug AS slug',
           'event.isAdmin AS isAdmin',
+          'venue.name AS venueName',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'city.name AS cityName',
+          'state.name AS stateName',
+          'venue.city AS cityCode',
+          'venue.state AS stateCode',
         ])
         .orderBy('event.eventDate', 'ASC');
 
