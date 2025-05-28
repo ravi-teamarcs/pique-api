@@ -371,6 +371,13 @@ export class EntertainerController {
     const { refId } = req.user;
     return this.entertainerService.getTravelDistance(refId);
   }
+  @Get('invoicing/details')
+  @UseGuards(JwtAuthGuard, RolesGuard) // Use your auth strategy
+  @Roles('findAll')
+  getPricePerHour(@Request() req) {
+    const { refId } = req.user;
+    return this.entertainerService.getPricePerHour(refId);
+  }
 
   @Patch('booking/status')
   @UseGuards(JwtAuthGuard, RolesGuard) // Use your auth strategy

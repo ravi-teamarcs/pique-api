@@ -455,7 +455,10 @@ export class InvoiceService {
       .leftJoin('entertainers', 'ent', 'ent.id = invoices.user_id')
       .leftJoin('cities', 'city', 'city.id = ent.city')
       .leftJoin('states', 'state', 'state.id = ent.state')
-      .where('invoices.user_id = :userId', { userId })
+      .where('invoices.user_id = :userId', {
+        userId,
+      })
+      .andWhere('invoices.user_type = :role', { role: 'entertainer' })
       .select([
         'invoices.id AS id',
         'invoices.invoice_number AS invoice_number',
@@ -505,7 +508,10 @@ export class InvoiceService {
     });
     const totalCount = await this.invoiceRepository
       .createQueryBuilder('invoices')
-      .where('invoices.user_id = :userId', { userId })
+      .where('invoices.user_id = :userId', {
+        userId,
+      })
+      .andWhere('invoices.user_type = :role', { role: 'entertainer' })
       .getCount();
 
     return {
@@ -529,7 +535,10 @@ export class InvoiceService {
     const invoices = await this.invoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('event', 'event', 'event.id = invoices.event_id')
-      .where('invoices.user_id = :userId', { userId })
+      .where('invoices.user_id = :userId AND role =:role', {
+        userId,
+        role: 'venue',
+      })
       .select([
         'invoices.id AS id',
         'invoices.invoice_number AS invoice_number',
@@ -556,6 +565,7 @@ export class InvoiceService {
     const totalCount = await this.invoiceRepository
       .createQueryBuilder('invoices')
       .where('invoices.user_id = :userId', { userId })
+      .andWhere('invoices.user_type = :role', { role: 'venue' })
       .getCount();
 
     return {

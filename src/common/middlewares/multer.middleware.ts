@@ -1,5 +1,6 @@
 import { extname, join } from 'path';
 import * as fs from 'fs';
+import * as path from 'path';
 import * as crypto from 'crypto';
 
 export async function uploadFile(file: Express.Multer.File): Promise<string> {
@@ -41,4 +42,34 @@ export async function uploadFile(file: Express.Multer.File): Promise<string> {
   fs.writeFileSync(filePath, file.buffer);
 
   return filePath;
+}
+
+// file.helper.ts
+// Method to remove file from server.
+export async function deleteFileFromServer(fileUrl: string): Promise<void> {
+  if (!fileUrl) {
+    console.warn('deleteFileFromServer: fileUrl is empty, skipping deletion.');
+    return;
+  }
+
+  const normalizedUrl = fileUrl.replace(/^\/+/, ''); // remove leading slash
+  const fullPath = path.resolve(process.cwd(), normalizedUrl);
+  const uploadsBasePath = path.resolve(process.cwd(), 'uploads');
+
+  if (!fullPath.startsWith(uploadsBasePath)) {
+    console.error('Attempted to delete outside uploads directory:', fullPath);
+    return;
+  }
+
+  try {
+    await fs.promises.access(fullPath, fs.constants.F_OK); // check if exists
+    await fs.promises.unlink(fullPath); // delete
+    console.log(`✅ File deleted: ${fullPath}`);
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      console.warn(`⚠️ File not found: ${fileUrl}`);
+    } else {
+      console.error(`❌ Error deleting file: ${fileUrl}`, error.message);
+    }
+  }
 }

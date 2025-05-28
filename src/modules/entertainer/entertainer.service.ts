@@ -1746,4 +1746,34 @@ export class EntertainerService {
       throw new InternalServerErrorException(error.message);
     }
   }
+
+  async getPricePerHour(userId: number) {
+    try {
+      const data = await this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .select([
+          'entertainer.pricePerEvent AS pricePerHour',
+          'city.name As cityName',
+          'state.name AS stateName',
+          'entertainer.city AS cityCode',
+          'entertainer.addressLine1 AS addressLine1',
+          'entertainer.addressLine2 AS addressLine2',
+          'entertainer.city AS cityCode',
+          'entertainer.state AS stateCode',
+        ])
+        .where('entertainer.id = :userId', { userId })
+        .getRawMany();
+
+      return {
+        message: 'Price per hour fetched successfully',
+        data,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
 }
