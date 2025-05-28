@@ -1751,12 +1751,17 @@ export class EntertainerService {
     try {
       const data = await this.entertainerRepository
         .createQueryBuilder('entertainer')
+        .leftJoin('users', 'user', 'user.id = entertainer.user')
         .leftJoin('states', 'state', 'state.id = entertainer.state')
         .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
         .select([
           'entertainer.pricePerEvent AS pricePerHour',
+          'entertainer.entertainerName AS entertainerName',
+          'entertainer.contact_number AS contactNumber',
+          'user.email AS email',
           'city.name As cityName',
+          'state.name AS stateName',
           'state.name AS stateName',
           'entertainer.city AS cityCode',
           'entertainer.addressLine1 AS addressLine1',
