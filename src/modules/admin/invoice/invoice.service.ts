@@ -220,7 +220,7 @@ export class InvoiceService {
 
   // Latest Code of Generate Invoive (@Bhawani Thakur)
   async generateInvoice(dto: CreateInvoiceDto) {
-    const { eventId, pricePerHour, platformFee, isFixed, discountInPercent } =
+    let { eventId, pricePerHour, platformFee, isFixed, discountInPercent } =
       dto;
     const alreadyExists = await this.invoiceRepository.findOne({
       where: { event_id: eventId },
@@ -279,6 +279,8 @@ export class InvoiceService {
       if (isFixed) {
         totalWithPlatformFee = this.roundToTwo(discountedTotal + platformFee);
       } else {
+        platformFee = (discountedTotal * platformFee) / 100;
+
         totalWithPlatformFee = this.roundToTwo(
           discountedTotal + (discountedTotal * platformFee) / 100,
         );
@@ -297,7 +299,7 @@ export class InvoiceService {
         issue_date: issueDate.toISOString().split('T')[0],
         due_date: new Date(dueDate).toISOString().split('T')[0],
         total_amount: totalAmount,
-        tax_rate: 0,
+        tax_rate: platformFee ?? 0,
         tax_amount: parseFloat(discountedTotal.toFixed(2)),
         total_with_tax: parseFloat(totalWithPlatformFee.toFixed(2)),
         status: InvoiceStatus.UNPAID,
