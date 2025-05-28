@@ -535,7 +535,7 @@ export class InvoiceService {
     const invoices = await this.invoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('event', 'event', 'event.id = invoices.event_id')
-      .where('invoices.user_id = :userId AND role =:role', {
+      .where('invoices.user_id = :userId AND invoices.user_type =:role', {
         userId,
         role: 'venue',
       })

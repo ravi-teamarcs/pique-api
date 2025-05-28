@@ -148,6 +148,10 @@ class GeneralInformationDto {
   @IsString()
   @IsOptional()
   bio: string;
+
+  @IsString()
+  @IsOptional()
+  vaccinated: 'yes' | 'no';
 }
 
 export {

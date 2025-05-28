@@ -785,7 +785,11 @@ export class BookingService {
     }
   }
 
-  private async notSelectedforEvent(eventId: number, confirmedBookings) {
+  async notSelectedforEvent(
+    eventIds: number,
+    confirmedBookings,
+    venueId: number,
+  ) {
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('event', 'event', 'event.id = booking.eventId')
@@ -800,7 +804,8 @@ export class BookingService {
         'event.eventDate AS eventDate',
         'user.id AS entId',
       ])
-      .where('booking.eventId=:eventId', { eventId })
+      .where('booking.eventId IN :(...eventIds)', { eventIds })
+      .andWhere('booking.venueId = :venueId', { venueId })
       .getRawMany();
 
     if (bookings && bookings.length > 0) {
@@ -809,7 +814,7 @@ export class BookingService {
       );
 
       for (const req of rejectedRequest) {
-        if (req.email) {
+        if (req?.email) {
           const emailPayload = {
             to: req.email,
             subject: `Status update of Booking Request`,

@@ -20,6 +20,8 @@ export class EmailService {
         user: this.configService.get<string>('SMTP_USER'),
         pass: this.configService.get<string>('SMTP_PASS'),
       },
+      //logger: true, // Enable logging
+      //debug: true, // Enable debug output
     });
   }
   async handleSendEmail(emailDto: EmailDto) {
@@ -39,7 +41,7 @@ export class EmailService {
     }
     try {
       const res = await this.transporter.sendMail(mailOptions);
-
+      console.log(res);
       return { message: 'Email sent successfully', res, status: true };
     } catch (error) {
       this.logger.error('Error sending email', {
