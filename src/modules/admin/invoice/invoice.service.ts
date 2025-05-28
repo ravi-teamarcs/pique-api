@@ -132,6 +132,8 @@ export class InvoiceService {
         'invoices.*',
         'event.id AS eventId',
         'event.slug AS eventSlug',
+        'event.startTime AS startTime',
+        'event.endTime AS endTime',
         // venue Info
         'venue.name AS venueName',
         'venue.addressLine1 AS venueAddressLine1',
@@ -151,9 +153,16 @@ export class InvoiceService {
       .offset(skip)
       .getRawMany();
 
+    const newRecords = records.map(({ startTime, endTime, ...rest }) => {
+      return {
+        ...rest,
+        duration: this.getDurationInHours(startTime, endTime),
+      };
+    });
+
     return {
       message: 'Invoices fetched successfully',
-      records,
+      newRecords,
       total,
       page,
       pageSize,
@@ -389,7 +398,7 @@ export class InvoiceService {
   }
 
   private getDurationInHours(startTime: string, endTime: string): number {
-    const today = new Date().toISOString().split('T')[0]; // get current date as "YYYY-MM-DD"
+    const today = new Date().toISOString().split('T')[0]; // e.g., "2025-05-28"
     const start = parse(
       `${today} ${startTime}`,
       'yyyy-MM-dd HH:mm:ss',
@@ -398,7 +407,9 @@ export class InvoiceService {
     const end = parse(`${today} ${endTime}`, 'yyyy-MM-dd HH:mm:ss', new Date());
 
     const diffInMinutes = differenceInMinutes(end, start);
-    const diffInHours = Math.round((diffInMinutes / 60) * 100) / 100; // returns a number with 2 decimals
+
+    // 👇 Always round up to next full hour if any minutes exist
+    const diffInHours = Math.ceil(diffInMinutes / 60);
 
     return diffInHours;
   }
