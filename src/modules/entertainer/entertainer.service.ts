@@ -1445,7 +1445,7 @@ export class EntertainerService {
         .leftJoin('media', 'media', 'media.eventId = event.id')
         .where('booking.entId = :userId', { userId })
         .andWhere('booking.status = :status', { status: 'confirmed' })
-        .andWhere('booking.eventDate >= :now', { now: new Date() })
+        .andWhere('booking.showDate >= :now', { now: new Date() })
 
         .select([
           'event.id AS event_id',
