@@ -162,7 +162,7 @@ export class InvoiceService {
 
     return {
       message: 'Invoices fetched successfully',
-      newRecords,
+      records: newRecords,
       total,
       page,
       pageSize,
