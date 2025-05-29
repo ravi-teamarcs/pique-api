@@ -236,6 +236,10 @@ export class DashboardService {
       const qb = this.bookingRepo
         .createQueryBuilder('booking')
         .innerJoin('event', 'event', 'event.id = booking.eventId')
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+        .leftJoin('states', 'state', 'state.id = venue.state')
+        .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
         .andWhere('YEAR(event.eventDate) = :year', { year })
         .andWhere('MONTH(event.eventDate) = :month', { month })
         .select([
@@ -249,6 +253,15 @@ export class DashboardService {
           'event.recurring AS recurring',
           'event.status AS status',
           'event.isAdmin AS isAdmin',
+          'venue.id AS venueId',
+          'venue.name AS venueName',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'venue.city AS cityCode',
+          'venue.state AS stateCode',
+          'city.name AS cityName',
+          'state.name AS stateName',
+          'code.stateCode AS stateNameCode',
         ])
         .orderBy('event.eventDate', 'ASC');
 
