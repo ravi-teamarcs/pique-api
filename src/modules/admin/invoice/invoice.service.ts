@@ -588,6 +588,7 @@ export class InvoiceService {
     const data = await this.invoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('entertainers', 'ent', 'ent.id = invoices.user_id')
+      .leftJoin('users', 'user', 'user.id = ent.userId')
       .leftJoin('cities', 'city', 'city.id = ent.city')
       .leftJoin('states', 'state', 'state.id = ent.state')
 
@@ -609,10 +610,13 @@ export class InvoiceService {
         'ent.name AS entertainerName',
         'ent.addressLine1 AS addressLine1',
         'ent.addressLine2 AS addressLine2',
+        'ent.contact_number AS contactNumber',
+        'ent.city AS city_code',
         'ent.city AS city_code',
         'ent.state AS state_code',
         'state.name AS stateName',
         'city.name AS cityName',
+        'user.email AS email',
 
         // This subquery gets all events in one JSON array for this invoice
         `(SELECT JSON_ARRAYAGG(
