@@ -118,8 +118,14 @@ export class EntertainerService {
 
       const fullAddress = `${dto.addressLine1 ?? ''}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
 
+      // Added   pricePerEvent
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
-      const newPayload = { ...entertainer, latitude: lat, longitude: lng };
+      const newPayload = {
+        ...entertainer,
+        latitude: lat,
+        longitude: lng,
+        pricePerEvent: 100,
+      };
 
       const savedEntertainer =
         await this.entertainerRepository.save(newPayload);

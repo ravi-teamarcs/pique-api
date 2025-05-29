@@ -389,7 +389,11 @@ export class EventService {
         .getRawOne();
 
     const titleString = title ? `(${title})` : '';
-    const slug = `${formattedDate} at ${time12} ${titleString} at ${neighbourhoodName ?? ''}/${name} in ${city ?? ''},${stateCode ?? ''}`;
+    const neighbourhoodNameString = neighbourhoodName
+      ? `${neighbourhoodName}/`
+      : '';
+
+    const slug = `${formattedDate} at ${time12} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''}, ${stateCode ?? ''}`;
 
     return slug;
   }

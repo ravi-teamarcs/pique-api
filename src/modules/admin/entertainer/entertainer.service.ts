@@ -393,6 +393,7 @@ export class EntertainerService {
         user: savedUser ? { id: savedUser.id } : null,
         status: 'active',
         profileStep: 10,
+        pricePerEvent: 100,
         isProfileComplete: true,
       });
 

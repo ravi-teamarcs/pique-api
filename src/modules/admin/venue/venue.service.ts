@@ -240,6 +240,8 @@ export class VenueService {
         'venue.city AS city_code',
         'venue.state AS state_code',
         'venue.country AS country_code',
+        'venue.contact_person As contactPerson',
+        'venue.contact_person As contactNumber',
         'venue.zipCode AS zipCode',
         'city.name AS city',
         'state.name AS state',

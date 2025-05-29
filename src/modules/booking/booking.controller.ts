@@ -66,8 +66,9 @@ export class BookingController {
     return this.bookingService.getEntertainerDetailsPerEvent(eventId, refId);
   }
 
-  // @Post('test-route')
-  // async tetstingRoute() {
-  //   return this.bookingService.notSelectedforEvent([206, 207]);
-  // }
+  @Post('test-route')
+  @Roles('findAll')
+  async tetstingRoute() {
+    return this.bookingService.notSelectedforEvent([206, 207], [373, 374], 24);
+  }
 }

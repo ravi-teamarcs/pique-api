@@ -786,7 +786,7 @@ export class BookingService {
   }
 
   async notSelectedforEvent(
-    eventIds: number,
+    eventIds: number[],
     confirmedBookings,
     venueId: number,
   ) {
@@ -804,7 +804,7 @@ export class BookingService {
         'event.eventDate AS eventDate',
         'user.id AS entId',
       ])
-      .where('booking.eventId IN :(...eventIds)', { eventIds })
+      .where('booking.eventId IN (:...eventIds)', { eventIds })
       .andWhere('booking.venueId = :venueId', { venueId })
       .getRawMany();
 
@@ -814,6 +814,10 @@ export class BookingService {
       );
 
       for (const req of rejectedRequest) {
+        await this.bookingRepository.update(
+          { id: req.id },
+          { status: 'cancelled' },
+        );
         if (req?.email) {
           const emailPayload = {
             to: req.email,

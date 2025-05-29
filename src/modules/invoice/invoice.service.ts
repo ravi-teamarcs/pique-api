@@ -537,6 +537,11 @@ export class InvoiceService {
     const invoices = await this.invoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('event', 'event', 'event.id = invoices.event_id')
+      .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
+      .leftJoin('states', 'state', 'state.id = venue.state')
+      .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+      .leftJoin('cities', 'city', 'city.id = venue.city')
+
       .where('invoices.user_id = :userId AND invoices.user_type =:role', {
         userId,
         role: 'venue',
@@ -558,6 +563,11 @@ export class InvoiceService {
         'invoices.payment_date AS payment_date',
         'event.slug AS slug',
         'event.title AS Name',
+        'code.StateCode AS stateCode',
+        'city.name AS cityName',
+        'state.name AS stateName',
+        'venue.city AS cityCode',
+        'venue.state AS stateCode',
       ])
       .offset(offset)
       .limit(pageSize)

@@ -42,11 +42,11 @@ export class DashboardService {
           "CAST(SUM(CASE WHEN status = 'canceled' THEN 1 ELSE 0 END) AS UNSIGNED) as canceled",
         ])
         .getRawOne();
-
+      // Here made changes
       const { total } = await this.invoiceRepo
         .createQueryBuilder('invoices')
         .where('invoices.user_type = :userType', { userType: 'venue' })
-        .select('SUM(invoices.total_amount)', 'total')
+        .select('SUM(invoices.total_with_tax)', 'total')
         .getRawOne();
 
       const data = {
@@ -176,10 +176,12 @@ export class DashboardService {
     const rawData = await this.invoiceRepo
       .createQueryBuilder('invoice')
       .select('MONTH(invoice.created_at)', 'month') // use your timestamp column name
-      .addSelect('SUM(invoice.total_amount)', 'revenue')
+      .addSelect('SUM(invoice.total_with_tax)', 'revenue')
       .where('YEAR(invoice.created_at) = :year', {
         year: new Date().getFullYear(),
       })
+      .where('invoice.user_type = :userType', { userType: 'venue' })
+
       .groupBy('month')
       .orderBy('month', 'ASC')
       .getRawMany();
