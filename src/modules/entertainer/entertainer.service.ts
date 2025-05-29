@@ -124,7 +124,7 @@ export class EntertainerService {
         ...entertainer,
         latitude: lat,
         longitude: lng,
-        pricePerEvent: 100,
+        pricePerEvent: 200,
       };
 
       const savedEntertainer =
