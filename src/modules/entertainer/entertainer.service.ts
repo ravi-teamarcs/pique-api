@@ -1145,6 +1145,8 @@ export class EntertainerService {
           'venue.description AS description',
           'venue.state AS state',
           'venue.city AS city',
+          'venue.addressLine1 As addressLine1',
+          'venue.addressLine2 As addressLine2',
           'city.name AS city_name',
           'country.name AS country_name',
           'state.name AS state_name',
