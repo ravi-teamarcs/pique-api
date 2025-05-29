@@ -67,7 +67,7 @@ export class DashboardService {
         status: true,
       };
     } catch (error) {
-      throw new InternalServerErrorException({ Message: error.message });
+      throw new InternalServerErrorException({ message: error.message });
     }
   }
 

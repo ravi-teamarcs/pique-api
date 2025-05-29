@@ -169,7 +169,7 @@ export class EntertainerService {
 
     // Add search condition
     if (search) {
-      baseQuery.andWhere('entertainer.name LIKE :search', {
+      baseQuery.andWhere('entertainer.entertainerName LIKE :search', {
         search: `%${search}%`,
       });
     }
