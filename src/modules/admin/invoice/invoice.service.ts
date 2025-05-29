@@ -104,6 +104,15 @@ export class InvoiceService {
     const { page = 1, pageSize = 10, search = '', role } = dto;
     const skip = (page - 1) * pageSize;
 
+    if (role === 'entertainer') {
+      return await this.getAdminInvoiceForEntertainer(
+        page,
+        pageSize,
+        search,
+        role,
+      );
+    }
+
     // Build base query with all conditions
     const baseQuery = this.invoiceRepository
       .createQueryBuilder('invoices')
@@ -566,5 +575,91 @@ export class InvoiceService {
       }
       throw new InternalServerErrorException(error.message);
     }
+  }
+
+  async getAdminInvoiceForEntertainer(
+    page: number,
+    pageSize: number,
+    search,
+    role,
+  ) {
+    const skip = (page - 1) * pageSize;
+
+    const data = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .leftJoin('entertainers', 'ent', 'ent.id = invoices.user_id')
+      .leftJoin('cities', 'city', 'city.id = ent.city')
+      .leftJoin('states', 'state', 'state.id = ent.state')
+
+      .andWhere('invoices.user_type = :role', { role: 'entertainer' })
+      .select([
+        'invoices.id AS id',
+        'invoices.invoice_number AS invoice_number',
+        'invoices.user_id AS user_id',
+        'invoices.issue_date AS issue_date',
+        'invoices.due_date AS due_date',
+        'invoices.total_amount AS total_amount',
+        'invoices.tax_rate AS tax_rate',
+        'invoices.tax_amount AS tax_amount',
+        'invoices.total_with_tax AS total_with_tax',
+        'invoices.status AS status',
+        'invoices.payment_method AS payment_method',
+        'invoices.payment_date AS payment_date',
+
+        'ent.name AS entertainerName',
+        'ent.addressLine1 AS addressLine1',
+        'ent.addressLine2 AS addressLine2',
+        'ent.city AS city_code',
+        'ent.state AS state_code',
+        'state.name AS stateName',
+        'city.name AS cityName',
+
+        // This subquery gets all events in one JSON array for this invoice
+        `(SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'slug', e.slug,
+      'title', e.title,
+      'eventDate', e.eventDate,
+      'startTime', e.startTime,
+      'endTime', e.endTime
+    )
+  )
+  FROM invoice_bookings ib
+  JOIN event e ON e.id = ib.event_id
+  WHERE ib.invoice_id = invoices.id
+) AS events`,
+      ])
+      .orderBy('invoices.issue_date', 'DESC')
+      .offset((page - 1) * pageSize)
+      .limit(pageSize)
+      .getRawMany();
+
+    const parsedResults = data.map(({ events, ...rest }) => {
+      return {
+        ...rest,
+        events: events
+          ? JSON.parse(events).map(({ startTime, endTime, ...rest }) => {
+              return {
+                ...rest,
+                duration: this.getDurationInHours(startTime, endTime),
+              };
+            })
+          : [], // Parse JSON string to object
+      };
+    });
+    const totalCount = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .andWhere('invoices.user_type = :role', { role: 'entertainer' })
+      .getCount();
+
+    return {
+      message: 'Invoices fetched successfully',
+      records: parsedResults,
+      total: totalCount,
+      page,
+      pageSize,
+      totalPages: Math.ceil(totalCount / pageSize),
+      status: true,
+    };
   }
 }
