@@ -563,9 +563,12 @@ export class InvoiceService {
         'invoices.payment_date AS payment_date',
         'event.slug AS slug',
         'event.title AS Name',
-        'code.StateCode AS stateCode',
+        'code.stateCode AS stateNameCode',
         'city.name AS cityName',
         'state.name AS stateName',
+        'venue.name AS venueName',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
         'venue.city AS cityCode',
         'venue.state AS stateCode',
       ])
