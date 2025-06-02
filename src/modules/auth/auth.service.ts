@@ -106,7 +106,7 @@ export class AuthService {
     });
     if (user) {
       throw new BadRequestException({
-        message: 'Email Already Taken',
+        message: 'Email already taken',
         error: 'Bad Request',
         status: false,
       });
@@ -133,7 +133,7 @@ export class AuthService {
       }
       const payload = {
         to: email,
-        subject: 'Email verification   ',
+        subject: 'Email verification',
         templateName: 'email-verification.html',
         replacements: {
           otp: otpCode,
@@ -142,12 +142,12 @@ export class AuthService {
       // send via email
       await this.emailService.handleSendEmail(payload);
       return {
-        message: 'Otp Sent Successfully to the entered  email.',
+        message: 'Otp sent successfully to the entered email.',
         status: true,
       };
     } catch (error) {
       throw new InternalServerErrorException({
-        message: 'Error in send otp',
+        message: 'Error in sending otp.',
         error: error.message,
         status: false,
       });

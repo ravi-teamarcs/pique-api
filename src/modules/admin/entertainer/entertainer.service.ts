@@ -607,12 +607,6 @@ export class EntertainerService {
         relations: ['user'],
       });
 
-      if (entertainer.user) {
-        await this.userRepository.update(
-          { id: entertainer.user.id },
-          { status },
-        );
-      }
       await this.entertainerRepository.update({ id }, { status });
       const currentYear = new Date().getFullYear();
       // Send Email to the User
@@ -622,33 +616,40 @@ export class EntertainerService {
         inactive: 'deactivated',
       };
 
-      const statusToPayloadMap = {
-        active: {
-          to: entertainer.user.email,
-          subject: 'Account Status',
-          templateName: 'account-approved.html',
-          replacements: { name: entertainer.user.name, year: currentYear },
-        },
-        inactive: {
-          to: entertainer.user.email,
-          subject: 'Account Status',
-          templateName: 'account-deactivation.html',
-          replacements: {
-            User: entertainer.user.name,
-            Date: new Date().getFullYear(),
-            Year: currentYear,
+      if (entertainer.user) {
+        await this.userRepository.update(
+          { id: entertainer.user.id },
+          { status },
+        );
+        const statusToPayloadMap = {
+          active: {
+            to: entertainer.user.email,
+            subject: 'Account Status',
+            templateName: 'account-approved.html',
+            replacements: { name: entertainer.user.name, year: currentYear },
           },
-        },
-        rejected: {
-          to: entertainer.user.email,
-          subject: 'Account Status',
-          templateName: 'account-rejected.html',
-          replacements: { name: entertainer.user.name, year: currentYear },
-        },
-      };
+          inactive: {
+            to: entertainer.user.email,
+            subject: 'Account Status',
+            templateName: 'account-deactivation.html',
+            replacements: {
+              User: entertainer.user.name,
+              Date: new Date().getFullYear(),
+              Year: currentYear,
+            },
+          },
+          rejected: {
+            to: entertainer.user.email,
+            subject: 'Account Status',
+            templateName: 'account-rejected.html',
+            replacements: { name: entertainer.user.name, year: currentYear },
+          },
+        };
 
-      const emailPayload = statusToPayloadMap[status];
-      this.emailService.handleSendEmail(emailPayload);
+        const emailPayload = statusToPayloadMap[status];
+        this.emailService.handleSendEmail(emailPayload);
+      }
+
       return {
         message: `Entertainer profile ${statusToMessageMap[status]} Successfully`,
         status: true,
@@ -669,7 +670,6 @@ export class EntertainerService {
   }
   async categorybyId(id: number) {
     try {
-      // Find the category by its ID
       const category = await this.CategoryRepository.findOne({
         where: { id: id },
       });
@@ -879,12 +879,134 @@ export class EntertainerService {
       });
     }
   }
+  // Previous Working Version
+  // async getAllEntertainerList(eventId: number, query: GetEntertainerDto) {
+  //   try {
+  //     const today = new Date();
+  //     today.setHours(0, 0, 0, 0);
+
+  //     const { page = 1, pageSize = 10, search = '', vaccinated } = query;
+  //     const skip = (page - 1) * pageSize;
+  //     const baseQuery = this.entertainerRepository
+  //       .createQueryBuilder('entertainer')
+  //       .leftJoin('countries', 'country', 'country.id = entertainer.country')
+  //       .leftJoin('states', 'state', 'state.id = entertainer.state')
+  //       .leftJoin('cities', 'city', 'city.id = entertainer.city')
+  //       .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
+  //       .leftJoin(
+  //         'categories',
+  //         'subcat',
+  //         'subcat.id = entertainer.specific_category',
+  //       )
+  //       .where('entertainer.status IN (:...statuses)', {
+  //         statuses: ['active'],
+  //       })
+  //       .andWhere((qb) => {
+  //         const subQuery = qb
+  //           .subQuery()
+  //           .select('1')
+  //           .from('booking', 'book')
+  //           .where('book.entId = entertainer.id')
+  //           .andWhere('book.eventId = :eventId')
+  //           .getQuery();
+  //         return `NOT EXISTS ${subQuery}`;
+  //       })
+  //       .setParameter('eventId', eventId)
+  //       .setParameter('today', today)
+  //       // Add previous booking as a field (latest before today)
+  //       .addSelect((subQuery) => {
+  //         return subQuery
+  //           .select('bookPrev.showDate')
+  //           .from('booking', 'bookPrev')
+  //           .where('bookPrev.entId = entertainer.id')
+  //           .andWhere('bookPrev.showDate < :today')
+  //           .orderBy('bookPrev.showDate', 'DESC')
+  //           .limit(1);
+  //       }, 'previousBookingDate')
+
+  //       // Add future booking as a field (earliest after today)
+  //       .addSelect((subQuery) => {
+  //         return subQuery
+  //           .select('bookNext.showDate')
+  //           .from('booking', 'bookNext')
+  //           .where('bookNext.entId = entertainer.id')
+  //           .andWhere('bookNext.showDate > :today')
+  //           .orderBy('bookNext.showDate', 'ASC')
+  //           .limit(1);
+  //       }, 'upcomingBookingDate')
+
+  //       .select([
+  //         'entertainer.id AS id',
+  //         'entertainer.name AS name',
+  //         'entertainer.entertainer_name AS entertainer_name',
+  //         'entertainer.dob AS dob',
+  //         'entertainer.bio AS bio',
+  //         'entertainer.performanceRole AS performanceRole',
+  //         'entertainer.socialLinks AS socialLinks',
+  //         'entertainer.zipCode AS ZipCode',
+  //         'entertainer.contact_person AS contactPerson',
+  //         'entertainer.contact_number AS ContactNumber',
+  //         'entertainer.address AS address',
+  //         'entertainer.status AS status',
+  //         'entertainer.pricePerEvent AS pricePerEvent',
+  //         'entertainer.vaccinated AS vaccinated',
+  //         'city.name AS city',
+  //         'country.name AS country',
+  //         'state.name AS state',
+  //       ]);
+
+  //     if (search) {
+  //       baseQuery.where('entertainer.name LIKE :search', {
+  //         search: `%${search}%`,
+  //       });
+  //     }
+  //     if (vaccinated) {
+  //       baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+  //         vaccinated,
+  //       });
+  //     }
+  //     const total = await baseQuery.getCount();
+
+  //     const records = await baseQuery
+  //       .orderBy('entertainer.name', 'DESC')
+  //       .skip(skip)
+  //       .take(pageSize)
+  //       .getRawMany();
+  //     const parsedRecords = await Promise.all(
+  //       records.map(
+  //         async ({ services, id, pricePerEvent, socialLinks, ...rest }) => ({
+  //           services: services ? services.split(',') : [],
+  //           socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
+  //           id: Number(id),
+  //           priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
+  //           pricePerEvent,
+  //           ...rest,
+  //         }),
+  //       ),
+  //     );
+
+  //     return {
+  //       message: 'Entertainers fetched Sucessfully.',
+  //       records: parsedRecords,
+  //       total,
+  //       pageSize,
+  //       currentPage: page, // Total count of entertainers
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
 
   async getAllEntertainerList(eventId: number, query: GetEntertainerDto) {
     try {
-      const { page = 1, pageSize = 10, search = '', vaccinated } = query; // Default values for pagination ok
-      const skip = (page - 1) * pageSize; // Calculate records to skip
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0];
 
+      const { page = 1, pageSize = 10, search = '', vaccinated } = query;
+      const skip = (page - 1) * pageSize;
       const baseQuery = this.entertainerRepository
         .createQueryBuilder('entertainer')
         .leftJoin('countries', 'country', 'country.id = entertainer.country')
@@ -910,29 +1032,50 @@ export class EntertainerService {
           return `NOT EXISTS ${subQuery}`;
         })
         .setParameter('eventId', eventId)
+        .setParameter('todayString', todayString)
 
+        // Use select() for main fields with proper aliases
         .select([
           'entertainer.id AS id',
           'entertainer.name AS name',
           'entertainer.entertainer_name AS entertainer_name',
-          'entertainer.dob AS dob',
           'entertainer.bio AS bio',
           'entertainer.performanceRole AS performanceRole',
           'entertainer.socialLinks AS socialLinks',
           'entertainer.zipCode AS ZipCode',
           'entertainer.contact_person AS contactPerson',
           'entertainer.contact_number AS ContactNumber',
-          'entertainer.address AS address',
           'entertainer.status AS status',
           'entertainer.pricePerEvent AS pricePerEvent',
           'entertainer.vaccinated AS vaccinated',
           'city.name AS city',
           'country.name AS country',
           'state.name AS state',
-        ]);
+        ])
+
+        // Use addSelect() ONLY for subqueries
+        .addSelect((subQuery) => {
+          return subQuery
+            .select("DATE_FORMAT(bookPrev.showDate, '%Y-%m-%d')")
+            .from('booking', 'bookPrev')
+            .where('bookPrev.entId = entertainer.id')
+            .andWhere('DATE(bookPrev.showDate) < :todayString')
+            .orderBy('bookPrev.showDate', 'DESC')
+            .limit(1);
+        }, 'previousBookingDate')
+
+        .addSelect((subQuery) => {
+          return subQuery
+            .select("DATE_FORMAT(bookNext.showDate, '%Y-%m-%d')")
+            .from('booking', 'bookNext')
+            .where('bookNext.entId = entertainer.id')
+            .andWhere('DATE(bookNext.showDate) > :todayString')
+            .orderBy('bookNext.showDate', 'ASC')
+            .limit(1);
+        }, 'upcomingBookingDate');
 
       if (search) {
-        baseQuery.where('entertainer.name LIKE :search', {
+        baseQuery.andWhere('entertainer.name LIKE :search', {
           search: `%${search}%`,
         });
       }
@@ -941,6 +1084,7 @@ export class EntertainerService {
           vaccinated,
         });
       }
+
       const total = await baseQuery.getCount();
 
       const records = await baseQuery
@@ -948,22 +1092,36 @@ export class EntertainerService {
         .skip(skip)
         .take(pageSize)
         .getRawMany();
+
       const parsedRecords = await Promise.all(
-        records.map(async ({ services, id, pricePerEvent, ...rest }) => ({
-          // services: services ? services.split(',') : [],
-          id: Number(id),
-          priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
-          pricePerEvent,
-          ...rest,
-        })),
+        records.map(
+          async ({
+            services,
+            id,
+            pricePerEvent,
+            socialLinks,
+            previousBookingDate,
+            upcomingBookingDate,
+            ...rest
+          }) => ({
+            id: Number(id),
+            services: services ? services.split(',') : [],
+            socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
+            priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
+            pricePerEvent,
+            previousBookingDate,
+            upcomingBookingDate,
+            ...rest,
+          }),
+        ),
       );
 
       return {
-        message: 'Entertainers fetched Sucessfully.',
+        message: 'Entertainers fetched Successfully.',
         records: parsedRecords,
         total,
         pageSize,
-        currentPage: page, // Total count of entertainers
+        currentPage: page,
       };
     } catch (error) {
       throw new InternalServerErrorException({

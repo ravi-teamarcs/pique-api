@@ -114,12 +114,7 @@ export class BookingController {
     // Format for SQL or output
     const formattedFromDate = format(finalFromDate, 'yyyy-MM-dd');
     const formattedToDate = format(finalToDate, 'yyyy-MM-dd');
-    console.log(
-      'Formatted From',
-      formattedFromDate,
-      'Formatted to DAte',
-      formattedToDate,
-    );
+
     return this.bookingService.getBookingListing(
       formattedFromDate,
       formattedToDate,

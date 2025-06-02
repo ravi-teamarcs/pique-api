@@ -685,49 +685,46 @@ export class VenueService {
         relations: ['user'],
       });
 
-      if (!venue) throw new NotFoundException('Venue not found .');
-
-      if (venue.user) {
-        await this.userRepository.update({ id: venue.user.id }, { status });
-      }
+      if (!venue) throw new NotFoundException('Venue not found');
 
       await this.venueRepository.update({ id }, { status });
-
       const currentYear = new Date().getFullYear();
-      // Send Email to the User
+
       const statusToMessageMap = {
         active: 'activated',
         rejected: 'rejected',
         inactive: 'deactivated',
       };
 
-      const statusToPayloadMap = {
-        active: {
-          to: venue.user.email,
-          subject: 'Account Status',
-          templateName: 'account-approved.html',
-          replacements: { name: venue.user.name, year: currentYear },
-        },
-        inactive: {
-          to: venue.user.email,
-          subject: 'Account Status',
-          templateName: 'account-deactivation.html',
-          replacements: {
-            User: venue.user.name,
-            Date: new Date().getFullYear(),
-            Year: currentYear,
+      if (venue.user) {
+        const statusToPayloadMap = {
+          active: {
+            to: venue.user.email,
+            subject: 'Account Status',
+            templateName: 'account-approved.html',
+            replacements: { name: venue.user.name, year: currentYear },
           },
-        },
-        rejected: {
-          to: venue.user.email,
-          subject: 'Account Status',
-          templateName: 'account-rejected.html',
-          replacements: { name: venue.user.name, year: currentYear },
-        },
-      };
+          inactive: {
+            to: venue.user.email,
+            subject: 'Account Status',
+            templateName: 'account-deactivation.html',
+            replacements: {
+              User: venue.user.name,
+              Date: new Date().getFullYear(),
+              Year: currentYear,
+            },
+          },
+          rejected: {
+            to: venue.user.email,
+            subject: 'Account Status',
+            templateName: 'account-rejected.html',
+            replacements: { name: venue.user.name, year: currentYear },
+          },
+        };
 
-      const emailPayload = statusToPayloadMap[status];
-      this.emailService.handleSendEmail(emailPayload);
+        const emailPayload = statusToPayloadMap[status];
+        this.emailService.handleSendEmail(emailPayload);
+      }
       return {
         message: `Venue profile has been ${statusToMessageMap[status]} Successfully`,
         status: true,

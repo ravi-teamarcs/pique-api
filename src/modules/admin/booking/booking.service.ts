@@ -237,7 +237,7 @@ export class BookingService {
           'inv.cheque_no AS venueChequeNo',
           'inv.inv_amount_paid AS venueInvAmountPaid',
           'inv.payment_date AS venuePaymentDate',
-
+          'venue.name As venueName',
           'hood.name AS neighbourhood_name',
           'city.name AS  venueCityName',
           'state.name AS  venueStateName',
