@@ -586,7 +586,7 @@ export class VenueService {
           'entertainer.id AS eid',
           'entertainer.name AS name',
           'entertainer.entertainer_name AS entertainer_name',
-          'venue.isPiqueVerified AS isPiqueVerified',
+          'entertainer.isPiqueVerified AS isPiqueVerified',
           'entertainer.category AS category',
           'entertainer.specific_category AS specific_category',
           'entertainer.performanceRole AS performanceRole',
