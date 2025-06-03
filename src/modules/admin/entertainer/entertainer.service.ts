@@ -1179,8 +1179,14 @@ export class EntertainerService {
       { isPiqueVerified: !entertainer.isPiqueVerified },
     );
 
+    const savedVerification = await this.entertainerRepository.findOne({
+      where: { id: entertainerId },
+      select: ['isPiqueVerified'],
+    });
+
     return {
       message: 'Entertainer profile verification toggled successfully.',
+      data: savedVerification,
       status: true,
     };
   }

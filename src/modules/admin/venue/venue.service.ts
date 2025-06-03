@@ -915,10 +915,15 @@ export class VenueService {
       { id: venueId },
       { isPiqueVerified: !venue.isPiqueVerified },
     );
+    const savedVerification = await this.venueRepository.findOne({
+      where: { id: venueId },
+      select: ['isPiqueVerified'],
+    });
 
     return {
       message: 'Venue profile verification toggled successfully.',
       status: true,
+      data: savedVerification,
     };
   }
 }
