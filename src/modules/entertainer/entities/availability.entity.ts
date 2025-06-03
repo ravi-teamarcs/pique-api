@@ -8,6 +8,11 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
+type Slot = 'morning' | 'afternoon' | 'evening' | 'night' | 'whole_day';
+interface UnavailableDate {
+  date: string; // "YYYY-MM-DD"
+  slots: Slot[];
+}
 @Entity('entertainer_availability')
 export class EntertainerAvailability {
   @PrimaryGeneratedColumn()
@@ -17,10 +22,10 @@ export class EntertainerAvailability {
   entertainer_id: number;
 
   @Column({ type: 'json' })
-  unavailable_dates: string[];
+  available_dates: string[];
 
   @Column({ type: 'json' })
-  available_dates: string[];
+  unavailable_dates: { date: string; slots: string[] }[];
 
   @Column({ type: 'json' })
   unavailable_weekdays: number[];

@@ -266,7 +266,7 @@ export class EntertainerController {
     @Param('id', ParseIntPipe) id: number,
   ) {
     dto['entertainer_id'] = id;
-    return this.EntertainerService.saveEntertainerAvailability(dto);
+    // return this.EntertainerService.saveEntertainerAvailability(dto);
   }
 
   @Get('availability/:id')
@@ -287,7 +287,14 @@ export class EntertainerController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAvailabilityDto,
   ) {
-    return this.EntertainerService.updateEntertainerAvailability(id, dto);
+    // return this.EntertainerService.updateEntertainerAvailability(id, dto);
   }
   // Api for
+
+  @Patch('toggle-verification/:entertainerId')
+  async toggleVerification(
+    @Param('entertainerId', ParseIntPipe) entertainerId: number,
+  ) {
+    return this.EntertainerService.toggleVerificationFlag(entertainerId);
+  }
 }

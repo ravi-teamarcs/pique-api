@@ -795,36 +795,36 @@ export class EntertainerService {
     }
   }
 
-  async saveEntertainerAvailability(dto: EntertainerAvailabilityDto) {
-    try {
-      const { entertainer_id, ...rest } = dto;
+  // async saveEntertainerAvailability(dto: EntertainerAvailabilityDto) {
+  //   try {
+  //     const { entertainer_id, ...rest } = dto;
 
-      const alreadyExists = await this.availabilityRepository.findOne({
-        where: { entertainer_id, year: dto.year, month: dto.month },
-      });
+  //     const alreadyExists = await this.availabilityRepository.findOne({
+  //       where: { entertainer_id, year: dto.year, month: dto.month },
+  //     });
 
-      if (alreadyExists) {
-        await this.availabilityRepository.update(
-          { id: alreadyExists.id },
-          { ...rest },
-        );
-      }
+  //     // if (alreadyExists) {
+  //     //   await this.availabilityRepository.update(
+  //     //     { id: alreadyExists.id },
+  //     //     { ...rest },
+  //     //   );
+  //     // }
 
-      const availability = this.availabilityRepository.create(dto);
-      const savedAvailability =
-        await this.availabilityRepository.save(availability);
-      return {
-        message: 'Entertainer Availability returned Successfully',
-        data: savedAvailability,
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
-        status: false,
-      });
-    }
-  }
+  //     // const availability = this.availabilityRepository.create(dto);
+  //     const savedAvailability =
+  //       await this.availabilityRepository.save(availability);
+  //     return {
+  //       message: 'Entertainer Availability returned Successfully',
+  //       data: savedAvailability,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
   async getEntertainerAvailability(id: number, year: number, month: number) {
     try {
       const availability = await this.availabilityRepository.findOne({
@@ -844,41 +844,41 @@ export class EntertainerService {
     }
   }
 
-  async updateEntertainerAvailability(id: number, dto: UpdateAvailabilityDto) {
-    try {
-      const availability = await this.availabilityRepository.findOne({
-        where: { entertainer_id: id, year: dto.year, month: dto.month },
-      });
+  // async updateEntertainerAvailability(id: number, dto: UpdateAvailabilityDto) {
+  //   try {
+  //     const availability = await this.availabilityRepository.findOne({
+  //       where: { entertainer_id: id, year: dto.year, month: dto.month },
+  //     });
 
-      if (!availability) {
-        const avail = this.availabilityRepository.create({
-          entertainer_id: id,
-          ...dto,
-        });
-        const savedAvailability = await this.availabilityRepository.save(avail);
-        return {
-          message: 'Entertainer availability Saved successfully',
-          data: savedAvailability,
-          status: true,
-        };
-      }
+  //     if (!availability) {
+  //       const avail = this.availabilityRepository.create({
+  //         entertainer_id: id,
+  //         ...dto,
+  //       });
+  //       const savedAvailability = await this.availabilityRepository.save(avail);
+  //       return {
+  //         message: 'Entertainer availability Saved successfully',
+  //         data: savedAvailability,
+  //         status: true,
+  //       };
+  //     }
 
-      const updatedAvailability = await this.availabilityRepository.update(
-        { id: availability.id },
-        dto,
-      );
-      return {
-        message: 'Entertainer availability updated successfully',
-        data: dto,
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
-        status: false,
-      });
-    }
-  }
+  //     const updatedAvailability = await this.availabilityRepository.update(
+  //       { id: availability.id },
+  //       dto,
+  //     );
+  //     return {
+  //       message: 'Entertainer availability updated successfully',
+  //       data: dto,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
   // Previous Working Version
   // async getAllEntertainerList(eventId: number, query: GetEntertainerDto) {
   //   try {
@@ -1141,5 +1141,24 @@ export class EntertainerService {
         ? basePrice + markupValue
         : basePrice + (markupValue / 100) * basePrice;
     return finalPrice;
+  }
+// For Setting up verification (isPiqueVerified) flag
+  async toggleVerificationFlag(entertainerId: number) {
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { id: entertainerId },
+    });
+    if (!entertainer) {
+      throw new NotFoundException('Entertainer do not exists.');
+    }
+
+    await this.entertainerRepository.update(
+      { id: entertainerId },
+      { isPiqueVerified: !entertainer.isPiqueVerified },
+    );
+
+    return {
+      message: 'Entertainer profile verification toggled successfully.',
+      status: true,
+    };
   }
 }

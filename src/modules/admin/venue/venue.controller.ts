@@ -204,4 +204,9 @@ export class VenueController {
   updateBookingStatus(@Body() dto: UpdateBookingStatusDto) {
     return this.venueService.updateBookingStatus(dto);
   }
+
+  @Patch('toggle-verification/:venueId')
+  async toggleVerification(@Param('venueId', ParseIntPipe) venueId: number) {
+    return this.venueService.toggleVerificationFlag(venueId);
+  }
 }

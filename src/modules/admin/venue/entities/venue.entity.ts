@@ -45,6 +45,9 @@ export class Venue {
   @Column('decimal', { precision: 9, scale: 6, nullable: true })
   longitude?: number;
 
+  @Column({ type: 'boolean', name: 'is_pique_verified', default: false })
+  isPiqueVerified: boolean;
+
   @Column({ type: 'text', nullable: true })
   description: string;
 

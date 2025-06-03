@@ -67,15 +67,15 @@ export class BookingService {
         });
 
       // Check for Availability
-      const available = await this.checkAvailability(
-        entertainerId,
-        dto.showDate,
-      );
+      // const available = await this.checkAvailability(
+      //   entertainerId,
+      //   dto.showDate,
+      // );
 
-      if (available === false)
-        throw new BadRequestException(
-          'Entertainer is not available on requested date.',
-        );
+      // if (available === false)
+      //   throw new BadRequestException(
+      //     'Entertainer is not available on requested date.',
+      //   );
 
       // Create the booking
       const newBooking = this.bookingRepository.create({
@@ -681,28 +681,28 @@ export class BookingService {
     }
   }
 
-  async checkAvailability(
-    entertainerId: number,
-    showDate: string,
-  ): Promise<boolean> {
-    const date = new Date(showDate);
-    const year = date.getFullYear();
-    const month = date.getMonth() + 1;
-    const weekday = date.getDay();
+  // async checkAvailability(
+  //   entertainerId: number,
+  //   showDate: string,
+  // ): Promise<boolean> {
+  //   const date = new Date(showDate);
+  //   const year = date.getFullYear();
+  //   const month = date.getMonth() + 1;
+  //   const weekday = date.getDay();
 
-    const availability = await this.availabilityRepository.findOne({
-      where: { entertainer_id: entertainerId, year, month },
-    });
+  //   const availability = await this.availabilityRepository.findOne({
+  //     where: { entertainer_id: entertainerId, year, month },
+  //   });
 
-    if (!availability) return true; // If not set, assume available
+  //   if (!availability) return true; // If not set, assume available
 
-    const isUnavailable = availability.unavailable_dates.includes(showDate);
-    const isOverride = availability.available_dates.includes(showDate);
-    const isWeekdayBlocked =
-      availability.unavailable_weekdays.includes(weekday);
+  //   const isUnavailable = availability.unavailable_dates.includes(showDate);
+  //   const isOverride = availability.available_dates.includes(showDate);
+  //   const isWeekdayBlocked =
+  //     availability.unavailable_weekdays.includes(weekday);
 
-    return !isUnavailable && (!isWeekdayBlocked || isOverride);
-  }
+  //   return !isUnavailable && (!isWeekdayBlocked || isOverride);
+  // }
 
   async entertainerBookingDetailsByEvent(eventId: number, refId: number) {
     try {

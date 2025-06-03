@@ -53,7 +53,6 @@ export class NotificationController {
   @UseGuards(JwtAuthGuard)
   async getUserNotifications(@Query() query: NotificationQueryDto, @Req() req) {
     const { userId } = req.user; // assuming you attach user to request after auth
-
     return this.notificationService.getNotifications(userId, query);
   }
 

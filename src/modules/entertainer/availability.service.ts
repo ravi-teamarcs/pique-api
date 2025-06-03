@@ -11,7 +11,7 @@ import { UpdateAvailabilityDto } from './dto/update-entertainer-availability.dto
 import { EntertainerAvailabilityDto } from '../admin/entertainer/Dto/entertainer-availability.dto';
 import { Booking } from '../booking/entities/booking.entity';
 import { endOfMonth, startOfMonth } from 'date-fns';
-import { dataform_v1beta1 } from 'googleapis';
+import { instanceToPlain } from 'class-transformer';
 
 @Injectable()
 export class AvailabilityService {
@@ -68,10 +68,12 @@ export class AvailabilityService {
 
   async saveEntertainerAvailability(dto: EntertainerAvailabilityDto) {
     try {
-      const { entertainer_id, ...rest } = dto;
+      const plaindto = instanceToPlain(dto);
+
+      const { entertainer_id, ...rest } = plaindto;
 
       const alreadyExists = await this.availabilityRepository.findOne({
-        where: { entertainer_id, year: dto.year, month: dto.month },
+        where: { entertainer_id, year: plaindto.year, month: plaindto.month },
       });
 
       if (alreadyExists) {
@@ -124,8 +126,13 @@ export class AvailabilityService {
 
   // async updateEntertainerAvailability(id: number, dto: UpdateAvailabilityDto) {
   //   try {
+  //     const plaindto = instanceToPlain(dto);
   //     const availability = await this.availabilityRepository.findOne({
-  //       where: { entertainer_id: id, year: dto.year, month: dto.month },
+  //       where: {
+  //         entertainer_id: id,
+  //         year: plaindto.year,
+  //         month: plaindto.month,
+  //       },
   //     });
 
   //     if (!availability) {
@@ -134,7 +141,7 @@ export class AvailabilityService {
 
   //     const updatedAvailability = await this.availabilityRepository.update(
   //       { id: availability.id },
-  //       dto,
+  //       plaindto,
   //     );
   //     return {
   //       message: 'Entertainer Availability updated Successfully',
@@ -151,14 +158,19 @@ export class AvailabilityService {
 
   async updateEntertainerAvailability(id: number, dto: UpdateAvailabilityDto) {
     try {
+      const plainDto = instanceToPlain(dto);
       const availability = await this.availabilityRepository.findOne({
-        where: { entertainer_id: id, year: dto.year, month: dto.month },
+        where: {
+          entertainer_id: id,
+          year: plainDto.year,
+          month: plainDto.month,
+        },
       });
 
       if (!availability) {
         const avail = this.availabilityRepository.create({
           entertainer_id: id,
-          ...dto,
+          ...plainDto,
         });
         const savedAvailability = await this.availabilityRepository.save(avail);
         return {
@@ -170,7 +182,7 @@ export class AvailabilityService {
 
       const updatedAvailability = await this.availabilityRepository.update(
         { id: availability.id },
-        dto,
+        plainDto,
       );
       return {
         message: 'Entertainer availability updated successfully',

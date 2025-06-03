@@ -1,3 +1,4 @@
+import { timestamp } from 'rxjs';
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -33,7 +34,7 @@ export class Notification {
   @Column({ default: false })
   isRead: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
   @Column({ type: 'timestamp', nullable: true })

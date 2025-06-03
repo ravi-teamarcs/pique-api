@@ -604,6 +604,8 @@ export class InvoiceService {
         'invoices.tax_amount AS tax_amount',
         'invoices.total_with_tax AS total_with_tax',
         'invoices.status AS status',
+        'invoices.cheque_no AS cheque_no',
+        'invoices.invAmountPaid AS inv_amount_paid',
         'invoices.payment_method AS payment_method',
         'invoices.payment_date AS payment_date',
 

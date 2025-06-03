@@ -898,4 +898,23 @@ export class VenueService {
       }
     }
   }
+
+  async toggleVerificationFlag(venueId: number) {
+    const venue = await this.venueRepository.findOne({
+      where: { id: venueId },
+    });
+    if (!venue) {
+      throw new NotFoundException('Venue not found.');
+    }
+
+    await this.venueRepository.update(
+      { id: venueId },
+      { isPiqueVerified: !venue.isPiqueVerified },
+    );
+
+    return {
+      message: 'Venue profile verification toggled successfully.',
+      status: true,
+    };
+  }
 }
