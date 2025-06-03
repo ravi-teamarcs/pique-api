@@ -260,6 +260,7 @@ export class VenueService {
     const parsedVenues = venues.map((v) => ({
       ...v,
       media: JSON.parse(v.media),
+      isPiqueVerified: v.isPiqueVerified === 1 ? true : false,
       neighbourhoods: JSON.parse(v.neighbourhoods),
     }));
 
@@ -344,11 +345,12 @@ export class VenueService {
       venueDetails['password'] = data?.password;
     }
 
-    const { media, createdByAdmin, ...rest } = venueDetails;
+    const { media, createdByAdmin, isPiqueVerified, ...rest } = venueDetails;
     const response = {
       ...rest,
       createdByAdmin: createdByAdmin === 0 ? false : true,
       media: JSON.parse(media),
+      isPiqueVerified: isPiqueVerified === 1 ? true : false,
       neighbourhoods: neighbourhood,
     };
 

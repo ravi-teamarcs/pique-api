@@ -227,9 +227,17 @@ export class EntertainerService {
     // Process the records
     const parsedRecords = await Promise.all(
       records.map(
-        async ({ services, socialLinks, id, pricePerEvent, ...rest }) => ({
+        async ({
+          services,
+          socialLinks,
+          id,
+          pricePerEvent,
+          isPiqueVerified,
+          ...rest
+        }) => ({
           id: Number(id),
           services: services ? services.split(',') : [],
+          isPiqueVerified: isPiqueVerified === 1 ? true : false, // Convert to boolean
           socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
           priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
           pricePerEvent,
@@ -333,6 +341,7 @@ export class EntertainerService {
         records: {
           id: Number(res.id),
           ...res,
+          isPiqueVerified: res.isPiqueVerified === 1 ? true : false,
           media: JSON.parse(res.media),
           socialLinks: JSON.parse(res.socialLinks),
           services: res.services ? res.services.split(',') : [],
