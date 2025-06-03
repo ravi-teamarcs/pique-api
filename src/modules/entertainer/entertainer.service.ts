@@ -747,11 +747,13 @@ export class EntertainerService {
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
 
-      const { socialLinks, services, id, ...rest } = entertainer;
+      const { socialLinks, services, id, isPiqueVerified, ...rest } =
+        entertainer;
       console.log(typeof services);
       const payload = {
         id: Number(id),
         services: services ? services.split(',') : [],
+        isPiqueVerified: isPiqueVerified === 1 ? true : false,
         ...rest,
         socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
       };
@@ -827,10 +829,11 @@ export class EntertainerService {
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
-      const { socialLinks, services, ...rest } = entertainer;
+      const { socialLinks, services, isPiqueVerified, ...rest } = entertainer;
       const payload = {
         ...rest,
         services: services,
+        isPiqueVerified: isPiqueVerified === 1 ? true : false,
         socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
       };
       return {

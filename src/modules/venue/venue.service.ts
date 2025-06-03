@@ -414,10 +414,11 @@ export class VenueService {
     const neighbourhood = await this.neighbourRepository.find({
       where: { venueId },
     });
-    const { media, ...rest } = venueDetails;
+    const { media, isPiqueVerified, ...rest } = venueDetails;
     const response = {
       ...rest,
       media: media ? JSON.parse(media) : null,
+      isPiqueVerified: isPiqueVerified === 1 ? true : false,
       neighbourhoods: neighbourhood,
     };
 
@@ -612,10 +613,14 @@ export class VenueService {
       const arr = [3, 4, 5, 2, 1]; // Example ratings logic
 
       const entertainers = results.map(
-        ({ eid, isWishlisted, vaccinated, ...item }, index) => {
+        (
+          { eid, isWishlisted, vaccinated, isPiqueVerified, ...item },
+          index,
+        ) => {
           return {
             eid: Number(eid),
             ...item,
+            isPiqueVerified: isPiqueVerified === 1 ? true : false,
             isWishlisted: Boolean(isWishlisted),
             vaccination_status:
               vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
@@ -847,6 +852,7 @@ export class VenueService {
         'entertainer.specific_category AS specific_category',
         'category.name AS category_name',
         'subcat.name AS specific_category_name',
+        'entertainer.isPiqueVerified AS isPiqueVerified',
         'entertainer.performanceRole AS performanceRole',
         'entertainer.pricePerEvent AS pricePerEvent',
         'entertainer.contact_person AS contactPerson',
@@ -879,13 +885,21 @@ export class VenueService {
       Number(res.pricePerEvent),
     );
 
-    const { services, media, vaccinated, isWishlisted, ...details } = res;
+    const {
+      services,
+      media,
+      vaccinated,
+      isWishlisted,
+      isPiqueVerified,
+      ...details
+    } = res;
     return {
       message: 'Entertainer Details returned Successfully',
       data: {
         ...details,
         isWishlisted: Boolean(isWishlisted),
         priceWithMarkup: finalPrice,
+        isPiqueVerified: isPiqueVerified === 1 ? true : false,
         vaccination_status:
           vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
         services: services ? services.split(',') : [],
