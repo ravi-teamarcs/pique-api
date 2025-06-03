@@ -75,9 +75,9 @@ export class BookingService {
   async createBooking(payload: AdminBookingDto) {
     const { venueId, entertainerIds, ...data } = payload;
     const details = [];
-    // const event = await this.eventRepository.findOne({
-    //   where: { id: payload.eventId },
-    // });
+    const event = await this.eventRepository.findOne({
+      where: { id: payload.eventId },
+    });
 
     // if (['published', 'unpublished'].includes(event.status)) {
     //   throw new BadRequestException({
@@ -115,6 +115,11 @@ export class BookingService {
         await this.logRepository.save(logPayload);
         details.push(savedBooking);
       }
+      // As soon as the booking is created, we update the event status to 'invited'
+      await this.eventRepository.update(
+        { id: event.id },
+        { status: 'invited' },
+      );
 
       return {
         Message: 'Booking created Successfully',

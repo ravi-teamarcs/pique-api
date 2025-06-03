@@ -64,10 +64,10 @@ export class Venue {
   @Column({ type: 'boolean', name: 'is_pique_verified', default: false })
   isPiqueVerified: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 
   @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })

@@ -49,6 +49,7 @@ export class VenueEvent {
     type: 'enum',
     enum: [
       'unpublished',
+      'invited',
       'published',
       'confirmed',
       'cancelled',
@@ -63,7 +64,8 @@ export class VenueEvent {
     | 'confirmed'
     | 'cancelled'
     | 'completed'
-    | 'published';
+    | 'published'
+    | 'invited';
 
   @Column({ type: 'boolean' })
   isAdmin: boolean;
@@ -76,9 +78,9 @@ export class VenueEvent {
   @Column({ default: false })
   emailSentAfter24Hour: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

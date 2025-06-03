@@ -18,8 +18,7 @@ import { Invoice } from '../invoice/entities/invoice.entity';
 import { MediaModule } from '../media/media.module';
 import { AvailabilityController } from './availability.controller';
 import { AvailabilityService } from './availability.service';
-import { WeeklyAvailability } from './entities/weekly-availability.entity';
-import { UnavailableDate } from './entities/unavailable.entity';
+
 import { VenueEvent } from '../event/entities/event.entity';
 import { EntertainerAvailability } from './entities/availability.entity';
 import { LocationModule } from '../location/location.module';
@@ -42,8 +41,6 @@ import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
       Media,
       Rating,
       Invoice,
-      WeeklyAvailability,
-      UnavailableDate,
       VenueEvent,
       EntertainerAvailability,
       Cities,

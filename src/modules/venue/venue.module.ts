@@ -13,11 +13,8 @@ import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Media } from '../media/entities/media.entity';
 import { Category } from '../entertainer/entities/categories.entity';
 import { Wishlist } from './entities/wishlist.entity';
-
-import { VenueDetails } from './entities/venue.details.entity';
 import { MediaModule } from '../media/media.module';
-import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.entity';
-import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
+
 import { NotificationModule } from '../notification/notification.module';
 import { Neighbourhood } from './entities/neighbourhood.entity';
 import { Cities } from '../location/entities/city.entity';
@@ -41,7 +38,6 @@ import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
       Media,
       Category,
       Wishlist,
-      VenueDetails,
       Neighbourhood,
       Cities,
       States,

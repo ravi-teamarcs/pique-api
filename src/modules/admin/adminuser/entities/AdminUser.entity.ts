@@ -26,9 +26,9 @@ export class AdminUser {
   @Column()
   role: string;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdDate: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedDate: Date;
 }

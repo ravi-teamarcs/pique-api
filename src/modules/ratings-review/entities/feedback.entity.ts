@@ -41,9 +41,9 @@ export class FeedbackAnswer {
   @Column({ type: 'text', nullable: true })
   review: string;
 
-  @CreateDateColumn({ type: 'datetime' })
+  @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 
-  @UpdateDateColumn({ type: 'datetime' })
+  @UpdateDateColumn({ type: 'timestamp' })
   updated_at: Date;
 }

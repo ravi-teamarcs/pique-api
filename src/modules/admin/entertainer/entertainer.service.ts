@@ -204,6 +204,7 @@ export class EntertainerService {
         'entertainer.entertainer_name AS entertainer_name',
         'entertainer.dob AS dob',
         'entertainer.bio AS bio',
+        'entertainer.isPiqueVerified AS isPiqueVerified',
         'entertainer.performanceRole AS performanceRole',
         'entertainer.socialLinks AS socialLinks',
         'entertainer.pricePerEvent AS pricePerEvent',
@@ -291,6 +292,7 @@ export class EntertainerService {
           'entertainer.city AS cityCode',
           'entertainer.state AS stateCode',
           'entertainer.country AS countryCode',
+          'entertainer.isPiqueVerified AS isPiqueVerified',
           'entertainer.bio AS bio',
           'entertainer.addressLine1 AS addressLine1',
           'entertainer.addressLine2 AS addressLine2',
@@ -1066,6 +1068,9 @@ export class EntertainerService {
             .from('booking', 'bookPrev')
             .where('bookPrev.entId = entertainer.id')
             .andWhere('DATE(bookPrev.showDate) < :todayString')
+            .andWhere('bookPrev.status IN (:...statuses)', {
+              statuses: ['invited', 'completed', 'accepted', 'confirmed'],
+            })
             .orderBy('bookPrev.showDate', 'DESC')
             .limit(1);
         }, 'previousBookingDate')
@@ -1076,6 +1081,9 @@ export class EntertainerService {
             .from('booking', 'bookNext')
             .where('bookNext.entId = entertainer.id')
             .andWhere('DATE(bookNext.showDate) > :todayString')
+            .andWhere('bookPrev.status IN (:...statuses)', {
+              statuses: ['invited', 'completed', 'accepted', 'confirmed'],
+            })
             .orderBy('bookNext.showDate', 'ASC')
             .limit(1);
         }, 'upcomingBookingDate');

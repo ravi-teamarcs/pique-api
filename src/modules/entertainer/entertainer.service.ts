@@ -713,6 +713,7 @@ export class EntertainerService {
           'city.name AS city',
           'country.name AS country',
           'state.name AS state',
+          'entertainer.isPiqueVerified AS isPiqueVerified',
           'cat.name AS category_name',
           'subcat.name AS specific_category_name',
           'entertainer.bio AS bio',
@@ -810,6 +811,7 @@ export class EntertainerService {
           'entertainer.services AS services',
 
           'entertainer.vaccinated AS vaccinated',
+          'entertainer.isPiqueVerified AS isPiqueVerified',
           'entertainer.socialLinks AS socialLinks',
           'entertainer.contact_person AS contactPerson',
           'entertainer.contact_number AS contactNumber',

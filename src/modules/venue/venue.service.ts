@@ -35,8 +35,6 @@ import { WishlistDto } from './dto/wishlist.dto';
 import { ConfigService } from '@nestjs/config';
 import { UploadedFile } from 'src/common/types/media.type';
 import { MediaService } from '../media/media.service';
-import { UnavailableDate } from '../entertainer/entities/unavailable.entity';
-import { WeeklyAvailability } from '../entertainer/entities/weekly-availability.entity';
 import { AddressDto } from './dto/address.dto';
 import { BookingQueryDto } from './dto/get-venue-booking.dto';
 import { Neighbourhood } from './entities/neighbourhood.entity';
@@ -401,6 +399,7 @@ export class VenueService {
         'venue.contactPerson AS contactPerson',
         'venue.contactNumber AS contactNumber',
         'venue.zipCode AS zipCode',
+        'venue.isPiqueVerified AS isPiqueVerified',
         'city.name AS city',
         'state.name AS state',
         'country.name AS country',
@@ -587,6 +586,7 @@ export class VenueService {
           'entertainer.id AS eid',
           'entertainer.name AS name',
           'entertainer.entertainer_name AS entertainer_name',
+          'venue.isPiqueVerified AS isPiqueVerified',
           'entertainer.category AS category',
           'entertainer.specific_category AS specific_category',
           'entertainer.performanceRole AS performanceRole',

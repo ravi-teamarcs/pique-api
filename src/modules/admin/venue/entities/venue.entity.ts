@@ -63,10 +63,10 @@ export class Venue {
   @Column({ nullable: true })
   country: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({type: 'timestamp'})
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({type: 'timestamp'})
   updatedAt: Date;
 
   @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })

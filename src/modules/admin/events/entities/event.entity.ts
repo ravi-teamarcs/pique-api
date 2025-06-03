@@ -52,6 +52,7 @@ export class Event {
     enum: [
       'unpublished',
       'published',
+      'invited',
       'confirmed',
       'cancelled',
       'completed',
@@ -65,7 +66,8 @@ export class Event {
     | 'confirmed'
     | 'cancelled'
     | 'completed'
-    | 'published';
+    | 'published'
+    | 'invited';
 
   @Column({ type: 'boolean', default: true })
   isAdmin: boolean;
@@ -78,9 +80,9 @@ export class Event {
   @Column({ default: false })
   emailSentAfter24Hour: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

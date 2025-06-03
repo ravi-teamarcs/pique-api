@@ -25,6 +25,6 @@ export class BookingReminder {
   @Column({ default: false })
   isTwentyFourHourEmailSent: boolean;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 }

@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('neighbourhood')
 export class Neighbourhood {
@@ -15,5 +21,11 @@ export class Neighbourhood {
   contactNumber: string;
 
   @Column({ name: 'venue_id' })
-  venueId: number; // 👈
+  venueId: number;
+
+  @CreateDateColumn({ type: 'timestamp' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ type: 'timestamp' })
+  updatedAt: Date;
 }

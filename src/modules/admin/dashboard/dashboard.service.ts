@@ -1,6 +1,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { MoreThan, Repository } from 'typeorm';
+import { Between, MoreThan, Repository } from 'typeorm';
 import { Booking } from '../booking/entities/booking.entity';
 import { Event } from '../events/entities/event.entity';
 import { ConfigService } from '@nestjs/config';
@@ -29,8 +29,30 @@ export class DashboardService {
   async getDashboardStats() {
     try {
       // Count users by role
-      const entertainerCount = await this.entRepo.count();
-      const venueCount = await this.venueRepo.count();
+      const now = new Date();
+      const currentMonth = now.getMonth() + 1; // getMonth() is 0-indexed
+      const currentYear = now.getFullYear();
+
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startOfNextMonth = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        1,
+      );
+
+      const entertainerCount = await this.entRepo.count({
+        where: {
+          status: 'active',
+          createdAt: Between(startOfMonth, startOfNextMonth),
+        },
+      });
+
+      const venueCount = await this.venueRepo.count({
+        where: {
+          status: 'active',
+          createdAt: Between(startOfMonth, startOfNextMonth),
+        },
+      });
 
       // Booking statistics
       const bookingStats = await this.bookingRepo
@@ -41,12 +63,20 @@ export class DashboardService {
           "CAST(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS UNSIGNED) as rejected",
           "CAST(SUM(CASE WHEN status = 'canceled' THEN 1 ELSE 0 END) AS UNSIGNED) as canceled",
         ])
+        .where('YEAR(booking.createdAt) = :year', { year: currentYear })
+        .andWhere('MONTH(booking.createdAt) = :month', { month: currentMonth })
         .getRawOne();
       // Here made changes
       const { total } = await this.invoiceRepo
         .createQueryBuilder('invoices')
         .where('invoices.user_type = :userType', { userType: 'venue' })
         .select('SUM(invoices.total_with_tax)', 'total')
+        .andWhere('YEAR(invoices.payment_date) = :year', {
+          year: currentYear,
+        })
+        .andWhere('MONTH(invoices.payment_date) = :month', {
+          month: currentMonth,
+        })
         .getRawOne();
 
       const data = {

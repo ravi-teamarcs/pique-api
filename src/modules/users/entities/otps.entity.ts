@@ -18,7 +18,7 @@ export class Otp {
   @Column()
   otp: string; // Store as plain text OR hash
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
   @Column({
