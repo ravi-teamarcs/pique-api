@@ -32,6 +32,7 @@ import { EntertainerAvailability } from './entities/entertainer-availability.ent
 import { EntertainerAvailabilityDto } from './Dto/entertainer-availability.dto';
 import { UpdateAvailabilityDto } from './Dto/update-availability.dto';
 import { Setting } from '../settings/entities/setting.entity';
+import { instanceToPlain } from 'class-transformer';
 
 @Injectable()
 export class EntertainerService {
@@ -844,41 +845,46 @@ export class EntertainerService {
     }
   }
 
-  // async updateEntertainerAvailability(id: number, dto: UpdateAvailabilityDto) {
-  //   try {
-  //     const availability = await this.availabilityRepository.findOne({
-  //       where: { entertainer_id: id, year: dto.year, month: dto.month },
-  //     });
+  async updateEntertainerAvailability(id: number, dto: UpdateAvailabilityDto) {
+    try {
+      const plainDto = instanceToPlain(dto);
+      const availability = await this.availabilityRepository.findOne({
+        where: {
+          entertainer_id: id,
+          year: plainDto.year,
+          month: plainDto.month,
+        },
+      });
 
-  //     if (!availability) {
-  //       const avail = this.availabilityRepository.create({
-  //         entertainer_id: id,
-  //         ...dto,
-  //       });
-  //       const savedAvailability = await this.availabilityRepository.save(avail);
-  //       return {
-  //         message: 'Entertainer availability Saved successfully',
-  //         data: savedAvailability,
-  //         status: true,
-  //       };
-  //     }
+      if (!availability) {
+        const avail = this.availabilityRepository.create({
+          entertainer_id: id,
+          ...plainDto,
+        });
+        const savedAvailability = await this.availabilityRepository.save(avail);
+        return {
+          message: 'Entertainer availability Saved successfully',
+          data: savedAvailability,
+          status: true,
+        };
+      }
 
-  //     const updatedAvailability = await this.availabilityRepository.update(
-  //       { id: availability.id },
-  //       dto,
-  //     );
-  //     return {
-  //       message: 'Entertainer availability updated successfully',
-  //       data: dto,
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException({
-  //       message: error.message,
-  //       status: false,
-  //     });
-  //   }
-  // }
+      const updatedAvailability = await this.availabilityRepository.update(
+        { id: availability.id },
+        plainDto,
+      );
+      return {
+        message: 'Entertainer availability updated successfully',
+        data: dto,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
   // Previous Working Version
   // async getAllEntertainerList(eventId: number, query: GetEntertainerDto) {
   //   try {
@@ -1142,7 +1148,7 @@ export class EntertainerService {
         : basePrice + (markupValue / 100) * basePrice;
     return finalPrice;
   }
-// For Setting up verification (isPiqueVerified) flag
+  // For Setting up verification (isPiqueVerified) flag
   async toggleVerificationFlag(entertainerId: number) {
     const entertainer = await this.entertainerRepository.findOne({
       where: { id: entertainerId },

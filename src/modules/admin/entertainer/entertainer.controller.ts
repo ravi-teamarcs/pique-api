@@ -287,7 +287,7 @@ export class EntertainerController {
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateAvailabilityDto,
   ) {
-    // return this.EntertainerService.updateEntertainerAvailability(id, dto);
+    return this.EntertainerService.updateEntertainerAvailability(id, dto);
   }
   // Api for
 

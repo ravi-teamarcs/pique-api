@@ -3,16 +3,27 @@ import {
   ArrayUnique,
   IsArray,
   IsDateString,
+  IsIn,
   IsInt,
+  IsString,
   Max,
   Min,
+  ValidateNested,
 } from 'class-validator';
+const SLOT_OPTIONS = ['morning', 'afternoon', 'evening', 'whole_day'];
+export class UnavailableDateDto {
+  @IsString()
+  date: string;
 
+  @IsArray()
+  @IsIn(SLOT_OPTIONS, { each: true })
+  slots: string[];
+}
 export class UpdateAvailabilityDto {
   @IsArray()
-  @ArrayUnique()
-  @IsDateString({}, { each: true }) // Ensure dates are valid ISO strings
-  unavailable_dates: string[];
+  @ValidateNested({ each: true })
+  @Type(() => UnavailableDateDto)
+  unavailable_dates: UnavailableDateDto[];
 
   @IsArray()
   @ArrayUnique()

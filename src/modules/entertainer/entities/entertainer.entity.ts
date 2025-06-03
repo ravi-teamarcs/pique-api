@@ -92,8 +92,7 @@ export class Entertainer {
   longitude?: number;
 
   @Column({ type: 'boolean', name: 'is_pique_verified', default: false })
-isPiqueVerified: boolean;
-
+  isPiqueVerified: boolean;
 
   @Column({ nullable: true })
   zipCode: string;

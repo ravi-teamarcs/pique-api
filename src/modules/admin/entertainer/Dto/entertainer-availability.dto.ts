@@ -11,7 +11,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
-const SLOT_OPTIONS = ['morning', 'afternoon', 'evening', 'whole-day'];
+const SLOT_OPTIONS = ['morning', 'afternoon', 'evening', 'whole_day'];
 export class UnavailableDateDto {
   @IsString()
   date: string;
