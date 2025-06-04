@@ -42,6 +42,9 @@ export class Entertainer {
   @Column({ nullable: true })
   pricePerEvent: number;
 
+  @Column({ nullable: true })
+  email: string;
+
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
   vaccinated: 'yes' | 'no';
 

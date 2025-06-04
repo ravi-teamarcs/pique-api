@@ -99,8 +99,10 @@ export class EntertainerService {
   async saveBasicDetails(dto: Step1Dto, userId: number) {
     const { step, ...rest } = dto;
     try {
+      const user = await this.userRepository.findOne({ where: { id: userId } });
       const entertainer = this.entertainerRepository.create({
         name: dto.stageName,
+        email: user?.email,
         entertainerName: dto.entertainerName,
         user: { id: userId },
         profileStep: 1,

@@ -78,6 +78,9 @@ export class Entertainer {
   address: string;
 
   @Column({ nullable: true })
+  email: string;
+
+  @Column({ nullable: true })
   addressLine1: string;
   @Column({ nullable: true })
   addressLine2: string;
@@ -115,9 +118,9 @@ export class Entertainer {
   @Column({ default: 'pending' })
   status: 'active' | 'inactive' | 'pending' | 'rejected';
 
-  @CreateDateColumn({type: 'timestamp'})
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn({type: 'timestamp'})
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

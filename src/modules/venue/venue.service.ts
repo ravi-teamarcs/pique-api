@@ -94,6 +94,12 @@ export class VenueService {
       where: { user: { id: userId } },
     });
 
+    // Fetching User  Query
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'email'],
+    });
+
     if (existing?.isProfileComplete) {
       throw new BadRequestException({
         message: 'You already have a completed venue profile.',
@@ -112,6 +118,7 @@ export class VenueService {
     const venue = this.venueRepository.create({
       ...dto,
       user: { id: userId },
+      email: user?.email,
       profileStep: 1,
     });
     const savedVenue = await this.venueRepository.save(venue);
