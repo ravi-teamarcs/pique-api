@@ -280,6 +280,11 @@ export class DashboardService {
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
+
+          // added new Fields
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+
           'event.recurring AS recurring',
           'event.status AS status',
           'event.isAdmin AS isAdmin',

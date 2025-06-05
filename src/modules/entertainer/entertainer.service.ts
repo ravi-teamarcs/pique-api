@@ -1139,6 +1139,7 @@ export class EntertainerService {
           'booking.status AS status',
           'booking.showDate AS showDate',
           'booking.showTime AS showTime',
+          'booking.showStartDateTime AS showStartDateTime',
           'booking.specialNotes AS specialNotes',
           'booking.performanceRole AS performanceRole',
           'venue.name AS name',
@@ -1148,6 +1149,11 @@ export class EntertainerService {
           'event.description AS event_description',
           'event.startTime AS event_startTime',
           'event.endTime AS event_endTime',
+
+          //Added two new Fields
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+
           'event.slug AS event_slug',
           'venue.description AS description',
           'venue.state AS state',
@@ -1470,7 +1476,10 @@ export class EntertainerService {
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
-          'event.eventDate As eventDate',
+          'event.eventDate AS eventDate',
+          // Added two new Fields...
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
           'event.recurring AS recurring',
           'event.status AS status',
           'event.isAdmin AS isAdmin',
@@ -1558,6 +1567,9 @@ export class EntertainerService {
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
+          //Added to new Fields...
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
           'event.recurring AS recurring',
           'event.status AS status',
           'event.slug AS slug',

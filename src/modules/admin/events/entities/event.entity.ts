@@ -20,6 +20,13 @@ export class Event {
   @Column({ nullable: true })
   location: string;
 
+  //added new Changes
+  @Column({ type: 'timestamp' })
+  eventStartDateTime: Date;
+
+  @Column({ type: 'timestamp' })
+  eventEndDateTime: Date;
+
   @Column()
   venueId: number;
 

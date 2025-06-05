@@ -690,6 +690,8 @@ export class VenueService {
           'booking.status AS status',
           'booking.showDate AS showDate',
           'booking.showTime AS showTime',
+          // New field Added
+          'booking.showStartDateTime AS showStartDateTime',
           'booking.specialNotes AS specialNotes',
           'booking.venueId AS vid',
           'entertainer.id AS eid',
@@ -706,6 +708,9 @@ export class VenueService {
           'event.startTime AS event_start_time',
           'event.endTime AS event_end_time',
           'event.eventDate AS event_date',
+          // Added new Fields
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
           'event.description AS event_description',
         ])
         .orderBy('booking.createdAt', 'DESC')
@@ -1179,6 +1184,10 @@ export class VenueService {
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
+          // Added two new fields
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+
           'event.status AS status',
         ])
         .orderBy('event.eventDate', 'ASC');
@@ -1224,6 +1233,7 @@ export class VenueService {
           'booking.id AS id ',
           'booking.showDate AS showDate',
           'booking.showTime AS showTime',
+          'event.eventStartDateTime AS eventStartDateTime',
         ])
         .where(
           'booking.entId =:id AND booking.venueId =:venueId AND booking.status IN (:...status)',

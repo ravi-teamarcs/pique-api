@@ -51,6 +51,10 @@ export class Booking {
   @Column({ type: 'date' })
   showDate: Date;
 
+  // Also Add the new column
+  @Column({ type: 'timestamp' })
+  showStartDateTime: Date;
+
   @Column({ nullable: true })
   specialNotes: string;
 

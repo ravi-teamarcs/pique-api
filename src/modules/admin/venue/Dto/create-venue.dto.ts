@@ -34,6 +34,10 @@ export class CreateVenueDto {
   @IsNotEmpty()
   description: string;
 
+  @IsString()
+  @IsNotEmpty()
+  email: string;
+
   @IsNotEmpty()
   @IsNumber()
   @Transform(({ value }) => Number(value))

@@ -206,8 +206,12 @@ export class BookingService {
           'event.description AS event_description',
           'event.slug AS event_slug',
           'event.startTime AS event_endTime',
+
           'event.endTime AS event_startTime',
           'event.eventDate AS event_eventDate',
+          // Added two  fields Here
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
           'event.status AS event_status',
           'event.sub_venue_id AS sub_venue_id',
           'code.StateCode AS stateCode',

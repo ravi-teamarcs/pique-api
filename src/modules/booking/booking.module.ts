@@ -17,6 +17,10 @@ import { GoogleCalendarModule } from '../google-calendar/google-calendar.module'
 import { Event } from '../admin/events/entities/event.entity';
 import { EntertainerAvailability } from '../entertainer/entities/availability.entity';
 import { VenueEvent } from '../event/entities/event.entity';
+import { CancellationReason } from './entities/cancelation-reason.entity';
+import { BookingCancellationService } from './booking-cancellation.service';
+import { BookingCancellationController } from './booking-cancellation.controller';
+import { BookingCancellation } from './entities/booking-cancellation.entity';
 
 @Module({
   imports: [
@@ -34,13 +38,15 @@ import { VenueEvent } from '../event/entities/event.entity';
       EntertainerAvailability,
       Event,
       VenueEvent,
+      CancellationReason,
+      BookingCancellation,
     ]),
     EmailModule,
     NotificationModule,
     GoogleCalendarModule,
   ],
-  controllers: [BookingController],
-  providers: [BookingService],
+  controllers: [BookingController, BookingCancellationController],
+  providers: [BookingService, BookingCancellationService],
   exports: [BookingService],
 })
 export class BookingModule {}

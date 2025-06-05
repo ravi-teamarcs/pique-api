@@ -20,8 +20,8 @@ export class EmailService {
         user: this.configService.get<string>('SMTP_USER'),
         pass: this.configService.get<string>('SMTP_PASS'),
       },
-      //logger: true, // Enable logging
-      //debug: true, // Enable debug output
+      logger: true, // Enable logging
+      debug: true, // Enable debug output
     });
   }
   async handleSendEmail(emailDto: EmailDto) {

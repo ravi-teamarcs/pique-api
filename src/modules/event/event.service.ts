@@ -181,6 +181,10 @@ export class EventService {
           'event.description AS description',
           'event.startTime AS startTime',
           'event.endTime AS endTime',
+          // Added two new Fields
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+
           'event.recurring AS recurring',
           'event.status AS status',
           'event.slug AS slug',

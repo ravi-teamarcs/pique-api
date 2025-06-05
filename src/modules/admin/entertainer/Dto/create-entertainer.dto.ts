@@ -26,6 +26,10 @@ class GeneralInfoDto {
   @Transform(({ value }) => Number(value))
   category: number;
 
+  @IsString()
+  @IsNotEmpty()
+  email: string;
+
   @IsNumber()
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))

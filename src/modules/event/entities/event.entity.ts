@@ -37,6 +37,13 @@ export class VenueEvent {
 
   @Column({ type: 'date' })
   eventDate: Date;
+  // New Column added
+
+  @Column({ type: 'timestamp' })
+  eventStartDateTime: Date;
+
+  @Column({ type: 'timestamp' })
+  eventEndDateTime: Date;
 
   @Column({
     type: 'enum',
