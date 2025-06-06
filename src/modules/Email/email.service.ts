@@ -20,6 +20,9 @@ export class EmailService {
         user: this.configService.get<string>('SMTP_USER'),
         pass: this.configService.get<string>('SMTP_PASS'),
       },
+      tls: {
+        rejectUnauthorized: false, // Optional, helps with some cert chains
+      },
       logger: true, // Enable logging
       debug: true, // Enable debug output
     });
