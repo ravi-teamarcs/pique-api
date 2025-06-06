@@ -614,13 +614,13 @@ export class InvoiceService {
         'user.email AS email',
 
         // This subquery gets all events in one JSON array for this invoice
-        `(SELECT JSON_ARRAYAGG(
+        `(
+  SELECT JSON_ARRAYAGG(
     JSON_OBJECT(
       'slug', e.slug,
       'title', e.title,
       'eventStartDateTime', e.eventStartDateTime,
-      'eventEndDateTime', e.eventEndDateTime,
-      
+      'eventEndDateTime', e.eventEndDateTime
     )
   )
   FROM invoice_bookings ib
