@@ -119,10 +119,9 @@ export class EventService {
 
         'event.id AS id',
         'event.title  AS title',
-        'event.startTime AS startTime',
-        'event.endTime AS endTime',
         'event.status AS status',
-        'event.eventDate  AS eventDate',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventEndDateTime AS eventEndDateTime',
         'event.description  AS description',
         'event.slug  AS slug',
 
