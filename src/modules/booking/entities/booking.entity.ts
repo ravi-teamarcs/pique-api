@@ -45,10 +45,10 @@ export class Booking {
     | 'accepted'
     | 'rescheduled';
 
-  @Column({ type: 'time' })
+  @Column({ type: 'time', nullable: true })
   showTime: Date;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'date', nullable: true })
   showDate: Date;
 
   // Also Add the new column

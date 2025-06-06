@@ -12,6 +12,7 @@ import { BookingRequest } from './entities/modify-booking.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { BookingLog } from '../../admin/booking/entities/booking-log.entity';
 import { Event } from '../events/entities/event.entity';
+import { Venue } from '../venue/entities/venue.entity';
 
 @Module({
   imports: [
@@ -23,7 +24,8 @@ import { Event } from '../events/entities/event.entity';
       Entertainer,
       BookingRequest,
       BookingLog,
-      Event
+      Event,
+      Venue,
     ]),
     NotificationModule,
     EmailModule,

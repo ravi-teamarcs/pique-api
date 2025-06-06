@@ -141,8 +141,8 @@ export class InvoiceService {
         'invoices.*',
         'event.id AS eventId',
         'event.slug AS eventSlug',
-        'event.startTime AS startTime',
-        'event.endTime AS endTime',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventEndDateTime AS eventEndDateTime',
         // venue Info
         'venue.name AS venueName',
         'venue.addressLine1 AS venueAddressLine1',
@@ -237,7 +237,7 @@ export class InvoiceService {
 
     if (alreadyExists) {
       throw new BadRequestException({
-        message: 'Invoice has been already generated  for the event. ',
+        message: 'Invoice has been already generated for the event. ',
       });
     }
 
@@ -250,8 +250,8 @@ export class InvoiceService {
           .createQueryBuilder('event')
           .select([
             'event.id AS eventId',
-            'event.startTime AS eventStartTime',
-            'event.endTime AS eventEndTime',
+            'event.startTime AS eventStartDateTime',
+            'event.endTime AS eventEndDateTime',
             'event.title AS eventName',
             'event.venueId AS venueId',
           ])
@@ -409,17 +409,10 @@ export class InvoiceService {
   }
 
   private getDurationInHours(startTime: string, endTime: string): number {
-    const today = new Date().toISOString().split('T')[0]; // e.g., "2025-05-28"
-    const start = parse(
-      `${today} ${startTime}`,
-      'yyyy-MM-dd HH:mm:ss',
-      new Date(),
-    );
-    const end = parse(`${today} ${endTime}`, 'yyyy-MM-dd HH:mm:ss', new Date());
+    const start = new Date(startTime);
+    const end = new Date(endTime);
 
     const diffInMinutes = differenceInMinutes(end, start);
-
-    // 👇 Always round up to next full hour if any minutes exist
     const diffInHours = Math.ceil(diffInMinutes / 60);
 
     return diffInHours;
@@ -625,9 +618,9 @@ export class InvoiceService {
     JSON_OBJECT(
       'slug', e.slug,
       'title', e.title,
-      'eventDate', e.eventDate,
-      'startTime', e.startTime,
-      'endTime', e.endTime
+      'eventStartDateTime', e.eventStartDateTime,
+      'eventEndDateTime', e.eventEndDateTime,
+      
     )
   )
   FROM invoice_bookings ib
@@ -644,12 +637,17 @@ export class InvoiceService {
       return {
         ...rest,
         events: events
-          ? JSON.parse(events).map(({ startTime, endTime, ...rest }) => {
-              return {
-                ...rest,
-                duration: this.getDurationInHours(startTime, endTime),
-              };
-            })
+          ? JSON.parse(events).map(
+              ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
+                return {
+                  ...rest,
+                  duration: this.getDurationInHours(
+                    eventStartDateTime,
+                    eventEndDateTime,
+                  ),
+                };
+              },
+            )
           : [], // Parse JSON string to object
       };
     });

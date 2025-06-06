@@ -18,7 +18,7 @@ import { BookingLog } from './entities/booking-log.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailService } from '../Email/email.service';
 import { NotificationService } from '../notification/notification.service';
-import { format, parse } from 'date-fns';
+import { parse } from 'date-fns';
 import { GoogleCalendarServices } from '../google-calendar/google-calendar.service';
 import { BookingCalendarSync } from './entities/booking-sync.entity';
 import { AvailabilityService } from '../entertainer/availability.service';
@@ -27,6 +27,7 @@ import { ConfigService } from '@nestjs/config';
 import { eventNames } from 'process';
 import { VenueEvent } from '../event/entities/event.entity';
 import { ModifyBookingDto } from './dto/update-booking.dto';
+import { format } from 'date-fns-tz';
 
 @Injectable()
 export class BookingService {
@@ -126,8 +127,12 @@ export class BookingService {
             venueName: venue.name,
             eventName: event?.slug || '',
             entertainerName: ent.name,
-            bookingDate: format(savedBooking.showDate, 'dd MMM yyyy'),
-            bookingTime: savedBooking.showTime,
+            bookingDate: format(savedBooking.showStartDateTime, 'dd MMM yyyy', {
+              timeZone: 'UTC',
+            }),
+            bookingTime: format(savedBooking.showStartDateTime, 'HH:mm', {
+              timeZone: 'UTC',
+            }),
             vname: venue.name,
             vemail: venue.email,
             vphone: venue.contactNumber,
@@ -193,6 +198,7 @@ export class BookingService {
           'booking.venueId AS vid',
           'booking.showTime AS showTime',
           'booking.showDate AS showDate',
+          'booking.showStartDateTime AS showStartDateTime',
           'event.slug AS slug',
           'event.title AS title',
 
@@ -233,7 +239,6 @@ export class BookingService {
 
       // Ends Here
       if (booking.eEmail || booking.vemail) {
-        const parsedTime = parse(booking.showTime, 'HH:mm:ss', new Date());
         const statusToTemplateMap = {
           accepted: 'request-accepted.html',
           declined: 'entertainer-declined-booking.html',
@@ -246,14 +251,20 @@ export class BookingService {
             entertainerName: booking.stageName,
             eventName: booking.slug,
             id: booking.id,
-            bookingTime: format(parsedTime, 'hh:mm a'),
-            bookingDate: format(booking.showDate, 'dd MMM yyyy'),
+            bookingTime: format(booking.showStartDateTime, 'dd MMM yyyy', {
+              timeZone: 'UTC',
+            }),
+            bookingDate: format(booking.showStartDateTime, 'HH:mm', {
+              timeZone: 'UTC',
+            }),
           },
 
           declined: {
             venueName: booking.vname,
             eventTitle: booking.slug,
-            eventDate: format(booking.showDate, 'dd MMM yyyy'),
+            eventDate: format(booking.showStartDateTime, 'dd MMM yyyy', {
+              timeZone: 'UTC',
+            }),
             entertainerName: booking.stageName,
           },
           confirmed: {
@@ -262,6 +273,7 @@ export class BookingService {
             venueName: booking.vname,
             Year: new Date().getFullYear(),
           },
+          cancelled: {},
         };
 
         const template = statusToTemplateMap[status];
@@ -278,7 +290,7 @@ export class BookingService {
         this.notifyService.sendPush(
           {
             title: 'Booking Response',
-            body: `${role.charAt(0).toUpperCase() + role.slice(1)} has ${status} the booking request.`,
+            body: `${role.charAt(0).toUpperCase() + role.slice(1)} ${booking.stageName} has ${status} the booking request.`,
             type: 'booking_response',
           },
 
@@ -417,6 +429,10 @@ export class BookingService {
       ])
       .where('booking.eventId = :id', { id })
       .getRawMany();
+
+    if (!bookings || bookings.length === 0) {
+      return;
+    }
 
     try {
       for (const booking of bookings) {
@@ -601,6 +617,7 @@ export class BookingService {
             'booking.venueId AS venueId',
             'booking.showTime AS showTime',
             'booking.showDate AS showDate',
+            'booking.showStartDateTime AS showStartDateTime',
 
             'euser.email AS eEmail',
             'euser.name AS ename',
@@ -622,6 +639,16 @@ export class BookingService {
         }
 
         await this.bookingRepository.update({ id: bookingId }, { status });
+        // If booking confirmed , also confirm the status of event.
+        // await Promise.all(
+        //   events.map(
+        //     async (event) =>
+        //       await this.eventRepository.update(
+        //         { id: event },
+        //         { status: 'confirmed' },
+        //       ),
+        //   ),
+        // );
 
         const logPayload = {
           bookingId,
@@ -632,11 +659,16 @@ export class BookingService {
         const log = await this.generateBookingLog(logPayload);
 
         if (booking.eEmail) {
-          const formattedDate = format(booking.showDate, 'dd MMM yyyy'); // e.g. '2025-05-01'
-          const newTime = format(
-            new Date(`1970-01-01T${booking.showTime.slice(0, 5)}:00`),
-            'hh:mm a',
-          );
+          const formattedDate = format(
+            booking.showStartDateTime,
+            'dd MMM yyyy',
+            {
+              timeZone: 'UTC',
+            },
+          ); // e.g. '2025-05-01'
+          const newTime = format(booking.showStartDateTime, 'HH:mm', {
+            timeZone: 'UTC',
+          });
           const emailPayload = {
             to: booking.eEmail,
             subject: `Booking Request ${status}`,
@@ -776,7 +808,7 @@ export class BookingService {
         .getRawMany();
 
       return {
-        message: 'Entertainer Details based on Event',
+        message: 'Entertainer Details based on event',
         data: entertainers,
         status: true,
       };

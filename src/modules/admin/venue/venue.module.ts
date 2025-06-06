@@ -30,6 +30,7 @@ import { Entertainer } from '../../admin/entertainer/entities/entertainer.entity
       Booking,
       BookingLog,
       Entertainer,
+      Event,
     ]),
     MediaModule,
     NotificationModule,

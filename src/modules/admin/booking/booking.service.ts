@@ -19,7 +19,8 @@ import { BookingRequest } from './entities/modify-booking.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Event } from '../events/entities/event.entity';
 import { BookingLog } from './entities/booking-log.entity';
-import { format } from 'date-fns';
+import { Venue } from '../venue/entities/venue.entity';
+import { format } from 'date-fns-tz';
 
 @Injectable()
 export class BookingService {
@@ -30,6 +31,8 @@ export class BookingService {
     private readonly entertainerRepository: Repository<Entertainer>,
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
+    @InjectRepository(Venue)
+    private readonly venueRepository: Repository<Venue>,
 
     @InjectRepository(BookingLog)
     private readonly logRepository: Repository<BookingLog>,
@@ -75,6 +78,7 @@ export class BookingService {
   async createBooking(payload: AdminBookingDto) {
     const { venueId, entertainerIds, ...data } = payload;
     const details = [];
+
     const event = await this.eventRepository.findOne({
       where: { id: payload.eventId },
     });
@@ -87,6 +91,21 @@ export class BookingService {
     // }
 
     try {
+      // Fetch venue Details Only Once
+      const venue = await this.venueRepository
+        .createQueryBuilder('venue')
+        .leftJoin('venue.user', 'user')
+        .select([
+          'venue.name AS name',
+          'user.email AS email',
+          'user.phoneNumber AS phoneNumber',
+          'venue.contactNumber AS contactNumber',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+        ])
+        .where('venue.id =:id', { id: venueId })
+        .getRawOne();
+
       for (const entertainerId of entertainerIds) {
         const alreadyBooked = await this.bookingRepository.findOne({
           where: { entId: entertainerId, eventId: data.eventId },
@@ -114,15 +133,62 @@ export class BookingService {
 
         await this.logRepository.save(logPayload);
         details.push(savedBooking);
+        // fetch entertainer details  every time
+
+        const entertainer = await this.entertainerRepository
+          .createQueryBuilder('entertainer')
+          .leftJoin('entertainer.user', 'user')
+          .select(['entertainer.name AS name', 'user.email AS email'])
+          .where('entertainer.id =:id', { id: entertainerId })
+          .getRawOne();
+
+        // Send Email to the Entertainer
+        if (entertainer?.email) {
+          const emailPayload = {
+            to: entertainer.email,
+            subject: 'New Booking Request',
+            templateName: 'booking-request.html',
+            replacements: {
+              venueName: venue.name,
+              eventName: event?.slug || '',
+              entertainerName: entertainer.name,
+              bookingDate: format(
+                savedBooking.showStartDateTime,
+                'dd MMM yyyy',
+                {
+                  timeZone: 'UTC',
+                },
+              ),
+              bookingTime: format(savedBooking.showStartDateTime, 'HH:mm', {
+                timeZone: 'UTC',
+              }),
+              vname: venue.name,
+              vemail: venue.email,
+              vphone: venue.contactNumber,
+              Address: `${venue.addressLine1},${venue.addressLine2}`,
+            },
+          };
+
+          this.emailService.handleSendEmail(emailPayload);
+          this.notifyService.sendPush(
+            {
+              title: 'Booking Request',
+              body: `You have new booking request from ${venue.name}`,
+              type: 'booking_req',
+            },
+            entertainerId,
+          );
+        }
       }
-      // As soon as the booking is created, we update the event status to 'invited'
+
+      // As soon as the booking is created, we update the event status to 'invited'.(Event status Updated.)
       await this.eventRepository.update(
         { id: event.id },
         { status: 'invited' },
       );
 
       return {
-        Message: 'Booking created Successfully',
+        message: 'Booking created Successfully',
         data: details,
         status: true,
       };
@@ -253,7 +319,7 @@ export class BookingService {
           'log.venueConfirmation',
         ])
         .where('entertainers.status=:status', { status: 'active' })
-        .where('event.eventDate BETWEEN :from AND :to', {
+        .where('event.eventStartDateTime BETWEEN :from AND :to', {
           from: fromDate,
           to: toDate,
         })

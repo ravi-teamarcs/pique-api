@@ -1173,8 +1173,8 @@ export class VenueService {
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
         .where('event.venueId = :venueId', { venueId })
-        .andWhere('YEAR(event.eventDate) = :year', { year })
-        .andWhere('MONTH(event.eventDate) = :month', { month })
+        .andWhere('YEAR(event.eventStartDateTime) = :year', { year })
+        .andWhere('MONTH(event.eventEndDateTime) = :month', { month })
         .select([
           'event.id AS event_id',
           'event.title AS title',
@@ -1190,7 +1190,7 @@ export class VenueService {
 
           'event.status AS status',
         ])
-        .orderBy('event.eventDate', 'ASC');
+        .orderBy('event.eventStartDateTime', 'ASC');
 
       if (status) {
         qb.andWhere('event.status=:status', { status });

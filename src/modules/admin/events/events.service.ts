@@ -52,8 +52,14 @@ export class EventService {
   async createEvent(dto: CreateEventDto) {
     const { neighbourhoodId, ...rest } = dto;
     const obj = structuredClone(dto);
-    const { title, venueId, eventDate, startTime } = obj;
-    const payload = { title, venueId, eventDate, startTime, neighbourhoodId };
+    const { title, venueId, eventStartDateTime, eventEndDateTime } = obj;
+    const payload = {
+      title,
+      venueId,
+      eventStartDateTime,
+      eventEndDateTime,
+      neighbourhoodId,
+    };
 
     const slug = await this.generateSlug(payload);
 
@@ -213,44 +219,40 @@ export class EventService {
       const updatedNeighbourhoodId = neighbourhoodId ?? event.sub_venue_id;
       const updatedVenueId = dto.venueId ?? event.venueId;
       const updatedTitle = dto.title ?? event.title;
-      const updatedEventDate = dto.eventDate ?? event.eventDate;
-      let updatedStartTime = dto.startTime ?? event.startTime;
+      const updatedEventDate =
+        dto.eventStartDateTime ?? event.eventStartDateTime;
+      let updatedStartTime = dto.eventStartDateTime ?? event.eventStartDateTime;
 
-      if (!(updatedStartTime instanceof Date)) {
-        // Try to parse string to Date
-        updatedStartTime = new Date(`1970-01-01T${updatedStartTime}`);
-      }
       updatedStartTime = format(updatedStartTime, 'HH:mm:ss');
       const slugPayload = {
         title: updatedTitle,
         neighbourhoodId: updatedNeighbourhoodId,
         venueId: updatedVenueId,
-        eventDate: updatedEventDate,
-        startTime: updatedStartTime,
+        eventStartDateTime: updatedEventDate,
+        eventEndDateTime: dto.eventEndDateTime ?? event.eventEndDateTime,
       };
       const slug = await this.generateSlug(slugPayload);
       payload['slug'] = slug;
 
-      const hasDateChanged =
-        dto.eventDate &&
-        dto.eventDate !== format(new Date(event.eventDate), 'yyyy-MM-dd');
+      const hasStartDateTimeChanged =
+        dto.eventStartDateTime &&
+        dto.eventStartDateTime !==
+          format(
+            new Date(event.eventStartDateTime),
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
 
-      const hasStartTimeChanged =
-        dto.startTime &&
-        dto.startTime !==
-          format(new Date(`1970-01-01T${event.startTime}`), 'HH:mm:ss');
+      const hasEndDateTimeChanged =
+        dto.eventEndDateTime &&
+        dto.eventEndDateTime !==
+          format(new Date(event.eventEndDateTime), "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
-      const hasEndTimeChanged =
-        dto.endTime &&
-        dto.endTime !==
-          format(new Date(`1970-01-01T${event.endTime}`), 'HH:mm:ss');
-
-      if (hasDateChanged || hasStartTimeChanged || hasEndTimeChanged) {
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         payload['status'] = 'rescheduled';
       }
       await this.eventRepository.update({ id: event.id }, payload);
 
-      if (hasDateChanged || hasStartTimeChanged || hasEndTimeChanged) {
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         this.bookingService.handleChangeRequest(Number(event.id), {
           reqShowDate: new Date(updatedEventDate).toISOString().split('T')[0],
           reqShowTime: updatedStartTime,
@@ -394,14 +396,17 @@ export class EventService {
   }
 
   private async generateSlug(payload) {
-    const { neighbourhoodId, title, venueId, eventDate, startTime } = payload;
+    const {
+      neighbourhoodId,
+      title,
+      venueId,
+      eventStartDateTime,
+      eventEndDateTime,
+    } = payload;
 
-    const date = new Date(eventDate);
+    const date = new Date(eventStartDateTime);
     const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
-    const timeWithoutSeconds = startTime.slice(0, 5);
-    const parsedTime = parse(timeWithoutSeconds, 'HH:mm', new Date());
-
-    const time12 = format(parsedTime, 'h:mm a');
+    const timeUTC = format(new Date(eventStartDateTime), 'HH:mm');
 
     const { name, neighbourhoodName, city, stateCode } =
       await this.venueRepository
@@ -432,7 +437,7 @@ export class EventService {
       ? `${neighbourhoodName}/`
       : '';
 
-    const slug = `${formattedDate} at ${time12} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''}, ${stateCode ?? ''}`;
+    const slug = `${formattedDate} at ${timeUTC} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''}, ${stateCode ?? ''}`;
 
     return slug;
   }

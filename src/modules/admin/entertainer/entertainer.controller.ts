@@ -103,6 +103,7 @@ export class EntertainerController {
   async addMedia(
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Param('id', ParseIntPipe) id: number,
+    @Body('mediaLink') mediaLink?: string,
   ) {
     let uploadedFiles: UploadedFile[] = [];
 
@@ -118,7 +119,7 @@ export class EntertainerController {
         }),
       );
     }
-    return this.EntertainerService.uploadMedia(id, uploadedFiles);
+    return this.EntertainerService.uploadMedia(id, uploadedFiles, mediaLink);
   }
 
   @Patch('address/:id')

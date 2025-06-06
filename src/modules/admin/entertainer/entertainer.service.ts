@@ -215,6 +215,7 @@ export class EntertainerService {
         'entertainer.contact_number AS ContactNumber',
         'entertainer.address AS address',
         'entertainer.status AS status',
+        'entertainer.mediaLink AS mediaLink',
         'entertainer.vaccinated AS vaccinated',
         'city.name AS city',
         'country.name AS country',
@@ -297,7 +298,7 @@ export class EntertainerService {
           'entertainer.id AS id',
           'entertainer.name AS name',
           'entertainer.entertainer_name AS entertainer_name',
-          'entertainer.dob AS dob',
+          'entertainer.mediaLink AS mediaLink',
           'entertainer.email AS email',
           'entertainer.city AS cityCode',
           'entertainer.state AS stateCode',
@@ -306,7 +307,6 @@ export class EntertainerService {
           'entertainer.bio AS bio',
           'entertainer.addressLine1 AS addressLine1',
           'entertainer.addressLine2 AS addressLine2',
-          `entertainer.address AS address`,
           'entertainer.pricePerEvent AS pricePerEvent',
           'entertainer.category AS category',
           'entertainer.specific_category AS specific_category',
@@ -319,7 +319,6 @@ export class EntertainerService {
           "COALESCE(entertainer.services, '') AS services",
           'entertainer.contact_person AS contactPerson',
           'entertainer.contact_number AS ContactNumber',
-          'entertainer.address AS address',
           'entertainer.status AS status',
           'user.email AS email',
           'city.name AS city',
@@ -455,8 +454,14 @@ export class EntertainerService {
     }
   }
 
-  async uploadMedia(id: number, uploadedFiles: UploadedFile[]) {
+  async uploadMedia(
+    id: number,
+    uploadedFiles: UploadedFile[],
+    mediaLink?: string,
+  ) {
     try {
+      if (mediaLink)
+        await this.entertainerRepository.update({ id }, { mediaLink });
       await this.mediaService.handleEntertainerMediaUpload(id, uploadedFiles);
 
       return {
@@ -1026,6 +1031,7 @@ export class EntertainerService {
 
       const { page = 1, pageSize = 10, search = '', vaccinated } = query;
       const skip = (page - 1) * pageSize;
+
       const baseQuery = this.entertainerRepository
         .createQueryBuilder('entertainer')
         .leftJoin('countries', 'country', 'country.id = entertainer.country')
@@ -1073,32 +1079,33 @@ export class EntertainerService {
           'state.name AS state',
         ])
 
-        // Use addSelect() ONLY for subqueries
-        .addSelect((subQuery) => {
-          return subQuery
-            .select("DATE_FORMAT(bookPrev.showDate, '%Y-%m-%d')")
-            .from('booking', 'bookPrev')
-            .where('bookPrev.entId = entertainer.id')
-            .andWhere('DATE(bookPrev.showDate) < :todayString')
-            .andWhere('bookPrev.status IN (:...statuses)', {
-              statuses: ['invited', 'completed', 'accepted', 'confirmed'],
-            })
-            .orderBy('bookPrev.showDate', 'DESC')
-            .limit(1);
-        }, 'previousBookingDate')
+        // Add previous booking date using addSelect with correlated subquery
+        .addSelect(
+          `(
+        SELECT DATE_FORMAT(b1.showStartDateTime, '%Y-%m-%d')
+        FROM booking b1
+        WHERE b1.entId = entertainer.id
+          AND b1.status IN ('invited', 'completed', 'accepted', 'confirmed')
+          AND DATE(b1.showStartDateTime) < '${todayString}'
+        ORDER BY b1.showStartDateTime DESC
+        LIMIT 1
+      )`,
+          'previousBookingDate',
+        )
 
-        .addSelect((subQuery) => {
-          return subQuery
-            .select("DATE_FORMAT(bookNext.showDate, '%Y-%m-%d')")
-            .from('booking', 'bookNext')
-            .where('bookNext.entId = entertainer.id')
-            .andWhere('DATE(bookNext.showDate) > :todayString')
-            .andWhere('bookPrev.status IN (:...statuses)', {
-              statuses: ['invited', 'completed', 'accepted', 'confirmed'],
-            })
-            .orderBy('bookNext.showDate', 'ASC')
-            .limit(1);
-        }, 'upcomingBookingDate');
+        // Add upcoming booking date using addSelect with correlated subquery
+        .addSelect(
+          `(
+        SELECT DATE_FORMAT(b2.showStartDateTime, '%Y-%m-%d')
+        FROM booking b2
+        WHERE b2.entId = entertainer.id
+          AND b2.status IN ('invited', 'completed', 'accepted', 'confirmed')
+          AND DATE(b2.showStartDateTime) > '${todayString}'
+        ORDER BY b2.showStartDateTime ASC
+        LIMIT 1
+      )`,
+          'upcomingBookingDate',
+        );
 
       if (search) {
         baseQuery.andWhere('entertainer.name LIKE :search', {
@@ -1135,8 +1142,8 @@ export class EntertainerService {
             socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
             priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
             pricePerEvent,
-            previousBookingDate,
-            upcomingBookingDate,
+            previousBookingDate: previousBookingDate || null,
+            upcomingBookingDate: upcomingBookingDate || null,
             ...rest,
           }),
         ),

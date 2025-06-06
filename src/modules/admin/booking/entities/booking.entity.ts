@@ -52,10 +52,10 @@ export class Booking {
     | 'rescheduled'
     | 'declined';
 
-  @Column({ type: 'time' })
+  @Column({ type: 'time', nullable: true })
   showTime: Date;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'date', nullable: true })
   showDate: Date;
   //Added new Column
   @Column({ type: 'timestamp' })

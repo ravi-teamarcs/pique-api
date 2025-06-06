@@ -45,6 +45,9 @@ export class Entertainer {
   @Column({ nullable: true })
   email: string;
 
+  @Column({ nullable: true ,name:"media_link"})
+  mediaLink: string;
+
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
   vaccinated: 'yes' | 'no';
 

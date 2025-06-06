@@ -21,6 +21,7 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { BookingReqResponse } from './dto/request-booking.dto';
+import { deleteFileFromServer } from 'src/common/middlewares/multer.middleware';
 
 @ApiTags('Booking')
 @ApiBearerAuth()
@@ -68,7 +69,7 @@ export class BookingController {
 
   @Post('test-route')
   @Roles('findAll')
-  async tetstingRoute() {
-    return this.bookingService.notSelectedforEvent([206, 207], [373, 374], 24);
+  async tetstingRoute(@Body('url') url: string) {
+    return deleteFileFromServer(url);
   }
 }

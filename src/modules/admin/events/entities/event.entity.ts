@@ -38,13 +38,13 @@ export class Event {
   @Column()
   description: string;
 
-  @Column({ type: 'time' })
+  @Column({ type: 'time', nullable: true })
   startTime: Date;
 
-  @Column({ type: 'time' })
+  @Column({ type: 'time', nullable: true })
   endTime: Date;
 
-  @Column({ type: 'date' })
+  @Column({ type: 'date', nullable: true })
   eventDate: Date;
 
   @Column({

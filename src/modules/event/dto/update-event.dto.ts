@@ -23,15 +23,11 @@ export class UpdateEventDto {
 
   @IsOptional()
   @IsString()
-  endTime: string;
+  eventEndDateTime: string;
 
   @IsOptional()
   @IsString()
-  startTime: string;
-
-  @IsString()
-  @IsOptional()
-  location: string;
+  eventStartDateTime: string;
 
   @IsOptional()
   @IsString()

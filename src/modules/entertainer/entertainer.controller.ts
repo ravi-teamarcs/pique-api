@@ -98,6 +98,7 @@ export class EntertainerController {
   async addMedia(
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
+    @Body('mediaLink') mediaLink?: string,
   ) {
     const { userId, refId } = req.user;
 
@@ -124,7 +125,11 @@ export class EntertainerController {
         }),
       );
     }
-    return this.entertainerService.uploadMedia(userId, uploadedFiles);
+    return this.entertainerService.uploadMedia(
+      userId,
+      uploadedFiles,
+      mediaLink,
+    );
   }
 
   @Post('save')

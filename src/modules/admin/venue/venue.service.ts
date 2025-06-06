@@ -25,9 +25,11 @@ import { UpdateVenueUserStatus } from './Dto/update-venue-user-status.dto';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import { EmailService } from 'src/modules/Email/email.service';
 import { Booking } from '../booking/entities/booking.entity';
-import { format, sub } from 'date-fns';
+import { sub } from 'date-fns';
 import { BookingLog } from '../booking/entities/booking-log.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { Event } from '../events/entities/event.entity';
+import { format } from 'date-fns-tz';
 
 @Injectable()
 export class VenueService {
@@ -43,6 +45,8 @@ export class VenueService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @InjectRepository(AdminCreatedUser)
     private readonly tempRepository: Repository<AdminCreatedUser>,
+    @InjectRepository(Event)
+    private readonly eventRepository: Repository<Event>,
 
     @InjectRepository(BookingLog)
     private readonly logRepository: Repository<BookingLog>,
@@ -730,7 +734,7 @@ export class VenueService {
         this.emailService.handleSendEmail(emailPayload);
       }
       return {
-        message: `Venue profile has been ${statusToMessageMap[status]} Successfully`,
+        message: `Venue profile has been ${statusToMessageMap[status]} successfully`,
         status: true,
       };
     } catch (error) {
@@ -748,7 +752,7 @@ export class VenueService {
     const updatedBookings = [];
     const { bookingIds, status, eventId } = dto;
     try {
-      for (const bookingId of dto.bookingIds) {
+      for (const bookingId of bookingIds) {
         const booking = await this.bookingRepository
           .createQueryBuilder('booking')
           .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
@@ -767,6 +771,7 @@ export class VenueService {
             'booking.venueId AS vid',
             'booking.showTime AS showTime',
             'booking.showDate AS showDate',
+            'booking.showStartDateTime AS showStartDateTime',
 
             'euser.email AS eEmail',
             'euser.name AS ename',
@@ -782,12 +787,11 @@ export class VenueService {
           .getRawOne();
 
         if (!booking) {
-          throw new NotFoundException({
-            message: `Booking with ID ${bookingId} not found`,
-          });
+          return { message: 'Booking not found', status: false };
         }
 
         await this.bookingRepository.update({ id: bookingId }, { status });
+
         const logPayload = this.logRepository.create({
           bookingId,
           performedBy: 'admin',
@@ -798,7 +802,13 @@ export class VenueService {
         await this.logRepository.save(logPayload);
 
         if (booking.eEmail) {
-          const formattedDate = format(booking.showDate, 'yyyy-MM-dd'); // e.g. '2025-05-01'
+          const formattedDate = format(
+            booking.showStartDateTime,
+            'dd MMM yyyy',
+            {
+              timeZone: 'UTC',
+            },
+          );
 
           const emailPayload = {
             to: booking.eEmail,
@@ -809,7 +819,9 @@ export class VenueService {
               venueName: booking.vname,
               entertainerName: booking.ename,
               id: booking.id,
-              bookingTime: booking.showTime,
+              bookingTime: format(booking.showStartDateTime, 'HH:mm', {
+                timeZone: 'UTC',
+              }),
               bookingDate: formattedDate,
             },
           };
@@ -819,7 +831,7 @@ export class VenueService {
           this.notifyService.sendPush(
             {
               title: 'Booking Response',
-              body: `venue has ${status} the booking request.`,
+              body: `${booking?.vname ?? 'venue'} has ${status} the booking request.`,
               type: 'booking_response',
             },
 
@@ -829,6 +841,11 @@ export class VenueService {
         updatedBookings.push(bookingId);
       }
 
+      // Here update the status of event (to 'confirmed' )
+      await this.eventRepository.update(
+        { id: eventId },
+        { status: 'confirmed' },
+      );
       // Add Logic
       this.notSelectedforEvent(eventId, updatedBookings);
       return {
@@ -846,7 +863,7 @@ export class VenueService {
       });
     }
   }
-
+  // This needs Changes okay
   private async notSelectedforEvent(eventId: number, confirmedBookings) {
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
@@ -858,6 +875,7 @@ export class VenueService {
         'booking.id AS id',
         'entertainer.entertainer_name AS entertainerName',
         'user.email AS email',
+        'venue.name AS venueName',
         'event.slug AS eventName',
         'event.eventDate AS eventDate',
         'user.id AS entId',
@@ -884,7 +902,9 @@ export class VenueService {
             replacements: {
               entertainerName: req.entertainerName,
               eventName: req.eventName,
-              eventDate: format(req.eventDate, 'dd MM yyyy'),
+              eventDate: format(req.showStartDateTime, 'dd MMM yyyy', {
+                timeZone: 'UTC',
+              }),
             },
           };
 
@@ -892,8 +912,8 @@ export class VenueService {
 
           this.notifyService.sendPush(
             {
-              title: 'Status Update of Your Booking ',
-              body: `Venue has cancelled booking `,
+              title: 'Status update of booking ',
+              body: `${req.venueName} has cancelled the booking `,
               type: 'booking_response',
             },
             req.entId,

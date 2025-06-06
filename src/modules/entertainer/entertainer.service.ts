@@ -392,7 +392,11 @@ export class EntertainerService {
     }
   }
 
-  async uploadMedia(userId: number, uploadedFiles: UploadedFile[]) {
+  async uploadMedia(
+    userId: number,
+    uploadedFiles: UploadedFile[],
+    mediaLink: string,
+  ) {
     const ent = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
@@ -402,6 +406,10 @@ export class EntertainerService {
         message: 'Entertainer Not Found',
         status: false,
       });
+    }
+    // New Logic for mediaLink
+    if (mediaLink) {
+      await this.entertainerRepository.update({ id: ent.id }, {});
     }
     try {
       const { data } = await this.mediaService.handleEntertainerMediaUpload(
@@ -728,7 +736,7 @@ export class EntertainerService {
           'entertainer.address AS address',
           'entertainer.maxTravelDistanceMiles AS maxTravelDistance',
           'entertainer.services AS services',
-          'entertainer.dob AS dob',
+          'entertainer.mediaLink AS mediaLink',
           'entertainer.vaccinated AS vaccinated',
           'entertainer.socialLinks AS socialLinks',
           'entertainer.contact_person AS contactPerson',
@@ -809,6 +817,7 @@ export class EntertainerService {
 
           'entertainer.city AS city',
           'entertainer.state AS state',
+          'entertainer.mediaLink AS mediaLink',
           'entertainer.country AS country',
           'entertainer.zipCode AS zipCode',
 
@@ -1466,7 +1475,7 @@ export class EntertainerService {
         .leftJoin('media', 'media', 'media.eventId = event.id')
         .where('booking.entId = :userId', { userId })
         .andWhere('booking.status = :status', { status: 'confirmed' })
-        .andWhere('booking.showDate >= :now', { now: new Date() })
+        .andWhere('booking.showStartDateTime >= :now', { now: new Date() })
 
         .select([
           'event.id AS event_id',
@@ -1556,8 +1565,8 @@ export class EntertainerService {
         .leftJoin('cities', 'city', 'city.id = venue.city')
         .leftJoin('states', 'state', 'state.id = venue.state')
         .where('booking.entId = :userId', { userId })
-        .andWhere('YEAR(event.eventDate) = :year', { year })
-        .andWhere('MONTH(event.eventDate) = :month', { month })
+        .andWhere('YEAR(event.eventStartDateTime) = :year', { year })
+        .andWhere('MONTH(event.eventEndDateTime) = :month', { month })
 
         .select([
           'event.id AS event_id',
@@ -1582,7 +1591,7 @@ export class EntertainerService {
           'venue.city AS cityCode',
           'venue.state AS stateCode',
         ])
-        .orderBy('event.eventDate', 'ASC');
+        .orderBy('event.eventStartDateTime', 'ASC');
 
       if (status) {
         qb.andWhere('event.status=:status', { status });
