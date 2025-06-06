@@ -509,7 +509,10 @@ export class EventService {
 
       const events = await this.eventRepository
         .createQueryBuilder('event')
-        .where('event.eventDate BETWEEN :start AND :end', { start, end })
+        .where('event.eventStartDateTime BETWEEN :start AND :end', {
+          start,
+          end,
+        })
         .orderBy('event.id', 'DESC')
         .getMany();
 
