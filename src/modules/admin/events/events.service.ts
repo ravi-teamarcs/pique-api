@@ -171,13 +171,11 @@ export class EventService {
         // Event Details
         'event.id AS id',
         'event.title  AS title',
-        'event.startTime AS startTime',
-        'event.endTime AS endTime',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventEndDateTime AS eventEndDateTime',
         'event.status AS status',
-        'event.eventDate  AS eventDate',
         'event.description  AS description',
         'event.slug  AS slug',
-
         'event.venueId AS venueId',
         'hood.name AS neighbourhood_name',
         'hood.name AS neighbourhood_name',
@@ -187,7 +185,6 @@ export class EventService {
         'venue.name AS venueName',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
-
         'inv.invoice_number AS invoiceNumber',
         'inv.id AS invoiceId',
       ])
