@@ -124,7 +124,7 @@ export class BookingService {
 
       if (ent.email) {
         // let parsedTime = parse(savedBooking.showTime, 'HH:mm:ss', new Date());
-        // check Later
+
         const emailPayload = {
           to: ent.email,
           subject: 'New Booking Request',
