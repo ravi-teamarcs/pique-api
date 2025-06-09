@@ -8,6 +8,7 @@ import { Role } from '../auth/entities/role.entity';
 import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
 import { EntertainerMedia } from './entities/entertainer-media.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { EntertainerMedia } from './entities/entertainer-media.entity';
       Access,
       EndPoints,
       EntertainerMedia,
+      Entertainer,
     ]),
   ],
   providers: [MediaService],

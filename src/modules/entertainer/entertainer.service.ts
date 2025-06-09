@@ -99,7 +99,7 @@ export class EntertainerService {
   async saveBasicDetails(dto: Step1Dto, userId: number) {
     const { step, ...rest } = dto;
     try {
-      const user = await this.userRepository.findOne({ where: { id:userId } });
+      const user = await this.userRepository.findOne({ where: { id: userId } });
       const entertainer = this.entertainerRepository.create({
         name: dto.stageName,
         email: user?.email,
@@ -451,10 +451,6 @@ export class EntertainerService {
           type: 'profile_completion',
         };
         for (const admin of admins) {
-          await this.notificationService.saveAdminNotification(
-            notification_payload,
-            Number(admin.id),
-          );
           await this.notificationService.sendAdminPush(
             notification_payload,
             Number(admin.id),
@@ -1075,6 +1071,7 @@ export class EntertainerService {
           'booking.status AS status',
           'booking.showDate As showDate',
           'booking.showTime As showTime',
+          'booking.showStartDateTime AS showStartDateTime',
           'booking.specialNotes  As specialNotes',
           'booking.performanceRole AS performanceRole',
           'venue.name AS name',
@@ -1627,11 +1624,9 @@ export class EntertainerService {
           'event.id AS event_id',
           'event.title AS title',
           'event.slug AS slug',
-          'event.eventDate AS eventDate',
-
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
           'event.description AS description',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
           'event.recurring AS recurring',
           'event.status AS status',
           'event.isAdmin AS isAdmin',

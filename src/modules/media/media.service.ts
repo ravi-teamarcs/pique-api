@@ -20,6 +20,8 @@ export class MediaService {
     private readonly mediaRepository: Repository<Media>,
     @InjectRepository(EntertainerMedia)
     private readonly entertainerMediaRepository: Repository<EntertainerMedia>,
+    @InjectRepository(Entertainer)
+    private readonly entertainerRepository: Repository<Entertainer>,
     private readonly config: ConfigService,
   ) {}
 
@@ -261,6 +263,11 @@ export class MediaService {
     return { message: 'Multimedia returned successfully', media, status: true };
   }
   async findEntertainerMediaById(id: number) {
+    const link = await this.entertainerRepository.findOne({
+      where: { id },
+      select: ['mediaLink'],
+    });
+
     const media = await this.entertainerMediaRepository
       .createQueryBuilder('media')
       .select([
@@ -278,6 +285,11 @@ export class MediaService {
         status: false,
       });
     }
-    return { message: 'Multimedia returned successfully', media, status: true };
+    return {
+      message: 'Multimedia returned successfully',
+      media,
+      mediaLink: link,
+      status: true,
+    };
   }
 }

@@ -254,10 +254,6 @@ export class VenueService {
           type: 'profile_completion',
         };
         for (const admin of admins) {
-          await this.notificationService.saveAdminNotification(
-            notification_payload,
-            Number(admin.id),
-          );
           await this.notificationService.sendAdminPush(
             notification_payload,
             Number(admin.id),
