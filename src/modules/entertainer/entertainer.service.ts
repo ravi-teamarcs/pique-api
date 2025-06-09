@@ -1069,8 +1069,6 @@ export class EntertainerService {
         .select([
           'booking.id AS id',
           'booking.status AS status',
-          'booking.showDate As showDate',
-          'booking.showTime As showTime',
           'booking.showStartDateTime AS showStartDateTime',
           'booking.specialNotes  As specialNotes',
           'booking.performanceRole AS performanceRole',
@@ -1079,8 +1077,8 @@ export class EntertainerService {
           'event.title AS event_title',
           'event.location AS event_location',
           'event.description AS event_description',
-          'event.startTime AS event_startTime',
-          'event.endTime AS event_endTime',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
           'event.slug AS event_slug',
           'venue.description AS description',
           'venue.state AS state',
@@ -1143,8 +1141,6 @@ export class EntertainerService {
         .select([
           'booking.id AS id',
           'booking.status AS status',
-          'booking.showDate AS showDate',
-          'booking.showTime AS showTime',
           'booking.showStartDateTime AS showStartDateTime',
           'booking.specialNotes AS specialNotes',
           'booking.performanceRole AS performanceRole',
@@ -1153,13 +1149,8 @@ export class EntertainerService {
           'event.title AS event_title',
           'event.location AS event_location',
           'event.description AS event_description',
-          'event.startTime AS event_startTime',
-          'event.endTime AS event_endTime',
-
-          //Added two new Fields
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
-
           'event.slug AS event_slug',
           'venue.description AS description',
           'venue.state AS state',
