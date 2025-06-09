@@ -229,8 +229,13 @@ export class InvoiceService {
 
   // Latest Code of Generate Invoive (@Bhawani Thakur)
   async generateInvoice(dto: CreateInvoiceDto) {
-    let { eventId, pricePerHour, platformFee, isFixed, discountInPercent } =
-      dto;
+    let {
+      eventId,
+      pricePerHour,
+      platformFee,
+      isFixed,
+      discountInPercent = 0,
+    } = dto;
     const alreadyExists = await this.invoiceRepository.findOne({
       where: { event_id: eventId },
     });
@@ -241,22 +246,52 @@ export class InvoiceService {
       });
     }
 
-    const date = new Date(); // or any date you want
-    const formatted = format(date, 'MMM').toUpperCase(); // e.g., '4 MAR'
-
     try {
-      const { venueId, eventStartTime, eventEndTime, eventName } =
-        await this.eventRepository
-          .createQueryBuilder('event')
-          .select([
-            'event.id AS eventId',
-            'event.startTime AS eventStartDateTime',
-            'event.endTime AS eventEndDateTime',
-            'event.title AS eventName',
-            'event.venueId AS venueId',
-          ])
-          .where('event.id = :eventId', { eventId })
-          .getRawOne();
+      const eventData = await this.eventRepository
+        .createQueryBuilder('event')
+        .select([
+          'event.id AS eventId',
+          'event.slug AS eventName',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.venueId AS venueId',
+          `
+    JSON_ARRAYAGG(
+      JSON_OBJECT(
+        'bookingId', booking.id,
+        'entertainerId', booking.entId,
+        'status', booking.status,
+        'stageName', entertainer.name
+        
+      )
+    ) AS bookings
+    `,
+        ])
+        .leftJoin(
+          'booking',
+          'booking',
+          'booking.eventId = event.id AND booking.status = :status',
+          {
+            status: 'confirmed',
+          },
+        )
+        .leftJoin(
+          'entertainers',
+          'entertainer',
+          'entertainer.id = booking.entId',
+        )
+        .where('event.id = :eventId', { eventId })
+        .groupBy('event.id')
+        .getRawOne();
+
+      const { bookings, ...restData } = eventData;
+      const parsedRecord = {
+        ...restData,
+        bookings: bookings ? JSON.parse(bookings) : [],
+      };
+
+      const entertainerId = parsedRecord.bookings[0].entertainerId;
+      const stageName = parsedRecord.bookings[0].stageName;
 
       const lastInvoice = await this.invoiceRepository
         .createQueryBuilder('invoices')
@@ -264,18 +299,26 @@ export class InvoiceService {
         .limit(1)
         .getOne();
 
-      // checks last invoice number and  increment it by one.
       const lastInvoiceNumber = lastInvoice
-        ? parseInt(lastInvoice.invoice_number.split('-')[2])
+        ? parseInt(lastInvoice.invoice_number.split('-')[1])
         : 1000;
 
-      const newInvoiceNumber = `INV-${formatted}-${lastInvoiceNumber + 1}`;
-      // Logic to calculate the total amount based on the booking details
+      // Invoicing
+      const invFormattedDate = this.formatDateForInvoice(
+        parsedRecord.eventStartDateTime,
+      );
+      const entertainerCode = this.generateEntertainerCode(
+        entertainerId,
+        stageName,
+      );
+      const newInvoiceNumber = `${invFormattedDate}${parsedRecord.venueId}${entertainerCode}-${lastInvoiceNumber} `;
 
+      // Logic to calculate the total amount based on the booking details
       const durationInHours = this.getDurationInHours(
-        eventStartTime,
-        eventEndTime,
+        parsedRecord.eventStartDateTime,
+        parsedRecord.eventEndDateTime,
       ); // (duartion)
+
       const totalAmount = this.roundToTwo(pricePerHour * durationInHours);
 
       const discountAmount = this.roundToTwo(
@@ -302,7 +345,7 @@ export class InvoiceService {
 
       const newInvoice = this.invoiceRepository.create({
         invoice_number: newInvoiceNumber,
-        user_id: Number(venueId),
+        user_id: Number(parsedRecord.venueId),
         user_type: UserType.VENUE,
         event_id: Number(eventId),
         issue_date: issueDate.toISOString().split('T')[0],
@@ -311,7 +354,7 @@ export class InvoiceService {
         tax_rate: platformFee ?? 0,
         tax_amount: parseFloat(discountedTotal.toFixed(2)),
         total_with_tax: parseFloat(totalWithPlatformFee.toFixed(2)),
-        status: InvoiceStatus.UNPAID,
+        status: InvoiceStatus.AWAITING_PAYMENT,
         payment_method: '',
         payment_date: null,
         booking_id: null,
@@ -415,7 +458,7 @@ export class InvoiceService {
     const diffInMinutes = differenceInMinutes(end, start);
     const diffInHours = Math.ceil(diffInMinutes / 60);
 
-    return diffInHours;
+    return Number(diffInHours);
   }
 
   private async generatePDF(htmlContent): Promise<Buffer> {
@@ -665,5 +708,30 @@ export class InvoiceService {
       totalPages: Math.ceil(totalCount / pageSize),
       status: true,
     };
+  }
+
+  formatDateForInvoice(dateInput: string | Date): string {
+    const date = new Date(dateInput);
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth is 0-based
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2); // last 2 digits of year
+
+    return `${month}${day}${year}`; // MMDDYY
+  }
+
+  // Generate Entertainer Code
+  generateEntertainerCode(
+    entertainerId: number,
+    entertainerName: string,
+  ): string {
+    if (!entertainerName || typeof entertainerId !== 'number') return '';
+
+    const initials = entertainerName
+      .split(/\s+/) // split by spaces
+      .filter(Boolean) // remove empty strings
+      .map((word) => word.charAt(0).toUpperCase()) // take first letter and uppercase
+      .join('');
+
+    return `${initials}${entertainerId}`;
   }
 }

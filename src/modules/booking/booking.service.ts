@@ -204,7 +204,7 @@ export class BookingService {
           'booking.venueId AS vid',
 
           'booking.showStartDateTime AS showStartDateTime',
-          `CONCAT(venue.addressLine, ', ', venue.addressLine2) AS address`,
+          `CONCAT(venue.addressLine1, ', ', venue.addressLine2) AS address`,
           'event.slug AS slug',
           'event.title AS title',
 
