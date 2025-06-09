@@ -196,9 +196,9 @@ export class BookingService {
           'booking.id AS id',
           'booking.status AS status',
           'booking.venueId AS vid',
-          'booking.showTime AS showTime',
-          'booking.showDate AS showDate',
+
           'booking.showStartDateTime AS showStartDateTime',
+          `CONCAT(venue.addressLine, ', ', venue.addressLine2) AS address`,
           'event.slug AS slug',
           'event.title AS title',
 
@@ -243,6 +243,7 @@ export class BookingService {
           accepted: 'request-accepted.html',
           declined: 'entertainer-declined-booking.html',
           confirmed: 'entertainer-confirmed.html',
+          cancelled: 'entertainer-cancellation.html',
         };
 
         const statusToReplacementMap = {
@@ -273,7 +274,19 @@ export class BookingService {
             venueName: booking.vname,
             Year: new Date().getFullYear(),
           },
-          cancelled: {},
+          cancelled: {
+            venueName: booking.vname,
+            eventTitle: booking.slug,
+            entertainerName: booking.stageName,
+            address: booking.address,
+            eventDate: format(booking.showStartDateTime, 'dd MMM yyyy', {
+              timeZone: 'UTC',
+            }),
+            eventTime: format(booking.showStartDateTime, 'HH:mm', {
+              timeZone: 'UTC',
+            }),
+            year: new Date().getFullYear(),
+          },
         };
 
         const template = statusToTemplateMap[status];
