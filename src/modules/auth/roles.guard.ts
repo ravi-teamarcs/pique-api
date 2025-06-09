@@ -35,7 +35,7 @@ export class RolesGuard implements CanActivate {
       throw new ForbiddenException('User role is missing.');
     }
     // Inactive account don not have access
-    if (user.status === 'inactive' || user.status === 'pending') {
+    if (user.status === 'inactive') {
       throw new ForbiddenException({
         message: 'Your do not have  access to this resource.',
         status: false,
