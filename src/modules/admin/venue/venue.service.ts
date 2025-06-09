@@ -696,6 +696,10 @@ export class VenueService {
       if (!venue) throw new NotFoundException('Venue not found');
 
       await this.venueRepository.update({ id }, { status });
+      // Also update the user status if exists
+      if (venue.user) {
+        await this.userRepository.update({ id: venue.user.id }, { status });
+      }
       const currentYear = new Date().getFullYear();
 
       const statusToMessageMap = {

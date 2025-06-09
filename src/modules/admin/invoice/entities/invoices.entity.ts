@@ -62,7 +62,7 @@ export class Invoice {
       'invoice to be send',
       'awaiting payment',
     ],
-    default: 'unpaid',
+    default: 'awaiting payment',
   })
   status:
     | 'paid'
