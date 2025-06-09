@@ -88,6 +88,12 @@ export class BookingService {
       // changes must be there
       const savedBooking = await this.bookingRepository.save(newBooking);
 
+      // update status of event to invited
+      await this.eventRepository.update(
+        { id: dto.eventId },
+        { status: 'invited' },
+      );
+
       const entUserId = savedBooking.entId;
 
       const ent = await this.entRepository
