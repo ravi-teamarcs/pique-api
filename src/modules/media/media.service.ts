@@ -243,6 +243,10 @@ export class MediaService {
     }
   }
   async findAllEntertainerMedia(userId: number) {
+    const link = await this.entertainerRepository.findOne({
+      where: { id: userId },
+      select: ['mediaLink'],
+    });
     const media = await this.entertainerMediaRepository
       .createQueryBuilder('media')
       .select([
@@ -260,7 +264,12 @@ export class MediaService {
         status: false,
       });
     }
-    return { message: 'Multimedia returned successfully', media, status: true };
+    return {
+      message: 'Multimedia returned successfully',
+      media,
+      mediaLink: link,
+      status: true,
+    };
   }
   async findEntertainerMediaById(id: number) {
     const link = await this.entertainerRepository.findOne({
