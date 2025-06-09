@@ -12,6 +12,7 @@ import { UploadMedia } from './dto/upload-media.dto';
 import { ConfigService } from '@nestjs/config';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EntertainerMedia } from './entities/entertainer-media.entity';
+import { deleteFileFromServer } from 'src/common/middlewares/multer.middleware';
 
 @Injectable()
 export class MediaService {
@@ -155,6 +156,7 @@ export class MediaService {
 
     try {
       await this.mediaRepository.remove(media);
+      deleteFileFromServer(media.url);
       return { message: 'media deleted successfully', status: true };
     } catch (error) {
       throw new InternalServerErrorException({
@@ -234,6 +236,9 @@ export class MediaService {
 
     try {
       await this.entertainerMediaRepository.remove(media);
+      // Also remove the media from server storage
+      deleteFileFromServer(media.url);
+
       return { message: 'media deleted successfully', status: true };
     } catch (error) {
       throw new InternalServerErrorException({

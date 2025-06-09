@@ -61,6 +61,9 @@ export async function deleteFileFromServer(fileUrl: string): Promise<void> {
     return;
   }
 
+  console.log(
+    `Attempting to delete file: ${fullPath} and Base Path: ${uploadsBasePath}`,
+  );
   try {
     await fs.promises.access(fullPath, fs.constants.F_OK); // check if exists
     await fs.promises.unlink(fullPath); // delete
