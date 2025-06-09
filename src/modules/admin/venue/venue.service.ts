@@ -867,7 +867,7 @@ export class VenueService {
       });
     }
   }
-  // This needs Changes okay
+  // This needs Changes okay ..
   private async notSelectedforEvent(eventId: number, confirmedBookings) {
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
