@@ -695,6 +695,10 @@ export class EntertainerService {
   }
   async findEntertainer(userId: number) {
     const URL = this.config.get<string>('DEFAULT_MEDIA');
+
+    const ent = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
     try {
       const entertainer = await this.entertainerRepository
         .createQueryBuilder('entertainer')
@@ -708,7 +712,9 @@ export class EntertainerService {
           'subcat',
           'subcat.id = entertainer.specific_category ',
         )
-        .where('entertainer.id = :userId', { userId })
+        .where('entertainer.id = :userId', {
+          userId: ent.id,
+        })
         .select([
           'entertainer.id AS id',
           'entertainer.name AS stageName',
@@ -755,7 +761,7 @@ export class EntertainerService {
 
       const { socialLinks, services, id, isPiqueVerified, ...rest } =
         entertainer;
-      console.log(typeof services);
+
       const payload = {
         id: Number(id),
         services: services ? services.split(',') : [],

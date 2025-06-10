@@ -231,8 +231,8 @@ export class EntertainerController {
   @Roles('findAll')
   @ApiOperation({ summary: 'Get details of  the logged-in user' })
   findOne(@Request() req) {
-    const { refId } = req.user;
-    return this.entertainerService.findEntertainer(refId);
+    const { userId } = req.user;
+    return this.entertainerService.findEntertainer(userId);
   }
 
   @Get(':id')
