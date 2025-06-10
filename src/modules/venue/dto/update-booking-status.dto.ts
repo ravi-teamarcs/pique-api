@@ -18,7 +18,8 @@ export class UpdateBookingStatusDto {
   @IsIn(['cancelled', 'confirmed'])
   status: 'cancelled' | 'confirmed';
 
-  // @IsNumber()
-  // @IsNotEmpty()
-  // eventId: number;
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsNumber({}, { each: true })
+  eventIds: number[];
 }

@@ -18,6 +18,7 @@ export class UpdateEventDto extends PartialType(CreateEventDto) {
     'completed',
     'cancelled',
     'rescheduled',
+    'invited',
   ])
   @IsOptional()
   status:
@@ -26,5 +27,6 @@ export class UpdateEventDto extends PartialType(CreateEventDto) {
     | 'confirmed'
     | 'completed'
     | 'cancelled'
-    | 'rescheduled';
+    | 'rescheduled'
+    | 'invited';
 }

@@ -615,7 +615,7 @@ export class BookingService {
 
   async updateBookingStatus(dto, userId: number) {
     const updatedBookings = [];
-    const { bookingIds, status } = dto;
+    const { bookingIds, status, eventIds } = dto;
     try {
       for (const bookingId of bookingIds) {
         const booking = await this.bookingRepository
@@ -659,15 +659,15 @@ export class BookingService {
 
         await this.bookingRepository.update({ id: bookingId }, { status });
         // If booking confirmed , also confirm the status of event.
-        // await Promise.all(
-        //   events.map(
-        //     async (event) =>
-        //       await this.eventRepository.update(
-        //         { id: event },
-        //         { status: 'confirmed' },
-        //       ),
-        //   ),
-        // );
+        await Promise.all(
+          eventIds.map(
+            async (eventId: number) =>
+              await this.eventRepository.update(
+                { id: eventId },
+                { status: 'confirmed' },
+              ),
+          ),
+        );
 
         const logPayload = {
           bookingId,
@@ -717,7 +717,7 @@ export class BookingService {
         updatedBookings.push(bookingId);
       }
 
-      // this.notSelectedforEvent(eventId, updatedBookings);
+      this.notSelectedforEvent(eventIds, updatedBookings, userId);
 
       return {
         message: 'Booking status updated successfully',

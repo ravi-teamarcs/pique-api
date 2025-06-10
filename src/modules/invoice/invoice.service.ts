@@ -36,8 +36,8 @@ export class InvoiceService {
       const invoiceDetails = [];
       for (const eventid of eventIds) {
         const {
-          eventStartTime,
-          eventEndTime,
+          eventStartDateTime,
+          eventEndDateTime,
           bookingId,
           eventId,
           pricePerEvent,
@@ -55,15 +55,15 @@ export class InvoiceService {
             'booking.eventId AS eventId',
             'event.title AS eventName',
             'event.description AS eventDescription',
-            'event.startTime AS eventStartTime',
-            'event.endTime AS eventEndTime',
+            'event.eventStartDateTime AS eventStartDateTime',
+            'event.eventStartDateTime AS eventEndDateTime',
             'ent.pricePerEvent AS pricePerEvent',
           ])
           .getRawOne();
 
         const durationInHours = this.getDurationInHours(
-          eventStartTime,
-          eventEndTime,
+          eventStartDateTime,
+          eventEndDateTime,
         );
         const totalAmount = pricePerEvent * durationInHours;
 
@@ -80,7 +80,7 @@ export class InvoiceService {
 
       // checks last invoice number and  increment it by one.
       const lastInvoiceNumber = lastInvoice
-        ? parseInt(lastInvoice.invoice_number.split('-')[2])
+        ? parseInt(lastInvoice.invoice_number.split('-')[1])
         : 1000;
 
       const newInvoiceNumber = `INV-${invoiceMonth}-${lastInvoiceNumber + 1}`;
@@ -127,97 +127,6 @@ export class InvoiceService {
       throw new InternalServerErrorException({ message: error.message });
     }
   }
-
-  //   userId: number,
-  //   page: number = 1,
-  //   pageSize: number = 20,
-  // ) {
-  //   try {
-  //     const offset = (Number(page) - 1) * Number(pageSize);
-  //     const limit = Number(pageSize);
-
-  //     // Single query with JSON aggregation for events
-  //     const invoices = await this.invoiceRepository
-  //       .createQueryBuilder('invoices')
-  //       .leftJoin('invoice_booking', 'ib', 'ib.invoice_id = invoices.id')
-  //       .leftJoin('event', 'event', 'event.id = ib.event_id')
-  //       .leftJoin('entertainers', 'ent', 'ent.id = invoices.user_id')
-  //       .leftJoin('cities', 'city', 'city.id = ent.city')
-  //       .leftJoin('states', 'state', 'state.id = ent.state')
-  //       .where('invoices.user_id = :userId', { userId })
-  //       .select([
-  //         'invoices.id AS id',
-  //         'invoices.invoice_number AS invoice_number',
-  //         'invoices.user_id AS user_id',
-  //         'invoices.event_id AS event_id',
-  //         'invoices.user_type AS user_type',
-  //         'invoices.issue_date AS issue_date',
-  //         'invoices.due_date AS due_date',
-  //         'invoices.total_amount AS total_amount',
-  //         'invoices.tax_rate AS tax_rate',
-  //         'invoices.tax_amount AS tax_amount',
-  //         'invoices.total_with_tax AS total_with_tax',
-  //         'invoices.status AS status',
-  //         'invoices.payment_method AS payment_method',
-  //         'invoices.payment_date AS payment_date',
-  //         'ent.name AS entertainerName',
-  //         'ent.addressLine1 AS addressLine1',
-  //         'ent.addressLine2 AS addressLine2',
-  //         'ent.city AS city_code',
-  //         'ent.state AS state_code',
-  //         'state.name AS stateName',
-  //         'city.name AS cityName',
-  //         `JSON_ARRAYAGG(
-  //         CASE
-  //           WHEN event.id IS NOT NULL
-  //           THEN JSON_OBJECT(
-  //             'd', event.id,
-  //             'slug', event.slug,
-  //             'title', event.title,
-  //             'description', event.description,
-  //             'location', event.location,
-  //             'startTime', event.startTime,
-  //             'endTime', event.endTime,
-  //             'eventDate', event.eventDate,
-  //             'status', event.status
-  //           )
-  //           ELSE NULL
-  //         END
-  //       ) AS events`,
-  //       ])
-  //       .groupBy('invoices.id')
-  //       .orderBy('invoices.id', 'DESC')
-  //       .limit(limit)
-  //       .offset(offset)
-  //       .getRawMany();
-
-  //     // Get total count for pagination
-  //     const totalCount = await this.invoiceRepository
-  //       .createQueryBuilder('invoices')
-  //       .where('invoices.user_id = :userId', { userId })
-  //       .getCount();
-
-  //     // Process events to remove null values and parse JSON
-  //     const processedInvoices = invoices.map((invoice) => ({
-  //       ...invoice,
-  //       events: invoice.events
-  //         ? JSON.parse(invoice.events).filter((event) => event !== null)
-  //         : [],
-  //     }));
-
-  //     return {
-  //       message: 'Invoices fetched successfully',
-  //       count: totalCount,
-  //       page: Number(page),
-  //       pageSize: Number(pageSize),
-  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
-  //       data: processedInvoices,
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(error.message);
-  //   }
-  // }
 
   // Fetch All Invoices for Entertainer
   async findAllInvoice(userId: number, role, page = 1, pageSize = 10) {
@@ -347,20 +256,13 @@ export class InvoiceService {
   //   }
   // }
   private getDurationInHours(startTime: string, endTime: string): number {
-    const today = new Date().toISOString().split('T')[0]; // e.g., "2025-05-28"
-    const start = parse(
-      `${today} ${startTime}`,
-      'yyyy-MM-dd HH:mm:ss',
-      new Date(),
-    );
-    const end = parse(`${today} ${endTime}`, 'yyyy-MM-dd HH:mm:ss', new Date());
+    const start = new Date(startTime);
+    const end = new Date(endTime);
 
     const diffInMinutes = differenceInMinutes(end, start);
-
-    // 👇 Always round up to next full hour if any minutes exist
     const diffInHours = Math.ceil(diffInMinutes / 60);
 
-    return diffInHours;
+    return Number(diffInHours);
   }
 
   async generateInvoiceHtml(data: any): Promise<string> {
@@ -591,5 +493,30 @@ export class InvoiceService {
       page,
       pageSize,
     };
+  }
+
+  formatDateForInvoice(dateInput: string | Date): string {
+    const date = new Date(dateInput);
+    const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth is 0-based
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = String(date.getFullYear()).slice(-2); // last 2 digits of year
+
+    return `${month}${day}${year}`; // MMDDYY
+  }
+
+  // Generate Entertainer Code
+  generateEntertainerCode(
+    entertainerId: number,
+    entertainerName: string,
+  ): string {
+    if (!entertainerName || typeof entertainerId !== 'number') return '';
+
+    const initials = entertainerName
+      .split(/\s+/) // split by spaces
+      .filter(Boolean) // remove empty strings
+      .map((word) => word.charAt(0).toUpperCase()) // take first letter and uppercase
+      .join('');
+
+    return `${initials}${entertainerId}`;
   }
 }

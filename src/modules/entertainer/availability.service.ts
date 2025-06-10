@@ -10,8 +10,14 @@ import { EntertainerAvailability } from './entities/availability.entity';
 import { UpdateAvailabilityDto } from './dto/update-entertainer-availability.dto';
 import { EntertainerAvailabilityDto } from '../admin/entertainer/Dto/entertainer-availability.dto';
 import { Booking } from '../booking/entities/booking.entity';
-import { endOfMonth, startOfMonth } from 'date-fns';
+import { endOfMonth, getMonth, getYear, startOfMonth } from 'date-fns';
 import { instanceToPlain } from 'class-transformer';
+import {
+  getOverlappingSlots,
+  SLOT_RANGES,
+  SlotName,
+} from 'src/common/utils/slots-utils';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class AvailabilityService {
@@ -196,4 +202,53 @@ export class AvailabilityService {
       });
     }
   }
+
+  // async checkEntertainerAvailability({
+  //   startTimeUtc,
+  //   endTimeUtc,
+  //   entertainerId,
+  // }: {
+  //   startTimeUtc: string;
+  //   endTimeUtc: string;
+  //   entertainerId: number;
+  // }): Promise<boolean> {
+  //   const date = new Date(startTimeUtc);
+  //   const year = getYear(date); // 2025
+  //   const month = getMonth(date) + 1;
+
+  //   const availability = await this.availabilityRepository.findOne({
+  //     where: { entertainer_id: entertainerId, year, month },
+  //   });
+  //   if (!availability) return false;
+
+  //   const { unavailable_dates, timeZone } = availability;
+
+  //   // Convert into entertainer Local Timezone
+
+  //   const startLocal = DateTime.fromISO(startTimeUtc, { zone: 'utc' }).setZone(
+  //     timeZone,
+  //   );
+  //   const endLocal = DateTime.fromISO(endTimeUtc, { zone: 'utc' }).setZone(
+  //     timeZone,
+  //   );
+
+  //   const bookingDate = startLocal.toISODate(); // e.g. "2025-07-17"
+  //   const startTime = startLocal.toFormat('HH:mm');
+  //   const endTime = endLocal.toFormat('HH:mm');
+
+  //   const unavailable = unavailable_dates.find((u) => u.date === bookingDate);
+  //   if (!unavailable) return true;
+  //   if (unavailable.slots.includes('whole_day')) return false;
+
+  //   // Helper function to get overlapping slots(returns an array of slot names)
+  //   const bookingSlots = getOverlappingSlots(startTime, endTime);
+
+  //   for (const slot of bookingSlots) {
+  //     if (unavailable.slots.includes(slot)) {
+  //       return false;
+  //     }
+  //   }
+
+  //   return true;
+  // }
 }

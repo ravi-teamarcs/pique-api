@@ -365,7 +365,10 @@ export class VenueService {
     }
   }
 
-  async findAllByUser(userId: number, venueId: number) {
+  async findAllByUser(userId: number, refId: number) {
+    const venue = await this.venueRepository.findOne({
+      where: { user: { id: userId } },
+    });
     const venueDetails = await this.venueRepository
       .createQueryBuilder('venue')
       .leftJoinAndSelect('venue.user', 'user')
@@ -410,12 +413,12 @@ export class VenueService {
         'COALESCE(media.mediaDetails, "[]") AS media',
       ])
 
-      .where('venue.id=:venueId', { venueId })
+      .where('venue.id=:venueId', { venueId: venue.id })
       .setParameter('serverUri', this.config.get<string>('BASE_URL'))
       .getRawOne();
 
     const neighbourhood = await this.neighbourRepository.find({
-      where: { venueId },
+      where: { venueId: venue.id },
     });
     const { media, isPiqueVerified, ...rest } = venueDetails;
     const response = {
