@@ -83,8 +83,9 @@ export class InvoiceService {
         ? parseInt(lastInvoice.invoice_number.split('-')[2])
         : 1000;
 
-      const newInvoiceNumber = `${invoiceMonth}-${userId}-${lastInvoiceNumber + 1}`;
       const issueDate = new Date();
+      const formattedDate = this.formatDateForInvoice(issueDate);
+      const newInvoiceNumber = `${formattedDate}-${userId}-${lastInvoiceNumber + 1}`;
 
       const newInvoice = this.invoiceRepository.create({
         invoice_number: newInvoiceNumber,
