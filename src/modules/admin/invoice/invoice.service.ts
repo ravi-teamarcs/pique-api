@@ -228,9 +228,6 @@ export class InvoiceService {
         bookings: bookings ? JSON.parse(bookings) : [],
       };
 
-      const entertainerId = parsedRecord.bookings[0].entertainerId;
-      const stageName = parsedRecord.bookings[0].stageName;
-
       const lastInvoice = await this.invoiceRepository
         .createQueryBuilder('invoices')
         .orderBy('invoices.id', 'DESC')
@@ -238,18 +235,15 @@ export class InvoiceService {
         .getOne();
 
       const lastInvoiceNumber = lastInvoice
-        ? parseInt(lastInvoice.invoice_number.split('-')[1])
+        ? parseInt(lastInvoice.invoice_number.split('-')[2])
         : 1000;
 
       // Invoicing
       const invFormattedDate = this.formatDateForInvoice(
         parsedRecord.eventStartDateTime,
       );
-      const entertainerCode = this.generateEntertainerCode(
-        entertainerId,
-        stageName,
-      );
-      const newInvoiceNumber = `${invFormattedDate}${parsedRecord.venueId}${entertainerCode}-${lastInvoiceNumber + 1} `;
+
+      const newInvoiceNumber = `${invFormattedDate}-${parsedRecord.venueId}-${lastInvoiceNumber + 1} `;
 
       // Logic to calculate the total amount based on the booking details
       const durationInHours = this.getDurationInHours(

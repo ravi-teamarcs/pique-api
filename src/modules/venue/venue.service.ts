@@ -461,7 +461,7 @@ export class VenueService {
     const skip = (Number(page) - 1) * Number(pageSize);
     const take = Number(pageSize);
     const DEFAULT_MEDIA_URL =
-      'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+      'https://digidemo.in/apim/uploads/assets/icons/avatar.png';
 
     try {
       // Build base query with all conditions but without pagination

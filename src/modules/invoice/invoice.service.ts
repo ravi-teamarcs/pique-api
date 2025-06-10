@@ -80,10 +80,10 @@ export class InvoiceService {
 
       // checks last invoice number and  increment it by one.
       const lastInvoiceNumber = lastInvoice
-        ? parseInt(lastInvoice.invoice_number.split('-')[1])
+        ? parseInt(lastInvoice.invoice_number.split('-')[2])
         : 1000;
 
-      const newInvoiceNumber = `INV-${invoiceMonth}-${lastInvoiceNumber + 1}`;
+      const newInvoiceNumber = `${invoiceMonth}-${userId}-${lastInvoiceNumber + 1}`;
       const issueDate = new Date();
 
       const newInvoice = this.invoiceRepository.create({
