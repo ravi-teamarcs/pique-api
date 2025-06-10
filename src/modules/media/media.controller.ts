@@ -195,8 +195,8 @@ export class MediaController {
   })
   @ApiResponse({ status: 200, description: 'Multimedia fetched Successfully.' })
   getAllEntertainerMedia(@Request() req) {
-    const { refId } = req.user;
-    return this.mediaService.findAllEntertainerMedia(refId);
+    const { userId } = req.user;
+    return this.mediaService.findAllEntertainerMedia(userId);
   }
 
   //  For Signup

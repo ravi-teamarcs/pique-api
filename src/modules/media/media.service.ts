@@ -248,10 +248,11 @@ export class MediaService {
     }
   }
   async findAllEntertainerMedia(userId: number) {
-    const link = await this.entertainerRepository.findOne({
-      where: { id: userId },
-      select: ['mediaLink'],
+    const ent = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+      select: ['mediaLink', 'id'],
     });
+
     const media = await this.entertainerMediaRepository
       .createQueryBuilder('media')
       .select([
@@ -260,7 +261,7 @@ export class MediaService {
         'media.type AS type',
         'media.name  AS name',
       ])
-      .where('media.user_id = :userId', { userId })
+      .where('media.user_id = :entertainerId', { entertainerId: ent.id })
       .getRawMany();
 
     if (!media) {
@@ -272,7 +273,7 @@ export class MediaService {
     return {
       message: 'Multimedia returned successfully',
       media,
-      mediaLink: link,
+      mediaLink: { mediaLink: ent.mediaLink },
       status: true,
     };
   }
