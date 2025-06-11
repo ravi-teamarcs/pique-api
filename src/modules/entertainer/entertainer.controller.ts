@@ -226,6 +226,18 @@ export class EntertainerController {
     return this.entertainerService.updateEntertainerSocialLinks(userId, dto);
   }
 
+  @Patch('media-links')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async updateMediaLink(
+    @Body('mediaLink') mediaLink: string,
+    @Request()
+    req,
+  ) {
+    const { userId } = req.user;
+    return this.entertainerService.updateMediaLink(userId, mediaLink);
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard)
   @Roles('findAll')

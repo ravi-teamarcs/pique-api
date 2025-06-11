@@ -1049,6 +1049,23 @@ export class EntertainerService {
       throw new InternalServerErrorException(error.message);
     }
   }
+  async updateMediaLink(userId: number, mediaLink: string) {
+    try {
+      const entertainer = await this.entertainerRepository.findOne({
+        where: { user: { id: userId } },
+      });
+
+      if (!entertainer) throw new NotFoundException('Entertainer not found');
+      await this.entertainerRepository.update(
+        { id: entertainer.id },
+        { mediaLink },
+      );
+      return { message: 'Media Link updated Successfully', status: true };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
+  }
 
   async remove(id: number, userId: number) {
     const entertainer = await this.entertainerRepository.findOne({
