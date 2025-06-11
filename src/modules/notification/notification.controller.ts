@@ -72,6 +72,7 @@ export class NotificationController {
   }
 
   @Patch('mark-all-read')
+  @UseGuards(JwtAuthGuard)
   async markAllAsRead(@Request() req) {
     const { userId } = req.user;
     return this.notificationService.markAllAsRead(userId);
