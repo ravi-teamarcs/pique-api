@@ -445,9 +445,15 @@ export class EventService {
         .createQueryBuilder('booking')
         .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
         .leftJoin(
-          'booking_log',
+          (qb) =>
+            qb
+              .subQuery()
+              .select('logInner.*')
+              .from('booking_log', 'logInner')
+              .where("logInner.performedBy IN ('admin', 'venue')")
+              .orderBy('logInner.createdAt', 'DESC'),
           'log',
-          `log.bookingId = booking.id AND booking.status = 'confirmed' AND (log.performedBy = 'admin' OR log.performedBy = 'venue')`,
+          'log.bookingId = booking.id',
         )
         .select([
           'booking.id AS bookingId',

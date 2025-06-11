@@ -16,6 +16,7 @@ import { EmailModule } from 'src/modules/Email/email.module';
 import { Booking } from '../booking/entities/booking.entity';
 import { BookingLog } from '../booking/entities/booking-log.entity';
 import { Entertainer } from '../../admin/entertainer/entities/entertainer.entity';
+import { Event } from '../events/entities/event.entity';
 
 @Module({
   imports: [
