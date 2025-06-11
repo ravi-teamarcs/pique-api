@@ -85,10 +85,12 @@ export class SearchEntertainerDto {
 
   @IsOptional()
   @IsNumber()
+  @Transform(({ value }) => Number(value))
   latitude?: number;
 
   @IsOptional()
   @IsNumber()
+  @Transform(({ value }) => Number(value))
   longitude?: number;
 
   @IsOptional()

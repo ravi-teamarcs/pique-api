@@ -525,26 +525,9 @@ export class VenueService {
       }
 
       if (latitude && longitude) {
-        const defaultRadius = 100;
-        const searchRadius = isNearby ? radius || 50 : defaultRadius;
-
         baseQuery
-          .andWhere('entertainer.latitude IS NOT NULL')
-          .andWhere('entertainer.longitude IS NOT NULL')
-          .andWhere(
-            `
-      3959 * acos(
-        cos(radians(:lat)) *
-        cos(radians(entertainer.latitude)) *
-        cos(radians(entertainer.longitude) - radians(:lng)) +
-        sin(radians(:lat)) *
-        sin(radians(entertainer.latitude))
-      ) <= LEAST(:searchRadius, entertainer.maxTravelDistance)
-    `,
-          )
-          .setParameter('lat', latitude)
-          .setParameter('lng', longitude)
-          .setParameter('searchRadius', searchRadius);
+          .setParameter('lat2', latitude)
+          .setParameter('lng2', longitude);
       }
 
       if (date) {
@@ -560,7 +543,7 @@ export class VenueService {
       if (startDate && endDate) {
         const start = new Date(startDate);
         const end = new Date(endDate);
-        console.log('Inside start Date');
+
         if (end < start) {
           throw new BadRequestException({
             message: 'endDate cannot be earlier than startDate',
@@ -609,6 +592,20 @@ export class VenueService {
           `COALESCE(CONCAT(:serverUri, media.url), :defaultMediaUrl) AS mediaUrl`,
           `CASE WHEN wish.ent_id IS NOT NULL THEN 1 ELSE 0 END AS isWishlisted`,
           'wish.name AS record',
+          latitude && longitude
+            ? `ROUND(
+              3959 * acos(
+                GREATEST(-1, LEAST(1,
+                  cos(radians(:lat2)) *
+                  cos(radians(COALESCE(entertainer.latitude, 0))) *
+                  cos(radians(COALESCE(entertainer.longitude, 0)) - radians(:lng2)) +
+                  sin(radians(:lat2)) *
+                  sin(radians(COALESCE(entertainer.latitude, 0)))
+                ))
+              ),
+              2
+            ) AS distanceInMiles`
+            : '0 AS distanceInMiles',
         ])
         .orderBy('entertainer.name', 'ASC')
         .offset(skip) // Use offset which is more explicit than skip for raw queries
