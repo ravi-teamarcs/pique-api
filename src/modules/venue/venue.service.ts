@@ -865,6 +865,7 @@ export class VenueService {
         'entertainer.isPiqueVerified AS isPiqueVerified',
         'entertainer.performanceRole AS performanceRole',
         'entertainer.pricePerEvent AS pricePerEvent',
+        'entertainer.socialLinks AS socialLinks',
         'entertainer.contact_person AS contactPerson',
         'entertainer.contact_number AS contactNumber',
         'state.name AS stateName',
@@ -901,6 +902,7 @@ export class VenueService {
       vaccinated,
       isWishlisted,
       isPiqueVerified,
+      socialLinks,
       ...details
     } = res;
     return {
@@ -910,6 +912,7 @@ export class VenueService {
         isWishlisted: Boolean(isWishlisted),
         priceWithMarkup: finalPrice,
         isPiqueVerified: isPiqueVerified === 1 ? true : false,
+        socialLinks: socialLinks ? JSON.parse(socialLinks) : {},
         vaccination_status:
           vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
         services: services ? services.split(',') : [],
