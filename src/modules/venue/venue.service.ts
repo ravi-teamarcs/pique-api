@@ -400,6 +400,8 @@ export class VenueService {
         'venue.addressLine2 AS addressLine2',
         'venue.description AS description',
         'venue.city AS city_code',
+        'venue.latitude AS latitude',
+        'venue.longitude AS longitude',
         'venue.state AS state_code',
         'venue.country AS country_code',
         'venue.contactPerson AS contactPerson',
