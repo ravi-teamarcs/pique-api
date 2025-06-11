@@ -12,6 +12,8 @@ export class BookingCancellationService {
     private readonly cancellationReasonRepo: Repository<CancellationReason>,
     @InjectRepository(BookingCancellation)
     private readonly bookingCancellationRepo: Repository<BookingCancellation>,
+    @InjectRepository(Booking)
+    private readonly bookingRepo: Repository<Booking>,
   ) {}
 
   async getCancellationReasons() {
@@ -40,6 +42,20 @@ export class BookingCancellationService {
         status: true,
         data: savedReason,
       };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getEntertainerBookingCancellationReason(eventId) {
+    try {
+      // this.bookingRepository
+      //   .createQueryBuilder('booking')
+      //   .leftJoin('booking_cancelleation', 'cancellation')
+      //   .leftJoin('booking_reason', 'reason')
+      //   .where('booking.eventId = :eventId', { eventId })
+      //   .andWhere('booking.status = :status', { status: 'cancelled' })
+      //   .getRawMany();
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }

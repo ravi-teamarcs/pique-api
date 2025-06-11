@@ -24,4 +24,11 @@ export class BookingCancellationController {
   async cancelBooking(@Body() dto: CreateBookingCancellationDto) {
     return this.cancellationService.cancelBookingReason(dto);
   }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getEntertainerBookingCancellationReason(eventId: number) {
+    return this.getEntertainerBookingCancellationReason(eventId)
+  }
 }

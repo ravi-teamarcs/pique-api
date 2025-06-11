@@ -51,9 +51,9 @@ export class AvailabilityService {
       const bookingHistory = await this.bookingRepository.find({
         where: {
           entId: id,
-          showDate: Between(startDate, endDate),
+          showStartDateTime: Between(startDate, endDate),
         },
-        select: ['showDate'],
+        select: ['showStartDateTime'],
       });
       if (availability) availability['alreadyBookedFor'] = bookingHistory;
       else {
