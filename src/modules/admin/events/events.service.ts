@@ -445,13 +445,25 @@ export class EventService {
         .createQueryBuilder('booking')
         .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
         .leftJoin(
-          (qb) =>
-            qb
-              .subQuery()
+          (subQuery) =>
+            subQuery
               .select('logInner.*')
-              .from('booking_log', 'logInner')
-              .where("logInner.performedBy IN ('admin', 'venue')")
-              .orderBy('logInner.createdAt', 'DESC'),
+              .from(
+                (qb) =>
+                  qb
+                    .subQuery()
+                    .select('MAX(bl.id)', 'maxId')
+                    .addSelect('bl.bookingId', 'bookingId')
+                    .from('booking_log', 'bl')
+                    .where("bl.performedBy IN ('admin', 'venue')")
+                    .groupBy('bl.bookingId'),
+                'latestLogIds',
+              )
+              .innerJoin(
+                'booking_log',
+                'logInner',
+                'logInner.id = latestLogIds.maxId',
+              ),
           'log',
           'log.bookingId = booking.id',
         )
@@ -467,7 +479,6 @@ export class EventService {
         ])
         .where('booking.eventId = :eventId', { eventId })
         .orderBy('booking.id', 'DESC');
-
       const totalCount = await events.getCount();
       const results = await events.getRawMany();
 

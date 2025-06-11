@@ -894,7 +894,7 @@ export class VenueService {
       // Cancelled the booking First then send them the Booking Request
       for (const req of rejectedRequest) {
         const res = await this.bookingRepository.update(
-          { id: req.id },
+          { id: req.id, status: 'accepted' },
           { status: 'cancelled' },
         );
         console.log('Rejected Request', res);
