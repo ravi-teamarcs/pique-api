@@ -45,7 +45,7 @@ export class Entertainer {
   @Column({ nullable: true })
   email: string;
 
-  @Column({ nullable: true ,name:"media_link"})
+  @Column({ nullable: true, name: 'media_link' })
   mediaLink: string;
 
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })
@@ -96,6 +96,9 @@ export class Entertainer {
 
   @Column('decimal', { precision: 9, scale: 6, nullable: true })
   longitude?: number;
+
+  @Column({ type: 'varchar', nullable: true })
+  timezone: string;
 
   @Column({ type: 'boolean', name: 'is_pique_verified', default: false })
   isPiqueVerified: boolean;

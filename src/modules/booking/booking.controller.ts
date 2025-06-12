@@ -59,7 +59,7 @@ export class BookingController {
   @Get('entertainers/details/:eventId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
-  async getDetailsBasedonEvent(
+  async getDetailsBasedOnEvent(
     @Param('eventId', ParseIntPipe) eventId: number,
     @Request() req,
   ) {

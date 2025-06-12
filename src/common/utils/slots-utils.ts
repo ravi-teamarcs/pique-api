@@ -1,3 +1,4 @@
+import cityTimezones from 'city-timezones';
 const SLOT_RANGES = {
   morning: { start: '07:00', end: '12:00' },
   afternoon: { start: '12:00', end: '17:00' },
@@ -17,4 +18,20 @@ function getOverlappingSlots(startTime: string, endTime: string): SlotName[] {
   return overlapping;
 }
 
-export { SLOT_RANGES, SlotName, getOverlappingSlots };
+function getTimezoneByCity(city: string, state?: string): string | null {
+  if (!city) return null;
+
+  try {
+    const cityLookup = cityTimezones.lookupViaCity(city.trim());
+    const matched = cityLookup.find(
+      (c) => c.city.toLowerCase() === city.trim().toLowerCase(),
+    );
+    return matched?.timezone || null;
+  } catch (error) {
+    // Log error if needed, but return fallback
+    console.warn('Timezone lookup failed:', error);
+    return null;
+  }
+}
+
+export { SLOT_RANGES, SlotName, getOverlappingSlots, getTimezoneByCity };

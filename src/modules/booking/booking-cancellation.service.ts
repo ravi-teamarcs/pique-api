@@ -47,15 +47,34 @@ export class BookingCancellationService {
     }
   }
 
-  async getEntertainerBookingCancellationReason(eventId) {
+  async getEntertainerBookingCancellationReason(bookingId: number) {
     try {
-      // this.bookingRepository
-      //   .createQueryBuilder('booking')
-      //   .leftJoin('booking_cancelleation', 'cancellation')
-      //   .leftJoin('booking_reason', 'reason')
-      //   .where('booking.eventId = :eventId', { eventId })
-      //   .andWhere('booking.status = :status', { status: 'canceled' })
-      //   .getRawMany();
+      const result = await this.bookingRepo
+        .createQueryBuilder('booking')
+        .leftJoin(
+          'booking_cancellations',
+          'cancellation',
+          'cancellation.booking_id = booking.id',
+        )
+        .leftJoin(
+          'cancellation_reasons',
+          'reason',
+          'reason.id = cancellation.reason_id',
+        )
+        .where('booking.id = :bookingId', { bookingId })
+        .andWhere('booking.status = :status', { status: 'canceled' })
+        .select([
+          'booking.id AS id',
+          'booking.status AS status',
+          'cancellation.customReason AS customReason',
+          'reason.reason AS reason ',
+        ])
+        .getRawOne();
+      return {
+        message: 'Entertainer cancellation reason fetched Successfully.',
+        data: result,
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }

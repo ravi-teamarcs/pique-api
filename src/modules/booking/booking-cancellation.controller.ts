@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { BookingCancellationService } from './booking-cancellation.service';
 import { CreateBookingCancellationDto } from './dto/bookin-reason-cancellation.dto';
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -25,10 +33,12 @@ export class BookingCancellationController {
     return this.cancellationService.cancelBookingReason(dto);
   }
 
-  @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('findAll')
-  getEntertainerBookingCancellationReason(eventId: number) {
-    return this.getEntertainerBookingCancellationReason(eventId)
+  @Get('reason/:bookingId')
+  getEntertainerBookingCancellationReason(
+    @Param('bookingId', ParseIntPipe) bookingId: number,
+  ) {
+    return this.cancellationService.getEntertainerBookingCancellationReason(
+      bookingId,
+    );
   }
 }

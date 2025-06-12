@@ -62,6 +62,7 @@ import { States } from '../location/entities/state.entity';
 import { Cities } from '../location/entities/city.entity';
 import { NotificationService } from '../notification/notification.service';
 import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
+import { getTimezoneByCity } from 'src/common/utils/slots-utils';
 
 @Injectable()
 export class EntertainerService {
@@ -120,12 +121,16 @@ export class EntertainerService {
 
       const fullAddress = `${dto.addressLine1 ?? ''}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
 
-      // Added   pricePerEvent
+      // To get latitude and Longitude
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      // To get timezone based on city
+      let timezone = getTimezoneByCity(city.name);
+
       const newPayload = {
         ...entertainer,
         latitude: lat,
         longitude: lng,
+        timezone,
         pricePerEvent: 200,
       };
 
