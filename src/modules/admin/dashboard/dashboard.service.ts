@@ -74,10 +74,10 @@ export class DashboardService {
         .createQueryBuilder('invoices')
         .where('invoices.user_type = :userType', { userType: 'venue' })
         .select('SUM(invoices.total_with_tax)', 'total')
-        .andWhere('YEAR(invoices.payment_date) = :year', {
+        .andWhere('YEAR(invoices.created_at) = :year', {
           year: currentYear,
         })
-        .andWhere('MONTH(invoices.payment_date) = :month', {
+        .andWhere('MONTH(invoices.created_at) = :month', {
           month: currentMonth,
         })
         .getRawOne();
