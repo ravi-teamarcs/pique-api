@@ -280,7 +280,7 @@ export class EventService {
       // Step 1: Get total count of events (without join)
       const totalCount = await this.eventRepository
         .createQueryBuilder('event')
-        .where('event.eventDate > :now', { now })
+        .where('event.eventStartDateTime > :now', { now })
         .getCount();
 
       // Step 2: Paginate with join and select raw fields
@@ -290,7 +290,7 @@ export class EventService {
         .leftJoin('cities', 'city', 'city.id = venue.city')
         .leftJoin('states', 'state', 'state.id = venue.state')
         .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
-        .where('event.eventDate > :now', { now })
+        .where('event.eventStartDateTime > :now', { now })
         .select([
           'event.id AS event_id',
           'event.title AS title',
@@ -298,8 +298,8 @@ export class EventService {
           'event.slug AS slug',
           'event.description AS description',
           'event.startTime AS startTime',
-          'event.endTime AS endTime',
-          'event.eventDate AS eventDate',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.eventStartDateTime AS eventStartDateTime',
           'event.recurring AS recurring',
           'event.status AS status',
           'event.isAdmin AS isAdmin',
@@ -311,7 +311,7 @@ export class EventService {
           'state.name AS stateName',
           'code.StateCode AS stateCode',
         ])
-        .orderBy('event.eventDate', 'ASC')
+        .orderBy('event.eventStartDateTime', 'ASC')
         .offset(skip)
         .limit(Number(pageSize))
         .getRawMany();
