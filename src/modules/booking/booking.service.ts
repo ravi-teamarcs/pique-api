@@ -1,6 +1,8 @@
 import {
   BadRequestException,
+  forwardRef,
   HttpException,
+  Inject,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -18,7 +20,7 @@ import { BookingLog } from './entities/booking-log.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailService } from '../Email/email.service';
 import { NotificationService } from '../notification/notification.service';
-import { parse } from 'date-fns';
+import { getMonth, getYear, parse } from 'date-fns';
 import { GoogleCalendarServices } from '../google-calendar/google-calendar.service';
 import { BookingCalendarSync } from './entities/booking-sync.entity';
 import { AvailabilityService } from '../entertainer/availability.service';
@@ -28,6 +30,8 @@ import { eventNames } from 'process';
 import { VenueEvent } from '../event/entities/event.entity';
 import { ModifyBookingDto } from './dto/update-booking.dto';
 import { format } from 'date-fns-tz';
+import { getOverlappingSlots } from 'src/common/utils/slots-utils';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class BookingService {
@@ -67,18 +71,28 @@ export class BookingService {
           message: 'Booking already exists for the date.',
         });
 
-      // Check for Availability
-      // const available = await this.checkAvailability(
-      //   entertainerId,
-      //   dto.showDate,
-      // );
+      // Check for availability Here
 
-      // if (available === false)
-      //   throw new BadRequestException(
-      //     'Entertainer is not available on requested date.',
-      //   );
+      const { eventStartDateTime, eventEndDateTime } =
+        await this.eventRepository.findOne({
+          where: { id: dto.eventId },
+          select: ['eventStartDateTime', 'eventEndDateTime'],
+        });
 
-      // Create the booking
+      const availabilityPayload = {
+        startTimeUtc: new Date(eventStartDateTime).toISOString(),
+        endTimeUtc: new Date(eventEndDateTime).toISOString(),
+        entertainerId,
+      };
+
+      const availability =
+        await this.checkEntertainerAvailability(availabilityPayload);
+
+      if (!availability)
+        throw new BadRequestException(
+          'Entertainer is not available in given time slot. ',
+        );
+
       const newBooking = this.bookingRepository.create({
         ...bookingData,
         venueId: venueId,
@@ -333,94 +347,6 @@ export class BookingService {
       throw new InternalServerErrorException(error.message);
     }
   }
-
-  // async handleChangeRequest(bookingdto: ChangeBooking, userId: number) {
-  //   const { bookingId, reqShowDate, reqShowTime } = bookingdto;
-  //   const booking = await this.bookingRepository
-  //     .createQueryBuilder('booking')
-  //     .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
-  //     .leftJoin('event', 'event', 'event.id = booking.eventId')
-  //     .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
-  //     .leftJoin('users', 'user', 'user.id = booking.entId')
-  //     .select([
-  //       'booking.id AS id',
-  //       'booking.status AS status',
-  //       'entertainer.id AS eid',
-  //       'entertainer.entertainerName AS entertainer_name',
-  //       'venue.id AS vuid',
-  //       'user.id AS entertainer_user_id',
-  //       'user.email AS entertainer_email',
-  //       'event.id AS event_id',
-  //       'event.title AS event_title',
-  //     ])
-  //     .where('booking.id = :id AND booking.venueId=:userId', {
-  //       id: bookingId,
-  //       userId,
-  //     })
-  //     .getRawOne();
-
-  //   if (!booking) {
-  //     throw new NotFoundException({
-  //       message: 'Booking not found',
-  //       status: false,
-  //     });
-  //   }
-
-  //   try {
-  //     const bookReq = this.reqRepository.create({
-  //       ...bookingdto,
-  //       vuid: booking.vuid,
-  //       euid: booking.eid,
-  //       reqEventId: booking.eventId,
-  //     });
-
-  //     await this.reqRepository.save(bookReq);
-
-  //     // This updates the booking
-  //     await this.bookingRepository.update(
-  //       { id: booking.id },
-  //       { status: 'rescheduled', showDate: reqShowDate, showTime: reqShowTime },
-  //     );
-
-  //     if (booking.entertainer_email) {
-  //       // Send Email to Entertainer
-  //       const emailPayload = {
-  //         to: booking.entertainer_email,
-  //         subject: `Event Date and Time Change`,
-  //         templateName: 'modify-booking.html',
-  //         replacements: {
-  //           recipientName: booking.entertainer_name,
-  //           bookingId: booking.id,
-  //           newStartTime: booking.reqShowTime,
-  //           newDate: booking.reqShowDate,
-  //         },
-  //       };
-  //       this.emailService.handleSendEmail(emailPayload);
-
-  //       // Send Notification to Entertainer
-
-  //       this.notifyService.sendPush(
-  //         {
-  //           title: 'Event Date and Time Change',
-  //           body: `Your booking with ID ${booking.id} has been rescheduled to ${booking.reqShowDate} at ${booking.reqShowTime}`,
-  //           type: 'booking_date_time_change',
-  //         },
-  //         booking.entertainer_user_id,
-  //       );
-  //     }
-
-  //     return {
-  //       message:
-  //         'Your Request for Time and Date  have registered Successfully.',
-  //       status: true,
-  //     };
-  //   } catch (err) {
-  //     throw new InternalServerErrorException({
-  //       message: err.message,
-  //       status: true,
-  //     });
-  //   }
-  // }
 
   // approve service for both Entertainer and Admin
   async handleChangeRequest(id: number, bookingdto: ModifyBookingDto) {
@@ -897,5 +823,61 @@ export class BookingService {
         }
       }
     }
+  }
+
+  // Availability Checks
+  async checkEntertainerAvailability({
+    startTimeUtc,
+    endTimeUtc,
+    entertainerId,
+  }: {
+    startTimeUtc: string;
+    endTimeUtc: string;
+    entertainerId: number;
+  }): Promise<boolean> {
+    const date = new Date(startTimeUtc);
+    const year = getYear(date); // 2025
+    const month = getMonth(date) + 1;
+
+    const availability = await this.availabilityRepository.findOne({
+      where: { entertainer_id: entertainerId, year, month },
+    });
+    if (!availability) return false;
+
+    // Get entertainer Timezone from  entertainer table .
+    const { timezone } = await this.entRepository.findOne({
+      where: { id: entertainerId },
+      select: ['timezone'],
+    });
+    if (!timezone) return true;
+    const { unavailable_dates } = availability;
+
+    // Convert into entertainer Local Timezone
+
+    const startLocal = DateTime.fromISO(startTimeUtc, { zone: 'utc' }).setZone(
+      timezone,
+    );
+    const endLocal = DateTime.fromISO(endTimeUtc, { zone: 'utc' }).setZone(
+      timezone,
+    );
+
+    const bookingDate = startLocal.toISODate(); // e.g. "2025-07-17"
+    const startTime = startLocal.toFormat('HH:mm');
+    const endTime = endLocal.toFormat('HH:mm');
+
+    const unavailable = unavailable_dates.find((u) => u.date === bookingDate);
+    if (!unavailable) return true;
+    if (unavailable.slots.includes('whole_day')) return false;
+
+    // Helper function to get overlapping slots(returns an array of slot names)
+    const bookingSlots = getOverlappingSlots(startTime, endTime);
+
+    for (const slot of bookingSlots) {
+      if (unavailable.slots.includes(slot)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

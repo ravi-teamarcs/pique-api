@@ -17,7 +17,7 @@ import {
   SLOT_RANGES,
   SlotName,
 } from 'src/common/utils/slots-utils';
-import { DateTime } from 'luxon';
+import { Entertainer } from './entities/entertainer.entity';
 
 @Injectable()
 export class AvailabilityService {
@@ -26,6 +26,8 @@ export class AvailabilityService {
     private readonly availabilityRepository: Repository<EntertainerAvailability>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Entertainer)
+    private readonly entertainerRepository: Repository<Entertainer>,
     private readonly config: ConfigService,
   ) {}
 
@@ -221,15 +223,21 @@ export class AvailabilityService {
   //   });
   //   if (!availability) return false;
 
-  //   const { unavailable_dates, timeZone } = availability;
+  //   // Get entertainer Timezone from  entertainer table .
+  //   const { timezone } = await this.entertainerRepository.findOne({
+  //     where: { id: entertainerId },
+  //     select: ['timezone'],
+  //   });
+
+  //   const { unavailable_dates } = availability;
 
   //   // Convert into entertainer Local Timezone
 
   //   const startLocal = DateTime.fromISO(startTimeUtc, { zone: 'utc' }).setZone(
-  //     timeZone,
+  //     timezone,
   //   );
   //   const endLocal = DateTime.fromISO(endTimeUtc, { zone: 'utc' }).setZone(
-  //     timeZone,
+  //     timezone,
   //   );
 
   //   const bookingDate = startLocal.toISODate(); // e.g. "2025-07-17"

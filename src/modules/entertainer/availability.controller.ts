@@ -65,4 +65,16 @@ export class AvailabilityController {
   ) {
     return this.availabilityService.updateEntertainerAvailability(id, dto);
   }
+
+  // @Post('test-route')
+  // async checkAvaialbility(
+  //   @Body() body: { startDate: string; endDate: string; entId: number },
+  // ) {
+  //   const { startDate, endDate, entId } = body;
+  //   return this.availabilityService.checkEntertainerAvailability({
+  //     startTimeUtc: startDate,
+  //     endTimeUtc: endDate,
+  //     entertainerId: entId,
+  //   });
+  // }
 }

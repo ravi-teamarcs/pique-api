@@ -14,6 +14,9 @@ import { EmailModule } from 'src/modules/Email/email.module';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
 import { EntertainerAvailability } from './entities/entertainer-availability.entity';
 import { Setting } from '../settings/entities/setting.entity';
+import { Cities } from '../location/entities/city.entity';
+import { States } from '../location/entities/state.entity';
+import { LocationModule } from '../../location/location.module';
 
 @Module({
   imports: [
@@ -28,9 +31,12 @@ import { Setting } from '../settings/entities/setting.entity';
       Booking,
       EntertainerAvailability,
       Setting,
+      Cities,
+      States,
     ]),
     MediaModule,
     EmailModule,
+    LocationModule,
   ],
   controllers: [EntertainerController],
   providers: [EntertainerService],

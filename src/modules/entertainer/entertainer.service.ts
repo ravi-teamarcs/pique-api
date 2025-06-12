@@ -62,7 +62,10 @@ import { States } from '../location/entities/state.entity';
 import { Cities } from '../location/entities/city.entity';
 import { NotificationService } from '../notification/notification.service';
 import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
-import { getTimezoneByCity } from 'src/common/utils/slots-utils';
+import {
+  getTimezoneByCity,
+  getTimezoneByLatLng,
+} from 'src/common/utils/slots-utils';
 
 @Injectable()
 export class EntertainerService {
@@ -124,7 +127,7 @@ export class EntertainerService {
       // To get latitude and Longitude
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
       // To get timezone based on city
-      let timezone = getTimezoneByCity(city.name);
+      let timezone = getTimezoneByLatLng(lat, lng);
 
       const newPayload = {
         ...entertainer,
@@ -1026,7 +1029,9 @@ export class EntertainerService {
       const fullAddress = `${dto.addressLine1 ?? ''}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
 
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
-      const newPayload = { ...dto, latitude: lat, longitude: lng };
+      const timezone = getTimezoneByLatLng(lat, lng);
+
+      const newPayload = { ...dto, latitude: lat, longitude: lng, timezone };
 
       if (!entertainer) throw new NotFoundException('Entertainer not found');
       await this.entertainerRepository.update(

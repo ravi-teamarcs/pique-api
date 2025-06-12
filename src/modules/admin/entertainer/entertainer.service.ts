@@ -33,6 +33,13 @@ import { EntertainerAvailabilityDto } from './Dto/entertainer-availability.dto';
 import { UpdateAvailabilityDto } from './Dto/update-availability.dto';
 import { Setting } from '../settings/entities/setting.entity';
 import { instanceToPlain } from 'class-transformer';
+import {
+  getTimezoneByCity,
+  getTimezoneByLatLng,
+} from 'src/common/utils/slots-utils';
+import { Cities } from '../location/entities/city.entity';
+import { States } from '../location/entities/state.entity';
+import { GeocodingService } from '../../location/geocoding.service';
 
 @Injectable()
 export class EntertainerService {
@@ -51,11 +58,16 @@ export class EntertainerService {
     private readonly availabilityRepository: Repository<EntertainerAvailability>,
     @InjectRepository(Setting)
     private readonly settingRepo: Repository<Setting>,
+    @InjectRepository(Cities)
+    private readonly cityRepository: Repository<Cities>,
+    @InjectRepository(States)
+    private readonly stateRepository: Repository<States>,
 
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
     private readonly mediaService: MediaService,
     private readonly emailService: EmailService,
+    private readonly geoService: GeocodingService,
   ) {}
 
   // async getAllEntertainers(query: GetEntertainerDto) {
@@ -444,7 +456,24 @@ export class EntertainerService {
     }
 
     try {
-      await this.entertainerRepository.update({ id: entertainer.id }, dto);
+      const city = await this.cityRepository.findOne({
+        where: { id: dto.city },
+        select: ['name'],
+      });
+      const state = await this.stateRepository.findOne({
+        where: { id: dto.state },
+        select: ['name'],
+      });
+
+      const fullAddress = `${dto.addressLine1 ?? ''}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
+
+      // To get latitude and Longitude
+      const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      let timezone = getTimezoneByLatLng(lat, lng);
+
+      let payload = { ...dto, timezone, latitude: lat, longitude: lng };
+      await this.entertainerRepository.update({ id: entertainer.id }, payload);
+
       return {
         message: 'Address updated Successfully',
         status: true,
@@ -903,7 +932,6 @@ export class EntertainerService {
       });
     }
   }
-  
 
   async getAllEntertainerList(eventId: number, query: GetEntertainerDto) {
     try {

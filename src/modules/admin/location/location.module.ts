@@ -11,8 +11,18 @@ import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../auth/entities/capability.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Countries, Cities, States,RoleCapability, Role, Capability])],
+  imports: [
+    TypeOrmModule.forFeature([
+      Countries,
+      Cities,
+      States,
+      RoleCapability,
+      Role,
+      Capability,
+    ]),
+  ],
+
   controllers: [LocationController],
   providers: [LocationService],
 })
-export class LocationModule { }
+export class LocationModule {}

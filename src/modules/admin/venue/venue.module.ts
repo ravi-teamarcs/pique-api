@@ -17,6 +17,9 @@ import { Booking } from '../booking/entities/booking.entity';
 import { BookingLog } from '../booking/entities/booking-log.entity';
 import { Entertainer } from '../../admin/entertainer/entities/entertainer.entity';
 import { Event } from '../events/entities/event.entity';
+import { States } from '../location/entities/state.entity';
+import { Cities } from '../location/entities/city.entity';
+import { LocationModule } from '../../location/location.module';
 
 @Module({
   imports: [
@@ -32,10 +35,13 @@ import { Event } from '../events/entities/event.entity';
       BookingLog,
       Entertainer,
       Event,
+      States,
+      Cities,
     ]),
     MediaModule,
     NotificationModule,
     EmailModule,
+    LocationModule,
   ],
   controllers: [VenueController],
   providers: [VenueService],

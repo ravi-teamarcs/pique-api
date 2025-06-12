@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/users.entity';
 import { BookingService } from './booking.service';
@@ -21,6 +21,7 @@ import { CancellationReason } from './entities/cancelation-reason.entity';
 import { BookingCancellationService } from './booking-cancellation.service';
 import { BookingCancellationController } from './booking-cancellation.controller';
 import { BookingCancellation } from './entities/booking-cancellation.entity';
+import { EntertainerModule } from '../entertainer/entertainer.module';
 
 @Module({
   imports: [

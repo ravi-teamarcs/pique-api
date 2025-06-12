@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EntertainerService } from './entertainer.service';
 import { EntertainerController } from './entertainer.controller';
@@ -54,5 +54,6 @@ import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
   ],
   controllers: [EntertainerController, AvailabilityController],
   providers: [EntertainerService, AvailabilityService],
+  exports: [AvailabilityService],
 })
 export class EntertainerModule {}

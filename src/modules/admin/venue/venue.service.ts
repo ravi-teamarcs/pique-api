@@ -30,6 +30,9 @@ import { BookingLog } from '../booking/entities/booking-log.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Event } from '../events/entities/event.entity';
 import { format } from 'date-fns-tz';
+import { States } from '../location/entities/state.entity';
+import { Cities } from '../location/entities/city.entity';
+import { GeocodingService } from 'src/modules/location/geocoding.service';
 
 @Injectable()
 export class VenueService {
@@ -51,12 +54,19 @@ export class VenueService {
     @InjectRepository(BookingLog)
     private readonly logRepository: Repository<BookingLog>,
 
+    @InjectRepository(States)
+    private readonly stateRepository: Repository<States>,
+
+    @InjectRepository(Cities)
+    private readonly cityRepository: Repository<Cities>,
+
     private readonly dataSource: DataSource,
 
     private readonly mediaService: MediaService,
     private readonly notifyService: NotificationService,
     private readonly emailService: EmailService,
     private readonly config: ConfigService,
+    private readonly geoService: GeocodingService,
   ) {}
 
   // async getAllVenue({
@@ -399,9 +409,24 @@ export class VenueService {
         await this.tempRepository.save(temp);
       }
 
+      const city = await this.cityRepository.findOne({
+        where: { id: venue.city },
+        select: ['name'],
+      });
+      const state = await this.stateRepository.findOne({
+        where: { id: venue.state },
+        select: ['name'],
+      });
+
+      const fullAddress = `${venue.addressLine1 ?? ''}, ${venue.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${venue.zipCode}`;
+
+      // To get latitude and Longitude
+      const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      let newVenuePayload = { ...venue, latitude: lat, longitude: lng };
+
       // 2. Create venue with reference to user (if present)
       const newVenue = this.venueRepository.create({
-        ...venue,
+        ...newVenuePayload,
         user: savedUser ? { id: savedUser.id } : null,
         status: 'active',
         profileStep: 3,

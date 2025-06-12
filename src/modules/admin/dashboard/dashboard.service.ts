@@ -42,30 +42,33 @@ export class DashboardService {
 
       const entertainerCount = await this.entRepo.count({
         where: {
-          status: 'active',
+          status: 'pending',
           createdAt: Between(startOfMonth, startOfNextMonth),
         },
       });
 
       const venueCount = await this.venueRepo.count({
         where: {
-          status: 'active',
+          status: 'pending',
           createdAt: Between(startOfMonth, startOfNextMonth),
         },
       });
 
       // Booking statistics
-      const bookingStats = await this.bookingRepo
-        .createQueryBuilder('booking')
-        .select([
-          'COUNT(*) as total',
-          "CAST(SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) AS UNSIGNED) as confirmed",
-          "CAST(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) AS UNSIGNED) as rejected",
-          "CAST(SUM(CASE WHEN status = 'canceled' THEN 1 ELSE 0 END) AS UNSIGNED) as canceled",
-        ])
-        .where('YEAR(booking.createdAt) = :year', { year: currentYear })
-        .andWhere('MONTH(booking.createdAt) = :month', { month: currentMonth })
+      const eventStats = await this.eventRepo
+        .createQueryBuilder('event')
+        .select('CAST(COUNT(*) AS UNSIGNED)', 'confirmed')
+        .where('event.status = :status', { status: 'confirmed' })
+        .andWhere('YEAR(event.eventStartDateTime) = :year', {
+          year: currentYear,
+        })
+        .andWhere('MONTH(event.eventStartDateTime) = :month', {
+          month: currentMonth,
+        })
         .getRawOne();
+
+      const confirmedEventCount = parseInt(eventStats?.confirmed || '0', 10);
+
       // Here made changes
       const { total } = await this.invoiceRepo
         .createQueryBuilder('invoices')
@@ -83,16 +86,11 @@ export class DashboardService {
         entertainerCount,
         venueCount,
         TotalRevenue: Number(total) ?? 0,
-        bookingStats: {
-          total: Number(bookingStats.total),
-          confirmed: Number(bookingStats.confirmed),
-          rejected: Number(bookingStats.rejected),
-          canceled: Number(bookingStats.canceled),
-        },
+        confirmedEventCount,
       };
 
       return {
-        message: 'Dashboard Stats retuned successfully',
+        message: 'Dashboard stats retuned successfully',
         data,
         status: true,
       };

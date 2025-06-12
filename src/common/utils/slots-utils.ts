@@ -1,4 +1,6 @@
-import cityTimezones from 'city-timezones';
+import { lookupViaCity } from 'city-timezones';
+import tzlookup = require('tz-lookup');
+
 const SLOT_RANGES = {
   morning: { start: '07:00', end: '12:00' },
   afternoon: { start: '12:00', end: '17:00' },
@@ -22,7 +24,7 @@ function getTimezoneByCity(city: string, state?: string): string | null {
   if (!city) return null;
 
   try {
-    const cityLookup = cityTimezones.lookupViaCity(city.trim());
+    const cityLookup = lookupViaCity(city.trim());
     const matched = cityLookup.find(
       (c) => c.city.toLowerCase() === city.trim().toLowerCase(),
     );
@@ -34,4 +36,33 @@ function getTimezoneByCity(city: string, state?: string): string | null {
   }
 }
 
-export { SLOT_RANGES, SlotName, getOverlappingSlots, getTimezoneByCity };
+function getTimezoneByLatLng(lat: number, lng: number): string {
+  try {
+    // Validate inputs: latitude [-90, 90], longitude [-180, 180]
+    if (
+      typeof lat !== 'number' ||
+      typeof lng !== 'number' ||
+      isNaN(lat) ||
+      isNaN(lng) ||
+      lat < -90 ||
+      lat > 90 ||
+      lng < -180 ||
+      lng > 180
+    ) {
+      return null;
+    }
+
+    return tzlookup(lat, lng);
+  } catch (error) {
+    console.warn('tzlookup failed:', error);
+    return null;
+  }
+}
+
+export {
+  SLOT_RANGES,
+  SlotName,
+  getOverlappingSlots,
+  getTimezoneByCity,
+  getTimezoneByLatLng,
+};
