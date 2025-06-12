@@ -1633,6 +1633,9 @@ export class EntertainerService {
       const eventDetails = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('states', 'state', 'state.id = venue.state')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
         .where('event.id = :id', { id })
         .select([
           'event.id AS event_id',
@@ -1647,6 +1650,10 @@ export class EntertainerService {
           'venue.name AS name',
           'venue.addressLine1 AS addressLine1',
           'venue.addressLine2 AS addressLine2',
+          'venue.zipCode AS zipCode',
+          'state.name AS state',
+          'city.name AS city',
+          'code.StateCode AS stateCode',
         ])
         .getRawOne();
 

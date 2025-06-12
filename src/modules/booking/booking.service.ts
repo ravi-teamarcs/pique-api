@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Booking } from './entities/booking.entity';
 import { ChangeBooking } from '../venue/dto/change-booking.dto';
 import { Venue } from '../venue/entities/venue.entity';
@@ -659,15 +659,6 @@ export class BookingService {
 
         await this.bookingRepository.update({ id: bookingId }, { status });
         // If booking confirmed , also confirm the status of event.
-        await Promise.all(
-          eventIds.map(
-            async (eventId: number) =>
-              await this.eventRepository.update(
-                { id: eventId },
-                { status: 'confirmed' },
-              ),
-          ),
-        );
 
         const logPayload = {
           bookingId,
@@ -716,6 +707,15 @@ export class BookingService {
         }
         updatedBookings.push(bookingId);
       }
+      await Promise.all(
+        eventIds.map(
+          async (eventId: number) =>
+            await this.eventRepository.update(
+              { id: eventId },
+              { status: 'confirmed' },
+            ),
+        ),
+      );
 
       this.notSelectedforEvent(eventIds, updatedBookings, userId);
 
@@ -865,10 +865,13 @@ export class BookingService {
       );
 
       for (const req of rejectedRequest) {
+        // Change the status for the rest of the bookings.
+
         await this.bookingRepository.update(
-          { id: req.id },
+          { id: req.id, status: In(['invited', 'accepted']) },
           { status: 'canceled' },
         );
+
         if (req?.email) {
           const emailPayload = {
             to: req.email,

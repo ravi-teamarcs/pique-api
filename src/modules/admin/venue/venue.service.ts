@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { Venue } from './entities/venue.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Like, Repository } from 'typeorm';
+import { DataSource, In, Like, Repository } from 'typeorm';
 import { UpdateVenueDto } from './Dto/update-venue.dto';
 import { CreateVenueDto, CreateVenueRequestDto } from './Dto/create-venue.dto';
 import { User } from '../users/entities/users.entity';
@@ -894,7 +894,7 @@ export class VenueService {
       // Canceled the booking First then send them the Booking Request
       for (const req of rejectedRequest) {
         const res = await this.bookingRepository.update(
-          { id: req.id, status: 'accepted' },
+          { id: req.id, status: In(['invited', 'accepted']) },
           { status: 'canceled' },
         );
 
