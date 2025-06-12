@@ -16,7 +16,7 @@ export class UpdateEventDto extends PartialType(CreateEventDto) {
     'unpublished',
     'confirmed',
     'completed',
-    'cancelled',
+    'canceled',
     'rescheduled',
     'invited',
   ])
@@ -26,7 +26,7 @@ export class UpdateEventDto extends PartialType(CreateEventDto) {
     | 'unpublished'
     | 'confirmed'
     | 'completed'
-    | 'cancelled'
+    | 'canceled'
     | 'rescheduled'
     | 'invited';
 }

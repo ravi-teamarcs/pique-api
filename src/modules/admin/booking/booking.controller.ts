@@ -134,4 +134,12 @@ export class BookingController {
   removeBooking(@Param('id', ParseIntPipe) id: number) {
     return this.bookingService.removeBooking(id);
   }
+
+  @Patch('remove/:bookingId')
+  @Roles('super-admin')
+  removeEntertainerFromBooking(
+    @Param('bookingId', ParseIntPipe) bookingId: number,
+  ) {
+    return this.bookingService.removeEntertainerFromBooking(bookingId);
+  }
 }

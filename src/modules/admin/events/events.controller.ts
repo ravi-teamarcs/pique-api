@@ -59,7 +59,7 @@ export class EventController {
       | 'unpublished'
       | 'scheduled'
       | 'confirmed'
-      | 'cancelled'
+      | 'canceled'
       | 'completed'
       | '',
   ) {

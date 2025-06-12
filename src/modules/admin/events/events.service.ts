@@ -99,7 +99,7 @@ export class EventService {
       | 'unpublished'
       | 'scheduled'
       | 'confirmed'
-      | 'cancelled'
+      | 'canceled'
       | 'completed'
       | '';
   }): Promise<{
@@ -439,6 +439,75 @@ export class EventService {
   }
 
   // Get Booking Where event id
+  // async findBookings(eventId: number) {
+  //   try {
+  //     const events = this.bookingRepository
+  //       .createQueryBuilder('booking')
+  //       .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+  //       .leftJoin(
+  //         (subQuery) =>
+  //           subQuery
+  //             .select('logInner.*')
+  //             .from(
+  //               (qb) =>
+  //                 qb
+  //                   .subQuery()
+  //                   .select('MAX(bl.id)', 'maxId')
+  //                   .addSelect('bl.bookingId', 'bookingId')
+  //                   .from('booking_log', 'bl')
+  //                   .where("bl.performedBy IN ('admin', 'venue')")
+  //                   .andWhere('bl.status = :status', { status: 'confirmed' })
+  //                   .groupBy('bl.bookingId'),
+  //               'latestLogIds',
+  //             )
+  //             .innerJoin(
+  //               'booking_log',
+  //               'logInner',
+  //               'logInner.id = latestLogIds.maxId',
+  //             ),
+  //         'log',
+  //         'log.bookingId = booking.id',
+  //       )
+  //       .select([
+  //         'booking.id AS bookingId',
+  //         'booking.status AS bookingStatus',
+  //         'ent.name AS entertainerName',
+  //         'ent.contact_person AS contactPerson',
+  //         'ent.contact_number AS contactNumber',
+  //         'ent.pricePerEvent AS pricePerHour',
+  //         'log.createdAt AS confirmationDate',
+  //         'log.performedBy AS performedBy',
+  //       ])
+  //       .where('booking.eventId = :eventId', { eventId })
+  //       .orderBy('booking.id', 'DESC');
+  //     const totalCount = await events.getCount();
+  //     const results = await events.getRawMany();
+
+  //     const updatedResults = await Promise.all(
+  //       results.map(async (result) => {
+  //         const priceWithMarkup = await this.addMarkupToEntertainer(
+  //           result.pricePerHour,
+  //         );
+  //         return {
+  //           ...result,
+  //           priceWithMarkup,
+  //         };
+  //       }),
+  //     );
+  //     return {
+  //       message: `Booking for Event Id ${eventId} fetched successfully`,
+  //       data: updatedResults,
+  //       totalCount,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
   async findBookings(eventId: number) {
     try {
       const events = this.bookingRepository
@@ -447,7 +516,7 @@ export class EventService {
         .leftJoin(
           (subQuery) =>
             subQuery
-              .select('logInner.*')
+              .select('bl.*')
               .from(
                 (qb) =>
                   qb
@@ -455,15 +524,14 @@ export class EventService {
                     .select('MAX(bl.id)', 'maxId')
                     .addSelect('bl.bookingId', 'bookingId')
                     .from('booking_log', 'bl')
-                    .where("bl.performedBy IN ('admin', 'venue')")
+                    .where('bl.status = :status', { status: 'confirmed' })
+                    .andWhere('bl.performedBy IN (:...performedBy)', {
+                      performedBy: ['admin', 'venue'],
+                    })
                     .groupBy('bl.bookingId'),
-                'latestLogIds',
+                'latestLogs',
               )
-              .innerJoin(
-                'booking_log',
-                'logInner',
-                'logInner.id = latestLogIds.maxId',
-              ),
+              .innerJoin('booking_log', 'bl', 'bl.id = latestLogs.maxId'),
           'log',
           'log.bookingId = booking.id',
         )
@@ -479,6 +547,7 @@ export class EventService {
         ])
         .where('booking.eventId = :eventId', { eventId })
         .orderBy('booking.id', 'DESC');
+
       const totalCount = await events.getCount();
       const results = await events.getRawMany();
 
@@ -493,6 +562,7 @@ export class EventService {
           };
         }),
       );
+
       return {
         message: `Booking for Event Id ${eventId} fetched successfully`,
         data: updatedResults,

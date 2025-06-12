@@ -249,7 +249,7 @@ export class BookingService {
           accepted: 'request-accepted.html',
           declined: 'entertainer-declined-booking.html',
           confirmed: 'entertainer-confirmed.html',
-          cancelled: 'entertainer-cancellation.html',
+          canceled: 'entertainer-cancellation.html',
         };
 
         const statusToReplacementMap = {
@@ -280,7 +280,7 @@ export class BookingService {
             venueName: booking.vname,
             Year: new Date().getFullYear(),
           },
-          cancelled: {
+          canceled: {
             venueName: booking.vname,
             eventTitle: booking.slug,
             entertainerName: booking.stageName,
@@ -457,7 +457,7 @@ export class BookingService {
       for (const booking of bookings) {
         const IGNORED_STATUSES = [
           'invited',
-          'cancelled',
+          'canceled',
           'declined',
           'completed',
         ];
@@ -867,7 +867,7 @@ export class BookingService {
       for (const req of rejectedRequest) {
         await this.bookingRepository.update(
           { id: req.id },
-          { status: 'cancelled' },
+          { status: 'canceled' },
         );
         if (req?.email) {
           const emailPayload = {
@@ -886,7 +886,7 @@ export class BookingService {
           this.notifyService.sendPush(
             {
               title: 'Status Update of Your Booking ',
-              body: `Venue has cancelled booking `,
+              body: `Venue has canceled booking `,
               type: 'booking_response',
             },
             req.entId,

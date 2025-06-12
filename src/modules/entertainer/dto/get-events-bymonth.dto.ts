@@ -18,5 +18,5 @@ export class EventsByMonthDto {
 
   @IsString()
   @IsOptional()
-  status: 'unpublished' | 'completed' | 'scheduled' | 'confirmed' | 'cancelled';
+  status: 'unpublished' | 'completed' | 'scheduled' | 'confirmed' | 'canceled';
 }

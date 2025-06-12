@@ -54,7 +54,7 @@ export class BookingCancellationService {
       //   .leftJoin('booking_cancelleation', 'cancellation')
       //   .leftJoin('booking_reason', 'reason')
       //   .where('booking.eventId = :eventId', { eventId })
-      //   .andWhere('booking.status = :status', { status: 'cancelled' })
+      //   .andWhere('booking.status = :status', { status: 'canceled' })
       //   .getRawMany();
     } catch (error) {
       throw new InternalServerErrorException(error.message);

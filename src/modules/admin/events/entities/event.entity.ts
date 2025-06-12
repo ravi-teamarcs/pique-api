@@ -61,7 +61,7 @@ export class Event {
       'published',
       'invited',
       'confirmed',
-      'cancelled',
+      'canceled',
       'completed',
       'rescheduled',
     ],
@@ -71,7 +71,7 @@ export class Event {
     | 'unpublished'
     | 'rescheduled'
     | 'confirmed'
-    | 'cancelled'
+    | 'canceled'
     | 'completed'
     | 'published'
     | 'invited';

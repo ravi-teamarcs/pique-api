@@ -29,21 +29,23 @@ export class Booking {
       'invited',
       'confirmed',
       'accepted',
-      'cancelled',
+      'canceled',
       'declined',
       'completed',
       'rescheduled',
+      'removed',
     ],
     default: 'invited',
   })
   status:
     | 'invited'
     | 'confirmed'
-    | 'cancelled'
+    | 'canceled'
     | 'declined'
     | 'completed'
     | 'accepted'
-    | 'rescheduled';
+    | 'rescheduled'
+    | 'removed';
 
   @Column({ type: 'time', nullable: true })
   showTime: Date;

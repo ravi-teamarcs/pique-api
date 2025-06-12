@@ -14,7 +14,7 @@ const allowedStatuses = [
   'accepted',
   'completed',
   'confirmed',
-  'cancelled',
+  'canceled',
   'rescheduled',
 ];
 class BookingQueryDto {
@@ -39,7 +39,7 @@ class BookingQueryDto {
     | 'accepted'
     | 'completed'
     | 'confirmed'
-    | 'cancelled'
+    | 'canceled'
     | 'rescheduled';
 
   @IsString()

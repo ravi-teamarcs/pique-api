@@ -23,7 +23,7 @@ export class BookingLog {
       'invited',
       'confirmed',
       'accepted',
-      'cancelled',
+      'canceled',
       'declined',
 
       'rescheduled',
@@ -33,7 +33,7 @@ export class BookingLog {
   status:
     | 'invited'
     | 'confirmed'
-    | 'cancelled'
+    | 'canceled'
     | 'declined'
     | 'completed'
     | 'rescheduled';

@@ -12,7 +12,7 @@ export class ResponseDto {
   status:
     | 'invited'
     | 'confirmed'
-    | 'cancelled'
+    | 'canceled'
     | 'declined'
     | 'accepted'
     | 'rescheduled';

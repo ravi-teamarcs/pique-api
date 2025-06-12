@@ -59,7 +59,7 @@ export class VenueEvent {
       'invited',
       'published',
       'confirmed',
-      'cancelled',
+      'canceled',
       'completed',
       'rescheduled',
     ],
@@ -69,7 +69,7 @@ export class VenueEvent {
     | 'unpublished'
     | 'scheduled'
     | 'confirmed'
-    | 'cancelled'
+    | 'canceled'
     | 'completed'
     | 'published'
     | 'invited';

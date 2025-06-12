@@ -469,7 +469,7 @@ export class EventService {
   }
 
   private async checkStatusAndSendEmail(status, eventId: number) {
-    if (status === 'cancelled') {
+    if (status === 'canceled') {
       const bookings = await this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin(

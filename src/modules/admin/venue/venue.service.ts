@@ -891,13 +891,13 @@ export class VenueService {
       const rejectedRequest = bookings.filter(
         (item) => !confirmedBookings.includes(item.id),
       );
-      // Cancelled the booking First then send them the Booking Request
+      // Canceled the booking First then send them the Booking Request
       for (const req of rejectedRequest) {
         const res = await this.bookingRepository.update(
           { id: req.id, status: 'accepted' },
-          { status: 'cancelled' },
+          { status: 'canceled' },
         );
-        console.log('Rejected Request', res);
+
         if (req.email) {
           const emailPayload = {
             to: req.email,
@@ -917,7 +917,7 @@ export class VenueService {
           this.notifyService.sendPush(
             {
               title: 'Status update of booking ',
-              body: `${req.venueName} has cancelled the booking `,
+              body: `${req.venueName} has canceled the booking `,
               type: 'booking_response',
             },
             req.entId,
