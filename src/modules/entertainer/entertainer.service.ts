@@ -1362,6 +1362,7 @@ export class EntertainerService {
         confirmed: { current: 0, previous: 0 },
         accepted: { current: 0, previous: 0 },
         completed: { current: 0, previous: 0 },
+        closed: { current: 0, previous: 0 },
       };
 
       bookingData.forEach((item) => {
@@ -1402,6 +1403,11 @@ export class EntertainerService {
         bookingStats.completed.current,
         bookingStats.completed.previous,
       );
+      const closedChange = calculateChange(
+        bookingStats.completed.current,
+        bookingStats.completed.previous,
+      );
+
       console.log(bookingStats);
       // ✅ Final API Response
       const res = {
@@ -1469,6 +1475,17 @@ export class EntertainerService {
               completedChange > 0
                 ? 'increase'
                 : completedChange < 0
+                  ? 'decrease'
+                  : 'same',
+          },
+          closed: {
+            currentMonthBookings: bookingStats.closed.current,
+            previousMonthBookings: bookingStats.closed.previous,
+            bookingChangePercentage: closedChange,
+            bookingTrend:
+              closedChange > 0
+                ? 'increase'
+                : closedChange < 0
                   ? 'decrease'
                   : 'same',
           },

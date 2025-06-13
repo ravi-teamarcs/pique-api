@@ -859,4 +859,121 @@ export class InvoiceService {
 
     return totalWithPlatformFee;
   }
+  // Generate Monthly Invoice Number ()
+  // async invoiceForIndividualVenue(venue) {
+  //   const confirmedEvents = await this.eventRepository.find({
+  //     where: {
+  //       venueId: venue.id,
+  //       status: 'confirmed',
+  //       eventStartDateTime: Between(monthStart, monthEnd),
+  //     },
+  //     select: ['id'],
+  //   });
+
+  //   const eventIds = confirmedEvents.map((event) => event.id);
+
+  //   // Step:3   Skip if no confirmed events
+  //   if (eventIds.length === 0) return;
+
+  //   // Create an invoice complex.
+
+  //   const bookings = await this.bookingRepository
+  //     .createQueryBuilder('booking')
+  //     .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+  //     .leftJoin('event', 'event', 'event.id = booking.eventId')
+  //     .select([
+  //       'booking.id AS id',
+  //       'booking.venueId AS venueId',
+  //       'ent.id AS entertainerId',
+  //       'ent.pricePerEvent AS pricePerHour',
+  //       'event.eventStartDateTime AS eventStartDateTime',
+  //       'event.eventEndDateTime AS eventEndDateTime',
+  //     ])
+  //     .where('booking.eventId IN (:...eventIds)', { eventIds })
+
+  //     .andWhere('booking.status = :status', { status: 'confirmed' })
+  //     .getRawMany();
+
+  //   const bookingWithMarkup = await Promise.all(
+  //     bookings.map(async ({ pricePerHour, ...book }) => {
+  //       return {
+  //         ...book,
+  //         priceWithMarkup: await this.addMarkupToEntertainer(
+  //           Number(pricePerHour),
+  //         ),
+  //       };
+  //     }),
+  //   );
+  //   let totalAmount = 0;
+
+  //   for (const book of bookingWithMarkup) {
+  //     // Provided Payload for calculation
+  //     const payload = {
+  //       eventStartDateTime: book.eventStartDateTime,
+  //       eventEndDateTime: book.eventEndDateTime,
+  //       priceWithMarkup: book.priceWithMarkup,
+  //       discountInPercent: 0,
+  //       isFixed: true,
+  //       platformFee: 0,
+  //     };
+  //     const price = this.calculatingInvoiceAmount(payload);
+  //     totalAmount += Number(price);
+  //   }
+
+  //   const issueDate = new Date();
+  //   const dueDate = new Date(issueDate);
+  //   dueDate.setDate(dueDate.getDate() + 60);
+
+  //   // Function to generate new invoice number
+  //   const newInvoiceNumber = await this.generateFreshInvoiceNumber(venue);
+
+  //   const newInvoice = this.invoiceRepository.create({
+  //     invoice_number: newInvoiceNumber, // Now for dummy purpose
+  //     user_id: Number(venue.id),
+  //     user_type: UserType.VENUE,
+  //     event_id: null,
+  //     issue_date: issueDate.toISOString().split('T')[0],
+  //     due_date: new Date(dueDate).toISOString().split('T')[0],
+  //     total_amount: totalAmount,
+  //     tax_rate: 0,
+  //     tax_amount: 0,
+  //     total_with_tax: totalAmount,
+  //     status: InvoiceStatus.AWAITING_PAYMENT,
+  //     payment_method: '',
+  //     payment_date: null,
+  //     booking_id: null,
+  //   });
+
+  //   const savedInvoice = await this.invoiceRepository.save(newInvoice);
+
+  //   // No Add the details of invoice (Invoice to EventId Table )
+  //   for (const event of confirmedEvents) {
+  //     const invoiceEvent = this.invEventRepository.create({
+  //       invoiceId: savedInvoice.id,
+  //       eventId: event.id,
+  //       eventDate: new Date().toISOString(),
+  //       eventPrice: 0,
+  //     });
+
+  //     await this.invEventRepository.save(invoiceEvent);
+  //   }
+  // }
+
+  async generateFreshInvoiceNumber(venue) {
+    const lastInvoice = await this.invoiceRepository
+      .createQueryBuilder('invoices')
+      .orderBy('invoices.id', 'DESC')
+      .limit(1)
+      .getOne();
+
+    const lastInvoiceNumber = lastInvoice
+      ? parseInt(lastInvoice.invoice_number.split('-')[2])
+      : 1000;
+    // Invoicing Sequence
+    const invFormattedDate = this.formatDateForInvoice(
+      new Date().toISOString(),
+    );
+    const newInvoiceNumber = `${invFormattedDate}-${venue.id}-${lastInvoiceNumber + 1}`;
+    return newInvoiceNumber;
+  }
 }
