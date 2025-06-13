@@ -798,10 +798,7 @@ export class VenueService {
             'booking.id AS id',
             'booking.status AS status',
             'booking.venueId AS vid',
-            'booking.showTime AS showTime',
-            'booking.showDate AS showDate',
             'booking.showStartDateTime AS showStartDateTime',
-
             'euser.email AS eEmail',
             'euser.name AS ename',
             'euser.id AS eid ',
@@ -906,7 +903,7 @@ export class VenueService {
         'user.email AS email',
         'venue.name AS venueName',
         'event.slug AS eventName',
-        'event.eventDate AS eventDate',
+        'event.eventStartDateTime AS eventStartDateTime',
         'user.id AS entId',
       ])
       .where('booking.eventId=:eventId', { eventId })
@@ -920,34 +917,34 @@ export class VenueService {
       for (const req of rejectedRequest) {
         const res = await this.bookingRepository.update(
           { id: req.id, status: In(['invited', 'accepted']) },
-          { status: 'canceled' },
+          { status: 'closed' },
         );
 
-        if (req.email) {
-          const emailPayload = {
-            to: req.email,
-            subject: `Status update of Booking Request`,
-            templateName: 'cancellation.html',
-            replacements: {
-              entertainerName: req.entertainerName,
-              eventName: req.eventName,
-              eventDate: format(req.showStartDateTime, 'dd MMM yyyy', {
-                timeZone: 'UTC',
-              }),
-            },
-          };
+        // if (req.email) {
+        //   const emailPayload = {
+        //     to: req.email,
+        //     subject: `Status update of Booking Request`,
+        //     templateName: 'cancellation.html',
+        //     replacements: {
+        //       entertainerName: req.entertainerName,
+        //       eventName: req.eventName,
+        //       eventDate: format(req.eventStartDateTime, 'dd MMM yyyy', {
+        //         timeZone: 'UTC',
+        //       }),
+        //     },
+        //   };
 
-          await this.emailService.handleSendEmail(emailPayload);
+        //   await this.emailService.handleSendEmail(emailPayload);
 
-          this.notifyService.sendPush(
-            {
-              title: 'Status update of booking ',
-              body: `${req.venueName} has canceled the booking `,
-              type: 'booking_response',
-            },
-            req.entId,
-          );
-        }
+        //   this.notifyService.sendPush(
+        //     {
+        //       title: 'Status update of booking ',
+        //       body: `${req.venueName} has canceled the booking `,
+        //       type: 'booking_response',
+        //     },
+        //     req.entId,
+        //   );
+        // }
       }
     }
   }

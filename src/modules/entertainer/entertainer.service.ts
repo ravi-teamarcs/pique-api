@@ -1657,7 +1657,6 @@ export class EntertainerService {
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.description AS description',
-          'event.recurring AS recurring',
           'event.status AS status',
           'event.isAdmin AS isAdmin',
           'venue.name AS name',
@@ -1670,12 +1669,16 @@ export class EntertainerService {
         ])
         .getRawOne();
 
+      if (!eventDetails) throw new BadRequestException('Event not Found');
+
       return {
         message: 'Event Details returned successfully',
         status: true,
         data: eventDetails,
       };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
+
       throw new InternalServerErrorException({
         message: error.message,
         status: true,
