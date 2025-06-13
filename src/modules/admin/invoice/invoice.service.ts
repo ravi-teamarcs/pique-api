@@ -798,7 +798,14 @@ export class InvoiceService {
 
       // No Add the details of invoice (Invoice to EventId Table )
       for (const event of confirmedEvents) {
-        // const invoiceEvent = await this.invEventRepository.craeet();
+        const invoiceEvent = this.invEventRepository.create({
+          invoiceId: savedInvoice.id,
+          eventId: event.id,
+          eventDate: now.toString(),
+          eventPrice: 0,
+        });
+
+        await this.invEventRepository.save(invoiceEvent);
       }
     }
   }
