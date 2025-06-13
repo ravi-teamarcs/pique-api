@@ -28,6 +28,7 @@ import { NotificationService } from 'src/modules/notification/notification.servi
 import { AdminUser } from '../adminuser/entities/AdminUser.entity';
 import { Event } from '../events/entities/event.entity';
 import { Setting } from '../settings/entities/setting.entity';
+import { InvoiceEvent } from './entities/invoices-event.entity';
 
 @Injectable()
 export class InvoiceService {
@@ -44,6 +45,9 @@ export class InvoiceService {
     private readonly eventRepository: Repository<Event>,
     @InjectRepository(Setting)
     private readonly settingRepo: Repository<Setting>,
+
+    @InjectRepository(InvoiceEvent)
+    private readonly invEventRepository: Repository<InvoiceEvent>,
 
     private readonly emailService: EmailService,
     private readonly notifyService: NotificationService,
@@ -791,6 +795,11 @@ export class InvoiceService {
       });
 
       const savedInvoice = await this.invoiceRepository.save(newInvoice);
+
+      // No Add the details of invoice (Invoice to EventId Table )
+      for (const event of confirmedEvents) {
+        // const invoiceEvent = await this.invEventRepository.craeet();
+      }
     }
   }
 
