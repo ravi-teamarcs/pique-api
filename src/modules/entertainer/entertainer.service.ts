@@ -1524,6 +1524,8 @@ export class EntertainerService {
           'venue.name AS venue_name',
           'venue.addressLine1 AS venue_addressLine1',
           'venue.addressLine2 AS venue_addressLine2',
+          'venue.latitude AS latitude',
+          'venue.longitude AS longitude',
           `CASE WHEN media.url IS NOT NULL THEN CONCAT(:baseUrl, media.url) ELSE :defaultMediaUrl END AS image_url`,
         ])
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))

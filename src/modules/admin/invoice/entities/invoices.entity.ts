@@ -89,6 +89,9 @@ export class Invoice {
   @Column({ nullable: true, name: 'inv_amount_paid' })
   invAmountPaid: number;
 
+  @Column({ nullable: true, name: 'is_outdated' })
+  isOutdated: boolean;
+
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 

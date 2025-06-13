@@ -59,8 +59,8 @@ export class InvoiceCronService {
   async handleCron() {
     await this.notificationService.deleteOldNotifications();
   }
- 
-  // Cron Job to generate invoice for venues.
+
+  // Cron Job to generate invoice for venues. At 12:00 am  1 Day of month
   @Cron('0 0 1 * *')
   async generateMonthlyInvoices() {}
 }

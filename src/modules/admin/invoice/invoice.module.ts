@@ -14,6 +14,7 @@ import { Capability } from '../auth/entities/capability.entity';
 import { EmailModule } from 'src/modules/Email/email.module';
 import { NotificationModule } from 'src/modules/notification/notification.module';
 import { AdminUser } from '../auth/entities/AdminUser.entity';
+import { Venue } from '../venue/entities/venue.entity';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AdminUser } from '../auth/entities/AdminUser.entity';
       Role,
       Capability,
       AdminUser,
+      Venue,
     ]),
     EmailModule,
     NotificationModule,

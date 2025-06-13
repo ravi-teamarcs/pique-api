@@ -7,20 +7,26 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Invoice, InvoiceStatus, UserType } from './entities/invoices.entity';
-import { Admin, Like, Repository } from 'typeorm';
+import { Admin, Between, Like, Repository } from 'typeorm';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { InvoiceQueryDto } from './Dto/invoice-query.dto';
 import { Booking } from '../booking/entities/booking.entity';
-import { differenceInMinutes, format, parse } from 'date-fns';
+import {
+  differenceInMinutes,
+  endOfMonth,
+  format,
+  parse,
+  startOfMonth,
+} from 'date-fns';
 import { loadEmailTemplate } from 'src/common/email-templates/utils/email.utils';
 import { EmailService } from 'src/modules/Email/email.service';
 import * as pdf from 'html-pdf';
 import { UpdateInvoiceStatus } from './Dto/update-invoice-status.dto';
-import { paymentsresellersubscription } from 'googleapis/build/src/apis/paymentsresellersubscription';
 import { NotificationService } from 'src/modules/notification/notification.service';
 import { AdminUser } from '../adminuser/entities/AdminUser.entity';
+import { Event } from '../events/entities/event.entity';
 
 @Injectable()
 export class InvoiceService {
@@ -29,10 +35,13 @@ export class InvoiceService {
     private readonly invoiceRepository: Repository<Invoice>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Venue)
+    private readonly venueRepository: Repository<Venue>,
     @InjectRepository(AdminUser)
     private readonly adminRepository: Repository<AdminUser>,
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
+
     private readonly emailService: EmailService,
     private readonly notifyService: NotificationService,
   ) {}
@@ -665,5 +674,47 @@ export class InvoiceService {
       .join('');
 
     return `${initials}${entertainerId}`;
+  }
+
+  async generateMonthlyInvoiceForVenue() {
+    // Step 1: Get All the venues
+    const venues = await this.venueRepository.find({
+      where: { status: 'active' },
+    });
+    // Step:2  Loop over Them
+
+    const now = new Date(); // or use any specific date
+    const monthStart = startOfMonth(now);
+    const monthEnd = endOfMonth(now);
+
+    for (const venue of venues) {
+      const confirmedEvents = await this.eventRepository.find({
+        where: {
+          venueId: venue.id,
+          status: 'confirmed',
+          eventStartDateTime: Between(monthStart, monthEnd),
+        },
+      });
+      // Step:3   Skip if no confirmed events
+
+      if (confirmedEvents.length === 0) continue;
+
+      // Create an invoice complex.
+
+      // const invoice = await this.invoiceRepo.save({
+      //   userId: venue.id,
+      //   month: '2025-07',
+      // });
+
+      // Also Add data to   Event Table
+      // const invoiceEvents = confirmedEvents.map((event) => ({
+      //   invoice,
+      //   eventId: event.id,
+      //   entertainerId: event.entertainerId,
+      //   amount: event.price,
+      // }));
+
+      // await this.invoiceEventRepo.save(invoiceEvents);
+    }
   }
 }
