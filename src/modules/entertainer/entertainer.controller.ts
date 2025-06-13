@@ -355,7 +355,9 @@ export class EntertainerController {
   upcomingEvent(@Req() req, @Query() query: UpcomingEventDto) {
     const { refId } = req.user;
     return this.entertainerService.getUpcomingEvent(refId, query);
+
   }
+  // Demo 
 
   @Get('events/details/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
