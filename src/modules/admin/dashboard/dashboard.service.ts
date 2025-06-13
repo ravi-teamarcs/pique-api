@@ -268,21 +268,16 @@ export class DashboardService {
         .leftJoin('states', 'state', 'state.id = venue.state')
         .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
         .leftJoin('cities', 'city', 'city.id = venue.city')
-        .andWhere('YEAR(event.eventDate) = :year', { year })
-        .andWhere('MONTH(event.eventDate) = :month', { month })
+        .andWhere('YEAR(event.eventStartDateTime) = :year', { year })
+        .andWhere('MONTH(event.eventStartDateTime) = :month', { month })
         .select([
           'event.id AS event_id',
           'event.title AS title',
-          'event.location AS location',
           'event.eventDate AS eventDate',
           'event.description AS description',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
-
           // added new Fields
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
-
           'event.recurring AS recurring',
           'event.status AS status',
           'event.isAdmin AS isAdmin',
@@ -296,7 +291,7 @@ export class DashboardService {
           'state.name AS stateName',
           'code.stateCode AS stateNameCode',
         ])
-        .orderBy('event.eventDate', 'ASC');
+        .orderBy('event.eventStartDateTime', 'ASC');
 
       if (status) {
         qb.andWhere('event.status=:status', { status });

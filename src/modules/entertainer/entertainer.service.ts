@@ -1105,20 +1105,23 @@ export class EntertainerService {
           'booking.showStartDateTime AS showStartDateTime',
           'booking.specialNotes  As specialNotes',
           'booking.performanceRole AS performanceRole',
-          'venue.name AS name',
+
           'event.id AS event_id',
           'event.title AS event_title',
-          'event.location AS event_location',
+
           'event.description AS event_description',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.slug AS event_slug',
+          'venue.name AS name',
           'venue.description AS description',
           'venue.state AS state',
           'venue.city AS city',
           'city.name AS city_name',
           'country.name AS country_name',
           'state.name AS state_name',
+          'venue.latitude AS latitude',
+          'venue.longitude AS longitude',
         ])
         .orderBy('booking.createdAt', 'DESC'); // Corrected sorting
 

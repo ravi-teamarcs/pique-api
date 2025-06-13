@@ -41,12 +41,14 @@ export class Booking {
       'rescheduled',
       'declined',
       'removed',
+      'closed',
     ],
     default: 'invited',
   })
   status:
     | 'invited'
     | 'confirmed'
+    | 'closed'
     | 'canceled'
     | 'accepted'
     | 'completed'

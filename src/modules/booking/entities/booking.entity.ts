@@ -34,6 +34,7 @@ export class Booking {
       'completed',
       'rescheduled',
       'removed',
+      'closed',
     ],
     default: 'invited',
   })
@@ -45,6 +46,7 @@ export class Booking {
     | 'completed'
     | 'accepted'
     | 'rescheduled'
+    | 'closed'
     | 'removed';
 
   @Column({ type: 'time', nullable: true })
