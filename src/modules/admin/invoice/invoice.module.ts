@@ -15,6 +15,8 @@ import { EmailModule } from 'src/modules/Email/email.module';
 import { NotificationModule } from 'src/modules/notification/notification.module';
 import { AdminUser } from '../auth/entities/AdminUser.entity';
 import { Venue } from '../venue/entities/venue.entity';
+import { InvoiceEvent } from './entities/invoices-event.entity';
+import { Setting } from '../settings/entities/setting.entity';
 
 @Module({
   imports: [
@@ -28,6 +30,8 @@ import { Venue } from '../venue/entities/venue.entity';
       Capability,
       AdminUser,
       Venue,
+      InvoiceEvent,
+      Setting,
     ]),
     EmailModule,
     NotificationModule,

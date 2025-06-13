@@ -1173,7 +1173,9 @@ export class EntertainerService {
         .leftJoin('states', 'state', 'state.id = venue.state')
         .leftJoin('countries', 'country', 'country.id = venue.country')
         .where('booking.entId = :userId', { userId })
-        .andWhere('booking.status = :status', { status: 'invited' })
+        .andWhere('booking.status IN (:...status)', {
+          status: ['invited', 'accepted'],
+        })
         .select([
           'booking.id AS id',
           'booking.status AS status',
@@ -1183,10 +1185,10 @@ export class EntertainerService {
           'venue.name AS name',
           'event.id AS event_id',
           'event.title AS event_title',
-          'event.location AS event_location',
           'event.description AS event_description',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
+
           'event.slug AS event_slug',
           'venue.description AS description',
           'venue.state AS state',
