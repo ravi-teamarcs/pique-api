@@ -22,6 +22,8 @@ import { BookingCancellationService } from './booking-cancellation.service';
 import { BookingCancellationController } from './booking-cancellation.controller';
 import { BookingCancellation } from './entities/booking-cancellation.entity';
 import { EntertainerModule } from '../entertainer/entertainer.module';
+import { Invoice } from '../invoice/entities/invoice.entity';
+import { InvoiceEvent } from '../admin/invoice/entities/invoices-event.entity';
 
 @Module({
   imports: [
@@ -41,6 +43,8 @@ import { EntertainerModule } from '../entertainer/entertainer.module';
       VenueEvent,
       CancellationReason,
       BookingCancellation,
+      Invoice,
+      InvoiceEvent,
     ]),
     EmailModule,
     NotificationModule,

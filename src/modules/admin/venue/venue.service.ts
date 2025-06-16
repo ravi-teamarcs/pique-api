@@ -33,6 +33,8 @@ import { format } from 'date-fns-tz';
 import { States } from '../location/entities/state.entity';
 import { Cities } from '../location/entities/city.entity';
 import { GeocodingService } from 'src/modules/location/geocoding.service';
+import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
+import { Invoice } from '../invoice/entities/invoices.entity';
 
 @Injectable()
 export class VenueService {
@@ -50,6 +52,10 @@ export class VenueService {
     private readonly tempRepository: Repository<AdminCreatedUser>,
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
+    @InjectRepository(InvoiceEvent)
+    private readonly invoiceEventRepository: Repository<InvoiceEvent>,
+    @InjectRepository(Invoice)
+    private readonly invoiceRepository: Repository<Invoice>,
 
     @InjectRepository(BookingLog)
     private readonly logRepository: Repository<BookingLog>,
@@ -780,7 +786,19 @@ export class VenueService {
   async updateBookingStatus(dto) {
     const updatedBookings = [];
     const { bookingIds, status, eventId } = dto;
+
     try {
+      // Check if Invoice is already generated for the event then set it to isOutDated.
+      const invoiceMetaData = await this.invoiceEventRepository.findOne({
+        where: { eventId },
+      });
+
+      if (invoiceMetaData)
+        await this.invoiceRepository.update(
+          { id: invoiceMetaData.invoiceId },
+          { isOutdated: true },
+        );
+
       for (const bookingId of bookingIds) {
         const booking = await this.bookingRepository
           .createQueryBuilder('booking')

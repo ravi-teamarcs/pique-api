@@ -21,6 +21,8 @@ import { Event } from '../events/entities/event.entity';
 import { BookingLog } from './entities/booking-log.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { format } from 'date-fns-tz';
+import { Invoice } from '../invoice/entities/invoices.entity';
+import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
 
 @Injectable()
 export class BookingService {
@@ -33,7 +35,10 @@ export class BookingService {
     private readonly eventRepository: Repository<Event>,
     @InjectRepository(Venue)
     private readonly venueRepository: Repository<Venue>,
-
+    @InjectRepository(Invoice)
+    private readonly invoiceRepository: Repository<Invoice>,
+    @InjectRepository(InvoiceEvent)
+    private readonly invoiceEventRepository: Repository<InvoiceEvent>,
     @InjectRepository(BookingLog)
     private readonly logRepository: Repository<BookingLog>,
 
@@ -525,11 +530,24 @@ export class BookingService {
   }
 
   async removeEntertainerFromBooking(bookingId: number) {
-    const booking = await this.bookingRepository.find({
+    const booking = await this.bookingRepository.findOne({
       where: { id: bookingId },
     });
+
     if (!booking) throw new BadRequestException('Booking Not Found');
     try {
+      if (booking.status === 'confirmed') {
+        const invoiceMetaData = await this.invoiceEventRepository.findOne({
+          where: { eventId: booking.eventId },
+        });
+
+        if (invoiceMetaData)
+          await this.invoiceRepository.update(
+            { id: invoiceMetaData.invoiceId },
+            { isOutdated: true },
+          );
+      }
+
       await this.bookingRepository.update(
         { id: bookingId },
         { status: 'removed' },

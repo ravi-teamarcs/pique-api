@@ -62,5 +62,7 @@ export class InvoiceCronService {
 
   // Cron Job to generate invoice for venues. At 12:00 am  1 Day of month
   @Cron('0 0 1 * *')
-  async generateMonthlyInvoices() {}
+  async generateMonthlyInvoices() {
+    this.invoiceService.generateMonthlyInvoiceForVenue();
+  }
 }

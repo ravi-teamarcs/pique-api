@@ -595,19 +595,23 @@ export class VenueService {
           `CASE WHEN wish.ent_id IS NOT NULL THEN 1 ELSE 0 END AS isWishlisted`,
           'wish.name AS record',
           latitude && longitude
-            ? `ROUND(
-              3959 * acos(
-                GREATEST(-1, LEAST(1,
-                  cos(radians(:lat2)) *
-                  cos(radians(COALESCE(entertainer.latitude, 0))) *
-                  cos(radians(COALESCE(entertainer.longitude, 0)) - radians(:lng2)) +
-                  sin(radians(:lat2)) *
-                  sin(radians(COALESCE(entertainer.latitude, 0)))
-                ))
-              ),
-              2
-            ) AS distanceInMiles`
-            : '0 AS distanceInMiles',
+            ? `CASE
+        WHEN entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL THEN
+          ROUND(
+            3959 * acos(
+              GREATEST(-1, LEAST(1,
+                cos(radians(:lat2)) *
+                cos(radians(entertainer.latitude)) *
+                cos(radians(entertainer.longitude) - radians(:lng2)) +
+                sin(radians(:lat2)) *
+                sin(radians(entertainer.latitude))
+              ))
+            ),
+            2
+          )
+        ELSE NULL
+     END AS distanceInMiles`
+            : 'NULL AS distanceInMiles',
         ])
         .orderBy('entertainer.name', 'ASC')
         .offset(skip) // Use offset which is more explicit than skip for raw queries

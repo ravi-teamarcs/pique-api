@@ -13,6 +13,8 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { BookingLog } from '../../admin/booking/entities/booking-log.entity';
 import { Event } from '../events/entities/event.entity';
 import { Venue } from '../venue/entities/venue.entity';
+import { Invoice } from '../invoice/entities/invoices.entity';
+import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { Venue } from '../venue/entities/venue.entity';
       BookingLog,
       Event,
       Venue,
+      Invoice,
+      InvoiceEvent
     ]),
     NotificationModule,
     EmailModule,

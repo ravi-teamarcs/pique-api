@@ -117,6 +117,13 @@ export class InvoiceController {
 
   @Get('testing-route')
   testingRoute() {
-    return this.invoiceService.handleOverdueInvoices();
+    return this.invoiceService.generateMonthlyInvoiceForVenue();
+  }
+
+  //  API to regenrate invoice
+
+  @Patch(':id/regenerate')
+  regenerateInvoiceById(@Param('id', ParseIntPipe) id: number) {
+    return this.invoiceService.regenerateInvoice(id);
   }
 }

@@ -32,6 +32,8 @@ import { ModifyBookingDto } from './dto/update-booking.dto';
 import { format } from 'date-fns-tz';
 import { getOverlappingSlots } from 'src/common/utils/slots-utils';
 import { DateTime } from 'luxon';
+import { Invoice } from '../invoice/entities/invoice.entity';
+import { InvoiceEvent } from '../admin/invoice/entities/invoices-event.entity';
 
 @Injectable()
 export class BookingService {
@@ -52,6 +54,11 @@ export class BookingService {
     private readonly availabilityRepository: Repository<EntertainerAvailability>,
     @InjectRepository(Entertainer)
     private readonly entRepository: Repository<Entertainer>,
+    @InjectRepository(Invoice)
+    private readonly invoiceRepository: Repository<Invoice>,
+    @InjectRepository(InvoiceEvent)
+    private readonly invoiceEventRepository: Repository<InvoiceEvent>,
+
     private readonly emailService: EmailService,
     private readonly notifyService: NotificationService,
     private readonly googleCalService: GoogleCalendarServices,
@@ -219,6 +226,7 @@ export class BookingService {
 
           'booking.showStartDateTime AS showStartDateTime',
           `CONCAT(venue.addressLine1, ', ', venue.addressLine2) AS address`,
+          'event.id AS eventId',
           'event.slug AS slug',
           'event.title AS title',
 
@@ -257,8 +265,19 @@ export class BookingService {
 
       await this.bookingRepository.update({ id: booking.id }, { status });
 
-      // Ends Here
+      // Now Check
+      if (status === 'canceled') {
+        const invoiceMetaData = await this.invoiceEventRepository.findOne({
+          where: { eventId: booking.eventId },
+        });
+        if (invoiceMetaData)
+          await this.invoiceRepository.update(
+            { id: invoiceMetaData.invoiceId },
+            { isOutdated: true },
+          );
+      }
       if (booking.eEmail || booking.vemail) {
+        // Ends Here
         const statusToTemplateMap = {
           accepted: 'request-accepted.html',
           declined: 'entertainer-declined-booking.html',
@@ -309,13 +328,13 @@ export class BookingService {
           },
         };
 
-        const template = statusToTemplateMap[status];
+        const template = statusToTemplateMap[status.toLowerCase()];
 
         const emailPayload = {
           to: role === 'entertainer' ? booking.vemail : booking.eEmail,
           subject: `Booking Request ${status}`,
           templateName: template,
-          replacements: statusToReplacementMap[status],
+          replacements: statusToReplacementMap[status.toLowerCase()],
         };
 
         this.emailService.handleSendEmail(emailPayload);
@@ -542,6 +561,7 @@ export class BookingService {
   async updateBookingStatus(dto, userId: number) {
     const updatedBookings = [];
     const { bookingIds, status, eventIds } = dto;
+
     try {
       for (const bookingId of bookingIds) {
         const booking = await this.bookingRepository
@@ -585,6 +605,19 @@ export class BookingService {
 
         await this.bookingRepository.update({ id: bookingId }, { status });
         // If booking confirmed , also confirm the status of event.
+
+        // New logic added(not tested yet).
+
+        for (const eventId of eventIds) {
+          const invoiceMetaData = await this.invoiceEventRepository.findOne({
+            where: { eventId },
+          });
+          if (invoiceMetaData)
+            await this.invoiceRepository.update(
+              { id: invoiceMetaData.invoiceId },
+              { isOutdated: true },
+            );
+        }
 
         const logPayload = {
           bookingId,
@@ -842,7 +875,7 @@ export class BookingService {
     const availability = await this.availabilityRepository.findOne({
       where: { entertainer_id: entertainerId, year, month },
     });
-    if (!availability) return false;
+    if (!availability) return true;
 
     // Get entertainer Timezone from  entertainer table .
     const { timezone } = await this.entRepository.findOne({

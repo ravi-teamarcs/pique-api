@@ -20,6 +20,8 @@ import { Event } from '../events/entities/event.entity';
 import { States } from '../location/entities/state.entity';
 import { Cities } from '../location/entities/city.entity';
 import { LocationModule } from '../../location/location.module';
+import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
+import { Invoice } from '../invoice/entities/invoices.entity';
 
 @Module({
   imports: [
@@ -37,6 +39,8 @@ import { LocationModule } from '../../location/location.module';
       Event,
       States,
       Cities,
+      InvoiceEvent,
+      Invoice,
     ]),
     MediaModule,
     NotificationModule,

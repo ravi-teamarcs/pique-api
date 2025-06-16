@@ -245,6 +245,7 @@ export class DashboardService {
     };
   }
 
+  // This needs change (Don't use booking Fixed used event Instead.)
   async getEventDetailsByMonth(query: EventsByMonthDto) {
     const {
       date = '', // e.g., '2025-04'
@@ -261,15 +262,15 @@ export class DashboardService {
     const skip = (page - 1) * pageSize;
 
     try {
-      const qb = this.bookingRepo
-        .createQueryBuilder('booking')
-        .innerJoin('event', 'event', 'event.id = booking.eventId')
-        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+      const qb = this.eventRepo
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
         .leftJoin('states', 'state', 'state.id = venue.state')
         .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
         .leftJoin('cities', 'city', 'city.id = venue.city')
         .andWhere('YEAR(event.eventStartDateTime) = :year', { year })
         .andWhere('MONTH(event.eventStartDateTime) = :month', { month })
+
         .select([
           'event.id AS event_id',
           'event.title AS title',
@@ -285,6 +286,8 @@ export class DashboardService {
           'venue.name AS venueName',
           'venue.addressLine1 AS addressLine1',
           'venue.addressLine2 AS addressLine2',
+          'venue.latitude AS latitude',
+          'venue.longitude AS longitude',
           'venue.city AS cityCode',
           'venue.state AS stateCode',
           'city.name AS cityName',

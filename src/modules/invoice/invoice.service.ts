@@ -439,16 +439,15 @@ export class InvoiceService {
 
     const invoices = await this.invoiceRepository
       .createQueryBuilder('invoices')
-      .leftJoin('event', 'event', 'event.id = invoices.event_id')
       .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
       .leftJoin('states', 'state', 'state.id = venue.state')
       .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
       .leftJoin('cities', 'city', 'city.id = venue.city')
-
       .where('invoices.user_id = :userId AND invoices.user_type =:role', {
         userId,
         role: 'venue',
       })
+
       .select([
         'invoices.id AS id',
         'invoices.invoice_number AS invoice_number',
@@ -464,8 +463,21 @@ export class InvoiceService {
         'invoices.status AS status',
         'invoices.payment_method AS payment_method',
         'invoices.payment_date AS payment_date',
-        'event.slug AS slug',
-        'event.title AS Name',
+        `(
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'slug', e.slug,
+      'title', e.title,
+      'eventId', e.id,
+      'eventStartDateTime', e.eventStartDateTime,
+      'eventEndDateTime', e.eventEndDateTime
+    )
+  )
+  FROM invoice_events ie
+  JOIN event e ON e.id = ie.event_id
+  WHERE ie.invoice_id = invoices.id
+) AS events
+`,
         'code.stateCode AS stateNameCode',
         'city.name AS cityName',
         'state.name AS stateName',
@@ -479,6 +491,13 @@ export class InvoiceService {
       .limit(pageSize)
       .getRawMany();
 
+    const parsedResult = invoices.map(({ events, ...rest }) => {
+      return {
+        ...rest,
+        events: events ? JSON.parse(events) : [],
+      };
+    });
+
     // Optional: Get total count for pagination metadata
     const totalCount = await this.invoiceRepository
       .createQueryBuilder('invoices')
@@ -489,7 +508,7 @@ export class InvoiceService {
     return {
       message: 'Invoice fetched Successfully',
       status: true,
-      data: invoices,
+      data: parsedResult,
       totalCount,
       page,
       pageSize,
