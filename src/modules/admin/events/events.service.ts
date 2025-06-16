@@ -165,7 +165,8 @@ export class EventService {
       .createQueryBuilder('event')
       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
-      .leftJoin('invoices', 'inv', 'inv.event_id = event.id')
+      .leftJoin('invoice_events', 'invEvent', 'invEvent.event_id = event.id')
+      .leftJoin('invoices', 'inv', 'inv.id = invEvent.invoice_id')
 
       .select([
         // Event Details
@@ -187,6 +188,7 @@ export class EventService {
         'venue.addressLine2 AS addressLine2',
         'inv.invoice_number AS invoiceNumber',
         'inv.id AS invoiceId',
+        'inv.isOutdated AS isOutdated',
       ])
 
       .where('event.id = :id', { id })

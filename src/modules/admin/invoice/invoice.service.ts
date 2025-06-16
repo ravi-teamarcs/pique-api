@@ -299,7 +299,7 @@ export class InvoiceService {
         invoice_number: newInvoiceNumber,
         user_id: Number(parsedRecord.venueId),
         user_type: UserType.VENUE,
-        event_id: Number(eventId),
+        event_id: null,
         issue_date: issueDate.toISOString().split('T')[0],
         due_date: new Date(dueDate).toISOString().split('T')[0],
         total_amount: totalAmount,
@@ -313,6 +313,16 @@ export class InvoiceService {
       });
 
       const savedInvoice = await this.invoiceRepository.save(newInvoice);
+
+      // Save the record to (Invoice Event Mapping)
+      const invoiceMetaData = this.invEventRepository.create({
+        invoiceId: savedInvoice.id,
+        eventId: eventId,
+        eventDate: new Date().toISOString(),
+        eventPrice: 0,
+      });
+      await this.invEventRepository.save(invoiceMetaData);
+
       return {
         message: 'Invoice generated successfully',
         data: savedInvoice,
@@ -886,7 +896,9 @@ export class InvoiceService {
   // Regeneration Logic or Invoice By Id
   async regenerateInvoice(id: number) {
     try {
-      const invoice = await this.invoiceRepository.findOne({ where: { id } });
+      const invoice = await this.invoiceRepository.findOne({
+        where: { id, isOutdated: true },
+      });
       if (!invoice) throw new BadRequestException('Invoice Not Found');
 
       // Check for invoice Event Mapping Repo
@@ -957,10 +969,18 @@ export class InvoiceService {
 
       // update the Invoice
 
-      await this.invoiceRepository.update(
-        { id: invoice.id },
-        { total_with_tax: totalAmount },
-      );
+      const issueDate = new Date();
+      const dueDate = new Date(issueDate);
+      dueDate.setDate(dueDate.getDate() + 60);
+
+      const updatePayload = {
+        total_with_tax: totalAmount,
+        isOutdated: false,
+        issue_date: issueDate.toISOString().split('T')[0],
+        due_date: new Date(dueDate).toISOString().split('T')[0],
+      };
+
+      await this.invoiceRepository.update({ id: invoice.id }, updatePayload);
 
       return { message: 'Invoice regenerated Successfully', status: true };
     } catch (error) {
