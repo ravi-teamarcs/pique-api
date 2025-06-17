@@ -70,17 +70,19 @@
                         </p>
                         <p class="fw-semibold my-0">Bill to</p>
                         <p style="color: #424242">
-                         Pique Entertainment<br />
+                       <%= venueName %> <br />
+                       <%= address %> <br /> 
+                       <%= city %> ,<%= state %> <%= zipCode %> 
                         
                         </p>
                       </div>
-                      <div class="col-6 text-start">
+                      <!-- <div class="col-6 text-start">
                         <p class="fw-semibold my-0 mt-4">Ship to</p>
                         <p class="mb-0" style="color: #424242">
                           PiqueEntertainment<br />
                           
                         </p>
-                      </div>
+                      </div> -->
                     </div>
 
                     <div
@@ -124,7 +126,7 @@
                         <% items.forEach((item, index) => { %>
                           <tr>
                             <td><%= index + 1 %></td>
-                            <!-- <td><%= item.issueDate %></td> -->
+                            <td><%= item.issueDate %></td>
                             <td>
                               <strong class="text-warp"><%= item.eventName %></strong>
                             </td>
@@ -132,8 +134,8 @@
                             <td>$<%= item.pricePerEvent %></td>
                             <td>$<%= item.totalAmount %></td>
                             
-                          </tr>
-                        <% }) %>
+                           </tr>
+                        <% }) %> 
                       </tbody>
                     </table>
 

@@ -26,13 +26,9 @@ import { UpdateInvoiceStatus } from './Dto/update-invoice-status.dto';
 @ApiTags('admin')
 @Controller('admin/invoice')
 export class InvoiceController {
-  constructor(
-    private readonly invoiceService: InvoiceService,
-    private readonly geninvoiceService: GenerateInvoiceService,
-  ) {}
+  constructor(private readonly invoiceService: InvoiceService) {}
 
   // Create a new invoice
-
   @Post()
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
@@ -57,17 +53,6 @@ export class InvoiceController {
     return await this.invoiceService.findOne(id);
   }
 
-  @Roles('super-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Put(':id')
-  async update(
-    @Param('id') id: number,
-    @Body() updateInvoiceDto: UpdateInvoiceDto,
-  ): Promise<any> {
-    return await this.invoiceService.update(id, updateInvoiceDto);
-  }
-
   @Delete(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
@@ -79,22 +64,12 @@ export class InvoiceController {
   @Roles('super-admin')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get('user-type/:userType')
-  async findByUserType(
-    @Param('userType') userType: UserType,
-  ): Promise<Invoice[]> {
-    return await this.invoiceService.findByUserType(userType);
-  }
-
-  @Roles('super-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Get('status/:status')
   async findByStatus(@Param('status') status: InvoiceStatus) {
     // return await this.invoiceService.findByStatus(status);
   }
 
-  @Post('/send/:id')
+  @Post('send/:id')
   @Roles('super-admin', 'venue-admin')
   sendInvoice(@Param('id', ParseIntPipe) id: number) {
     return this.invoiceService.sendInvoice(id);

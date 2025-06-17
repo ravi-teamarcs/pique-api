@@ -211,51 +211,51 @@ export class InvoiceService {
   //         where: { id: invoiceId },
   //         select: ['issue_date', 'invoice_number', 'total_with_tax'],
   //       });
-  //     const htmlContent = await this.generateInvoiceHtml({
-  //       invoiceNumber: invoice_number,
-  //       issueDate: issue_date,
-  //       dueDate: '2025-05-10',
-  //       items: invoiceDetails,
-  //       totalWithTax: total,
-  //     });
+  // const htmlContent = await this.generateInvoiceHtml({
+  //   invoiceNumber: invoice_number,
+  //   issueDate: issue_date,
+  //   dueDate: '2025-05-10',
+  //   items: invoiceDetails,
+  //   totalWithTax: total,
+  // });
 
-  //     // const pdfBuffer = await this.generatePDF(htmlContent);
-  //     // const buffer = Buffer.from(pdfBuffer);
-  //     // Send Email To client
-  //     console.log('pdfBuffer node ', pdfBuffer);
-  //     const emailPayload = {
-  //       to: 'anshulrangra495@gmail.com',
-  //       subject: 'Invoice For Event',
-  //       templateName: 'invoice-email.html',
-  //       replacements: {
-  //         eventDate: '12-04-2023',
-  //         venueName: 'Hi',
-  //         invoiceNumber: 'hi',
-  //         totalAmount: 'hi',
-  //         evevntName: 'hi',
+  // const pdfBuffer = await this.generatePDF(htmlContent);
+  // const buffer = Buffer.from(pdfBuffer);
+  // // Send Email To client
+  // console.log('pdfBuffer node ', pdfBuffer);
+  //   const emailPayload = {
+  //     to: 'anshulrangra495@gmail.com',
+  //     subject: 'Invoice For Event',
+  //     templateName: 'invoice-email.html',
+  //     replacements: {
+  //       eventDate: '12-04-2023',
+  //       venueName: 'Hi',
+  //       invoiceNumber: 'hi',
+  //       totalAmount: 'hi',
+  //       evevntName: 'hi',
+  //     },
+  //     attachments: [
+  //       {
+  //         filename: `invoice.pdf`,
+  //         content: pdfBuffer, // a Buffer from Puppeteer
+  //         contentType: 'application/pdf',
   //       },
-  //       attachments: [
-  //         {
-  //           filename: `invoice.pdf`,
-  //           content: pdfBuffer, // a Buffer from Puppeteer
-  //           contentType: 'application/pdf',
-  //         },
-  //       ],
-  //     };
+  //     ],
+  //   };
 
-  //     await this.emailService.handleSendEmail(emailPayload);
-  //     return {
-  //       message: 'Pdf for Generated Successfully',
-  //       data: invoiceDetails,
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException({
-  //       message: error.message,
-  //       status: false,
-  //     });
-  //   }
+  //   await this.emailService.handleSendEmail(emailPayload);
+  //   return {
+  //     message: 'Pdf for Generated Successfully',
+  //     data: invoiceDetails,
+  //     status: true,
+  //   };
+  // } catch (error) {
+  //   throw new InternalServerErrorException({
+  //     message: error.message,
+  //     status: false,
+  //   });
   // }
+
   private getDurationInHours(startTime: string, endTime: string): number {
     const start = new Date(startTime);
     const end = new Date(endTime);

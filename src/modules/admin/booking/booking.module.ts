@@ -15,6 +15,7 @@ import { Event } from '../events/entities/event.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { Invoice } from '../invoice/entities/invoices.entity';
 import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
+import { EntertainerAvailability } from '../entertainer/entities/entertainer-availability.entity';
 
 @Module({
   imports: [
@@ -29,7 +30,8 @@ import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
       Event,
       Venue,
       Invoice,
-      InvoiceEvent
+      InvoiceEvent,
+      EntertainerAvailability,
     ]),
     NotificationModule,
     EmailModule,

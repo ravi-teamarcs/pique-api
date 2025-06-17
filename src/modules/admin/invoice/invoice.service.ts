@@ -30,6 +30,10 @@ import { Event } from '../events/entities/event.entity';
 import { Setting } from '../settings/entities/setting.entity';
 import { InvoiceEvent } from './entities/invoices-event.entity';
 import { Logger } from '@nestjs/common';
+import * as ejs from 'ejs';
+import * as path from 'path';
+import * as fs from 'fs';
+import { enUS } from 'date-fns/locale';
 
 @Injectable()
 export class InvoiceService {
@@ -71,70 +75,6 @@ export class InvoiceService {
 
     return await this.getVenueInvoices(page, pageSize, search, role);
     // Build base query with all conditions
-    const baseQuery = this.invoiceRepository
-      .createQueryBuilder('invoices')
-      .leftJoin('event', 'event', 'event.id = invoices.event_id')
-      .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
-      .leftJoin('states', 'state', 'state.id = venue.state')
-      .leftJoin('countries', 'country', 'country.id = venue.country')
-      .leftJoin('cities', 'city', 'city.id = venue.city')
-      .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
-      .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
-      .where('invoices.user_type = :role', { role });
-
-    // Add search condition
-    if (search) {
-      baseQuery.andWhere('LOWER(invoices.invoice_number) LIKE LOWER(:search)', {
-        search: `%${search}%`,
-      });
-    }
-
-    // Get total count first
-    const total = await baseQuery.getCount();
-
-    // Get paginated records using limit and offset
-    const records = await baseQuery
-      .select([
-        'invoices.*',
-        'event.id AS eventId',
-        'event.slug AS eventSlug',
-        'event.eventStartDateTime AS eventStartDateTime',
-        'event.eventEndDateTime AS eventEndDateTime',
-        // venue Info
-        'venue.name AS venueName',
-        'venue.addressLine1 AS venueAddressLine1',
-        'venue.addressLine2 AS venueAddressLine2',
-        'venue.contactPerson As contactPerson',
-        'venue.contactNumber As contactNumber',
-        'state.name AS stateName',
-        'city.name AS cityName',
-        'code.stateCode AS StateCode',
-        // Neighbourhood Info
-        'hood.name AS neighbourhoodName',
-        'hood.contactPerson AS neighbourhoodContactPerson',
-        'hood.contactNumber AS neighbourhoodContactNumber',
-      ])
-      .orderBy('invoices.id', 'DESC')
-      .limit(pageSize)
-      .offset(skip)
-      .getRawMany();
-
-    const newRecords = records.map(({ startTime, endTime, ...rest }) => {
-      return {
-        ...rest,
-        duration: this.getDurationInHours(startTime, endTime),
-      };
-    });
-
-    return {
-      message: 'Invoices fetched successfully',
-      records: newRecords,
-      total,
-      page,
-      pageSize,
-      totalPages: Math.ceil(total / pageSize),
-      status: true,
-    };
   }
 
   async findOne(id: number) {
@@ -161,9 +101,6 @@ export class InvoiceService {
     };
   }
 
-  // Update an existing invoice
-  async update(id: number, updateInvoiceDto: UpdateInvoiceDto): Promise<any> {}
-
   // Delete an invoice
   async remove(id: number) {
     const invoice = await this.findOne(id);
@@ -177,13 +114,6 @@ export class InvoiceService {
     };
   }
 
-  // Get invoices by user type (entertainer or venue)
-  async findByUserType(userType: UserType): Promise<Invoice[]> {
-    return await this.invoiceRepository.find({
-      where: { user_type: userType },
-    });
-  }
-
   // Latest Code of Generate Invoive (@Bhawani Thakur)
   async generateInvoice(dto: CreateInvoiceDto) {
     let {
@@ -194,8 +124,8 @@ export class InvoiceService {
       discountInPercent = 0,
     } = dto;
 
-    const alreadyExists = await this.invoiceRepository.findOne({
-      where: { event_id: eventId },
+    const alreadyExists = await this.invEventRepository.findOne({
+      where: { eventId: eventId },
     });
 
     if (alreadyExists) {
@@ -336,80 +266,126 @@ export class InvoiceService {
     }
   }
 
-  // send Invoice
+  // This One Need Changes
   async sendInvoice(id: number) {
-    const invoice = await this.invoiceRepository
+    let invoiceDetails = [];
+
+    const result = await this.invoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
       .leftJoin('users', 'user', 'user.id = venue.userId')
-      .leftJoin('event', 'event', 'event.id = invoices.event_id')
+      .leftJoin('states', 'state', 'state.id = venue.state')
+      .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+      .leftJoin('cities', 'city', 'city.id = venue.city')
       .select([
-        'invoices.invoice_number AS invoiceNumber',
-        'invoices.issue_date AS issueDate',
-        'invoices.due_date AS dueDate',
-        'invoices.total_amount AS totalAmount',
-        'invoices.tax_rate AS taxRate',
-        'invoices.tax_amount AS taxAmount',
-        'invoices.total_with_tax AS totalWithTax',
+        'invoices.id AS id',
+        'invoices.invoice_number AS invoice_number',
+        'invoices.user_id AS user_id',
+        'invoices.event_id AS event_id',
+        'invoices.user_type AS user_type',
+        'invoices.issue_date AS issue_date',
+        'invoices.due_date AS due_date',
+        'invoices.total_amount AS total_amount',
+        'invoices.tax_rate AS tax_rate',
+        'invoices.tax_amount AS tax_amount',
+        'invoices.total_with_tax AS total_with_tax',
+        'invoices.status AS status',
+        'invoices.payment_method AS payment_method',
+        'invoices.payment_date AS payment_date',
+        `(
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'slug', e.slug,
+      'title', e.title,
+      'eventId', e.id,
+      'eventStartDateTime', e.eventStartDateTime,
+      'eventEndDateTime', e.eventEndDateTime
+    )
+  )
+  FROM invoice_events ie
+  JOIN event e ON e.id = ie.event_id
+  WHERE ie.invoice_id = invoices.id
+) AS events
+`,
+        'code.stateCode AS stateNameCode',
+        'city.name AS cityName',
+        'state.name AS stateName',
         'venue.name AS venueName',
-        'user.email AS userEmail',
-        'event.slug AS eventName',
-        'event.description AS description',
-        'event.eventDate AS eventDate',
+        'venue.email AS email',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+        'venue.city AS cityCode',
+        'venue.state AS stateCode',
+        'venue.zipCode AS zipCode',
+        'user.email AS user_email',
       ])
-      .where('invoices.id = :id', { id })
+      .where('invoices.id = :id ', { id })
       .getRawOne();
 
-    if (!invoice) {
-      throw new NotFoundException({ message: 'Invoice not found' });
+    const { events, ...restData } = result;
+    let invoice = {
+      ...restData,
+      events: events ? JSON.parse(events) : [],
+    };
+
+    if (!result) {
+      throw new NotFoundException('Invoice not Found');
     }
+    events &&
+      JSON.parse(events).map((item) => {
+        invoiceDetails.push({
+          eventId: item.eventId,
+          eventName: item.slug,
+          pricePerEvent: 100,
+          durationInHours: this.getDurationInHours(
+            item.eventStartDateTime,
+            item.eventEndDateTime,
+          ),
+          totalAmount: invoice.total_with_tax,
+        });
+      });
 
     try {
-      const invoicePayload = {
-        invoiceNumber: invoice.invoiceNumber,
-        issueDate: format(invoice.issueDate, 'd MMMM yyyy'),
-        dueDate: format(invoice.dueDate, 'd MMMM yyyy'),
-        totalAmount: invoice.totalAmount,
-        totalWithTax: invoice.totalWithTax,
+      const htmlContent = await this.generateInvoiceHtml({
+        invoiceNumber: invoice.invoice_number,
+        issueDate: format(invoice.issue_date, 'd MMMM yyyy', { locale: enUS }),
+        dueDate: format(invoice.due_date, 'd MMMM yyyy', { locale: enUS }),
+        address: `${invoice.addressLine1}${invoice.addressLine2}`,
         venueName: invoice.venueName,
-        venueEmail: invoice.userEmail,
-        eventName: invoice.eventName,
-        description: invoice.description,
-      };
-      const html = loadEmailTemplate('invoice.html', invoicePayload);
+        city: invoice.cityName,
+        state: invoice.stateName,
+        items: invoiceDetails,
+        zipCode: invoice.zipCode,
+        totalWithTax: invoice.total_with_tax,
+      });
 
-      const buffer = await this.generatePDF(html);
+      const buffer = await this.generatePDF(htmlContent);
 
-      const emailPayload = {
-        to: invoice.userEmail,
-        subject: 'Invoice For Event',
-        templateName: 'invoice-email.html',
-        replacements: {
-          eventDate: format(invoice.eventDate, 'd MMMM yyyy'),
-          venueName: invoice.venueName,
-          invoiceNumber: invoice.invoiceNumber,
-          totalAmount: invoice.totalAmount,
-          eventName: invoice.eventName,
-        },
-        attachments: [
-          {
-            filename: `${invoice.eventName}_invoice.pdf`,
-            content: buffer, // a Buffer from Puppeteer
-            contentType: 'application/pdf',
+      if (invoice.email || invoice.user_email) {
+        const emailPayload = {
+          to: invoice.user_email || invoice.email,
+          subject: 'Monthly Invoice For Events.',
+          templateName: 'invoice-email.html',
+          replacements: {
+            venueName: invoice.venueName,
+            invoiceNumber: invoice.invoice_number,
+            totalAmount: invoice.total_with_tax,
           },
-        ],
-      };
-      await this.emailService.handleSendEmail(emailPayload);
-      console.log('Email sent successfully', emailPayload);
+          attachments: [
+            {
+              filename: `${invoice.venueName}_monthly_invoice.pdf`,
+              content: buffer, // a Buffer from Puppeteer
+              contentType: 'application/pdf',
+            },
+          ],
+        };
+        await this.emailService.handleSendEmail(emailPayload);
+      }
       return { message: 'Invoice sent Successfully ', status: true };
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new InternalServerErrorException({
-        message: error.message,
-        status: false,
-      });
+      if (error instanceof HttpException) throw error;
+
+      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -424,7 +400,6 @@ export class InvoiceService {
   }
 
   private async generatePDF(htmlContent): Promise<Buffer> {
-    console.log('HTML Content');
     // const file = { content: htmlContent };
     // const options = { format: 'A3' };
     // const pdfBuffer = await pdf.generatePdf(file, options);
@@ -1079,5 +1054,33 @@ export class InvoiceService {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(error.message);
     }
+  }
+
+  async generateInvoiceHtml(data: any): Promise<string> {
+    const filePath = path.resolve(
+      process.cwd(),
+      'src',
+      'modules',
+      'invoice',
+      'template',
+      'invoice-template.ejs',
+    );
+
+    if (!fs.existsSync(filePath)) {
+      throw new Error('Template file does not exist at: ' + filePath);
+    }
+    const template = fs.readFileSync(filePath, 'utf-8');
+
+    return new Promise((resolve, reject) => {
+      ejs.renderFile(filePath, data, {}, (err, str) => {
+        if (err) {
+          console.error('Error rendering template:', err);
+          reject(err); // Reject the promise if there is an error
+        } else {
+          resolve(str); // Resolve the promise with the rendered string
+        }
+      });
+    });
+    // console.log('HTML', html);
   }
 }

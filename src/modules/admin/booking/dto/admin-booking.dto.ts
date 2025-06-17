@@ -10,16 +10,6 @@ import {
   IsOptional,
 } from 'class-validator';
 class AdminBookingDto {
-  // @ApiProperty({ example: '12:10:01', description: 'Timing of the Show' })
-  // @IsString()
-  // @IsNotEmpty()
-  // showTime: string;
-
-  // @ApiProperty({ example: '2024-01-17', description: 'Date of the Show' })
-  // @IsString()
-  // @IsNotEmpty()
-  // showDate: string;
-
   @IsString()
   @IsNotEmpty()
   showStartDateTime: string;

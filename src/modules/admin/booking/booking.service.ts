@@ -23,6 +23,11 @@ import { Venue } from '../venue/entities/venue.entity';
 import { format } from 'date-fns-tz';
 import { Invoice } from '../invoice/entities/invoices.entity';
 import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
+import { getOverlappingSlots } from 'src/common/utils/slots-utils';
+import { getMonth, getYear } from 'date-fns';
+import { DateTime } from 'luxon';
+import { Availability } from 'src/common/enums/entertainer.enum';
+import { EntertainerAvailability } from '../entertainer/entities/entertainer-availability.entity';
 
 @Injectable()
 export class BookingService {
@@ -31,6 +36,8 @@ export class BookingService {
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(Entertainer)
     private readonly entertainerRepository: Repository<Entertainer>,
+    @InjectRepository(EntertainerAvailability)
+    private readonly availabilityRepository: Repository<EntertainerAvailability>,
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
     @InjectRepository(Venue)
@@ -88,13 +95,6 @@ export class BookingService {
       where: { id: payload.eventId },
     });
 
-    // if (['published', 'unpublished'].includes(event.status)) {
-    //   throw new BadRequestException({
-    //     message: `Can not book for event with status ${event.status} `,
-    //     status: false,
-    //   });
-    // }
-
     try {
       // Fetch venue Details Only Once
       const venue = await this.venueRepository
@@ -118,9 +118,33 @@ export class BookingService {
 
         if (alreadyBooked) {
           throw new BadRequestException({
-            message: `Entertainer with id  ${entertainerId} Already booked for event `,
+            message: `Entertainer with id  ${entertainerId} already booked for event `,
           });
         }
+
+        // Check for Availability.
+
+        // const { eventStartDateTime, eventEndDateTime } =
+        //   await this.eventRepository.findOne({
+        //     where: { id: payload.eventId },
+        //     select: ['eventStartDateTime', 'eventEndDateTime'],
+        //   });
+
+        const availabilityPayload = {
+          startTimeUtc: new Date(event.eventStartDateTime).toISOString(),
+          endTimeUtc: new Date(event.eventEndDateTime).toISOString(),
+          entertainerId,
+        };
+
+        const availability =
+          await this.checkEntertainerAvailability(availabilityPayload);
+
+        if (!availability)
+          return details.push({
+            entertainerId,
+            available: false,
+            message: 'Entertainer is unavailable during this time.',
+          });
 
         const newBooking = this.bookingRepository.create({
           ...data,
@@ -129,17 +153,22 @@ export class BookingService {
         });
         const savedBooking = await this.bookingRepository.save(newBooking);
 
+        details.push({
+          entertainerId,
+          available: true,
+          message: 'Booking created successfully.',
+          bookingId: savedBooking.id,
+        });
+
         const logPayload = this.logRepository.create({
           bookingId: newBooking.id,
           performedBy: 'admin',
           status: 'invited',
           user: null,
         });
-
         await this.logRepository.save(logPayload);
-        details.push(savedBooking);
-        // fetch entertainer details  every time
 
+        // fetch entertainer details  every time
         const entertainer = await this.entertainerRepository
           .createQueryBuilder('entertainer')
           .leftJoin('entertainer.user', 'user')
@@ -198,13 +227,8 @@ export class BookingService {
         status: true,
       };
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-      throw new InternalServerErrorException({
-        message: error.message,
-        status: false,
-      });
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
     }
   }
 
@@ -559,5 +583,60 @@ export class BookingService {
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
+  }
+
+  async checkEntertainerAvailability({
+    startTimeUtc,
+    endTimeUtc,
+    entertainerId,
+  }: {
+    startTimeUtc: string;
+    endTimeUtc: string;
+    entertainerId: number;
+  }): Promise<boolean> {
+    const date = new Date(startTimeUtc);
+    const year = getYear(date); // 2025
+    const month = getMonth(date) + 1;
+
+    const availability = await this.availabilityRepository.findOne({
+      where: { entertainer_id: entertainerId, year, month },
+    });
+    if (!availability) return true;
+
+    // Get entertainer Timezone from  entertainer table .
+    const { timezone } = await this.entertainerRepository.findOne({
+      where: { id: entertainerId },
+      select: ['timezone'],
+    });
+    if (!timezone) return true;
+    const { unavailable_dates } = availability;
+
+    // Convert into entertainer Local Timezone
+
+    const startLocal = DateTime.fromISO(startTimeUtc, { zone: 'utc' }).setZone(
+      timezone,
+    );
+    const endLocal = DateTime.fromISO(endTimeUtc, { zone: 'utc' }).setZone(
+      timezone,
+    );
+
+    const bookingDate = startLocal.toISODate(); // e.g. "2025-07-17"
+    const startTime = startLocal.toFormat('HH:mm');
+    const endTime = endLocal.toFormat('HH:mm');
+
+    const unavailable = unavailable_dates.find((u) => u.date === bookingDate);
+    if (!unavailable) return true;
+    if (unavailable.slots.includes('whole_day')) return false;
+
+    // Helper function to get overlapping slots(returns an array of slot names)
+    const bookingSlots = getOverlappingSlots(startTime, endTime);
+
+    for (const slot of bookingSlots) {
+      if (unavailable.slots.includes(slot)) {
+        return false;
+      }
+    }
+
+    return true;
   }
 }

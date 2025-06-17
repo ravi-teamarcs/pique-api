@@ -31,30 +31,29 @@ export class EventService {
   ) {}
 
   async createEvent(dto: CreateEventDto) {
-    const { neighbourhoodId, ...rest } = dto;
-    const obj = structuredClone(dto);
-    const { title, venueId, eventStartDateTime, eventEndDateTime } = obj;
-    const payload = {
-      title,
-      venueId,
-      eventStartDateTime,
-      eventEndDateTime,
-      neighbourhoodId,
-    };
-    const slug = await this.generateSlug(payload);
-    const event = this.eventRepository.create({
-      sub_venue_id: neighbourhoodId,
-      slug,
-      ...rest,
-    });
+    try {
+      const { neighbourhoodId, ...rest } = dto;
+      const obj = structuredClone(dto);
+      const { title, venueId, eventStartDateTime, eventEndDateTime } = obj;
+      const payload = {
+        title,
+        venueId,
+        eventStartDateTime,
+        eventEndDateTime,
+        neighbourhoodId,
+      };
+      const slug = await this.generateSlug(payload);
+      const event = this.eventRepository.create({
+        sub_venue_id: neighbourhoodId,
+        slug,
+        ...rest,
+      });
 
-    const savedEvent = await this.eventRepository.save(event);
-
-    if (!savedEvent) {
-      throw new InternalServerErrorException('Error while creating event');
+      const savedEvent = await this.eventRepository.save(event);
+      return { message: 'Event created Successfully', event, status: true };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
     }
-
-    return { message: 'Event created Successfully', event, status: true };
   }
 
   async handleUpdateEvent(dto: any, venueId: number) {
