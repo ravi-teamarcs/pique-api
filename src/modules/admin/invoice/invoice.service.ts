@@ -950,6 +950,7 @@ export class InvoiceService {
 
       const updatePayload = {
         total_with_tax: totalAmount,
+        total_amount: totalAmount,
         isOutdated: false,
         issue_date: issueDate.toISOString().split('T')[0],
         due_date: new Date(dueDate).toISOString().split('T')[0],

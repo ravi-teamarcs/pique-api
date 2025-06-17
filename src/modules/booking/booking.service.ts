@@ -878,20 +878,21 @@ export class BookingService {
     if (!availability) return true;
 
     // Get entertainer Timezone from  entertainer table .
-    const { timezone } = await this.entRepository.findOne({
+    const entertainer = await this.entRepository.findOne({
       where: { id: entertainerId },
       select: ['timezone'],
     });
-    if (!timezone) return true;
+    if (!entertainer.timezone) return true;
+
     const { unavailable_dates } = availability;
 
     // Convert into entertainer Local Timezone
 
     const startLocal = DateTime.fromISO(startTimeUtc, { zone: 'utc' }).setZone(
-      timezone,
+      entertainer.timezone,
     );
     const endLocal = DateTime.fromISO(endTimeUtc, { zone: 'utc' }).setZone(
-      timezone,
+      entertainer.timezone,
     );
 
     const bookingDate = startLocal.toISODate(); // e.g. "2025-07-17"
