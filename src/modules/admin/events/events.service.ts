@@ -188,6 +188,7 @@ export class EventService {
         'venue.addressLine2 AS addressLine2',
         'inv.invoice_number AS invoiceNumber',
         'inv.id AS invoiceId',
+        'inv.status AS invoiceStatus',
         'inv.isOutdated AS isOutdated',
       ])
 
