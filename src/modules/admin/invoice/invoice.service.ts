@@ -350,7 +350,7 @@ export class InvoiceService {
         invoiceNumber: invoice.invoice_number,
         issueDate: format(invoice.issue_date, 'd MMMM yyyy', { locale: enUS }),
         dueDate: format(invoice.due_date, 'd MMMM yyyy', { locale: enUS }),
-        address: `${invoice.addressLine1}${invoice.addressLine2}`,
+        address: `${invoice.addressLine1} ${invoice.addressLine2}`,
         venueName: invoice.venueName,
         city: invoice.cityName,
         state: invoice.stateName,
