@@ -48,8 +48,7 @@ export class BookingService {
     private readonly reqRepository: Repository<BookingRequest>,
     @InjectRepository(BookingLog)
     private readonly logRepository: Repository<BookingLog>,
-    @InjectRepository(BookingLog)
-    private readonly syncRepository: Repository<BookingCalendarSync>,
+
     @InjectRepository(EntertainerAvailability)
     private readonly availabilityRepository: Repository<EntertainerAvailability>,
     @InjectRepository(Entertainer)
@@ -882,7 +881,10 @@ export class BookingService {
       where: { id: entertainerId },
       select: ['timezone'],
     });
-    if (!entertainer.timezone) return true;
+
+    if (!entertainer || entertainer.timezone === null) {
+      return true; // Consider entertainer available
+    }
 
     const { unavailable_dates } = availability;
 

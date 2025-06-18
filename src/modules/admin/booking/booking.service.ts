@@ -608,7 +608,9 @@ export class BookingService {
       where: { id: entertainerId },
       select: ['timezone'],
     });
-    if (!entertainer.timezone) return true;
+    if (!entertainer || entertainer.timezone === null) {
+      return true;
+    }
     const { unavailable_dates } = availability;
 
     // Convert into entertainer Local Timezone
