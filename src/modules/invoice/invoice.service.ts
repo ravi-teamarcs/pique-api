@@ -32,7 +32,6 @@ export class InvoiceService {
   async generateInvoice(userId: number, eventIds: number[], monthStr: string) {
     try {
       let total = 0;
-      let invoiceMonth = monthStr?.toUpperCase();
       const invoiceDetails = [];
       for (const eventid of eventIds) {
         const {
@@ -56,7 +55,7 @@ export class InvoiceService {
             'event.title AS eventName',
             'event.description AS eventDescription',
             'event.eventStartDateTime AS eventStartDateTime',
-            'event.eventStartDateTime AS eventEndDateTime',
+            'event.eventEndDateTime AS eventEndDateTime',
             'ent.pricePerEvent AS pricePerEvent',
           ])
           .getRawOne();
@@ -391,9 +390,9 @@ export class InvoiceService {
     JSON_OBJECT(
       'slug', e.slug,
       'title', e.title,
-      'eventDate', e.eventDate,
-      'startTime', e.startTime,
-      'endTime', e.endTime
+      'eventStartDateTime', e.eventStartDateTime,
+      'eventEndDateTime', e.eventEndDateTime
+      
     )
   )
   FROM invoice_bookings ib
