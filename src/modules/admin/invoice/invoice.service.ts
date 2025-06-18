@@ -588,6 +588,7 @@ export class InvoiceService {
         'ent.addressLine2 AS addressLine2',
         'ent.contact_number AS contactNumber',
         'ent.city AS city_code',
+        'ent.pricePerEvent AS pricePerHour',
         'ent.city AS city_code',
         'ent.state AS state_code',
         'state.name AS stateName',
@@ -614,7 +615,7 @@ export class InvoiceService {
       .limit(pageSize)
       .getRawMany();
 
-    const parsedResults = data.map(({ events, ...rest }) => {
+    const parsedResults = data.map(({ events, pricePerHour, ...rest }) => {
       return {
         ...rest,
         events: events
@@ -622,6 +623,13 @@ export class InvoiceService {
               ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
                 return {
                   ...rest,
+                  amount: Number(
+                    pricePerHour *
+                      this.getDurationInHours(
+                        eventStartDateTime,
+                        eventEndDateTime,
+                      ),
+                  ),
                   duration: this.getDurationInHours(
                     eventStartDateTime,
                     eventEndDateTime,
