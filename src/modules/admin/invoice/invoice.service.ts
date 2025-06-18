@@ -618,11 +618,14 @@ export class InvoiceService {
     const parsedResults = data.map(({ events, pricePerHour, ...rest }) => {
       return {
         ...rest,
+        pricePerHour,
         events: events
           ? JSON.parse(events).map(
               ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
                 return {
                   ...rest,
+                  eventStartDateTime,
+                  eventEndDateTime,
                   amount: Number(
                     pricePerHour *
                       this.getDurationInHours(
