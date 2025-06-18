@@ -66,6 +66,7 @@ export class BookingCancellationService {
         .select([
           'booking.id AS id',
           'booking.status AS status',
+          'cancellation.reasonId AS reasonId',
           'cancellation.customReason AS customReason',
           'reason.reason AS reason ',
         ])
