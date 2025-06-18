@@ -407,7 +407,15 @@ export class InvoiceService {
     const parsedResults = data.map(({ events, ...rest }) => {
       return {
         ...rest,
-        events: events ? JSON.parse(events) : [], // Parse JSON string to object
+        events: events
+          ? JSON.parse(events).map((event: any) => ({
+              ...event,
+              duration: this.getDurationInHours(
+                event.eventStartDateTime,
+                event.eventEndDateTime,
+              ),
+            }))
+          : [], // Parse JSON string to object
       };
     });
     const totalCount = await this.invoiceRepository

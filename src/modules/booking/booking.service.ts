@@ -74,7 +74,7 @@ export class BookingService {
 
       if (booking)
         throw new BadRequestException({
-          message: 'Booking already exists for the date.',
+          message: 'Invitaion for event already sent .',
         });
 
       // Check for availability Here
@@ -187,7 +187,7 @@ export class BookingService {
       this.generateBookingLog(payload);
 
       return {
-        message: 'Booking invitation sent successfully .',
+        message: 'Invitation for event  sent successfully .',
         booking: bookingData,
         status: true,
       };

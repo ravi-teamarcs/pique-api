@@ -118,7 +118,7 @@ export class BookingService {
 
         if (alreadyBooked) {
           throw new BadRequestException({
-            message: `Entertainer with id  ${entertainerId} already booked for event `,
+            message: `Entertainer has been already invited for event.`,
           });
         }
 
@@ -222,7 +222,7 @@ export class BookingService {
       );
 
       return {
-        message: 'Booking created Successfully',
+        message: 'Invitaion for event  sent successfully',
         data: details,
         status: true,
       };
