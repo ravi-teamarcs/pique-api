@@ -482,8 +482,8 @@ export class EventService {
           'user.email AS email',
           'entertainer.name AS entertainerName',
           'event.slug AS slug',
-          'event.eventDate AS eventDate',
-          'event.startTime AS startTime',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS  eventEndDateTime',
         ])
         .where('booking.eventId = :eventId', { eventId })
         .getRawMany();
@@ -496,10 +496,10 @@ export class EventService {
             templateName: 'cancelled-event-template.html',
             replacements: {
               eventName: book.slug,
-              eventDate: formatTz(book.showStartDateTime, 'dd MMM yyyy', {
+              eventDate: formatTz(book.eventStartDateTime, 'dd MMM yyyy', {
                 timeZone: 'UTC',
               }),
-              eventTime: formatTz(book.showStartDateTime, 'HH:mm', {
+              eventTime: formatTz(book.eventStartDateTime, 'HH:mm', {
                 timeZone: 'UTC',
               }),
               year: new Date().getFullYear(),
