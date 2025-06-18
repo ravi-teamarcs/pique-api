@@ -622,21 +622,16 @@ export class InvoiceService {
         events: events
           ? JSON.parse(events).map(
               ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
+                const duration = this.getDurationInHours(
+                  eventStartDateTime,
+                  eventEndDateTime,
+                );
                 return {
                   ...rest,
                   eventStartDateTime,
                   eventEndDateTime,
-                  amount: Number(
-                    pricePerHour *
-                      this.getDurationInHours(
-                        eventStartDateTime,
-                        eventEndDateTime,
-                      ),
-                  ),
-                  duration: this.getDurationInHours(
-                    eventStartDateTime,
-                    eventEndDateTime,
-                  ),
+                  amount: Number(pricePerHour * duration),
+                  duration,
                 };
               },
             )

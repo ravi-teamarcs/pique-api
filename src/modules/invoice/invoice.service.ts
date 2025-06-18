@@ -380,6 +380,7 @@ export class InvoiceService {
         'ent.name AS entertainerName',
         'ent.addressLine1 AS addressLine1',
         'ent.addressLine2 AS addressLine2',
+        'ent.pricePerEvent AS pricePerHour',
         'ent.city AS city_code',
         'ent.state AS state_code',
         'state.name AS stateName',
@@ -408,13 +409,19 @@ export class InvoiceService {
       return {
         ...rest,
         events: events
-          ? JSON.parse(events).map((event: any) => ({
-              ...event,
-              duration: this.getDurationInHours(
-                event.eventStartDateTime,
-                event.eventEndDateTime,
-              ),
-            }))
+          ? JSON.parse(events).map((event: any) => {
+              {
+                const duration = this.getDurationInHours(
+                  event.eventStartDateTime,
+                  event.eventEndDateTime,
+                );
+                return {
+                  ...event,
+                  amount: Number(rest.pricePerHour * duration),
+                  duration,
+                };
+              }
+            })
           : [], // Parse JSON string to object
       };
     });
