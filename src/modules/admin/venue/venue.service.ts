@@ -283,6 +283,7 @@ export class VenueService {
       media: JSON.parse(v.media),
       isPiqueVerified: v.isPiqueVerified === 1 ? true : false,
       neighbourhoods: JSON.parse(v.neighbourhoods),
+      venueType: typeof v.venueType === 'string' ? v.venueType.split(',') : [],
     }));
 
     return {
@@ -342,6 +343,7 @@ export class VenueService {
         'venue.contactNumber AS venueContactNumber',
         'venue.zipCode AS zipCode',
         'venue.isPiqueVerified AS isPiqueVerified',
+        'venue.venueType As venueType',
         'city.name AS city',
         'state.name AS state',
         'country.name AS country',
@@ -366,13 +368,15 @@ export class VenueService {
       venueDetails['password'] = data?.password;
     }
 
-    const { media, createdByAdmin, isPiqueVerified, ...rest } = venueDetails;
+    const { media, createdByAdmin, isPiqueVerified, venueType, ...rest } =
+      venueDetails;
     const response = {
       ...rest,
       createdByAdmin: createdByAdmin === 0 ? false : true,
       media: JSON.parse(media),
       isPiqueVerified: isPiqueVerified === 1 ? true : false,
       neighbourhoods: neighbourhood,
+      venueType: typeof venueType === 'string' ? venueType.split(',') : [],
     };
 
     return {
