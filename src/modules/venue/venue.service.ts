@@ -430,9 +430,13 @@ export class VenueService {
       media: media ? JSON.parse(media) : null,
       isPiqueVerified: isPiqueVerified === 1 ? true : false,
       neighbourhoods: neighbourhood,
-      venueType: venueType ? JSON.parse(venueType) : [],
+      venueType:
+        typeof venue.venueType === 'string'
+          ? JSON.parse(venue.venueType) // stringified array
+          : Array.isArray(venue.venueType)
+            ? venue.venueType // already array
+            : [],
     };
-
     return {
       message: 'Venue Details fetched Successfully',
       venue: response,
