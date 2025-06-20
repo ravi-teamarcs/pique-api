@@ -30,9 +30,16 @@ export class CreateVenueDto {
   @IsString()
   addressLine2?: string;
 
-  @IsString()
   @IsNotEmpty()
-  description: string;
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string')
+      return value.split(',').map((item) => item.trim());
+    return [];
+  })
+  venueType: string[];
 
   @IsString()
   @IsNotEmpty()

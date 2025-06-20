@@ -264,6 +264,7 @@ export class VenueService {
         'venue.contact_person As contactPerson',
         'venue.contact_person As contactNumber',
         'venue.zipCode AS zipCode',
+        'venue.venueType AS venueType',
         'city.name AS city',
         'state.name AS state',
         'country.name AS country',
