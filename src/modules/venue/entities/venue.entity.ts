@@ -44,6 +44,9 @@ export class Venue {
   @Column({ nullable: true })
   zipCode: string;
 
+  @Column({ nullable: true, name: 'venue_type' })
+  venueType: string;
+
   @Column({ nullable: true })
   country: number;
   @Column({ default: 'pending' })

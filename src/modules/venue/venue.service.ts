@@ -50,6 +50,7 @@ import { GeocodingService } from '../location/geocoding.service';
 import { States } from '../location/entities/state.entity';
 import { NotificationService } from '../notification/notification.service';
 import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class VenueService {
@@ -457,6 +458,10 @@ export class VenueService {
       longitude,
       isNearby,
       radius,
+
+      startTime,
+      endTime,
+      timezone,
     } = query;
 
     // Pagination
@@ -532,13 +537,39 @@ export class VenueService {
           .setParameter('lng2', longitude);
       }
 
-      if (date) {
+      if (date && startTime && endTime) {
+        const startLocal = DateTime.fromFormat(
+          `${date} ${startTime}`,
+          'yyyy-MM-dd HH:mm:ss',
+          {
+            zone: timezone,
+          },
+        );
+
+        const endLocal = DateTime.fromFormat(
+          `${date} ${endTime}`,
+          'yyyy-MM-dd HH:mm:ss',
+          {
+            zone: timezone,
+          },
+        );
+
+        // 2. Convert to UTC and ISO
+        const showStartDateTime = startLocal.toUTC().toISO();
+        const showEndDateTime = endLocal.toUTC().toISO();
         baseQuery.andWhere(
           `NOT EXISTS (
-          SELECT 1 FROM booking b
-          WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
-        )`,
-          { blockedDate: date },
+    SELECT 1
+    FROM booking b
+    JOIN event e ON e.id = b.eventId
+    WHERE b.entId = entertainer.id
+      AND e.eventStartDateTime < :showEndDateTime
+      AND e.eventEndDateTime > :showStartDateTime
+  )`,
+          {
+            showStartDateTime,
+            showEndDateTime,
+          },
         );
       }
 

@@ -45,6 +45,9 @@ export class Venue {
   @Column('decimal', { precision: 9, scale: 6, nullable: true })
   longitude?: number;
 
+  @Column({ nullable: true, name: 'venue_type' })
+  venueType: string;
+
   @Column({ type: 'boolean', name: 'is_pique_verified', default: false })
   isPiqueVerified: boolean;
 
@@ -63,10 +66,10 @@ export class Venue {
   @Column({ nullable: true })
   country: number;
 
-  @CreateDateColumn({type: 'timestamp'})
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn({type: 'timestamp'})
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 
   @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })

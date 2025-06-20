@@ -36,6 +36,7 @@ import { getFileType, UploadedFile } from 'src/common/types/media.type';
 import { AnyFilesInterceptor } from '@nestjs/platform-express';
 import { UpdateVenueUserStatus } from './Dto/update-venue-user-status.dto';
 import { UpdateBookingStatusDto } from './Dto/update-booking-status.dto';
+import { VENUE_TYPES } from 'src/common/constants/venue.constants';
 
 @ApiTags('admin')
 @Controller('admin/venue')
@@ -208,5 +209,15 @@ export class VenueController {
   @Patch('toggle-verification/:venueId')
   async toggleVerification(@Param('venueId', ParseIntPipe) venueId: number) {
     return this.venueService.toggleVerificationFlag(venueId);
+  }
+
+  // Api to get venue types
+  @Get('types/dropdown')
+  getVenueTypes() {
+    return {
+      message: 'Venue types returned successfully',
+      data: VENUE_TYPES,
+      status: true,
+    };
   }
 }

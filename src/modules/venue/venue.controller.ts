@@ -53,6 +53,7 @@ import { UpdateNeighbourhoodDto } from '../admin/venue/Dto/update-neighbourhood'
 import { CreateNeighbourhoodDto } from './dto/create-neighbourhood.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { EventsByMonthDto } from '../entertainer/dto/get-events-bymonth.dto';
+import { VENUE_TYPES } from 'src/common/constants/venue.constants';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -452,5 +453,14 @@ export class VenueController {
       page,
       pageSize,
     );
+  }
+
+  @Get('types')
+  getVenueTypes() {
+    return {
+      message: 'Venue types returned successfully',
+      data: VENUE_TYPES,
+      status: true,
+    };
   }
 }

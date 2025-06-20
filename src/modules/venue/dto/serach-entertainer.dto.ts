@@ -65,11 +65,6 @@ export class SearchEntertainerDto {
   @Transform(({ value }) => Number(value))
   country: number;
 
-  @ApiProperty({ description: 'Date', required: false })
-  @IsOptional()
-  @IsString()
-  date: string;
-
   @ApiProperty({ description: 'Start Date', required: false })
   @IsOptional()
   @IsString()
@@ -100,4 +95,18 @@ export class SearchEntertainerDto {
   @IsOptional()
   @IsNumber()
   radius?: boolean;
+
+  @ApiProperty({ description: 'Date', required: false })
+  @IsOptional()
+  @IsString()
+  date: string;
+
+  @IsOptional()
+  startTime: string;
+
+  @IsOptional()
+  endTime: string;
+
+  @IsOptional()
+  timezone: string;
 }
