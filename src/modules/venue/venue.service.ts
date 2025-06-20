@@ -443,10 +443,9 @@ export class VenueService {
       status: true,
     };
   }
-
+  // By Id
   async findVenueById(id: number) {
     const venue = await this.venueRepository.findOne({ where: { id } });
-
     return {
       message: 'Venue fetched successfully',
       data: venue,
