@@ -386,7 +386,7 @@ export class UsersService {
       const parsedResult = results.map(
         ({ neighbourhoods, venueType, ...rest }) => ({
           ...rest,
-          venueType: venueType ? venueType.split(',') : [],
+          venueType: venueType === 'string' ? venueType.split(',') : [],
           neighbourhoods: JSON.parse(neighbourhoods),
         }),
       );
