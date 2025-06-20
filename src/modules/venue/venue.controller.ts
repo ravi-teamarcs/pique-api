@@ -455,7 +455,7 @@ export class VenueController {
     );
   }
 
-  @Get('types')
+  @Get('types/dropdown')
   getVenueTypes() {
     return {
       message: 'Venue types returned successfully',
