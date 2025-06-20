@@ -45,8 +45,8 @@ export class Venue {
   @Column('decimal', { precision: 9, scale: 6, nullable: true })
   longitude?: number;
 
-  @Column({ nullable: true, name: 'venue_type' })
-  venueType: string;
+  @Column('simple-array', { nullable: true, name: 'venue_type' })
+  venueType: string[];
 
   @Column({ type: 'boolean', name: 'is_pique_verified', default: false })
   isPiqueVerified: boolean;

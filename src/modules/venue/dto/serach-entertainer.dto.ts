@@ -102,11 +102,8 @@ export class SearchEntertainerDto {
   date: string;
 
   @IsOptional()
-  startTime: string;
+  startDateTime: string;
 
   @IsOptional()
-  endTime: string;
-
-  @IsOptional()
-  timezone: string;
+  endDateTime: string;
 }

@@ -1,6 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { IsNotEmpty, IsString, IsNumber, IsOptional } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsNumber,
+  IsOptional,
+  IsArray,
+} from 'class-validator';
 
 export class CreateVenueDto {
   @ApiProperty({ example: 'Radisson Blu', description: 'Name of the Venue' })
@@ -24,14 +30,16 @@ export class CreateVenueDto {
   @IsNotEmpty()
   addressLine2: string;
 
-  @ApiProperty({
-    example: 'A premium venue',
-    description: 'description  of the Venue',
-  })
-  @IsString()
-  @IsNotEmpty()
   @IsOptional()
-  description: string;
+  @IsArray()
+  @IsString({ each: true })
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) return value;
+    if (typeof value === 'string')
+      return value.split(',').map((item) => item.trim());
+    return [];
+  })
+  venueType: string[];
 
   @ApiProperty({ example: 23, description: 'Venue City' })
   @IsNumber()

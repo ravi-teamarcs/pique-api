@@ -408,6 +408,7 @@ export class VenueService {
         'venue.contactPerson AS contactPerson',
         'venue.contactNumber AS contactNumber',
         'venue.zipCode AS zipCode',
+        'venue.venueType As venueType',
         'venue.isPiqueVerified AS isPiqueVerified',
         'city.name AS city',
         'state.name AS state',
@@ -423,12 +424,13 @@ export class VenueService {
     const neighbourhood = await this.neighbourRepository.find({
       where: { venueId: venue.id },
     });
-    const { media, isPiqueVerified, ...rest } = venueDetails;
+    const { media, isPiqueVerified, venueType, ...rest } = venueDetails;
     const response = {
       ...rest,
       media: media ? JSON.parse(media) : null,
       isPiqueVerified: isPiqueVerified === 1 ? true : false,
       neighbourhoods: neighbourhood,
+      venueType: venueType ? JSON.parse(venueType) : [],
     };
 
     return {
@@ -440,7 +442,21 @@ export class VenueService {
 
   async findVenueById(id: number) {
     const venue = await this.venueRepository.findOne({ where: { id } });
-    return { message: 'Venue fetched successfully', data: venue, status: true };
+
+    let payload = {
+      ...venue,
+      venueType:
+        typeof venue.venueType === 'string'
+          ? JSON.parse(venue.venueType) // stringified array
+          : Array.isArray(venue.venueType)
+            ? venue.venueType // already array
+            : [], // fallback
+    };
+    return {
+      message: 'Venue fetched successfully',
+      data: payload,
+      status: true,
+    };
   }
 
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
@@ -458,10 +474,8 @@ export class VenueService {
       longitude,
       isNearby,
       radius,
-
-      startTime,
-      endTime,
-      timezone,
+      startDateTime,
+      endDateTime,
     } = query;
 
     // Pagination
@@ -537,38 +551,19 @@ export class VenueService {
           .setParameter('lng2', longitude);
       }
 
-      if (date && startTime && endTime) {
-        const startLocal = DateTime.fromFormat(
-          `${date} ${startTime}`,
-          'yyyy-MM-dd HH:mm:ss',
-          {
-            zone: timezone,
-          },
-        );
-
-        const endLocal = DateTime.fromFormat(
-          `${date} ${endTime}`,
-          'yyyy-MM-dd HH:mm:ss',
-          {
-            zone: timezone,
-          },
-        );
-
-        // 2. Convert to UTC and ISO
-        const showStartDateTime = startLocal.toUTC().toISO();
-        const showEndDateTime = endLocal.toUTC().toISO();
+      if (startDateTime && endDateTime) {
         baseQuery.andWhere(
           `NOT EXISTS (
     SELECT 1
     FROM booking b
     JOIN event e ON e.id = b.eventId
     WHERE b.entId = entertainer.id
-      AND e.eventStartDateTime < :showEndDateTime
-      AND e.eventEndDateTime > :showStartDateTime
+      AND e.eventStartDateTime < :startDateTime
+      AND e.eventEndDateTime > :endDateTime
   )`,
           {
-            showStartDateTime,
-            showEndDateTime,
+            startDateTime,
+            endDateTime,
           },
         );
       }
