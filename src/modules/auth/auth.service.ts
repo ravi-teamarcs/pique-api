@@ -245,7 +245,10 @@ export class AuthService {
   }
 
   async logout(fcmToken: string) {
-    await this.notificationService.removeFcmToken(fcmToken);
+    if (fcmToken) {
+      await this.notificationService.removeFcmToken(fcmToken);
+    }
+
     return { message: 'Logged out successfully.', status: true };
   }
 

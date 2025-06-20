@@ -717,6 +717,14 @@ export class InvoiceService {
       eventStartDateTime,
       eventEndDateTime,
     ); // (duartion)
+    console.log(
+      'eventStartDAteTime',
+      eventStartDateTime,
+      'and eventEndDateTime',
+      eventEndDateTime,
+      'duration in Hours',
+      durationInHours,
+    );
 
     const totalAmount = this.roundToTwo(priceWithMarkup * durationInHours);
 
@@ -741,6 +749,7 @@ export class InvoiceService {
   }
   // Generate Monthly Invoice Number.
   async invoiceForIndividualVenue(venue, monthStart, monthEnd) {
+    const eventPrice = [];
     const confirmedEvents = await this.eventRepository.find({
       where: {
         venueId: venue.id,
@@ -771,6 +780,7 @@ export class InvoiceService {
         'booking.venueId AS venueId',
         'ent.id AS entertainerId',
         'ent.pricePerEvent AS pricePerHour',
+        'event.id AS eventId',
         'event.eventStartDateTime AS eventStartDateTime',
         'event.eventEndDateTime AS eventEndDateTime',
       ])
@@ -802,6 +812,7 @@ export class InvoiceService {
         platformFee: 0,
       };
       const price = this.calculatingInvoiceAmount(payload);
+      eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
       totalAmount += Number(price);
     }
 
@@ -834,11 +845,13 @@ export class InvoiceService {
 
     // No Add the details of invoice (Invoice to EventId Table )
     for (const event of confirmedEvents) {
+      const matchedPrice = eventPrice.find((p) => p.id === event.id);
+
       const invoiceEvent = this.invEventRepository.create({
         invoiceId: savedInvoice.id,
         eventId: event.id,
         eventDate: new Date().toISOString(),
-        eventPrice: 0,
+        eventPrice: Number(matchedPrice?.eventPrice),
       });
 
       await this.invEventRepository.save(invoiceEvent);
