@@ -447,18 +447,9 @@ export class VenueService {
   async findVenueById(id: number) {
     const venue = await this.venueRepository.findOne({ where: { id } });
 
-    let payload = {
-      ...venue,
-      venueType:
-        typeof venue.venueType === 'string'
-          ? JSON.parse(venue.venueType) // stringified array
-          : Array.isArray(venue.venueType)
-            ? venue.venueType // already array
-            : [], // fallback
-    };
     return {
       message: 'Venue fetched successfully',
-      data: payload,
+      data: venue,
       status: true,
     };
   }

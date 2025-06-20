@@ -371,6 +371,7 @@ export class UsersService {
           'venue.state AS state_code',
           'venue.country AS country_code',
           'venue.zipCode AS zipCode',
+          'venue.venueType As venueType',
           'city.name AS city',
           'state.name AS state',
           'country.name AS country',
@@ -382,10 +383,13 @@ export class UsersService {
         .offset(skip)
         .getRawMany();
 
-      const parsedResult = results.map(({ neighbourhoods, ...rest }) => ({
-        ...rest,
-        neighbourhoods: JSON.parse(neighbourhoods),
-      }));
+      const parsedResult = results.map(
+        ({ neighbourhoods, venueType, ...rest }) => ({
+          ...rest,
+          venueType: venueType ? venueType.split(',') : [],
+          neighbourhoods: JSON.parse(neighbourhoods),
+        }),
+      );
 
       return {
         message: `Venue approval list fetched successfully`,
