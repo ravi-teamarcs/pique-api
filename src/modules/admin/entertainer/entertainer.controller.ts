@@ -103,7 +103,7 @@ export class EntertainerController {
   async addMedia(
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Param('id', ParseIntPipe) id: number,
-    @Body('mediaLink') mediaLink?: string,
+    @Body('mediaLink') mediaLink?: string[],
   ) {
     let uploadedFiles: UploadedFile[] = [];
 

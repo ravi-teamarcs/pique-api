@@ -6,6 +6,8 @@ import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Capability } from '../adminuser/entities/capability.entity';
 import { Setting } from './entities/setting.entity';
+import { SpecialSubcategoryPrice } from './entities/special-subcategory-prices.entity';
+import { SubcategoryRate } from './entities/subcategory-rates.entity';
 
 @Module({
   imports: [
@@ -15,6 +17,8 @@ import { Setting } from './entities/setting.entity';
       Role,
       Capability,
       Setting,
+      SpecialSubcategoryPrice,
+      SubcategoryRate,
     ]),
   ],
   controllers: [SettingsController],

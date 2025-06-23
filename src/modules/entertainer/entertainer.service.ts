@@ -339,37 +339,38 @@ export class EntertainerService {
       });
     }
   }
-  async performanceRole(dto: Step8Dto, userId: number) {
-    const { performanceRole } = dto;
-    const entertainer = await this.entertainerRepository.findOne({
-      where: { user: { id: userId } },
-    });
-    if (!entertainer) {
-      throw new BadRequestException({
-        mesage: 'Entertainer not found',
-        status: false,
-      });
-    }
-    try {
-      await this.entertainerRepository.update(
-        { id: entertainer.id },
-        { profileStep: 8, performanceRole },
-      );
-      return {
-        message: 'Performance role saved Successfully',
-        status: true,
-        step: 8,
-        data: performanceRole,
-        nextStep: Number('09'),
-      };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
-        status: false,
-      });
-    }
-  }
-  async saveServices(dto: Step9Dto, userId: number) {
+  // async performanceRole(dto: Step8Dto, userId: number) {
+  //   const { performanceRole } = dto;
+  //   const entertainer = await this.entertainerRepository.findOne({
+  //     where: { user: { id: userId } },
+  //   });
+  //   if (!entertainer) {
+  //     throw new BadRequestException({
+  //       mesage: 'Entertainer not found',
+  //       status: false,
+  //     });
+  //   }
+  //   try {
+  //     await this.entertainerRepository.update(
+  //       { id: entertainer.id },
+  //       { profileStep: 8, performanceRole },
+  //     );
+  //     return {
+  //       message: 'Performance role saved Successfully',
+  //       status: true,
+  //       step: 8,
+  //       data: performanceRole,
+  //       nextStep: Number('09'),
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
+  async saveSkills(dto: Step9Dto, userId: number) {
     const { services } = dto;
     const entertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
@@ -383,14 +384,14 @@ export class EntertainerService {
     try {
       await this.entertainerRepository.update(
         { id: entertainer.id },
-        { profileStep: 9, services },
+        { profileStep: 8, services },
       );
       return {
-        message: 'Services  saved Successfully',
+        message: 'Skills saved Successfully',
         status: true,
         data: services,
-        step: 9,
-        nextStep: Number('10'),
+        step: 8,
+        nextStep: Number('09'),
       };
     } catch (error) {
       throw new InternalServerErrorException({
@@ -400,11 +401,30 @@ export class EntertainerService {
     }
   }
 
-  async uploadMedia(
-    userId: number,
-    uploadedFiles: UploadedFile[],
-    mediaLink: string,
-  ) {
+  // save Media
+  async saveMedia(userId: number) {
+    try {
+      const ent = await this.entertainerRepository.findOne({
+        where: { user: { id: userId } },
+      });
+
+      this.entertainerRepository.update(
+        { id: ent.id },
+        { profileStep: 9, isProfileComplete: false },
+      );
+
+      return {
+        message: 'media uploaded successfully',
+        status: true,
+        step: 9,
+        nextStep: '10',
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async uploadMedia(userId: number, uploadedFiles: UploadedFile[]) {
     const ent = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
@@ -415,10 +435,7 @@ export class EntertainerService {
         status: false,
       });
     }
-    // New Logic for mediaLink
-    if (mediaLink) {
-      await this.entertainerRepository.update({ id: ent.id }, {});
-    }
+
     try {
       const { data } = await this.mediaService.handleEntertainerMediaUpload(
         Number(ent.id),
@@ -439,15 +456,17 @@ export class EntertainerService {
     }
   }
 
-  async saveEntertainerDetails(userId: number) {
+  async saveEntertainerDetails(userId: number, body) {
     try {
+      const { mediaLink } = body;
+
       const ent = await this.entertainerRepository.findOne({
         where: { user: { id: userId } },
       });
 
       await this.entertainerRepository.update(
         { id: ent.id },
-        { isProfileComplete: true, profileStep: 10 },
+        { mediaLink, isProfileComplete: true, profileStep: 10 },
       );
 
       let admins = await this.adminRepository.find({ where: { role: '1' } });
@@ -679,7 +698,7 @@ export class EntertainerService {
       });
     }
   }
-  async updateServices(dto: Step9Dto, userId: number) {
+  async updateSkills(dto: Step9Dto, userId: number) {
     const { services } = dto;
 
     try {
@@ -691,8 +710,8 @@ export class EntertainerService {
         message: 'Services updated Successfully',
         status: true,
         data: services,
-        step: 9,
-        nextStep: Number('10'),
+        step: 8,
+        nextStep: Number('09'),
       };
     } catch (error) {
       throw new InternalServerErrorException({
@@ -850,12 +869,14 @@ export class EntertainerService {
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
-      const { socialLinks, services, isPiqueVerified, ...rest } = entertainer;
+      const { socialLinks, mediaLink, services, isPiqueVerified, ...rest } =
+        entertainer;
       const payload = {
         ...rest,
         services: services,
         isPiqueVerified: isPiqueVerified === 1 ? true : false,
         socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
+        mediaLink: mediaLink ? mediaLink.split(',') : [],
       };
       return {
         message: 'Entertainer Fetched Successfully',
@@ -1059,7 +1080,7 @@ export class EntertainerService {
       throw new InternalServerErrorException(error.message);
     }
   }
-  async updateMediaLink(userId: number, mediaLink: string) {
+  async updateMediaLink(userId: number, mediaLink: string[]) {
     try {
       const entertainer = await this.entertainerRepository.findOne({
         where: { user: { id: userId } },

@@ -80,8 +80,8 @@ export class Entertainer {
   @Column({ nullable: true })
   email: string;
 
-  @Column({ nullable: true, name: 'media_link' })
-  mediaLink: string;
+  @Column({ type: 'json', nullable: true, name: 'media_link' })
+  mediaLink: string[];
 
   @Column({ nullable: true })
   addressLine1: string;

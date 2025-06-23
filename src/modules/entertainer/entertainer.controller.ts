@@ -80,9 +80,11 @@ export class EntertainerController {
       case 7:
         return this.entertainerService.saveSpecificCategory(body, userId);
       case 8:
-        return this.entertainerService.performanceRole(body, userId);
+        return this.entertainerService.saveSkills(body, userId);
       case 9:
-        return this.entertainerService.saveServices(body, userId);
+        return this.entertainerService.saveMedia(userId);
+      case 10:
+        return this.entertainerService.saveEntertainerDetails(userId, body);
 
       default:
         throw new BadRequestException({
@@ -98,7 +100,6 @@ export class EntertainerController {
   async addMedia(
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
-    @Body('mediaLink') mediaLink?: string,
   ) {
     const { userId, refId } = req.user;
 
@@ -125,19 +126,15 @@ export class EntertainerController {
         }),
       );
     }
-    return this.entertainerService.uploadMedia(
-      userId,
-      uploadedFiles,
-      mediaLink,
-    );
+    return this.entertainerService.uploadMedia(userId, uploadedFiles);
   }
 
-  @Post('save')
-  @UseGuards(JwtAuthGuard)
-  async saveDetails(@Request() req) {
-    const { userId } = req.user;
-    return this.entertainerService.saveEntertainerDetails(userId);
-  }
+  // @Post('save')
+  // @UseGuards(JwtAuthGuard)
+  // async saveDetails(@Request() req) {
+  //   const { userId } = req.user;
+  //   return this.entertainerService.saveEntertainerDetails(userId);
+  // }
   // Update Entertainers Api  (Step Based Approach)
   @Patch()
   @UseGuards(JwtAuthGuard)
@@ -160,9 +157,9 @@ export class EntertainerController {
       case 7:
         return this.entertainerService.updateSpecificCategory(body, userId);
       case 8:
-        return this.entertainerService.updatePerformanceRole(body, userId);
+        return this.entertainerService.updateSkills(body, userId);
       case 9:
-        return this.entertainerService.updateServices(body, userId);
+        return this.entertainerService.saveMedia(userId);
 
       default:
         throw new BadRequestException({
@@ -230,7 +227,7 @@ export class EntertainerController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   async updateMediaLink(
-    @Body('mediaLink') mediaLink: string,
+    @Body('mediaLink') mediaLink: string[],
     @Request()
     req,
   ) {

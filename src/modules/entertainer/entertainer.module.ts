@@ -13,12 +13,10 @@ import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Category } from './entities/categories.entity';
 import { Media } from '../media/entities/media.entity';
-import { Rating } from './entities/rating.entity';
 import { Invoice } from '../invoice/entities/invoice.entity';
 import { MediaModule } from '../media/media.module';
 import { AvailabilityController } from './availability.controller';
 import { AvailabilityService } from './availability.service';
-
 import { VenueEvent } from '../event/entities/event.entity';
 import { EntertainerAvailability } from './entities/availability.entity';
 import { LocationModule } from '../location/location.module';
@@ -26,6 +24,7 @@ import { Cities } from '../location/entities/city.entity';
 import { States } from '../location/entities/state.entity';
 import { NotificationModule } from '../notification/notification.module';
 import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
+import { EntertainerCategorySubcategory } from './entities/entertainer-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -39,7 +38,7 @@ import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
       EndPoints,
       Category,
       Media,
-      Rating,
+      EntertainerCategorySubcategory,
       Invoice,
       VenueEvent,
       EntertainerAvailability,

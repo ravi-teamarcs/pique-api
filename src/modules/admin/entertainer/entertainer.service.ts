@@ -486,7 +486,7 @@ export class EntertainerService {
   async uploadMedia(
     id: number,
     uploadedFiles: UploadedFile[],
-    mediaLink?: string,
+    mediaLink?: string[],
   ) {
     try {
       if (mediaLink)
