@@ -5,10 +5,11 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Setting } from './entities/setting.entity';
-import { Repository } from 'typeorm';
+import { AlreadyHasActiveConnectionError, Repository } from 'typeorm';
 import { RateCardDto } from './dto/rate-card.dto';
 import { SubcategoryRate } from './entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from './entities/special-subcategory-prices.entity';
+import e from 'express';
 
 @Injectable()
 export class SettingsService {
@@ -61,8 +62,30 @@ export class SettingsService {
 
       if (rates && rates.length > 0) {
         for (const rate of rates) {
-          const newCategoryRate = this.subcatRateRepo.create(rate);
-          this.subcatRateRepo.save(newCategoryRate);
+          const alreadyExists = await this.subcatRateRepo.findOne({
+            where: { subcategoryId: rate.subcategoryId },
+          });
+
+          if (alreadyExists) {
+            await this.subcatRateRepo.update({ id: alreadyExists.id }, rate);
+          } else {
+            const newCategoryRate = this.subcatRateRepo.create(rate);
+            this.subcatRateRepo.save(newCategoryRate);
+          }
+        }
+      }
+
+      if (specialRates && specialRates.length > 0) {
+        for (const rate of rates) {
+          const alreadyExists = await this.subcatRateRepo.findOne({
+            where: { subcategoryId: rate.subcategoryId },
+          });
+          if (alreadyExists) {
+            this.subcatRateRepo.update({ id: alreadyExists.id }, rate);
+          } else {
+            const newCategoryRate = this.specialSubcatRateRepo.create(rate);
+            this.subcatRateRepo.save(newCategoryRate);
+          }
         }
       }
 
@@ -78,8 +101,7 @@ export class SettingsService {
 
   async getCategoryBaseAndSpecialPrice() {
     try {
-      // Get Base Rates
-
+      const response = {};
       const categoryBaseRates = await this.subcatRateRepo
         .createQueryBuilder('rate')
         .leftJoin('categories', 'subcat', 'subcat.id = rate.subcategoryId')
@@ -91,6 +113,7 @@ export class SettingsService {
         ])
         .getRawMany();
       // Get Special Rates
+      response['rates'] = categoryBaseRates;
 
       const categoryspecialRates = await this.subcatRateRepo
         .createQueryBuilder('rate')
@@ -98,14 +121,16 @@ export class SettingsService {
         .select([
           'subcat.id AS subCategoryId',
           'subcat.name AS subCategoryName',
-          'rate.basePrice AS basePrice',
-          'rate.pricePerExtra30Min AS pricePerExtra30Min',
+          'rate.specialPrice AS specialPrice',
+          'rate.date AS date',
         ])
         .getRawMany();
 
+      response['specialRates'] = categoryspecialRates;
+
       return {
         message: 'Category wise base and special price fetched successfully',
-        data: categoryBaseRates,
+        data: response,
         status: true,
       };
     } catch (error) {

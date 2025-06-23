@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
 import { SettingsService } from './settings.service';
 import { RateCardDto } from './dto/rate-card.dto';
 import { Roles } from '../auth/roles.decorator';
@@ -21,7 +29,7 @@ export class SettingsController {
     return this.settingsService.updateMarkup(body.type, body.value);
   }
 
-  @Post('category/base-price')
+  @Patch('category/base-price')
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Roles('super-admin')
   async setCategoryBasePrice(@Body() dto: RateCardDto) {
