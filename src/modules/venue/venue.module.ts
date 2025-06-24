@@ -24,6 +24,7 @@ import { VenueEvent } from '../event/entities/event.entity';
 import { Setting } from '../admin/settings/entities/setting.entity';
 import { LocationModule } from '../location/location.module';
 import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
+import { EntertainerCategorySubcategory } from '../entertainer/entities/entertainer-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
       VenueEvent,
       Setting,
       AdminUser,
+      EntertainerCategorySubcategory,
     ]),
     BookingModule,
     MediaModule,

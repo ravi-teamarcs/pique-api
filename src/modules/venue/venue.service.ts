@@ -11,6 +11,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   Brackets,
   DataSource,
+  In,
   LessThan,
   LessThanOrEqual,
   Like,
@@ -51,6 +52,7 @@ import { States } from '../location/entities/state.entity';
 import { NotificationService } from '../notification/notification.service';
 import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
 import { DateTime } from 'luxon';
+import { EntertainerCategorySubcategory } from '../entertainer/entities/entertainer-category-subcategory.entity';
 
 @Injectable()
 export class VenueService {
@@ -81,6 +83,8 @@ export class VenueService {
     private readonly stateRepository: Repository<States>,
     @InjectRepository(AdminUser)
     private readonly adminRepository: Repository<AdminUser>,
+    @InjectRepository(EntertainerCategorySubcategory)
+    private readonly entCatRepository: Repository<EntertainerCategorySubcategory>,
 
     private readonly config: ConfigService,
     private readonly mediaService: MediaService,
@@ -882,10 +886,6 @@ export class VenueService {
         'entertainer.id AS eid',
         'entertainer.name AS name',
         'entertainer.entertainer_name AS entertainer_name',
-        'entertainer.category AS category',
-        'entertainer.specific_category AS specific_category',
-        'category.name AS category_name',
-        'subcat.name AS specific_category_name',
         'entertainer.isPiqueVerified AS isPiqueVerified',
         'entertainer.performanceRole AS performanceRole',
         'entertainer.pricePerEvent AS pricePerEvent',
@@ -916,6 +916,68 @@ export class VenueService {
       .setParameter('venueId', venueId)
       .getRawOne();
 
+    //  Get Entertainer Details
+
+    const rawCategories = await this.entCatRepository
+      .createQueryBuilder('ecs')
+      .leftJoin('categories', 'cat', 'cat.id = ecs.category_id') // Category relation
+      .where('ecs.entertainerId = :entertainerId', { entertainerId: id })
+      .select([
+        'cat.id AS categoryId',
+        'cat.name AS categoryName',
+        'ecs.subcategoryIds AS subcategoryIds',
+      ])
+      .getRawMany();
+
+    const subcategoryIds = rawCategories.flatMap((row) =>
+      typeof row.subcategoryIds === 'string'
+        ? row.subcategoryIds.split(',').map(Number)
+        : [],
+    );
+
+    const uniqueSubcategoryIds = [...new Set(subcategoryIds)];
+
+    //   Now get all the subcategory
+    const subcategories = await this.catRepository.find({
+      where: { id: In(uniqueSubcategoryIds) },
+      select: ['id', 'name', 'catslug', 'parentId'],
+    });
+    // const subcategories = await this.catRepository
+    //   .createQueryBuilder('subcat')
+    //   .leftJoin(
+    //     'specialsubcategoryprices',
+    //     'subcatSpecialPrice',
+    //     'subcatSpecialPrice.subcategoryId = subcat.id',
+    //   )
+    //   .leftJoin(
+    //     'subcategory_rates',
+    //     'subRates',
+    //     'subRates.subcategoryId = subcat.id',
+    //   )
+    //   .where('subcat.id = IN(:...uniqueSubcategoryIds)', {
+    //     uniqueSubcategoryIds,
+    //   })
+    //   .getRawMany();
+    const formatted = rawCategories.map((row) => {
+      const subcatIds =
+        typeof row.subcategoryIds === 'string'
+          ? row.subcategoryIds.split(',').map(Number)
+          : [];
+
+      const specific_category = subcategories
+        .filter((sub) => subcatIds.includes(sub.id))
+        .map((sub) => ({
+          id: sub.id,
+          specificCategoryName: sub.name,
+        }));
+
+      return {
+        id: row.categoryId,
+        categoryName: row.categoryName,
+        specific_category,
+      };
+    });
+
     const finalPrice = await this.addMarkupToEntertainer(
       Number(res.pricePerEvent),
     );
@@ -930,7 +992,7 @@ export class VenueService {
       ...details
     } = res;
     return {
-      message: 'Entertainer Details returned Successfully',
+      message: 'Entertainer details returned Successfully',
       data: {
         ...details,
         isWishlisted: Boolean(isWishlisted),
@@ -941,6 +1003,7 @@ export class VenueService {
           vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
         services: services ? services.split(',') : [],
         media: JSON.parse(media),
+        categories: formatted,
       },
       status: true,
     };
