@@ -53,6 +53,8 @@ import { NotificationService } from '../notification/notification.service';
 import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
 import { DateTime } from 'luxon';
 import { EntertainerCategorySubcategory } from '../entertainer/entities/entertainer-category-subcategory.entity';
+import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.entity';
+import { SpecialSubcategoryPrice } from '../admin/settings/entities/special-subcategory-prices.entity';
 
 @Injectable()
 export class VenueService {
@@ -85,6 +87,10 @@ export class VenueService {
     private readonly adminRepository: Repository<AdminUser>,
     @InjectRepository(EntertainerCategorySubcategory)
     private readonly entCatRepository: Repository<EntertainerCategorySubcategory>,
+    @InjectRepository(SubcategoryRate)
+    private readonly subcatRateRepo: Repository<SubcategoryRate>,
+    @InjectRepository(SpecialSubcategoryPrice)
+    private readonly specialSubcatRateRepo: Repository<SpecialSubcategoryPrice>,
 
     private readonly config: ConfigService,
     private readonly mediaService: MediaService,
@@ -938,26 +944,35 @@ export class VenueService {
     const uniqueSubcategoryIds = [...new Set(subcategoryIds)];
 
     //   Now get all the subcategory
-    const subcategories = await this.catRepository.find({
-      where: { id: In(uniqueSubcategoryIds) },
-      select: ['id', 'name', 'catslug', 'parentId'],
-    });
-    // const subcategories = await this.catRepository
-    //   .createQueryBuilder('subcat')
-    //   .leftJoin(
-    //     'specialsubcategoryprices',
-    //     'subcatSpecialPrice',
-    //     'subcatSpecialPrice.subcategoryId = subcat.id',
-    //   )
-    //   .leftJoin(
-    //     'subcategory_rates',
-    //     'subRates',
-    //     'subRates.subcategoryId = subcat.id',
-    //   )
-    //   .where('subcat.id = IN(:...uniqueSubcategoryIds)', {
-    //     uniqueSubcategoryIds,
-    //   })
-    //   .getRawMany();
+
+    const subcategories = await this.catRepository
+      .createQueryBuilder('subcat')
+      .leftJoinAndSelect(
+        'subcategory_rates',
+        'subRates',
+        'subRates.subcategoryId = subcat.id',
+      )
+      .where('subcat.id IN (:...ids)', { ids: uniqueSubcategoryIds })
+      .select([
+        'subcat.id AS id',
+        'subcat.name AS name',
+        'subcat.catslug AS catslug',
+        'subcat.parentId AS parentId',
+        'subRates.basePrice AS basePrice',
+        'subRates.pricePerExtra30Min AS pricePerExtra30Min',
+      ])
+      .getRawMany();
+
+    const specialPrices = await this.specialSubcatRateRepo
+      .createQueryBuilder('sp')
+      .where('sp.subcategoryId IN (:...ids)', { ids: uniqueSubcategoryIds })
+      .select([
+        'sp.subcategoryId AS subcategoryId',
+        'sp.date AS date',
+        'sp.specialPrice AS price',
+      ])
+      .getRawMany();
+
     const formatted = rawCategories.map((row) => {
       const subcatIds =
         typeof row.subcategoryIds === 'string'
@@ -966,10 +981,24 @@ export class VenueService {
 
       const specific_category = subcategories
         .filter((sub) => subcatIds.includes(sub.id))
-        .map((sub) => ({
-          id: sub.id,
-          specificCategoryName: sub.name,
-        }));
+        .map((sub) => {
+          const specials = specialPrices
+            .filter((sp) => sp.subcategoryId === sub.id)
+            .map((sp) => ({
+              date: sp.date,
+              price: sp.price,
+            }));
+
+          return {
+            id: sub.id,
+            name: sub.name,
+            catslug: sub.catslug,
+            parentId: sub.parentId,
+            basePrice: sub.basePrice,
+            pricePerExtra30Min: sub.pricePerExtra30Min,
+            specialPrices: specials,
+          };
+        });
 
       return {
         id: row.categoryId,

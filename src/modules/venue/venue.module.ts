@@ -25,6 +25,8 @@ import { Setting } from '../admin/settings/entities/setting.entity';
 import { LocationModule } from '../location/location.module';
 import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
 import { EntertainerCategorySubcategory } from '../entertainer/entities/entertainer-category-subcategory.entity';
+import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.entity';
+import { SpecialSubcategoryPrice } from '../admin/settings/entities/special-subcategory-prices.entity';
 
 @Module({
   imports: [
@@ -46,6 +48,8 @@ import { EntertainerCategorySubcategory } from '../entertainer/entities/entertai
       Setting,
       AdminUser,
       EntertainerCategorySubcategory,
+      SubcategoryRate,
+      SpecialSubcategoryPrice,
     ]),
     BookingModule,
     MediaModule,
