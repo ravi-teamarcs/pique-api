@@ -184,7 +184,7 @@ export class EntertainerController {
     const { userId, refId } = req.user;
     let uploadedFiles: UploadedFile[] = [];
 
-    if (files.length > 0) {
+    if (files && files?.length > 0) {
       uploadedFiles = await Promise.all(
         files.map(async (file) => {
           const filePath = await uploadFile(file); // Wait for the upload
