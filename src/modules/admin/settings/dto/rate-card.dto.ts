@@ -5,6 +5,7 @@ import {
   IsNotEmpty,
   IsNumber,
   IsOptional,
+  IsString,
   ValidateNested,
 } from 'class-validator';
 import { Column } from 'typeorm';
@@ -32,7 +33,7 @@ class SpecialPriceDto {
   @IsNotEmpty()
   subcategoryId: number;
 
-  @IsNumber()
+  @IsString()
   @IsOptional()
   date: string;
 }
@@ -48,7 +49,7 @@ export class RateCardDto {
   @IsArray()
   @ArrayNotEmpty()
   @ValidateNested({ each: true })
-  @Type(() => BasePriceDto)
+  @Type(() => SpecialPriceDto)
   @IsOptional()
-  specialRates: SpecialPriceDto[];
+  specialPrices: SpecialPriceDto[];
 }

@@ -57,7 +57,7 @@ export class SettingsService {
 
   async setCategoryBaseAndSpecialPrice(dto: RateCardDto) {
     try {
-      const { rates, specialRates } = dto;
+      const { rates, specialPrices } = dto;
 
       if (rates && rates.length > 0) {
         for (const rate of rates) {
@@ -74,16 +74,19 @@ export class SettingsService {
         }
       }
 
-      if (specialRates && specialRates.length > 0) {
-        for (const rate of rates) {
+      if (specialPrices && specialPrices.length > 0) {
+        for (const rate of specialPrices) {
           const alreadyExists = await this.specialSubcatRateRepo.findOne({
             where: { subcategoryId: rate.subcategoryId },
           });
           if (alreadyExists) {
-            this.subcatRateRepo.update({ id: alreadyExists.id }, rate);
+            await this.specialSubcatRateRepo.update(
+              { id: alreadyExists.id },
+              rate,
+            );
           } else {
             const newCategoryRate = this.specialSubcatRateRepo.create(rate);
-            this.subcatRateRepo.save(newCategoryRate);
+            await this.specialSubcatRateRepo.save(newCategoryRate);
           }
         }
       }
