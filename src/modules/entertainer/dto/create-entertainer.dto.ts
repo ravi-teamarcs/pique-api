@@ -19,6 +19,7 @@ export class CategorySubcategoryDto {
 
   @IsNumber()
   @IsNotEmpty()
+  @Type(() => Number)
   categoryId: number;
 
   @IsArray()
