@@ -45,7 +45,7 @@ export class Entertainer {
   @Column({ nullable: true })
   email: string;
 
-  @Column({ type: 'json', nullable: true, name: 'media_link' })
+  @Column({ type: 'simple-array', nullable: true, name: 'media_link' })
   mediaLink: string[];
 
   @Column({ type: 'enum', enum: ['yes', 'no'], nullable: true })

@@ -15,7 +15,7 @@ export class EntertainerCategorySubcategory {
   @Column({ name: 'entertainer_id' })
   entertainerId: number;
 
-  @Column({ type: 'json', name: 'subcategory_ids' })
+  @Column({ type: 'simple-array', name: 'subcategory_ids' })
   subcategoryIds: number[];
 
   @ManyToOne(() => Category, { onDelete: 'CASCADE' })
