@@ -1177,7 +1177,14 @@ export class EntertainerService {
     dto: GeneralInformationDto,
     uploadedFiles: UploadedFile[],
   ) {
-    const { contactPerson, contactNumber, stageName, ...rest } = dto;
+    const {
+      contactPerson,
+      contactNumber,
+      stageName,
+      category,
+      specific_category,
+      ...rest
+    } = dto;
     const updatedPayload = { ...rest };
     if (stageName) updatedPayload['name'] = stageName;
     if (contactNumber) updatedPayload['contact_number'] = contactNumber;
@@ -1189,6 +1196,29 @@ export class EntertainerService {
       });
 
       if (!entertainer) throw new NotFoundException('Entertainer not found');
+
+      // Updation logic
+
+      await this.entCatRepository.delete({ entertainerId: entertainer.id });
+
+      // Create new empty records (subcategoryIds will be added in step 7)
+      const records = category.map((catId: number) => {
+        return this.entCatRepository.create({
+          entertainerId: entertainer.id,
+          category: { id: catId },
+          subcategoryIds: [],
+        });
+      });
+
+      await this.entCatRepository.save(records);
+
+      for (const item of specific_category) {
+        await this.entCatRepository.update(
+          { entertainerId: entertainer.id, category: { id: item.categoryId } },
+          { subcategoryIds: item.subcategoryIds },
+        );
+      }
+
       const updated = await this.entertainerRepository.update(
         { id: Number(entertainer.id) },
         updatedPayload,

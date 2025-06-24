@@ -12,7 +12,7 @@ import {
 } from 'class-validator';
 import { PerformanceType, Vaccinated } from 'src/common/enums/entertainer.enum';
 
-class CategorySubcategoryDto {
+export class CategorySubcategoryDto {
   @IsNumber()
   @IsNotEmpty()
   entertainerId: number;

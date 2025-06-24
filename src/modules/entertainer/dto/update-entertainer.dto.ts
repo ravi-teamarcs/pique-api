@@ -1,5 +1,6 @@
 import { PartialType } from '@nestjs/swagger';
 import {
+  CategorySubcategoryDto,
   CreateEntertainerDto,
   Step1Dto,
   Step2Dto,
@@ -12,13 +13,15 @@ import {
   Step9Dto,
 } from './create-entertainer.dto';
 import {
+  IsArray,
   IsEnum,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  ValidateNested,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import { PerformanceType } from 'src/common/enums/entertainer.enum';
 
 export class UpdateEntertainerDto extends PartialType(CreateEntertainerDto) {}
@@ -115,19 +118,15 @@ class GeneralInformationDto {
   @IsOptional()
   stageName: string;
 
-  @IsEnum(PerformanceType)
-  @IsOptional()
-  performanceRole: PerformanceType;
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @Type(() => Number)
+  category: number[];
 
-  @IsNumber()
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  category: number;
-
-  @IsNumber()
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  specific_category: number;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CategorySubcategoryDto)
+  specific_category: CategorySubcategoryDto[];
 
   @IsString()
   @IsOptional()
