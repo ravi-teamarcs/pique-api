@@ -5,11 +5,10 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Setting } from './entities/setting.entity';
-import { AlreadyHasActiveConnectionError, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { RateCardDto } from './dto/rate-card.dto';
 import { SubcategoryRate } from './entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from './entities/special-subcategory-prices.entity';
-import e from 'express';
 
 @Injectable()
 export class SettingsService {

@@ -333,6 +333,11 @@ export class EntertainerController {
     return this.entertainerService.getSubCategories(id);
   }
 
+  @Get('categories/subcategories/all')
+  getAllSubCategories() {
+    return this.entertainerService.getAllSubCategories();
+  }
+
   @ApiOperation({
     summary: 'Get Event Details  linked with Booking',
   })

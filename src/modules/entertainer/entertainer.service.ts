@@ -14,6 +14,7 @@ import {
   LessThanOrEqual,
   MoreThan,
   MoreThanOrEqual,
+  Not,
   Repository,
 } from 'typeorm';
 import {
@@ -1930,6 +1931,23 @@ export class EntertainerService {
       return {
         message: 'Price per hour fetched successfully',
         data,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getAllSubCategories() {
+    try {
+      const categories = await this.categoryRepository.find({
+        where: { parentId: Not(0) },
+        select: ['id', 'name', 'iconUrl', 'parentId'],
+      });
+
+      return {
+        message: 'sub-categories returned successfully',
+        data: categories,
         status: true,
       };
     } catch (error) {
