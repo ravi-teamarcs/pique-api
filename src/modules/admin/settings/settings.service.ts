@@ -18,7 +18,7 @@ export class SettingsService {
     private readonly settingRepo: Repository<Setting>,
     @InjectRepository(SubcategoryRate)
     private readonly subcatRateRepo: Repository<SubcategoryRate>,
-    @InjectRepository(SubcategoryRate)
+    @InjectRepository(SpecialSubcategoryPrice)
     private readonly specialSubcatRateRepo: Repository<SpecialSubcategoryPrice>,
   ) {}
 
@@ -115,7 +115,7 @@ export class SettingsService {
       // Get Special Rates
       response['rates'] = categoryBaseRates;
 
-      const categoryspecialRates = await this.subcatRateRepo
+      const categoryspecialRates = await this.specialSubcatRateRepo
         .createQueryBuilder('rate')
         .leftJoin('categories', 'subcat', 'subcat.id = rate.subcategoryId')
         .select([

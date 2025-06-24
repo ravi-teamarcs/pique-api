@@ -42,6 +42,7 @@ import { UpcomingEventDto } from './dto/upcoming-event.dto';
 import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
 import { BookingQueryDto } from './dto/booking-query-dto';
 import { typeMap } from 'src/common/constants/media.constants';
+import { ENTERTAINER_SKILLS_TYPES } from 'src/common/constants/venue.constants';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -416,5 +417,15 @@ export class EntertainerController {
   ) {
     const { refId } = req.user;
     return this.entertainerService.getCompletedEvents(refId, month, year);
+  }
+
+  // Skills dropdown for entertainer
+  @Get('skills/dropdown')
+  getEntertainerSkills() {
+    return {
+      message: 'Entertainer skills fetched Successfully',
+      data: ENTERTAINER_SKILLS_TYPES,
+      status: true,
+    };
   }
 }

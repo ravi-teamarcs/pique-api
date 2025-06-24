@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsNotEmpty,
   IsString,
@@ -8,8 +8,25 @@ import {
   IsDateString,
   IsOptional,
   IsArray,
+  ValidateNested,
 } from 'class-validator';
 import { PerformanceType, Vaccinated } from 'src/common/enums/entertainer.enum';
+
+class CategorySubcategoryDto {
+  @IsNumber()
+  @IsNotEmpty()
+  entertainerId: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  categoryId: number;
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @Type(() => Number)
+  subcategoryIds: number[];
+}
+
 export class CreateEntertainerDto {
   @ApiProperty({
     example: 'Raghav Singh',
@@ -209,10 +226,7 @@ class Step5Dto {
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))
   step: number;
-  @ApiProperty({
-    example: 'www.fb.com/raghavThakur',
-    description: 'Social Media Link of Entertainer',
-  })
+
   @IsString()
   @IsOptional()
   socialLinks?: Record<string, string>;
@@ -222,35 +236,29 @@ class Step6Dto {
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))
   step: number;
-  @ApiProperty({ example: 1, description: 'Category  of the entertainer' })
-  @IsNumber()
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  category: number;
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @Type(() => Number)
+  category: number[];
 }
 class Step7Dto {
   @IsNumber()
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))
   step: number;
-  @ApiProperty({
-    example: 13,
-    description: 'specific-category of the entertainer',
-  })
-  @IsNumber()
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  specific_category: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CategorySubcategoryDto)
+  specific_category: CategorySubcategoryDto[];
 }
 class Step8Dto {
   @IsNumber()
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))
   step: number;
-  @ApiProperty({
-    example: 'solo',
-    description: 'Role of entertainer (soloist , duo , trio)',
-  })
+
   @IsEnum(PerformanceType)
   @IsOptional()
   performanceRole: PerformanceType;
@@ -264,9 +272,8 @@ class Step9Dto {
   @IsArray()
   @IsString({ each: true })
   @Transform(({ value }) => {
-    // If it's already an array (e.g., services[]=A&services[]=B), return as-is
     if (Array.isArray(value)) return value;
-    // If it's a comma-separated string: "A,B,C"
+
     if (typeof value === 'string')
       return value.split(',').map((item) => item.trim());
     return [];

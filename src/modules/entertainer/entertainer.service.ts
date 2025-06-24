@@ -66,6 +66,7 @@ import {
   getTimezoneByCity,
   getTimezoneByLatLng,
 } from 'src/common/utils/slots-utils';
+import { EntertainerCategorySubcategory } from './entities/entertainer-category-subcategory.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -92,6 +93,8 @@ export class EntertainerService {
     private readonly stateRepository: Repository<States>,
     @InjectRepository(AdminUser)
     private readonly adminRepository: Repository<AdminUser>,
+    @InjectRepository(EntertainerCategorySubcategory)
+    private readonly entCatRepository: Repository<EntertainerCategorySubcategory>,
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
     private readonly mediaService: MediaService,
@@ -281,19 +284,32 @@ export class EntertainerService {
   }
   async saveCategory(dto: Step6Dto, userId: number) {
     const { category } = dto;
+
     const entertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
     if (!entertainer) {
-      throw new BadRequestException({
-        mesage: 'Entertainer not found',
-        status: false,
-      });
+      throw new BadRequestException('Entertainer not found');
     }
+
     try {
+      // Delete the existing records
+      await this.entCatRepository.delete({ entertainerId: entertainer.id });
+
+      // Create new empty records (subcategoryIds will be added in step 7)
+      const records = category.map((catId: number) => {
+        return this.entCatRepository.create({
+          entertainerId: entertainer.id,
+          category: { id: catId },
+          subcategoryIds: [],
+        });
+      });
+
+      await this.entCatRepository.save(records);
+
       await this.entertainerRepository.update(
         { id: entertainer.id },
-        { profileStep: 6, category },
+        { profileStep: 6 },
       );
       return {
         message: 'Category saved Successfully',
@@ -311,19 +327,25 @@ export class EntertainerService {
   }
   async saveSpecificCategory(dto: Step7Dto, userId: number) {
     const { specific_category } = dto;
+
     const entertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
+
     if (!entertainer) {
-      throw new BadRequestException({
-        mesage: 'Entertainer not found',
-        status: false,
-      });
+      throw new BadRequestException('Entertainer not found');
     }
     try {
+      for (const item of specific_category) {
+        await this.entCatRepository.update(
+          { entertainerId: entertainer.id, category: { id: item.categoryId } },
+          { subcategoryIds: item.subcategoryIds },
+        );
+      }
+
       await this.entertainerRepository.update(
         { id: entertainer.id },
-        { profileStep: 7, specific_category },
+        { profileStep: 7 },
       );
       return {
         message: 'Specific Category saved Successfully',
@@ -632,14 +654,28 @@ export class EntertainerService {
       });
     }
   }
+
+  // Need Changes in this
   async updateCategory(dto: UpdateStep6Dto, userId: number) {
     const { category } = dto;
 
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
     try {
-      await this.entertainerRepository.update(
-        { user: { id: userId } },
-        { category },
-      );
+      await this.entCatRepository.delete({ entertainerId: entertainer.id });
+
+      // Create new empty records (subcategoryIds will be added in step 7)
+      const records = category.map((catId: number) => {
+        return this.entCatRepository.create({
+          entertainerId: entertainer.id,
+          category: { id: catId },
+          subcategoryIds: [],
+        });
+      });
+
+      await this.entCatRepository.save(records);
       return {
         message: 'Category saved Successfully',
         status: true,
@@ -654,16 +690,23 @@ export class EntertainerService {
       });
     }
   }
+  // This needs to be changed
   async updateSpecificCategory(dto: Step7Dto, userId: number) {
     const { specific_category } = dto;
 
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
     try {
-      await this.entertainerRepository.update(
-        { user: { id: userId } },
-        { specific_category },
-      );
+      for (const item of specific_category) {
+        await this.entCatRepository.update(
+          { entertainerId: entertainer.id, category: { id: item.categoryId } },
+          { subcategoryIds: item.subcategoryIds },
+        );
+      }
       return {
-        message: 'Specific Category updated Successfully',
+        message: 'Specific category updated successfully',
         status: true,
         step: 7,
         data: specific_category,
