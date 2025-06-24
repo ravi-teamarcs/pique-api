@@ -5,6 +5,15 @@ export const VENUE_TYPES = [
   'Memory',
   'Nursing',
   'Rehabilitation',
+  'Senior living',
+  'Private individual/Family',
+  'School',
+  'Restaurant',
+  'Bar/Pub',
+  'Club',
+  'Event Arena',
+  'Hotel',
+  'Other (please describe)',
 ];
 
 export const ENTERTAINER_SKILLS_TYPES = [
