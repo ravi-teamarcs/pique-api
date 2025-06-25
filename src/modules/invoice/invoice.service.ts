@@ -16,7 +16,6 @@ import * as fs from 'fs';
 import { EmailService } from '../Email/email.service';
 import { EntertainerInvoice } from './entities/entertainer-invoice.entity';
 
-
 @Injectable()
 export class InvoiceService {
   constructor(
@@ -74,7 +73,7 @@ export class InvoiceService {
         invoiceDetails.push({ bookingId, eventId });
       }
 
-      const lastInvoice = await this.invoiceRepository
+      const lastInvoice = await this.entertainerInvoiceRepository
         .createQueryBuilder('invoices')
         .orderBy('invoices.id', 'DESC')
         .limit(1)
@@ -89,7 +88,7 @@ export class InvoiceService {
       const formattedDate = this.formatDateForInvoice(issueDate);
       const newInvoiceNumber = `${formattedDate}-${userId}-${lastInvoiceNumber + 1}`;
 
-      const newInvoice = this.invoiceRepository.create({
+      const newInvoice = this.entertainerInvoiceRepository.create({
         invoice_number: newInvoiceNumber,
         user_id: userId,
         event_id: null,
@@ -105,7 +104,8 @@ export class InvoiceService {
         overdue: null,
         booking_id: null,
       });
-      const savedInvoice = await this.invoiceRepository.save(newInvoice);
+      const savedInvoice =
+        await this.entertainerInvoiceRepository.save(newInvoice);
 
       const updatedInvoiceDetails = invoiceDetails.map((item) => ({
         ...item,
@@ -357,7 +357,7 @@ export class InvoiceService {
     page: number = 1,
     pageSize: number = 10,
   ) {
-    const data = await this.invoiceRepository
+    const data = await this.entertainerInvoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('entertainers', 'ent', 'ent.id = invoices.user_id')
       .leftJoin('cities', 'city', 'city.id = ent.city')

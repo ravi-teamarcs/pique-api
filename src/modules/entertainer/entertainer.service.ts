@@ -547,6 +547,10 @@ export class EntertainerService {
     const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
     newPayload['latitude'] = lat;
     newPayload['latitude'] = lng;
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) throw new NotFoundException('Entertainer not found');
     try {
       await this.entertainerRepository.update(
         { user: { id: userId } },
@@ -568,6 +572,11 @@ export class EntertainerService {
   }
   async updateBio(dto: UpdateStep2Dto, userId: number) {
     const { bio } = dto;
+
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) throw new NotFoundException('Entertainer not found');
 
     try {
       await this.entertainerRepository.update(
@@ -593,6 +602,11 @@ export class EntertainerService {
   async updateVaccinationStatus(dto: UpdateStep3Dto, userId: number) {
     const { vaccinated } = dto;
 
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) throw new NotFoundException('Entertainer not found');
+
     try {
       await this.entertainerRepository.update(
         { user: { id: userId } },
@@ -615,6 +629,10 @@ export class EntertainerService {
 
   async updateContactDetails(dto: UpdateStep4Dto, userId: number) {
     const { contactPerson, contactNumber } = dto;
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) throw new NotFoundException('Entertainer not found');
 
     try {
       await this.entertainerRepository.update(
@@ -640,6 +658,11 @@ export class EntertainerService {
   }
   async updateSocialLinks(dto: UpdateStep5Dto, userId: number) {
     const { socialLinks } = dto;
+
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) throw new NotFoundException('Entertainer not found');
 
     try {
       await this.entertainerRepository.update(
@@ -668,6 +691,8 @@ export class EntertainerService {
     const entertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
+
+    if (!entertainer) throw new NotFoundException('Entertainer not found');
 
     try {
       await this.entCatRepository.delete({ entertainerId: entertainer.id });
@@ -703,6 +728,7 @@ export class EntertainerService {
     const entertainer = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
     });
+    if (!entertainer) throw new NotFoundException('Entertainer not found');
 
     try {
       for (const item of specific_category) {
@@ -749,6 +775,10 @@ export class EntertainerService {
   }
   async updateSkills(dto: Step9Dto, userId: number) {
     const { services } = dto;
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    if (!entertainer) throw new NotFoundException('Entertainer not found');
 
     try {
       await this.entertainerRepository.update(
