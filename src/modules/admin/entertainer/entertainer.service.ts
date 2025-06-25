@@ -567,8 +567,14 @@ export class EntertainerService {
     await queryRunner.startTransaction();
 
     const { user, createLogin, entertainer } = dto;
-    const { contactPerson, contactNumber, stageName, ...restDetails } =
-      entertainer;
+    const {
+      contactPerson,
+      contactNumber,
+      stageName,
+      category,
+      specific_category,
+      ...restDetails
+    } = entertainer;
 
     // Remove any undefined properties
 
@@ -579,10 +585,7 @@ export class EntertainerService {
       });
 
       if (!entertainer) {
-        throw new NotFoundException({
-          message: 'Entertainer Not Found',
-          status: false,
-        });
+        throw new NotFoundException('Entertainer not found');
       }
 
       const payload = {
@@ -643,9 +646,10 @@ export class EntertainerService {
       await queryRunner.manager.update(
         Entertainer,
         { id: entertainer.id },
-        // payload,
-        {},
+        payload,
       );
+
+      // 
 
       if (uploadedFiles?.length > 0) {
         await this.mediaService.handleEntertainerMediaUpload(
