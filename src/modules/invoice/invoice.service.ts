@@ -13,14 +13,17 @@ import { InvoiceBooking } from './entities/invoice-booking.entity';
 import * as ejs from 'ejs';
 import * as path from 'path';
 import * as fs from 'fs';
-
 import { EmailService } from '../Email/email.service';
+import { EntertainerInvoice } from './entities/entertainer-invoice.entity';
+
 
 @Injectable()
 export class InvoiceService {
   constructor(
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
+    @InjectRepository(EntertainerInvoice)
+    private readonly entertainerInvoiceRepository: Repository<EntertainerInvoice>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(InvoiceBooking)

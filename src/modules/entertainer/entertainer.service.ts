@@ -69,6 +69,8 @@ import {
   getTimezoneByLatLng,
 } from 'src/common/utils/slots-utils';
 import { EntertainerCategorySubcategory } from './entities/entertainer-category-subcategory.entity';
+import { EntertainerRateCard } from './entities/entertainer-rate-card.entity';
+import { EntertainerRateCardDto } from './dto/rate-card.dto';
 
 @Injectable()
 export class EntertainerService {
@@ -97,6 +99,8 @@ export class EntertainerService {
     private readonly adminRepository: Repository<AdminUser>,
     @InjectRepository(EntertainerCategorySubcategory)
     private readonly entCatRepository: Repository<EntertainerCategorySubcategory>,
+    @InjectRepository(EntertainerRateCard)
+    private readonly entRateRepository: Repository<EntertainerRateCard>,
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
     private readonly mediaService: MediaService,
@@ -2112,6 +2116,54 @@ export class EntertainerService {
       return {
         message: 'sub-categories returned successfully',
         data: categories,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async setEntertainerRateCard(dto: EntertainerRateCardDto) {
+    const { rates } = dto;
+    try {
+      if (rates && rates.length > 0) {
+        for (const rate of rates) {
+          const alreadyExists = await this.entRateRepository.findOne({
+            where: { subcategoryId: rate.subcategoryId },
+          });
+
+          if (alreadyExists) {
+            await this.entRateRepository.update({ id: alreadyExists.id }, rate);
+          } else {
+            const newCategoryRate = this.entRateRepository.create(rate);
+            await this.entRateRepository.save(newCategoryRate);
+          }
+        }
+      }
+      return {
+        message: 'Entertainer rate card set successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getEntertainerRateCard() {
+    try {
+      const entertainerRateCard = await this.entRateRepository
+        .createQueryBuilder('rate')
+        .leftJoin('categories', 'subcat', 'subcat.id = rate.subcategoryId')
+        .select([
+          'subcat.id AS subCategoryId',
+          'subcat.name AS subCategoryName',
+          'rate.basePrice AS basePrice',
+          'rate.pricePerExtra30Min AS pricePerExtra30Min',
+        ])
+        .getRawMany();
+      return {
+        message: 'Entertainer rate card  fetched successfully.',
+        data: entertainerRateCard,
         status: true,
       };
     } catch (error) {

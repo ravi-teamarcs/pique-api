@@ -43,6 +43,7 @@ import { EventsByMonthDto } from './dto/get-events-bymonth.dto';
 import { BookingQueryDto } from './dto/booking-query-dto';
 import { typeMap } from 'src/common/constants/media.constants';
 import { ENTERTAINER_SKILLS_TYPES } from 'src/common/constants/venue.constants';
+import { EntertainerRateCardDto } from './dto/rate-card.dto';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -432,5 +433,20 @@ export class EntertainerController {
       data: ENTERTAINER_SKILLS_TYPES,
       status: true,
     };
+  }
+
+  // Rate Card Logic  Starts (Here)
+  @Patch('category/base-price')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async setEntertainerRateCard(@Body() dto: EntertainerRateCardDto) {
+    return this.entertainerService.setEntertainerRateCard(dto);
+  }
+
+  @Get('category/base-price')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async getEntertainerRateCard() {
+    return this.entertainerService.getEntertainerRateCard();
   }
 }

@@ -17,6 +17,7 @@ import { AdminUser } from '../auth/entities/AdminUser.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { InvoiceEvent } from './entities/invoices-event.entity';
 import { Setting } from '../settings/entities/setting.entity';
+import { EntertainerInvoice } from './entities/entertainer-invoice.entity';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { Setting } from '../settings/entities/setting.entity';
       Venue,
       InvoiceEvent,
       Setting,
+      EntertainerInvoice,
     ]),
     EmailModule,
     NotificationModule,

@@ -25,6 +25,7 @@ import { States } from '../location/entities/state.entity';
 import { NotificationModule } from '../notification/notification.module';
 import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
 import { EntertainerCategorySubcategory } from './entities/entertainer-category-subcategory.entity';
+import { EntertainerRateCard } from './entities/entertainer-rate-card.entity';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { EntertainerCategorySubcategory } from './entities/entertainer-category-
       Cities,
       States,
       AdminUser,
+      EntertainerRateCard
     ]),
     BookingModule,
     MediaModule,

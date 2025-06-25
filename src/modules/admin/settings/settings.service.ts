@@ -69,7 +69,7 @@ export class SettingsService {
             await this.subcatRateRepo.update({ id: alreadyExists.id }, rate);
           } else {
             const newCategoryRate = this.subcatRateRepo.create(rate);
-            this.subcatRateRepo.save(newCategoryRate);
+            await this.subcatRateRepo.save(newCategoryRate);
           }
         }
       }
