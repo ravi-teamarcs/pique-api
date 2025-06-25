@@ -123,7 +123,7 @@ class GeneralInformationDto {
   @Transform(({ value }) => {
     if (typeof value === 'string') {
       try {
-        return JSON.parse(value); // for '[1,2]'
+        return JSON.parse(value); // '[2]' => [2]
       } catch {
         return value.split(',').map((v) => Number(v));
       }
@@ -132,6 +132,7 @@ class GeneralInformationDto {
   })
   @Type(() => Number)
   category: number[];
+  
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CategorySubcategoryDto)
