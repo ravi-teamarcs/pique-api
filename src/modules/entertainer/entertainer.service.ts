@@ -934,6 +934,17 @@ export class EntertainerService {
 
   async findEntertainerById(userId: number) {
     const URL = this.config.get<string>('DEFAULT_MEDIA');
+
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { id: userId },
+    });
+    if (!entertainer)
+      return {
+        message: 'No entertainer Found',
+        data: null,
+        status: false,
+      };
+
     try {
       const entertainer = await this.entertainerRepository
         .createQueryBuilder('entertainer')
