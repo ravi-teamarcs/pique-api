@@ -120,16 +120,25 @@ class GeneralInformationDto {
 
   @IsArray()
   @IsNumber({}, { each: true })
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value); // for '[1,2]'
+      } catch {
+        return value.split(',').map((v) => Number(v));
+      }
+    }
+    return value;
+  })
   @Type(() => Number)
   category: number[];
-
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CategorySubcategoryDto)
   @Transform(({ value }) => {
     if (typeof value === 'string') {
       try {
-        return JSON.parse(value); // parse '[{...}, {...}]'
+        return JSON.parse(value);
       } catch {
         return [];
       }

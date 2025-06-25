@@ -28,7 +28,7 @@ export class CategorySubcategoryDto {
   @Transform(({ value }) => {
     if (typeof value === 'string') {
       try {
-        return JSON.parse(value); // '[1,2,3]'
+        return JSON.parse(value);
       } catch {
         return value.split(',').map((v) => +v);
       }
