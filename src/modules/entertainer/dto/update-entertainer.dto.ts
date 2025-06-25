@@ -138,10 +138,9 @@ class GeneralInformationDto {
     if (typeof value === 'string') {
       try {
         const parsed = JSON.parse(value);
-        console.log('Parsed result:', parsed);
+
         return parsed;
       } catch (e) {
-        console.log('Parse error:', e);
         return [];
       }
     }

@@ -36,8 +36,18 @@ class GeneralInfoDto {
   entertainerName: string;
 
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CategorySubcategoryDto)
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        const parsed = JSON.parse(value);
+        return parsed;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    return value;
+  })
   specific_category: CategorySubcategoryDto[];
 
   @IsString()
