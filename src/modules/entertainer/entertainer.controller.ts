@@ -330,8 +330,13 @@ export class EntertainerController {
   }
 
   @Get('categories/subcategories')
-  getSubCategories(@Query('id', ParseIntPipe) id: number) {
-    return this.entertainerService.getSubCategories(id);
+  getSubCategories(@Query('ids') idsRaw: string) {
+    const ids = idsRaw
+      .split(',')
+      .map((id) => parseInt(id.trim(), 10))
+      .filter((id) => !isNaN(id)); // Optional: filter out invalid numbers
+
+    return this.entertainerService.getSubCategories(ids);
   }
 
   @Get('categories/subcategories/all')

@@ -1425,9 +1425,9 @@ export class EntertainerService {
       status: true,
     };
   }
-  async getSubCategories(catId: number) {
+  async getSubCategories(catId: number[]) {
     const categories = await this.categoryRepository.find({
-      where: { parentId: catId },
+      where: { parentId: In(catId) },
       select: ['id', 'name', 'iconUrl'],
     });
     if (categories.length === 0) {
