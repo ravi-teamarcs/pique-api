@@ -134,16 +134,18 @@ class GeneralInformationDto {
   category: number[];
 
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CategorySubcategoryDto)
   @Transform(({ value }) => {
     if (typeof value === 'string') {
       try {
-        return JSON.parse(value);
+        const parsed = JSON.parse(value);
+        console.log('Parsed result:', parsed);
+        return parsed;
       } catch (e) {
+        console.log('Parse error:', e);
         return [];
       }
     }
+
     return value;
   })
   specific_category: CategorySubcategoryDto[];
