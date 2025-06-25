@@ -917,43 +917,41 @@ export class EntertainerService {
           'subcat',
           'subcat.id = entertainer.specific_category ',
         )
-        .where('entertainer.id = :userId', { userId })
+        .where('entertainer.id = :userId', {
+          userId,
+        })
         .select([
           'entertainer.id AS id',
           'entertainer.name AS stageName',
           'entertainer.entertainer_name AS entertainerName',
-          'entertainer.addressLine1 AS addressLine1',
-          'entertainer.addressLine2 AS addressLine2',
-
           'user.email AS email',
           'user.phoneNumber AS phoneNumber',
           'user.role AS role',
           'city.name AS city',
           'country.name AS country',
           'state.name AS state',
-          'cat.name AS category_name',
-          'subcat.name AS specific_category_name',
+          'entertainer.isPiqueVerified AS isPiqueVerified',
           'entertainer.bio AS bio',
           'entertainer.pricePerEvent AS pricePerEvent',
           'entertainer.performanceRole AS performanceRole',
-
-          'entertainer.city AS city',
-          'entertainer.state AS state',
-          'entertainer.mediaLink AS mediaLink',
-          'entertainer.country AS country',
+          'entertainer.city AS city_code',
+          'entertainer.state AS state_code',
+          'entertainer.country AS country_code',
           'entertainer.zipCode AS zipCode',
-
+          'entertainer.maxTravelDistanceMiles AS maxTravelDistance',
           'entertainer.services AS services',
-
+          'entertainer.mediaLink AS mediaLink',
           'entertainer.vaccinated AS vaccinated',
-          'entertainer.isPiqueVerified AS isPiqueVerified',
           'entertainer.socialLinks AS socialLinks',
           'entertainer.contact_person AS contactPerson',
+          'entertainer.addressLine1 AS addressLine1',
+          'entertainer.addressLine2 AS addressLine2',
+          'entertainer.contact_person AS contactPerson',
           'entertainer.contact_number AS contactNumber',
-          'entertainer.category AS category',
-          'entertainer.specific_category AS specific_category',
           'entertainer.profileStep AS profileStep',
           'entertainer.isProfileComplete AS isProfileComplete',
+          'entertainer.category AS category',
+          'entertainer.specific_category AS specific_category',
         ])
         .addSelect(
           `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM entertainer_media m WHERE m.user_id= entertainer.id AND m.type = 'headshot' LIMIT 1)`,
@@ -962,14 +960,63 @@ export class EntertainerService {
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
         .getRawOne();
-      const { socialLinks, mediaLink, services, isPiqueVerified, ...rest } =
+
+      //  Getting Raw Categories
+      const rawCategories = await this.entCatRepository
+        .createQueryBuilder('ecs')
+        .leftJoin('categories', 'cat', 'cat.id = ecs.category_id') // Category relation
+        .where('ecs.entertainerId = :entertainerId', { entertainerId: userId })
+        .select([
+          'cat.id AS categoryId',
+          'cat.name AS categoryName',
+          'ecs.subcategoryIds AS subcategoryIds',
+        ])
+        .getRawMany();
+
+      const subcategoryIds = rawCategories.flatMap((row) =>
+        typeof row.subcategoryIds === 'string'
+          ? row.subcategoryIds.split(',').map(Number)
+          : [],
+      );
+
+      const uniqueSubcategoryIds = [...new Set(subcategoryIds)];
+
+      //   Now get all the subcategory
+      const subcategories = await this.categoryRepository.find({
+        where: { id: In(uniqueSubcategoryIds) },
+        select: ['id', 'name', 'catslug', 'parentId'],
+      });
+
+      const formatted = rawCategories.map((row) => {
+        const subcatIds =
+          typeof row.subcategoryIds === 'string'
+            ? row.subcategoryIds.split(',').map(Number)
+            : [];
+
+        const specific_category = subcategories
+          .filter((sub) => subcatIds.includes(sub.id))
+          .map((sub) => ({
+            id: sub.id,
+            specificCategoryName: sub.name,
+          }));
+
+        return {
+          id: row.categoryId,
+          categoryName: row.categoryName,
+          specific_category,
+        };
+      });
+
+      const { socialLinks, services, id, isPiqueVerified, ...rest } =
         entertainer;
+
       const payload = {
-        ...rest,
-        services: services,
+        id: Number(id),
+        services: services ? services.split(',') : [],
         isPiqueVerified: isPiqueVerified === 1 ? true : false,
+        ...rest,
         socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
-        mediaLink: mediaLink ? mediaLink.split(',') : [],
+        categories: formatted,
       };
       return {
         message: 'Entertainer Fetched Successfully',
@@ -1124,7 +1171,6 @@ export class EntertainerService {
           subcategoryIds: [],
         });
       });
-
       await this.entCatRepository.save(records);
 
       for (const item of specific_category) {

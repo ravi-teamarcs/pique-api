@@ -132,7 +132,7 @@ class GeneralInformationDto {
   })
   @Type(() => Number)
   category: number[];
-  
+
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CategorySubcategoryDto)
@@ -140,7 +140,7 @@ class GeneralInformationDto {
     if (typeof value === 'string') {
       try {
         return JSON.parse(value);
-      } catch {
+      } catch (e) {
         return [];
       }
     }

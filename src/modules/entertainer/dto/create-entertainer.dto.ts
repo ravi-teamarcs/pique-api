@@ -26,13 +26,7 @@ export class CategorySubcategoryDto {
   @IsArray()
   @IsNumber({}, { each: true })
   @Transform(({ value }) => {
-    if (typeof value === 'string') {
-      try {
-        return JSON.parse(value);
-      } catch {
-        return value.split(',').map((v) => +v);
-      }
-    }
+    if (typeof value === 'string') return JSON.parse(value);
     return value;
   })
   @Type(() => Number)
