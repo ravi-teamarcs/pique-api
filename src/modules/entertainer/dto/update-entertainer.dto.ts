@@ -126,6 +126,16 @@ class GeneralInformationDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => CategorySubcategoryDto)
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value); // parse '[{...}, {...}]'
+      } catch {
+        return [];
+      }
+    }
+    return value;
+  })
   specific_category: CategorySubcategoryDto[];
 
   @IsString()
