@@ -15,6 +15,7 @@ import { PerformanceType, Vaccinated } from 'src/common/enums/entertainer.enum';
 export class CategorySubcategoryDto {
   @IsNumber()
   @IsNotEmpty()
+  @Type(() => Number)
   entertainerId: number;
 
   @IsNumber()

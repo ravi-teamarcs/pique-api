@@ -40,6 +40,7 @@ import {
 import { Cities } from '../location/entities/city.entity';
 import { States } from '../location/entities/state.entity';
 import { GeocodingService } from '../../location/geocoding.service';
+import { EntertainerCategorySubcategory } from 'src/modules/entertainer/entities/entertainer-category-subcategory.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -58,6 +59,8 @@ export class EntertainerService {
     private readonly availabilityRepository: Repository<EntertainerAvailability>,
     @InjectRepository(Setting)
     private readonly settingRepo: Repository<Setting>,
+    @InjectRepository(EntertainerCategorySubcategory)
+    private readonly entCatRepository: Repository<EntertainerCategorySubcategory>,
     @InjectRepository(Cities)
     private readonly cityRepository: Repository<Cities>,
     @InjectRepository(States)
@@ -377,8 +380,14 @@ export class EntertainerService {
     await queryRunner.connect();
     await queryRunner.startTransaction();
     const { createLogin, user, entertainer } = dto;
-    const { contactPerson, contactNumber, stageName, ...restDetails } =
-      entertainer;
+    const {
+      contactPerson,
+      contactNumber,
+      stageName,
+      category,
+      specific_category,
+      ...restDetails
+    } = entertainer;
     try {
       let savedUser = null;
 
@@ -422,6 +431,27 @@ export class EntertainerService {
       });
 
       const savedEntertainer = await queryRunner.manager.save(newEntertainer);
+
+      // Handle new Subcategory logic into this.
+      const records = category.map((catId: number) => {
+        return this.entCatRepository.create({
+          entertainerId: newEntertainer.id,
+          category: { id: catId },
+          subcategoryIds: [],
+        });
+      });
+
+      await this.entCatRepository.save(records);
+
+      for (const item of specific_category) {
+        await this.entCatRepository.update(
+          {
+            entertainerId: newEntertainer.id,
+            category: { id: item.categoryId },
+          },
+          { subcategoryIds: item.subcategoryIds },
+        );
+      }
 
       if (uploadedFiles?.length > 0) {
         await this.mediaService.handleEntertainerMediaUpload(
@@ -609,11 +639,12 @@ export class EntertainerService {
           );
         }
       }
-
+      // Also need chnages here
       await queryRunner.manager.update(
         Entertainer,
         { id: entertainer.id },
-        payload,
+        // payload,
+        {},
       );
 
       if (uploadedFiles?.length > 0) {

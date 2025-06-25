@@ -466,7 +466,6 @@ export class VenueService {
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
     const {
       category = [],
-      sub_category = null,
       page = 1,
       pageSize = 10,
       location = null,
@@ -553,18 +552,56 @@ export class VenueService {
         baseQuery
           .setParameter('lat2', latitude)
           .setParameter('lng2', longitude);
+
+        if (isNearby) {
+          baseQuery
+            .addSelect(
+              `
+    (
+      3959 * acos(
+        cos(radians(:latitude)) *
+        cos(radians(entertainer.latitude)) *
+        cos(radians(entertainer.longitude) - radians(:longitude)) +
+        sin(radians(:latitude)) *
+        sin(radians(entertainer.latitude))
+      )
+    )`,
+              'distance',
+            )
+            .andWhere(
+              `entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL`,
+            )
+            .andWhere(
+              `
+    (
+      3959 * acos(
+        cos(radians(:latitude)) *
+        cos(radians(entertainer.latitude)) *
+        cos(radians(entertainer.longitude) - radians(:longitude)) +
+        sin(radians(:latitude)) *
+        sin(radians(entertainer.latitude))
+      )
+    ) <= :radiusInMiles
+  `,
+            )
+            .setParameters({
+              latitude,
+              longitude,
+              radius,
+            });
+        }
       }
 
       if (startDateTime && endDateTime) {
         baseQuery.andWhere(
           `NOT EXISTS (
-    SELECT 1
-    FROM booking b
-    JOIN event e ON e.id = b.eventId
-    WHERE b.entId = entertainer.id
-      AND e.eventStartDateTime < :startDateTime
-      AND e.eventEndDateTime > :endDateTime
-  )`,
+      SELECT 1
+      FROM booking b
+      JOIN event e ON e.id = b.eventId
+      WHERE b.entId = entertainer.id
+        AND e.eventStartDateTime < :endDateTime
+        AND e.eventEndDateTime > :startDateTime
+    )`,
           {
             startDateTime,
             endDateTime,

@@ -11,7 +11,21 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { CreateUserDto } from 'src/modules/users/dto/users.dto';
+export class CategorySubcategoryDto {
+  @IsNumber()
+  @IsNotEmpty()
+  entertainerId: number;
 
+  @IsNumber()
+  @IsNotEmpty()
+  @Type(() => Number)
+  categoryId: number;
+
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @Type(() => Number)
+  subcategoryIds: number[];
+}
 class GeneralInfoDto {
   @IsString()
   @IsNotEmpty()
@@ -21,19 +35,19 @@ class GeneralInfoDto {
   @IsNotEmpty()
   entertainerName: string;
 
-  @IsNumber()
-  @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
-  category: number;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CategorySubcategoryDto)
+  specific_category: CategorySubcategoryDto[];
 
   @IsString()
   @IsNotEmpty()
   email: string;
 
-  @IsNumber()
-  @IsNotEmpty()
-  @Transform(({ value }) => Number(value))
-  specific_category: number;
+  @IsArray()
+  @IsNumber({}, { each: true })
+  @Type(() => Number)
+  category: number[];
 
   @IsString()
   @IsNotEmpty()

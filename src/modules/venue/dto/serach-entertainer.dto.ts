@@ -9,14 +9,6 @@ import {
 } from 'class-validator';
 
 export class SearchEntertainerDto {
-  @ApiProperty({
-    description: 'Sub_Category of the entertainer',
-    required: false,
-  })
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  sub_category: number;
-
   @ApiProperty({ description: 'Page Number', required: false })
   @IsOptional()
   @IsNumber()
@@ -59,6 +51,7 @@ export class SearchEntertainerDto {
   @IsOptional()
   @IsString()
   location: string;
+
   @ApiProperty({ description: 'Country Id', required: false })
   @IsOptional()
   @IsNumber()
@@ -69,6 +62,7 @@ export class SearchEntertainerDto {
   @IsOptional()
   @IsString()
   startDate: string;
+
   @ApiProperty({ description: 'End Date', required: false })
   @IsOptional()
   @IsString()
