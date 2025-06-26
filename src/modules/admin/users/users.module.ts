@@ -10,6 +10,8 @@ import { Capability } from '../adminuser/entities/capability.entity';
 import { RolesGuardAdmin } from '../auth/roles.guard';
 import { Venue } from '../venue/entities/venue.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { Categories } from '../entertainer/entities/Category.entity';
+import { EntertainerCategorySubcategory } from 'src/modules/entertainer/entities/entertainer-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
       Capability,
       Venue,
       Entertainer,
+      Categories,
+      EntertainerCategorySubcategory,
     ]),
   ],
   controllers: [UsersController],

@@ -16,6 +16,9 @@ import * as bcrypt from 'bcryptjs';
 import { Venue } from '../venue/entities/venue.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { ApprovalQuery } from './Dto/query.dto';
+import { Categories } from '../entertainer/entities/Category.entity';
+import { EntertainerCategorySubcategory } from 'src/modules/entertainer/entities/entertainer-category-subcategory.entity';
+
 @Injectable()
 export class UsersService {
   constructor(
@@ -25,6 +28,10 @@ export class UsersService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(Entertainer)
     private readonly entertainerRepository: Repository<Entertainer>,
+    @InjectRepository(Categories)
+    private readonly categoryRepository: Repository<Categories>,
+    @InjectRepository(EntertainerCategorySubcategory)
+    private readonly entCatRepository: Repository<EntertainerCategorySubcategory>,
   ) {}
 
   async getAllUser({
@@ -77,7 +84,7 @@ export class UsersService {
     if (existingUser) {
       throw new HttpException(
         {
-          message: 'Email Already in Use',
+          message: 'Email already in use',
           error: 'Bad Request',
           status: false,
         },
@@ -216,94 +223,6 @@ export class UsersService {
       throw new InternalServerErrorException(error.message);
     }
   }
-  //Older
-  // private async getVenueApprovalList(
-  //   page: number,
-  //   pageSize: number,
-  //   search: string,
-  // ) {
-  //   const skip = (Number(page) - 1) * Number(pageSize);
-  //   try {
-  //     const res = this.venueRepository
-  //       .createQueryBuilder('venue')
-  //       .leftJoin('users', 'user', ' user.id = venue.userId ')
-  //       .leftJoin('cities', 'city', 'city.id = venue.city')
-  //       .leftJoin('states', 'state', 'state.id = venue.state')
-  //       .leftJoin('countries', 'country', 'country.id = venue.country')
-  //       .leftJoin(
-  //         (qb) =>
-  //           qb
-  //             .select([
-  //               'neighbourhood.venue_id AS nh_venue_id', // Selecting 'venueId' from 'neighbourhood' as 'nh_venue_id'
-  //               `JSON_ARRAYAGG(
-  //          JSON_OBJECT(
-  //            "id", neighbourhood.id,
-  //            "name", neighbourhood.name,
-  //            "contactPerson", neighbourhood.contact_person,
-  //            "contactNumber", neighbourhood.contact_number
-  //          )
-  //        ) AS neighbourhoodDetails`, // Aggregate neighbourhoods into JSON array
-  //             ])
-  //             .from('neighbourhood', 'neighbourhood') // From 'neighbourhood' table
-  //             .groupBy('neighbourhood.venue_id'), // Group by 'venueId' to match venues with neighbourhoods
-  //         'neighbourhoods', // Alias for the subquery
-  //         'neighbourhoods.nh_venue_id = venue.id', // Join condition for neighbourhoods based on venue id
-  //       )
-  //       .select([
-  //         'venue.id AS id',
-  //         'venue.name AS name',
-  //         'venue.addressLine1 AS addressLine1',
-  //         'venue.addressLine2 AS addressLine2',
-  //         'venue.description AS description',
-  //         'venue.city AS city_code',
-  //         'venue.contactPerson AS contactPerson',
-  //         'venue.contactNumber AS contactNumber',
-  //         'venue.city AS city_code',
-  //         'venue.state AS state_code',
-  //         'venue.country AS country_code',
-  //         'venue.zipCode AS zipCode',
-  //         'city.name AS city',
-  //         'state.name AS state',
-  //         'country.name AS country',
-  //         'user.email AS email',
-  //         'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods',
-  //       ])
-  //       .orderBy('venue.id', 'DESC')
-  //       .where("venue.status = 'pending' AND venue.userId IS NOT NULL")
-  //       .andWhere('venue.isProfileComplete =:isProfileComplete', {
-  //         isProfileComplete: true,
-  //       });
-
-  //     if (search) {
-  //       res.andWhere('(venue.name LIKE :search OR user.email LIKE :search)', {
-  //         search: `%${search}%`,
-  //       });
-  //     }
-
-  //     const totalCount = await res.getCount();
-  //     const results = await res
-  //       .orderBy(`user.id`, 'DESC')
-  //       .skip(skip)
-  //       .take(Number(pageSize))
-  //       .getRawMany();
-  //     const parsedResult = results.map(({ neighbourhoods, ...rest }) => ({
-  //       ...rest,
-  //       neighbourhoods: JSON.parse(neighbourhoods),
-  //     }));
-
-  //     return {
-  //       message: `Venue approval list fetched successfully`,
-  //       totalCount,
-  //       page,
-  //       pageSize,
-  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
-  //       data: parsedResult,
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(error.message);
-  //   }
-  // }
 
   private async getVenueApprovalList(
     page: number,
@@ -404,71 +323,7 @@ export class UsersService {
       throw new InternalServerErrorException(error.message);
     }
   }
-  // private async getEntertainerApprovalList(
-  //   page: number,
-  //   pageSize: number,
-  //   search: string,
-  // ) {
-  //   const skip = (Number(page) - 1) * Number(pageSize);
-  //   try {
-  //     const res = this.entertainerRepository
-  //       .createQueryBuilder('ent')
-  //       .leftJoin('users', 'user', ` user.id = ent.userId`)
-  //       .leftJoin('cities', 'city', `city.id = ent.city`)
-  //       .leftJoin('states', 'state', `state.id = ent.state`)
-  //       .leftJoin('countries', 'country', `country.id = ent.country`)
 
-  //       .select([
-  //         `ent.*`,
-  //         'user.id AS user_id',
-  //         'user.email AS user_email',
-  //         'user.status AS user_status',
-  //         'user.isVerified AS user_is_verified',
-  //         'city.name As city_name',
-  //         'country.name As country_name',
-  //         'state.name As state_name',
-  //       ])
-  //       .where("ent.status = 'pending' AND ent.userId IS NOT NULL")
-  //       .andWhere('ent.isProfileComplete =:isProfileComplete', {
-  //         isProfileComplete: true,
-  //       });
-  //     if (search) {
-  //       res.andWhere('(ent.name LIKE :search OR user.email LIKE :search)', {
-  //         search: `%${search}%`,
-  //       });
-  //     }
-
-  //     const totalCount = await res.getCount();
-  //     const results = await res
-  //       .orderBy(`user.id`, 'DESC')
-  //       .skip(skip)
-  //       .take(Number(pageSize))
-  //       .getRawMany();
-
-  //     const parsedResult = results.map(
-  //       ({ services, socialLinks, ...rest }) => ({
-  //         ...rest,
-  //         socialLinks: socialLinks ? JSON.parse(socialLinks) : null,
-  //         services:
-  //           services && typeof services === 'string' && services.trim() !== ''
-  //             ? services.split(',')
-  //             : [],
-  //       }),
-  //     );
-
-  //     return {
-  //       message: `Entertainer approval list fetched successfully`,
-  //       totalCount,
-  //       page,
-  //       pageSize,
-  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
-  //       data: parsedResult,
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(error.message);
-  //   }
-  // }
   private async getEntertainerApprovalList(
     page: number,
     pageSize: number,
@@ -518,14 +373,19 @@ export class UsersService {
         .offset(skip)
         .getRawMany();
 
-      const parsedResult = results.map(
-        ({ services, socialLinks, ...rest }) => ({
-          ...rest,
-          socialLinks: socialLinks ? JSON.parse(socialLinks) : null,
-          services:
-            services && typeof services === 'string' && services.trim() !== ''
-              ? services.split(',')
-              : [],
+      const parsedResult = await Promise.all(
+        results.map(async ({ services, socialLinks, ...rest }) => {
+          const categories = await this.getFormattedCategories(Number(rest.id));
+
+          return {
+            ...rest,
+            socialLinks: socialLinks ? JSON.parse(socialLinks) : null,
+            categories,
+            services:
+              services && typeof services === 'string' && services.trim() !== ''
+                ? services.split(',')
+                : [],
+          };
         }),
       );
 
@@ -538,6 +398,59 @@ export class UsersService {
         data: parsedResult,
         status: true,
       };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getFormattedCategories(entertainerId: number) {
+    try {
+      const rawCategories = await this.entCatRepository
+        .createQueryBuilder('ecs')
+        .leftJoin('categories', 'cat', 'cat.id = ecs.category_id') // Category relation
+        .where('ecs.entertainerId = :entertainerId', { entertainerId })
+        .select([
+          'cat.id AS categoryId',
+          'cat.name AS categoryName',
+          'ecs.subcategoryIds AS subcategoryIds',
+        ])
+        .getRawMany();
+
+      const subcategoryIds = rawCategories.flatMap((row) =>
+        typeof row.subcategoryIds === 'string'
+          ? row.subcategoryIds.split(',').map(Number)
+          : [],
+      );
+
+      const uniqueSubcategoryIds = [...new Set(subcategoryIds)];
+
+      //   Now get all the subcategory
+      const subcategories = await this.categoryRepository.find({
+        where: { id: In(uniqueSubcategoryIds) },
+        select: ['id', 'name', 'catslug', 'parentId'],
+      });
+
+      const formatted = rawCategories.map((row) => {
+        const subcatIds =
+          typeof row.subcategoryIds === 'string'
+            ? row.subcategoryIds.split(',').map(Number)
+            : [];
+
+        const specific_category = subcategories
+          .filter((sub) => subcatIds.includes(sub.id))
+          .map((sub) => ({
+            id: sub.id,
+            specificCategoryName: sub.name,
+          }));
+
+        return {
+          id: row.categoryId,
+          categoryName: row.categoryName,
+          specific_category,
+        };
+      });
+
+      return formatted ?? null;
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }

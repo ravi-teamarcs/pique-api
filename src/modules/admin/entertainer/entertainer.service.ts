@@ -73,96 +73,6 @@ export class EntertainerService {
     private readonly geoService: GeocodingService,
   ) {}
 
-  // async getAllEntertainers(query: GetEntertainerDto) {
-  //   const { page = 1, pageSize = 10, search = '', vaccinated, date } = query; // Default values for pagination
-  //   const skip = (page - 1) * pageSize; // Calculate records to skip
-
-  //   const baseQuery = this.entertainerRepository
-  //     .createQueryBuilder('entertainer')
-  //     .leftJoin('countries', 'country', 'country.id = entertainer.country')
-  //     .leftJoin('states', 'state', 'state.id = entertainer.state')
-  //     .leftJoin('cities', 'city', 'city.id = entertainer.city')
-  //     .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
-  //     .leftJoin(
-  //       'categories',
-  //       'subcat',
-  //       'subcat.id = entertainer.specific_category',
-  //     )
-  //     .where('entertainer.status IN (:...statuses)', {
-  //       statuses: ['active', 'inactive'],
-  //     })
-  //     .select([
-  //       'entertainer.id AS id',
-  //       'entertainer.name AS name',
-  //       'entertainer.entertainer_name AS entertainer_name',
-  //       'entertainer.dob AS dob',
-  //       'entertainer.bio AS bio',
-  //       'entertainer.performanceRole AS performanceRole',
-  //       'entertainer.socialLinks AS socialLinks',
-  //       'entertainer.pricePerEvent AS pricePerEvent',
-  //       'entertainer.zipCode AS ZipCode',
-  //       "COALESCE(entertainer.services, '') AS services",
-  //       'entertainer.contact_person AS contactPerson',
-  //       'entertainer.contact_number AS ContactNumber',
-  //       'entertainer.address AS address',
-  //       'entertainer.status AS status',
-  //       'entertainer.vaccinated AS vaccinated',
-  //       'city.name AS city',
-  //       'country.name AS country',
-  //       'state.name AS state',
-  //     ]);
-
-  //   if (search) {
-  //     baseQuery.where('entertainer.name LIKE :search', {
-  //       search: `%${search}%`,
-  //     });
-  //   }
-  //   if (vaccinated) {
-  //     baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
-  //       vaccinated,
-  //     });
-  //   }
-
-  //   if (date) {
-  //     baseQuery.andWhere(
-  //       (qb) => {
-  //         return `NOT EXISTS (
-  //           SELECT 1 FROM booking b
-  //           WHERE b.entId = entertainer.id AND b.showDate = :blockedDate
-  //         )`;
-  //       },
-  //       { blockedDate: date },
-  //     );
-  //   }
-
-  //   // Clone for count
-  //   const total = await baseQuery.getCount();
-
-  //   // Add selects for main query
-  //   const records = await baseQuery
-  //     .orderBy('entertainer.name', 'DESC')
-  //     .skip(skip)
-  //     .take(pageSize)
-  //     .getRawMany();
-
-  //   const parsedRecords = await Promise.all(
-  //     records.map(async ({ services, id, pricePerEvent, ...rest }) => ({
-  //       // services: services ? services.split(',') : [],
-  //       id: Number(id),
-  //       priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
-  //       pricePerEvent,
-  //       ...rest,
-  //     })),
-  //   );
-
-  //   return {
-  //     message: 'Entertainers fetched Sucessfully.',
-  //     records: parsedRecords,
-  //     total,
-  //     pageSize,
-  //     currentPage: page, // Total count of entertainers
-  //   };
-  // }
   async getAllEntertainers(query: GetEntertainerDto) {
     const { page = 1, pageSize = 10, search = '', vaccinated, date } = query;
     const skip = (page - 1) * pageSize;
@@ -173,24 +83,15 @@ export class EntertainerService {
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
       .leftJoin('states', 'state', 'state.id = entertainer.state')
       .leftJoin('cities', 'city', 'city.id = entertainer.city')
-      .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
-      .leftJoin(
-        'categories',
-        'subcat',
-        'subcat.id = entertainer.specific_category',
-      )
       .where('entertainer.status IN (:...statuses)', {
         statuses: ['active', 'inactive'],
       });
 
-    // Add search condition
     if (search) {
       baseQuery.andWhere('entertainer.entertainerName LIKE :search', {
         search: `%${search}%`,
       });
     }
-
-    // Add vaccination filter
     if (vaccinated !== undefined) {
       baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
         vaccinated,
@@ -217,7 +118,6 @@ export class EntertainerService {
         'entertainer.id AS id',
         'entertainer.name AS name',
         'entertainer.entertainer_name AS entertainer_name',
-        'entertainer.dob AS dob',
         'entertainer.bio AS bio',
         'entertainer.email AS email',
         'entertainer.isPiqueVerified AS isPiqueVerified',
@@ -228,7 +128,6 @@ export class EntertainerService {
         "COALESCE(entertainer.services, '') AS services",
         'entertainer.contact_person AS contactPerson',
         'entertainer.contact_number AS ContactNumber',
-        'entertainer.address AS address',
         'entertainer.status AS status',
         'entertainer.mediaLink AS mediaLink',
         'entertainer.vaccinated AS vaccinated',
@@ -242,6 +141,7 @@ export class EntertainerService {
       .getRawMany();
 
     // Process the records
+
     const parsedRecords = await Promise.all(
       records.map(
         async ({
@@ -251,20 +151,25 @@ export class EntertainerService {
           pricePerEvent,
           isPiqueVerified,
           ...rest
-        }) => ({
-          id: Number(id),
-          services: services ? services.split(',') : [],
-          isPiqueVerified: isPiqueVerified === 1 ? true : false, // Convert to boolean
-          socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
-          priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
-          pricePerEvent,
-          ...rest,
-        }),
+        }) => {
+          const categories = await this.getFormattedCategories(Number(id));
+
+          return {
+            id: Number(id),
+            services: services ? services.split(',') : [],
+            isPiqueVerified: isPiqueVerified === 1 ? true : false, // Convert to boolean
+            socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
+            priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
+            pricePerEvent,
+            categories,
+            ...rest,
+          };
+        },
       ),
     );
 
     return {
-      message: 'Entertainers fetched Successfully.',
+      message: 'Entertainers fetched successfully.',
       records: parsedRecords,
       total,
       pageSize,
@@ -281,12 +186,7 @@ export class EntertainerService {
         .leftJoin('countries', 'country', 'country.id = entertainer.country')
         .leftJoin('states', 'state', 'state.id = entertainer.state')
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
-        .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
-        .leftJoin(
-          'categories',
-          'subcat',
-          'subcat.id = entertainer.specific_category',
-        )
+
         .leftJoin(
           (qb) =>
             qb
@@ -322,11 +222,6 @@ export class EntertainerService {
           'entertainer.bio AS bio',
           'entertainer.addressLine1 AS addressLine1',
           'entertainer.addressLine2 AS addressLine2',
-          'entertainer.pricePerEvent AS pricePerEvent',
-          'entertainer.category AS category',
-          'entertainer.specific_category AS specific_category',
-          'cat.name AS categoryName',
-          'subcat.name AS specificCategoryName',
           'entertainer.performanceRole AS performanceRole',
           'entertainer.socialLinks AS socialLinks',
           'entertainer.zipCode AS ZipCode',
@@ -341,10 +236,15 @@ export class EntertainerService {
           'state.name AS state',
           'COALESCE(media.mediaDetails, "[]") AS media',
           'user.createdByAdmin AS createdByAdmin',
+          'entertainer.pricePerEvent AS pricePerEvent',
         ])
         .where('entertainer.id=:entertainerId', { entertainerId })
         .setParameter('serverUri', this.config.get<string>('BASE_URL'))
         .getRawOne();
+
+      const categories = await this.getFormattedCategories(
+        Number(entertainerId),
+      );
 
       if (res.createdByAdmin === 1) {
         const data = await this.tempRepository.findOne({
@@ -353,10 +253,11 @@ export class EntertainerService {
         res['password'] = data?.password;
       }
       return {
-        message: 'Entertainer Details fetched Successfully',
+        message: 'Entertainer details fetched successfully',
         records: {
           id: Number(res.id),
           ...res,
+          categories,
           isPiqueVerified: res.isPiqueVerified === 1 ? true : false,
           media: JSON.parse(res.media),
           socialLinks: JSON.parse(res.socialLinks),
@@ -649,7 +550,7 @@ export class EntertainerService {
         payload,
       );
 
-      // 
+      //
 
       if (uploadedFiles?.length > 0) {
         await this.mediaService.handleEntertainerMediaUpload(
@@ -659,7 +560,7 @@ export class EntertainerService {
       }
       await queryRunner.commitTransaction();
       return {
-        message: 'Entertainer updated   with media Sucessfully ',
+        message: 'Entertainer updated with media sucessfully ',
         status: true,
       };
     } catch (error) {
@@ -1143,5 +1044,58 @@ export class EntertainerService {
       data: savedVerification,
       status: true,
     };
+  }
+
+  async getFormattedCategories(entertainerId: number) {
+    try {
+      const rawCategories = await this.entCatRepository
+        .createQueryBuilder('ecs')
+        .leftJoin('categories', 'cat', 'cat.id = ecs.category_id') // Category relation
+        .where('ecs.entertainerId = :entertainerId', { entertainerId })
+        .select([
+          'cat.id AS categoryId',
+          'cat.name AS categoryName',
+          'ecs.subcategoryIds AS subcategoryIds',
+        ])
+        .getRawMany();
+
+      const subcategoryIds = rawCategories.flatMap((row) =>
+        typeof row.subcategoryIds === 'string'
+          ? row.subcategoryIds.split(',').map(Number)
+          : [],
+      );
+
+      const uniqueSubcategoryIds = [...new Set(subcategoryIds)];
+
+      //   Now get all the subcategory
+      const subcategories = await this.CategoryRepository.find({
+        where: { id: In(uniqueSubcategoryIds) },
+        select: ['id', 'name', 'catslug', 'parentId'],
+      });
+
+      const formatted = rawCategories.map((row) => {
+        const subcatIds =
+          typeof row.subcategoryIds === 'string'
+            ? row.subcategoryIds.split(',').map(Number)
+            : [];
+
+        const specific_category = subcategories
+          .filter((sub) => subcatIds.includes(sub.id))
+          .map((sub) => ({
+            id: sub.id,
+            specificCategoryName: sub.name,
+          }));
+
+        return {
+          id: row.categoryId,
+          categoryName: row.categoryName,
+          specific_category,
+        };
+      });
+
+      return formatted ?? null;
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }
