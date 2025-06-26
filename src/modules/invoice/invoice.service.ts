@@ -16,6 +16,9 @@ import * as fs from 'fs';
 import { EmailService } from '../Email/email.service';
 import { EntertainerInvoice } from './entities/entertainer-invoice.entity';
 import { EntertainerRateCard } from '../entertainer/entities/entertainer-rate-card.entity';
+import { SpecialSubcategoryPrice } from '../admin/settings/entities/special-subcategory-prices.entity';
+import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.entity';
+import { RateCardDto } from '../admin/settings/dto/rate-card.dto';
 
 @Injectable()
 export class InvoiceService {
@@ -30,6 +33,8 @@ export class InvoiceService {
     private readonly invoiceBookingRepo: Repository<InvoiceBooking>,
     @InjectRepository(EntertainerRateCard)
     private readonly entertainerRateCardRepo: Repository<EntertainerRateCard>,
+    @InjectRepository(SubcategoryRate)
+    private readonly adminRateCardRepo: Repository<SubcategoryRate>,
     private readonly emailService: EmailService,
   ) {}
 
@@ -37,7 +42,11 @@ export class InvoiceService {
   async generateInvoice(userId: number, eventIds: number[], monthStr: string) {
     try {
       let total = 0;
+
       const invoiceDetails = [];
+      const rateCard = await this.getEntertainerRateCard(Number(userId));
+      const adminRateCard = await this.adminRateCardRepo.find({});
+
       for (const eventid of eventIds) {
         const {
           eventStartDateTime,
@@ -64,14 +73,32 @@ export class InvoiceService {
             'ent.pricePerEvent AS pricePerEvent',
           ])
           .getRawOne();
-
+        let subcategoryId;
         // Get entertainer rate Card If he set it  otherwise apply admin/rates
+        let rateCardObj =
+          rateCard?.filter((item) => item.subcategoryId == subcategoryId) || [];
+
+        // if (rateCardObj.length === 0) {
+        //   rateCardObj =
+        //     adminRateCard?.filter(
+        //       (item) => item.subcategoryId == subcategoryId,
+        //     ) || [];
+        // }
+
+        if (rateCardObj.length === 0) {
+          throw new BadRequestException(
+            'Invoice cannot be generated: no rate found',
+          );
+        }
+
+        const pricePerHour = Number(rateCardObj[0].basePrice);
 
         const durationInHours = this.getDurationInHours(
           eventStartDateTime,
           eventEndDateTime,
         );
-        const totalAmount = pricePerEvent * durationInHours;
+        // calculation of Total Amount
+        const totalAmount = pricePerHour * durationInHours;
         total += totalAmount;
 
         invoiceDetails.push({ bookingId, eventId });
@@ -108,6 +135,7 @@ export class InvoiceService {
         overdue: null,
         booking_id: null,
       });
+
       const savedInvoice =
         await this.entertainerInvoiceRepository.save(newInvoice);
 
@@ -126,7 +154,7 @@ export class InvoiceService {
       }
 
       return {
-        message: 'Invoice generated Successfully',
+        message: 'Invoice generated successfully',
         data: newInvoice,
         status: true,
       };

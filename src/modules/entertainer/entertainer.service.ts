@@ -934,10 +934,10 @@ export class EntertainerService {
 
   async findEntertainerById(userId: number) {
     const URL = this.config.get<string>('DEFAULT_MEDIA');
-
     const entertainer = await this.entertainerRepository.findOne({
       where: { id: userId },
     });
+
     if (!entertainer)
       return {
         message: 'No entertainer Found',
@@ -1070,7 +1070,6 @@ export class EntertainerService {
     }
   }
   async findEntertainerByUserId(userId: number) {
-   
     const URL = this.config.get<string>('DEFAULT_MEDIA');
     const entertainerData = await this.entertainerRepository.findOne({
       where: { user: { id: userId } },
@@ -1142,7 +1141,9 @@ export class EntertainerService {
       const rawCategories = await this.entCatRepository
         .createQueryBuilder('ecs')
         .leftJoin('categories', 'cat', 'cat.id = ecs.category_id') // Category relation
-        .where('ecs.entertainerId = :entertainerId', { entertainerId: userId })
+        .where('ecs.entertainerId = :entertainerId', {
+          entertainerId: entertainerData.id,
+        })
         .select([
           'cat.id AS categoryId',
           'cat.name AS categoryName',
