@@ -494,7 +494,7 @@ export class EntertainerService {
 
       await this.entertainerRepository.update(
         { id: ent.id },
-        { mediaLink, isProfileComplete: true, profileStep: 10 },
+        { mediaLink: mediaLink, isProfileComplete: true, profileStep: 10 },
       );
 
       let admins = await this.adminRepository.find({ where: { role: '1' } });
