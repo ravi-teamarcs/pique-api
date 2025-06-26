@@ -34,12 +34,15 @@ import * as ejs from 'ejs';
 import * as path from 'path';
 import * as fs from 'fs';
 import { enUS } from 'date-fns/locale';
+import { EntertainerInvoice } from 'src/modules/invoice/entities/entertainer-invoice.entity';
 
 @Injectable()
 export class InvoiceService {
   constructor(
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
+    @InjectRepository(EntertainerInvoice)
+    private readonly entInvoiceRepository: Repository<EntertainerInvoice>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(Venue)
@@ -558,7 +561,7 @@ export class InvoiceService {
   ) {
     const skip = (page - 1) * pageSize;
 
-    const data = await this.invoiceRepository
+    const data = await this.entInvoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('entertainers', 'ent', 'ent.id = invoices.user_id')
       .leftJoin('users', 'user', 'user.id = ent.userId')

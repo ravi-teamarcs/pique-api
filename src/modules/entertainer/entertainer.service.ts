@@ -1069,6 +1069,144 @@ export class EntertainerService {
       });
     }
   }
+  async findEntertainerByUserId(userId: number) {
+   
+    const URL = this.config.get<string>('DEFAULT_MEDIA');
+    const entertainerData = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    if (!entertainerData)
+      return {
+        message: 'No entertainer Found',
+        data: null,
+        status: false,
+      };
+
+    try {
+      const entertainer = await this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('users', 'user', 'user.id = entertainer.userId')
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin('categories', 'cat', 'cat.id = entertainer.category ')
+        .leftJoin(
+          'categories',
+          'subcat',
+          'subcat.id = entertainer.specific_category ',
+        )
+        .where('entertainer.id = :userId', {
+          userId: entertainerData.id,
+        })
+        .select([
+          'entertainer.id AS id',
+          'entertainer.name AS stageName',
+          'entertainer.entertainer_name AS entertainerName',
+          'user.email AS email',
+          'user.phoneNumber AS phoneNumber',
+          'user.role AS role',
+          'city.name AS city',
+          'country.name AS country',
+          'state.name AS state',
+          'entertainer.isPiqueVerified AS isPiqueVerified',
+          'entertainer.bio AS bio',
+          'entertainer.pricePerEvent AS pricePerEvent',
+          'entertainer.performanceRole AS performanceRole',
+          'entertainer.city AS city_code',
+          'entertainer.state AS state_code',
+          'entertainer.country AS country_code',
+          'entertainer.zipCode AS zipCode',
+          'entertainer.maxTravelDistanceMiles AS maxTravelDistance',
+          'entertainer.services AS services',
+          'entertainer.mediaLink AS mediaLink',
+          'entertainer.vaccinated AS vaccinated',
+          'entertainer.socialLinks AS socialLinks',
+          'entertainer.contact_person AS contactPerson',
+          'entertainer.addressLine1 AS addressLine1',
+          'entertainer.addressLine2 AS addressLine2',
+          'entertainer.contact_person AS contactPerson',
+          'entertainer.contact_number AS contactNumber',
+          'entertainer.profileStep AS profileStep',
+          'entertainer.isProfileComplete AS isProfileComplete',
+        ])
+        .addSelect(
+          `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM entertainer_media m WHERE m.user_id= entertainer.id AND m.type = 'headshot' LIMIT 1)`,
+          'headshotUrl',
+        )
+        .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', URL)
+        .getRawOne();
+
+      //  Getting Raw Categories
+      const rawCategories = await this.entCatRepository
+        .createQueryBuilder('ecs')
+        .leftJoin('categories', 'cat', 'cat.id = ecs.category_id') // Category relation
+        .where('ecs.entertainerId = :entertainerId', { entertainerId: userId })
+        .select([
+          'cat.id AS categoryId',
+          'cat.name AS categoryName',
+          'ecs.subcategoryIds AS subcategoryIds',
+        ])
+        .getRawMany();
+
+      const subcategoryIds = rawCategories.flatMap((row) =>
+        typeof row.subcategoryIds === 'string'
+          ? row.subcategoryIds.split(',').map(Number)
+          : [],
+      );
+
+      const uniqueSubcategoryIds = [...new Set(subcategoryIds)];
+
+      //   Now get all the subcategory
+      const subcategories = await this.categoryRepository.find({
+        where: { id: In(uniqueSubcategoryIds) },
+        select: ['id', 'name', 'catslug', 'parentId'],
+      });
+
+      const formatted = rawCategories.map((row) => {
+        const subcatIds =
+          typeof row.subcategoryIds === 'string'
+            ? row.subcategoryIds.split(',').map(Number)
+            : [];
+
+        const specific_category = subcategories
+          .filter((sub) => subcatIds.includes(sub.id))
+          .map((sub) => ({
+            id: sub.id,
+            specificCategoryName: sub.name,
+          }));
+
+        return {
+          id: row.categoryId,
+          categoryName: row.categoryName,
+          specific_category,
+        };
+      });
+
+      const { socialLinks, services, id, isPiqueVerified, ...rest } =
+        entertainer;
+
+      const payload = {
+        id: Number(id),
+        services: services ? services.split(',') : [],
+        isPiqueVerified: isPiqueVerified === 1 ? true : false,
+        ...rest,
+        socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
+        categories: formatted,
+      };
+      return {
+        message: 'Entertainer Fetched Successfully',
+        data: payload,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 
   async findOne(id: number, userId: number) {
     const entertainer = await this.entertainerRepository.findOne({

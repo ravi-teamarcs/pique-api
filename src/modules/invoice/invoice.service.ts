@@ -15,6 +15,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { EmailService } from '../Email/email.service';
 import { EntertainerInvoice } from './entities/entertainer-invoice.entity';
+import { EntertainerRateCard } from '../entertainer/entities/entertainer-rate-card.entity';
 
 @Injectable()
 export class InvoiceService {
@@ -27,6 +28,8 @@ export class InvoiceService {
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(InvoiceBooking)
     private readonly invoiceBookingRepo: Repository<InvoiceBooking>,
+    @InjectRepository(EntertainerRateCard)
+    private readonly entertainerRateCardRepo: Repository<EntertainerRateCard>,
     private readonly emailService: EmailService,
   ) {}
 
@@ -62,12 +65,13 @@ export class InvoiceService {
           ])
           .getRawOne();
 
+        // Get entertainer rate Card If he set it  otherwise apply admin/rates
+
         const durationInHours = this.getDurationInHours(
           eventStartDateTime,
           eventEndDateTime,
         );
         const totalAmount = pricePerEvent * durationInHours;
-
         total += totalAmount;
 
         invoiceDetails.push({ bookingId, eventId });
@@ -555,5 +559,19 @@ export class InvoiceService {
       .join('');
 
     return `${initials}${entertainerId}`;
+  }
+
+  async getEntertainerRateCard(entertainerId: number) {
+    try {
+      const rateCard = await this.entertainerRateCardRepo.find({
+        where: { entertainerId },
+        select: ['subcategoryId', 'basePrice', 'pricePerExtra30Min', 'id'],
+      });
+
+      if (!rateCard) return null;
+      return rateCard;
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }
