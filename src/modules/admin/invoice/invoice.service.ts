@@ -35,6 +35,8 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { enUS } from 'date-fns/locale';
 import { EntertainerInvoice } from 'src/modules/invoice/entities/entertainer-invoice.entity';
+import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
+import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 
 @Injectable()
 export class InvoiceService {
@@ -53,9 +55,13 @@ export class InvoiceService {
     private readonly eventRepository: Repository<Event>,
     @InjectRepository(Setting)
     private readonly settingRepo: Repository<Setting>,
-
     @InjectRepository(InvoiceEvent)
     private readonly invEventRepository: Repository<InvoiceEvent>,
+
+    @InjectRepository(SubcategoryRate)
+    private readonly adminRateCardRepository: Repository<SubcategoryRate>,
+    @InjectRepository(InvoiceEvent)
+    private readonly specialRateCardRepository: Repository<SpecialSubcategoryPrice>,
 
     private readonly emailService: EmailService,
     private readonly notifyService: NotificationService,
@@ -203,6 +209,8 @@ export class InvoiceService {
         parsedRecord.eventStartDateTime,
         parsedRecord.eventEndDateTime,
       ); // (duartion)
+
+      //   New Logic
 
       const totalAmount = this.roundToTwo(pricePerHour * durationInHours);
 
@@ -781,6 +789,7 @@ export class InvoiceService {
       .select([
         'booking.id AS id',
         'booking.venueId AS venueId',
+        'booking.subcategoryId AS subcategoryId',
         'ent.id AS entertainerId',
         'ent.pricePerEvent AS pricePerHour',
         'event.id AS eventId',
@@ -794,10 +803,42 @@ export class InvoiceService {
 
     const bookingWithMarkup = await Promise.all(
       bookings.map(async ({ pricePerHour, ...book }) => {
+        let newPricePerHour;
+
+        // First fetch Entertainer Admin Rate  Card (New Rate Card Logic)
+
+        const adminRateCard = await this.adminRateCardRepository.find();
+        const specialRateCard = await this.specialRateCardRepository.find({
+          where: {
+            date: new Date(book.eventStartDateTime).toISOString().split('T')[0],
+          },
+        });
+
+        // If special rate card is available then use it otherwise use admin rate card.
+
+        if (specialRateCard?.length > 0) {
+          const rateCard = specialRateCard.find(
+            (rate) => rate.subcategoryId === book.subcategoryId,
+          );
+
+          if (rateCard) {
+            newPricePerHour = rateCard.specialPrice;
+          }
+        } else if (adminRateCard?.length > 0) {
+          const rateCard = adminRateCard.find(
+            (rate) => rate.subcategoryId === book.subcategoryId,
+          );
+          if (rateCard) {
+            newPricePerHour = rateCard.basePrice;
+          }
+        }
+
+        if (!newPricePerHour) return;
+
         return {
           ...book,
           priceWithMarkup: await this.addMarkupToEntertainer(
-            Number(pricePerHour),
+            Number(newPricePerHour),
           ),
         };
       }),

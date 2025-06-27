@@ -44,6 +44,7 @@ export class InvoiceService {
       let total = 0;
 
       const invoiceDetails = [];
+
       const rateCard = await this.getEntertainerRateCard(Number(userId));
       const adminRateCard = await this.adminRateCardRepo.find({});
 
@@ -53,6 +54,7 @@ export class InvoiceService {
           eventEndDateTime,
           bookingId,
           eventId,
+          subcategoryId,
           pricePerEvent,
         } = await this.bookingRepository
           .createQueryBuilder('booking')
@@ -66,6 +68,7 @@ export class InvoiceService {
           .select([
             'booking.id AS bookingId',
             'booking.eventId AS eventId',
+            'booking.subcategoryId AS subcategoryId',
             'event.title AS eventName',
             'event.description AS eventDescription',
             'event.eventStartDateTime AS eventStartDateTime',
@@ -73,17 +76,19 @@ export class InvoiceService {
             'ent.pricePerEvent AS pricePerEvent',
           ])
           .getRawOne();
-        let subcategoryId;
+
+        let rateCardObj: any;
+
         // Get entertainer rate Card If he set it  otherwise apply admin/rates
-        let rateCardObj =
+        rateCardObj =
           rateCard?.filter((item) => item.subcategoryId == subcategoryId) || [];
 
-        // if (rateCardObj.length === 0) {
-        //   rateCardObj =
-        //     adminRateCard?.filter(
-        //       (item) => item.subcategoryId == subcategoryId,
-        //     ) || [];
-        // }
+        if (rateCardObj.length === 0) {
+          rateCardObj =
+            adminRateCard?.filter(
+              (item) => item.subcategoryId == subcategoryId,
+            ) || [];
+        }
 
         if (rateCardObj.length === 0) {
           throw new BadRequestException(

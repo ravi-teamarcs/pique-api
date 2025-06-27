@@ -18,6 +18,8 @@ import { Venue } from '../venue/entities/venue.entity';
 import { InvoiceEvent } from './entities/invoices-event.entity';
 import { Setting } from '../settings/entities/setting.entity';
 import { EntertainerInvoice } from './entities/entertainer-invoice.entity';
+import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
+import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { EntertainerInvoice } from './entities/entertainer-invoice.entity';
       InvoiceEvent,
       Setting,
       EntertainerInvoice,
+      SpecialSubcategoryPrice,
+      SubcategoryRate,
     ]),
     EmailModule,
     NotificationModule,

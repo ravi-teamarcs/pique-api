@@ -65,6 +65,7 @@ export class BookingController {
   getAllBookingById(@Query() query: BookingQueryDto, @Param('id') userId) {
     return this.bookingService.getAllBookingById(query, Number(userId));
   }
+
   @ApiOperation({
     description: 'Enable Admin To Create booking on behalf of Venue. ',
   })
@@ -135,6 +136,7 @@ export class BookingController {
     return this.bookingService.removeBooking(id);
   }
 
+  // Remove Entertainer for Booking
   @Patch('remove/:bookingId')
   @Roles('super-admin')
   removeEntertainerFromBooking(

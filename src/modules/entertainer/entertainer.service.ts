@@ -1608,7 +1608,7 @@ export class EntertainerService {
   async getSubCategories(catId: number[]) {
     const categories = await this.categoryRepository.find({
       where: { parentId: In(catId) },
-      select: ['id', 'name', 'iconUrl'],
+      select: ['id', 'name', 'iconUrl', 'parentId'],
     });
     if (categories.length === 0) {
       return { message: 'Sub-categories not found', categories: null };

@@ -55,6 +55,12 @@ export class Booking {
   @Column({ type: 'date', nullable: true })
   showDate: Date;
 
+  @Column({ name: 'category_id' })
+  categoryId: number;
+
+  @Column({ name: 'subcategory_id' })
+  subcategoryId: number;
+
   // Also Add the new column
   @Column({ type: 'timestamp' })
   showStartDateTime: Date;

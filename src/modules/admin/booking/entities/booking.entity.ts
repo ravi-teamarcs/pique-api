@@ -7,7 +7,6 @@ import {
   ManyToOne,
 } from 'typeorm';
 import { User } from '../../users/entities/users.entity';
-import { truncate } from 'fs';
 
 @Entity('booking')
 export class Booking {
@@ -67,6 +66,12 @@ export class Booking {
 
   @Column({ nullable: true })
   specialNotes: string;
+
+  @Column({ name: 'category_id' })
+  categoryId: number;
+
+  @Column({ name: 'subcategory_id' })
+  subcategoryId: number;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
