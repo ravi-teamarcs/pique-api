@@ -532,7 +532,7 @@ export class EntertainerService {
           });
 
           if (alreadyExists)
-            throw new BadRequestException({ message: 'Email Already in Use' });
+            throw new BadRequestException({ message: 'Email already in use' });
 
           const hashedPassword = await bcrypt.hash(user.password, 10);
           const newUser = this.userRepository.create({
@@ -555,8 +555,27 @@ export class EntertainerService {
         { id: entertainer.id },
         payload,
       );
+      // New Logic to update
+      await this.entCatRepository.delete({ entertainerId: entertainer.id });
+      const records = category.map((catId: number) => {
+        return this.entCatRepository.create({
+          entertainerId: entertainer.id,
+          category: { id: catId },
+          subcategoryIds: [],
+        });
+      });
 
-      //
+      await this.entCatRepository.save(records);
+
+      for (const item of specific_category) {
+        await this.entCatRepository.update(
+          {
+            entertainerId: entertainer.id,
+            category: { id: item.categoryId },
+          },
+          { subcategoryIds: item.subcategoryIds },
+        );
+      }
 
       if (uploadedFiles?.length > 0) {
         await this.mediaService.handleEntertainerMediaUpload(
