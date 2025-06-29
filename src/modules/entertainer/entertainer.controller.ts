@@ -44,6 +44,7 @@ import { BookingQueryDto } from './dto/booking-query-dto';
 import { typeMap } from 'src/common/constants/media.constants';
 import { ENTERTAINER_SKILLS_TYPES } from 'src/common/constants/venue.constants';
 import { EntertainerRateCardDto } from './dto/rate-card.dto';
+import { stringify } from 'querystring';
 
 @ApiTags('Entertainers')
 @ApiBearerAuth()
@@ -337,10 +338,13 @@ export class EntertainerController {
 
   @Get('categories/subcategories')
   getSubCategories(@Query('ids') idsRaw: string) {
-    const ids = idsRaw
-      .split(',')
-      .map((id) => parseInt(id.trim(), 10))
-      .filter((id) => !isNaN(id)); // Optional: filter out invalid numbers
+    const ids =
+      typeof idsRaw === 'string'
+        ? idsRaw
+            .split(',')
+            .map((id) => parseInt(id.trim(), 10))
+            .filter((id) => !isNaN(id))
+        : [];
 
     return this.entertainerService.getSubCategories(ids);
   }
