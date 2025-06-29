@@ -2,15 +2,6 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, IsEnum, IsNumber } from 'class-validator';
 
 export class CreateBookingDto {
-  // @ApiProperty({ example: '12:10:01', description: 'Timing of the Show' })
-  // @IsString()
-  // @IsNotEmpty()
-  // showTime: string;
-
-  // @ApiProperty({ example: '2024-01-17', description: 'Date of the Show' })
-  // @IsString()
-  // @IsNotEmpty()
-  // showDate: string;
   @IsString()
   @IsNotEmpty()
   showStartDateTime: string;
@@ -23,10 +14,6 @@ export class CreateBookingDto {
   @IsString()
   specialNotes?: string;
 
-  // @ApiProperty({ example: 1, description: 'Reference to the Venue' })
-  // @IsNumber()
-  // @IsNotEmpty()
-  // venueId: number;
   @ApiProperty({ example: 1, description: 'Reference to the Entertainers' })
   @IsNumber()
   @IsNotEmpty()
@@ -39,10 +26,11 @@ export class CreateBookingDto {
   @IsNotEmpty()
   eventId: number;
 
-  @ApiProperty({
-    example: 'soloist',
-    description: 'Performance type of entertainer',
-  })
+  @IsNumber()
   @IsNotEmpty()
-  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
+  categoryId: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  subcategoryId: number;
 }

@@ -47,6 +47,14 @@ class AdminBookingDto {
   @IsNumber()
   @IsNotEmpty()
   eventId: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  categoryId: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  subcategoryId: number;
 }
 
 export { AdminBookingDto };
