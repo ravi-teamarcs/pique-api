@@ -305,7 +305,7 @@ export class EntertainerService {
           where: { email: rest.email },
         });
         if (alreadyExists)
-          throw new BadRequestException({ message: 'Email Already in Use' });
+          throw new BadRequestException({ message: 'Email already in use' });
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const newUser = this.userRepository.create({
@@ -342,7 +342,7 @@ export class EntertainerService {
       // Handle new Subcategory logic into this.
       const records = category.map((catId: number) => {
         return this.entCatRepository.create({
-          entertainerId: newEntertainer.id,
+          entertainerId: savedEntertainer.id,
           category: { id: catId },
           subcategoryIds: [],
         });
@@ -353,7 +353,7 @@ export class EntertainerService {
       for (const item of specific_category) {
         await this.entCatRepository.update(
           {
-            entertainerId: newEntertainer.id,
+            entertainerId: savedEntertainer.id,
             category: { id: item.categoryId },
           },
           { subcategoryIds: item.subcategoryIds },

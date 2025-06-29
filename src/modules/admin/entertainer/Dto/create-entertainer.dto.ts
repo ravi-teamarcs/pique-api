@@ -14,10 +14,6 @@ import { CreateUserDto } from 'src/modules/users/dto/users.dto';
 export class CategorySubcategoryDto {
   @IsNumber()
   @IsNotEmpty()
-  entertainerId: number;
-
-  @IsNumber()
-  @IsNotEmpty()
   @Type(() => Number)
   categoryId: number;
 
@@ -74,9 +70,6 @@ class GeneralInfoDto {
   @IsNotEmpty()
   contactNumber: string;
 
-  @IsNumber()
-  @IsNotEmpty()
-  pricePerEvent: number;
   @IsNotEmpty()
   @IsArray()
   @IsString({ each: true })
