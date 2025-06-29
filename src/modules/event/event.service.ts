@@ -404,8 +404,9 @@ export class EventService {
     const neighbourhoodNameString = neighbourhoodName
       ? `${neighbourhoodName}/`
       : '';
+    const stateString = stateCode ? `(, ${stateCode})` : '';
 
-    const slug = `${formattedDate} at ${timeUTC} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''}, ${stateCode ?? ''}`;
+    const slug = `${formattedDate} at ${timeUTC} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''} ${stateString}`;
 
     return slug;
   }
