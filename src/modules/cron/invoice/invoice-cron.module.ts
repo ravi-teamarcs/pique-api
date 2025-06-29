@@ -8,10 +8,11 @@ import { Entertainer } from 'src/modules/entertainer/entities/entertainer.entity
 import { ReminderModule } from '../../reminders/reminder.module';
 import { InvoiceMod } from '../../admin/invoice/invoice.module';
 import { NotificationModule } from 'src/modules/notification/notification.module';
+import { CronJobLog } from '../entities/cron-log.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, Invoice, Entertainer]),
+    TypeOrmModule.forFeature([Booking, Invoice, Entertainer, CronJobLog]),
     InvoiceMod,
     ReminderModule,
     NotificationModule,

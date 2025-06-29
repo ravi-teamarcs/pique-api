@@ -48,14 +48,6 @@ export class InvoiceController {
     return await this.invoiceService.findAll(dto);
   }
 
-  @Roles('super-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get('getbyid:id')
-  async findOne(@Param('id') id: number): Promise<any> {
-    return await this.invoiceService.findOne(id);
-  }
-
   @Delete(':id')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
@@ -108,8 +100,11 @@ export class InvoiceController {
 
   // To get List of Invoices (to send over Email)
   @Get('pending')
-  async getPendingInvoices() {
-    return this.invoiceService.getPendingInvoices();
+  async getPendingInvoices(
+    @Query('page') page: number,
+    @Query('pageSize') pageSize: number,
+  ) {
+    return this.invoiceService.getPendingInvoices(page, pageSize);
   }
 
   // API Should be hit in frontend with buffer

@@ -92,13 +92,13 @@ export class Invoice {
   @Column({ nullable: true, name: 'is_outdated' })
   isOutdated: boolean;
 
-  @Column({ default: false })
+  @Column({ default: false, name: 'is_sent' })
   isSent: boolean;
 
-  @Column({ type: 'timestamp', nullable: true })
+  @Column({ type: 'timestamp', nullable: true, name: 'sent_date' })
   sentDate: Date;
 
-  @Column({ default: false })
+  @Column({ default: false, name: 'is_regenerated' })
   isRegenerated: boolean;
 
   @CreateDateColumn({ type: 'timestamp' })

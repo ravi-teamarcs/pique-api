@@ -260,7 +260,7 @@ export class InvoiceService {
         invoiceId: savedInvoice.id,
         eventId: eventId,
         eventDate: new Date().toISOString(),
-        eventPrice: 0,
+        eventPrice: totalWithPlatformFee,
       });
       await this.invEventRepository.save(invoiceMetaData);
 
@@ -727,14 +727,6 @@ export class InvoiceService {
     const durationInHours = this.getDurationInHours(
       eventStartDateTime,
       eventEndDateTime,
-    ); // (duartion)
-    console.log(
-      'eventStartDAteTime',
-      eventStartDateTime,
-      'and eventEndDateTime',
-      eventEndDateTime,
-      'duration in Hours',
-      durationInHours,
     );
 
     const totalAmount = this.roundToTwo(priceWithMarkup * durationInHours);
@@ -761,6 +753,7 @@ export class InvoiceService {
   // Generate Monthly Invoice Number.
   async invoiceForIndividualVenue(venue, monthStart, monthEnd) {
     const eventPrice = [];
+
     const confirmedEvents = await this.eventRepository.find({
       where: {
         venueId: venue.id,
@@ -775,10 +768,11 @@ export class InvoiceService {
     // Skip if no confirmed events
     if (eventIds.length === 0) return;
 
-    //Check if Invoice already exists or not if exists then skip otherwise  proceede.
+    // Check if Invoice already exists or not if exists then skip otherwise  proceede.
     const alreadyExsits = await this.invEventRepository.find({
       where: { eventId: In(eventIds) },
     });
+
     if (alreadyExsits?.length > 0) return;
 
     //Create an invoice complex.
@@ -791,7 +785,6 @@ export class InvoiceService {
         'booking.venueId AS venueId',
         'booking.subcategoryId AS subcategoryId',
         'ent.id AS entertainerId',
-        'ent.pricePerEvent AS pricePerHour',
         'event.id AS eventId',
         'event.eventStartDateTime AS eventStartDateTime',
         'event.eventEndDateTime AS eventEndDateTime',
@@ -802,8 +795,8 @@ export class InvoiceService {
       .getRawMany();
 
     const bookingWithMarkup = await Promise.all(
-      bookings.map(async ({ pricePerHour, ...book }) => {
-        let newPricePerHour;
+      bookings.map(async (book) => {
+        let newPricePerHour: number;
 
         // First fetch Entertainer Admin Rate  Card (New Rate Card Logic)
 
@@ -843,6 +836,7 @@ export class InvoiceService {
         };
       }),
     );
+
     let totalAmount = 0;
 
     for (const book of bookingWithMarkup) {
@@ -855,6 +849,7 @@ export class InvoiceService {
         isFixed: true,
         platformFee: 0,
       };
+
       const price = this.calculatingInvoiceAmount(payload);
       eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
       totalAmount += Number(price);
@@ -934,9 +929,12 @@ export class InvoiceService {
   // Regeneration Logic or Invoice By Id
   async regenerateInvoice(id: number) {
     try {
+      const eventPrice = [];
+
       const invoice = await this.invoiceRepository.findOne({
         where: { id, isOutdated: true },
       });
+
       if (!invoice) throw new BadRequestException('Invoice Not Found');
 
       // Check for invoice Event Mapping Repo
@@ -952,6 +950,7 @@ export class InvoiceService {
         where: { id: In(eventIds), status: 'canceled' },
         select: ['id'],
       });
+
       if (events.length > 0) {
         for (const event of events) {
           await this.invEventRepository.delete({ eventId: event.id });
@@ -979,12 +978,46 @@ export class InvoiceService {
         .andWhere('booking.status = :status', { status: 'confirmed' })
         .getRawMany();
 
+      // Get Rate from Api
+
       const bookingWithMarkup = await Promise.all(
         bookings.map(async ({ pricePerHour, ...book }) => {
+          let newPricePerHour: number;
+
+          const adminRateCard = await this.adminRateCardRepository.find();
+          const specialRateCard = await this.specialRateCardRepository.find({
+            where: {
+              date: new Date(book.eventStartDateTime)
+                .toISOString()
+                .split('T')[0],
+            },
+          });
+
+          // If special rate card is available then use it otherwise use admin rate card.
+
+          if (specialRateCard?.length > 0) {
+            const rateCard = specialRateCard.find(
+              (rate) => rate.subcategoryId === book.subcategoryId,
+            );
+
+            if (rateCard) {
+              newPricePerHour = rateCard.specialPrice;
+            }
+          } else if (adminRateCard?.length > 0) {
+            const rateCard = adminRateCard.find(
+              (rate) => rate.subcategoryId === book.subcategoryId,
+            );
+            if (rateCard) {
+              newPricePerHour = rateCard.basePrice;
+            }
+          }
+
+          if (!newPricePerHour) return;
+
           return {
             ...book,
             priceWithMarkup: await this.addMarkupToEntertainer(
-              Number(pricePerHour),
+              Number(newPricePerHour),
             ),
           };
         }),
@@ -1002,11 +1035,12 @@ export class InvoiceService {
           platformFee: 0,
         };
         const price = this.calculatingInvoiceAmount(payload);
+        // Add to array (Because we need to update mapping)
+        eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
         totalAmount += Number(price);
       }
 
-      // update the Invoice
-
+      // Issue Date and Due Date
       const issueDate = new Date();
       const dueDate = new Date(issueDate);
       dueDate.setDate(dueDate.getDate() + 60);
@@ -1015,13 +1049,24 @@ export class InvoiceService {
         total_with_tax: totalAmount,
         total_amount: totalAmount,
         isOutdated: false,
+        isRegenerated: true,
         issue_date: issueDate.toISOString().split('T')[0],
         due_date: new Date(dueDate).toISOString().split('T')[0],
       };
 
       await this.invoiceRepository.update({ id: invoice.id }, updatePayload);
 
-      return { message: 'Invoice regenerated Successfully', status: true };
+      // Also update the mapping table (Nothing stale)
+
+      for (const event of eventIds) {
+        const matchedPrice = eventPrice.find((p) => p.id === event);
+        const invoiceEvent = await this.invEventRepository.update(
+          { eventId: event },
+          { eventPrice: Number(matchedPrice?.eventTotal) },
+        );
+      }
+
+      return { message: 'Invoice regenerated successfully', status: true };
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(error.message);
