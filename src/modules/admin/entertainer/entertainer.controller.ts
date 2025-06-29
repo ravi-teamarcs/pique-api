@@ -44,6 +44,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import { EntertainerAvailabilityDto } from './Dto/entertainer-availability.dto';
 import { UpdateAvailabilityDto } from './Dto/update-availability.dto';
+import { EntertainerRateCardDto } from 'src/modules/entertainer/dto/rate-card.dto';
 
 @ApiTags('admin')
 @Controller('admin/entertainer')
@@ -297,5 +298,21 @@ export class EntertainerController {
     @Param('entertainerId', ParseIntPipe) entertainerId: number,
   ) {
     return this.EntertainerService.toggleVerificationFlag(entertainerId);
+  }
+
+  // Entertainer Rate Card API (GET , PATCH)
+  @Patch('rate-card')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin', 'entertainer-admin')
+  async setEntertainerRateCard(@Body() dto: EntertainerRateCardDto) {
+    return this.EntertainerService.setEntertainerRateCard(dto);
+  }
+  @Get('rate-card/:entertainerId')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin', 'entertainer-admin')
+  async getEntertainerRateCard(
+    @Param('entertainerId', ParseIntPipe) entertainerId: number,
+  ) {
+    return this.EntertainerService.getEntertainerRateCard(entertainerId);
   }
 }

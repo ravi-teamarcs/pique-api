@@ -1600,7 +1600,7 @@ export class EntertainerService {
       inactiveIcon: `${baseUrl}${iconUrl.replace(/(\.\w+)$/, '_grey$1')}`,
     }));
     return {
-      message: 'categories returned Successfully ',
+      message: 'categories returned successfully',
       categories: data,
       status: true,
     };
@@ -2284,7 +2284,7 @@ export class EntertainerService {
     }
   }
 
-  async getEntertainerRateCard() {
+  async getEntertainerRateCard(entertainerId: number) {
     try {
       const entertainerRateCard = await this.entRateRepository
         .createQueryBuilder('rate')
@@ -2295,6 +2295,7 @@ export class EntertainerService {
           'rate.basePrice AS basePrice',
           'rate.pricePerExtra30Min AS pricePerExtra30Min',
         ])
+        .where('rate.entertainerId = :entertainerId', { entertainerId })
         .getRawMany();
       return {
         message: 'Entertainer rate card  fetched successfully.',

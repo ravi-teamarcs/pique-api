@@ -18,6 +18,7 @@ import { Cities } from '../location/entities/city.entity';
 import { States } from '../location/entities/state.entity';
 import { LocationModule } from '../../location/location.module';
 import { EntertainerCategorySubcategory } from 'src/modules/entertainer/entities/entertainer-category-subcategory.entity';
+import { EntertainerRateCard } from 'src/modules/entertainer/entities/entertainer-rate-card.entity';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { EntertainerCategorySubcategory } from 'src/modules/entertainer/entities
       Cities,
       States,
       EntertainerCategorySubcategory,
+      EntertainerRateCard,
     ]),
     MediaModule,
     EmailModule,

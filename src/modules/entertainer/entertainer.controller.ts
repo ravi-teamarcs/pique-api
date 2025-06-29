@@ -457,7 +457,8 @@ export class EntertainerController {
   @Get('category/base-price')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
-  async getEntertainerRateCard() {
-    return this.entertainerService.getEntertainerRateCard();
+  async getEntertainerRateCard(@Request() req) {
+    const { refId: entertainerId } = req.user;
+    return this.entertainerService.getEntertainerRateCard(entertainerId);
   }
 }

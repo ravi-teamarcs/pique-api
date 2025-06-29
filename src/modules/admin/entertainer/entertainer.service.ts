@@ -41,6 +41,8 @@ import { Cities } from '../location/entities/city.entity';
 import { States } from '../location/entities/state.entity';
 import { GeocodingService } from '../../location/geocoding.service';
 import { EntertainerCategorySubcategory } from 'src/modules/entertainer/entities/entertainer-category-subcategory.entity';
+import { EntertainerRateCard } from 'src/modules/entertainer/entities/entertainer-rate-card.entity';
+import { EntertainerRateCardDto } from 'src/modules/entertainer/dto/rate-card.dto';
 
 @Injectable()
 export class EntertainerService {
@@ -61,6 +63,10 @@ export class EntertainerService {
     private readonly settingRepo: Repository<Setting>,
     @InjectRepository(EntertainerCategorySubcategory)
     private readonly entCatRepository: Repository<EntertainerCategorySubcategory>,
+
+    @InjectRepository(EntertainerRateCard)
+    private readonly entRateRepository: Repository<EntertainerRateCard>,
+
     @InjectRepository(Cities)
     private readonly cityRepository: Repository<Cities>,
     @InjectRepository(States)
@@ -1094,6 +1100,58 @@ export class EntertainerService {
       });
 
       return formatted ?? null;
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async setEntertainerRateCard(dto: EntertainerRateCardDto) {
+    const { rates } = dto;
+    try {
+      if (rates && rates.length > 0) {
+        for (const rate of rates) {
+          const alreadyExists = await this.entRateRepository.findOne({
+            where: {
+              subcategoryId: rate.subcategoryId,
+              entertainerId: rate.entertainerId,
+            },
+          });
+
+          if (alreadyExists) {
+            await this.entRateRepository.update({ id: alreadyExists.id }, rate);
+          } else {
+            const newCategoryRate = this.entRateRepository.create(rate);
+            await this.entRateRepository.save(newCategoryRate);
+          }
+        }
+      }
+      return {
+        message: 'Entertainer rate card set successfully',
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getEntertainerRateCard(entertainerId: number) {
+    try {
+      const entertainerRateCard = await this.entRateRepository
+        .createQueryBuilder('rate')
+        .leftJoin('categories', 'subcat', 'subcat.id = rate.subcategoryId')
+        .select([
+          'subcat.id AS subCategoryId',
+          'subcat.name AS subCategoryName',
+          'rate.basePrice AS basePrice',
+          'rate.pricePerExtra30Min AS pricePerExtra30Min',
+        ])
+        .where('rate.entertainerId = :entertainerId', { entertainerId }) // Ensure we only get rates with entertainerId
+        .getRawMany();
+      return {
+        message: 'Entertainer rate card  fetched successfully.',
+        data: entertainerRateCard,
+        status: true,
+      };
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
