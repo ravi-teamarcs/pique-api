@@ -1106,7 +1106,8 @@ export class InvoiceService {
       });
 
       return {
-        message: 'Invoices fetched successfully',
+        message:
+          ' Pending Invoices for sending over email  fetched successfully',
         records: parsedResults,
         total,
         page,
@@ -1146,5 +1147,140 @@ export class InvoiceService {
       });
     });
     // console.log('HTML', html);
+  }
+
+  async sendInvoiceWithPdf(pdfBuffer: Buffer, invoiceId: number) {
+    const invoice = await this.invoiceRepository
+      .createQueryBuilder('invoice')
+      .leftJoin('users', 'user', 'user.id = invoice.user_id')
+      .leftJoin('venue', 'venue', 'venue.id = user.id')
+      .select([
+        'invoice.id AS invoiceId',
+        'invoice.issue_date AS issueDate',
+        'user.email AS userEmail',
+        'venue.name AS venueName',
+        'venue.email As venueEmail',
+      ])
+      .where('invoice.id =:invoiceId', { invoiceId })
+      .getRawOne();
+
+    if (!invoice) throw new NotFoundException('Invoice not found');
+
+    if (!(invoice.userEmail || invoice.venueEmail))
+      throw new NotFoundException('Email not Found');
+
+    const date = new Date();
+    const month = format(new Date(invoice.issueDate), 'LLLL');
+    // Email Sending
+    const emailPayload = {
+      to: invoice.userEmail || invoice.venueEmail,
+      subject: 'Monthly combined invoice for events.',
+      templateName: 'invoice-email.html',
+      replacements: {
+        venueName: invoice.venueName,
+        month,
+      },
+      attachments: [
+        {
+          filename: `invoice_${month}_${date.getFullYear()}.pdf`,
+          content: pdfBuffer, // a Buffer from Puppeteer
+          contentType: 'application/pdf',
+        },
+      ],
+    };
+
+    await this.emailService.handleSendEmail(emailPayload);
+
+    // Updating invoice entity
+
+    await this.invoiceRepository.update(
+      { id: invoiceId },
+      { isSent: true, sentDate: new Date() },
+    );
+
+    return { message: 'Invoice sent successfully', status: true };
+  }
+
+  async getPendingInvoices(page: number = 1, pageSize: number = 100) {
+    const skip = pageSize * (page - 1);
+    try {
+      const baseQuery = this.invoiceRepository
+        .createQueryBuilder('invoices')
+        .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
+        .leftJoin('states', 'state', 'state.id = venue.state')
+        .leftJoin('countries', 'country', 'country.id = venue.country')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+        .where('invoices.user_type = :role', { role: 'venue' });
+
+      const totalCount = await baseQuery.getCount();
+      const records = await baseQuery
+        .select([
+          'invoices.*',
+          'venue.name AS venueName',
+          'venue.addressLine1 AS venueAddressLine1',
+          'venue.addressLine2 AS venueAddressLine2',
+          'venue.contactPerson As contactPerson',
+          'venue.contactNumber As contactNumber',
+          'state.name AS stateName',
+          'city.name AS cityName',
+          'code.stateCode AS StateCode',
+          `(
+   SELECT JSON_ARRAYAGG(
+     JSON_OBJECT(
+       'slug', e.slug,
+       'title', e.title,
+       'eventId', e.id,
+       'eventStartDateTime', e.eventStartDateTime,
+       'eventEndDateTime', e.eventEndDateTime
+     )
+   )
+   FROM invoice_events ie
+   JOIN event e ON e.id = ie.event_id
+   WHERE ie.invoice_id = invoices.id
+ ) AS events
+ `,
+        ])
+        .orderBy('invoices.id', 'DESC')
+        .limit(pageSize)
+        .offset(skip)
+        .getRawMany();
+
+      const parsedResults = records.map(({ events, pricePerHour, ...rest }) => {
+        return {
+          ...rest,
+          pricePerHour,
+          events: events
+            ? JSON.parse(events).map(
+                ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
+                  const duration = this.getDurationInHours(
+                    eventStartDateTime,
+                    eventEndDateTime,
+                  );
+                  return {
+                    ...rest,
+                    eventStartDateTime,
+                    eventEndDateTime,
+                    amount: Number(pricePerHour * duration),
+                    duration,
+                  };
+                },
+              )
+            : [], // Parse JSON string to object
+        };
+      });
+
+      return {
+        message: 'Invoices fetched successfully',
+        records: parsedResults,
+        total: totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / pageSize),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }

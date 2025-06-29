@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -13,6 +14,8 @@ import { InvoiceBooking } from './entities/invoice-booking.entity';
 import * as ejs from 'ejs';
 import * as path from 'path';
 import * as fs from 'fs';
+import { format } from 'date-fns';
+
 import { EmailService } from '../Email/email.service';
 import { EntertainerInvoice } from './entities/entertainer-invoice.entity';
 import { EntertainerRateCard } from '../entertainer/entities/entertainer-rate-card.entity';
@@ -607,4 +610,8 @@ export class InvoiceService {
       throw new InternalServerErrorException(error.message);
     }
   }
+
+  // New Logic For Invoice Sending
+
+ 
 }

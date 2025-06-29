@@ -1,61 +1,66 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>Your Invoice</title>
     <style>
       body {
         font-family: Arial, sans-serif;
-        background-color: #f4f4f4;
-        padding: 20px;
+        background-color: #f7f9fc;
         color: #333;
+        padding: 30px;
       }
-      .email-wrapper {
-        max-width: 600px;
-        margin: auto;
-        background: #fff;
-        padding: 20px;
+      .email-container {
+        background-color: #ffffff;
         border-radius: 6px;
-        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 30px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
       }
-      h2 {
-        color: #4caf50;
+      h1 {
+        color: #2c3e50;
+        font-size: 22px;
+        margin-bottom: 20px;
       }
-      .info {
-        margin: 10px 0;
-      }
-      .download-link {
-        display: inline-block;
-        margin-top: 20px;
-        background: #4caf50;
-        color: white;
-        text-decoration: none;
-        padding: 10px 15px;
-        border-radius: 4px;
+      p {
+        line-height: 1.6;
+        font-size: 15px;
       }
       .footer {
-        margin-top: 30px;
-        font-size: 0.9em;
-        color: #777;
+        margin-top: 40px;
+        font-size: 12px;
+        color: #888;
         text-align: center;
       }
     </style>
   </head>
   <body>
-    <div class="email-wrapper">
-      <h2>Hello {{venueName}},</h2>
+    <div class="email-container">
+      <h1>Monthly Invoice for {{month}}</h1>
+
+      <p>Dear {{venueName}},</p>
+
       <p>
-        Here is your invoice for the month for the events held on your venue.
+        We hope this message finds you well. Please find attached your combined
+        invoice for the month of <strong>{{month}}</strong>.
       </p>
 
-      <div class="info">
-        <p><strong>Invoice:</strong> {{invoiceNumber}}</p>
-        <p><strong>Total Amount:</strong>&#36; {{totalAmount}}</p>
-      </div>
+      <p>
+        The invoice includes all confirmed bookings associated with your venue
+        during this period. If you have any questions or need further
+        clarification, feel free to reach out to our team.
+      </p>
+
+      <p>Thank you for using our platform!</p>
+
+      <p>
+        Best regards,<br />
+        <strong>The Pique Entertainment Team</strong>
+      </p>
 
       <div class="footer">
-        If you have any questions, reply to this email.<br />
-        &copy; 2025 Pique Entertainment. All rights reserved.
+        This is an automated email. Please do not reply directly to this
+        message.
       </div>
     </div>
   </body>

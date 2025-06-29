@@ -10,7 +10,9 @@ import {
   Put,
   Query,
   Req,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { Invoice, InvoiceStatus, UserType } from './entities/invoices.entity';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
@@ -22,6 +24,7 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
 import { InvoiceQueryDto } from './Dto/invoice-query.dto';
 import { UpdateInvoiceStatus } from './Dto/update-invoice-status.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('admin')
 @Controller('admin/invoice')
@@ -96,9 +99,26 @@ export class InvoiceController {
   }
 
   //  API to regenrate invoice
-
   @Patch(':id/regenerate')
   regenerateInvoiceById(@Param('id', ParseIntPipe) id: number) {
     return this.invoiceService.regenerateInvoice(id);
+  }
+
+  // Email related APIs
+
+  // To get List of Invoices (to send over Email)
+  @Get('pending')
+  async getPendingInvoices() {
+    return this.invoiceService.getPendingInvoices();
+  }
+
+  // API Should be hit in frontend with buffer
+  @Post('send')
+  @UseInterceptors(FileInterceptor('pdf'))
+  async sendInvoiceEmail(
+    @UploadedFile() file: Express.Multer.File,
+    @Body('invoiceId') invoiceId: number,
+  ) {
+    return this.invoiceService.sendInvoiceWithPdf(file.buffer, +invoiceId);
   }
 }
