@@ -166,10 +166,11 @@ export class EventService {
   //   }
   // }
 
-  async getAllEvents(id: number, page: number = 1, pageSize: number = 20) {
+  async getAllEvents(id: number, page: number = 1, pageSize: number = 10) {
     try {
       const skip = (Number(page) - 1) * Number(pageSize);
       const take = Number(pageSize);
+
       const events = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
@@ -198,6 +199,7 @@ export class EventService {
         .limit(take)
         .offset(skip)
         .getRawMany(); // ← this returns raw data with aliases
+
       const totalCount = await this.eventRepository
         .createQueryBuilder('event')
         .where('event.venueId = :id', { id })
