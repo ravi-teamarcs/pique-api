@@ -474,7 +474,7 @@ export class EntertainerService {
     await queryRunner.startTransaction();
 
     const { user, createLogin, entertainer } = dto;
-    console.log('Entertainer inside update method: ', dto, entertainer);
+    // console.log('Entertainer inside update method: ', dto, entertainer);
     const {
       contactPerson,
       contactNumber,

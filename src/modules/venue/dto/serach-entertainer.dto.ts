@@ -6,6 +6,7 @@ import {
   IsNumber,
   IsArray,
   IsString,
+  IsBoolean,
 } from 'class-validator';
 
 export class SearchEntertainerDto {
@@ -83,7 +84,7 @@ export class SearchEntertainerDto {
   longitude?: number;
 
   @IsOptional()
-  @IsNumber()
+  @IsBoolean()
   isNearby?: boolean;
 
   @IsOptional()
