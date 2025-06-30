@@ -228,7 +228,6 @@ export class EntertainerService {
           'entertainer.bio AS bio',
           'entertainer.addressLine1 AS addressLine1',
           'entertainer.addressLine2 AS addressLine2',
-          'entertainer.performanceRole AS performanceRole',
           'entertainer.socialLinks AS socialLinks',
           'entertainer.zipCode AS ZipCode',
           'entertainer.vaccinated AS vaccinated',
@@ -242,7 +241,6 @@ export class EntertainerService {
           'state.name AS state',
           'COALESCE(media.mediaDetails, "[]") AS media',
           'user.createdByAdmin AS createdByAdmin',
-          'entertainer.pricePerEvent AS pricePerEvent',
         ])
         .where('entertainer.id=:entertainerId', { entertainerId })
         .setParameter('serverUri', this.config.get<string>('BASE_URL'))
@@ -1007,16 +1005,21 @@ export class EntertainerService {
             previousBookingDate,
             upcomingBookingDate,
             ...rest
-          }) => ({
-            id: Number(id),
-            services: services ? services.split(',') : [],
-            socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
-            priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
-            pricePerEvent,
-            previousBookingDate: previousBookingDate || null,
-            upcomingBookingDate: upcomingBookingDate || null,
-            ...rest,
-          }),
+          }) => {
+            const categories = await this.getFormattedCategories(Number(id));
+
+            return {
+              id: Number(id),
+              services: services ? services.split(',') : [],
+              socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
+              priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
+              pricePerEvent,
+              categories,
+              previousBookingDate: previousBookingDate || null,
+              upcomingBookingDate: upcomingBookingDate || null,
+              ...rest,
+            };
+          },
         ),
       );
 

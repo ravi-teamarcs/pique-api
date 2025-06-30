@@ -476,7 +476,7 @@ export class VenueService {
       latitude,
       longitude,
       isNearby,
-      radius,
+      radius = 100,
       startDateTime,
       endDateTime,
     } = query;
@@ -646,10 +646,7 @@ export class VenueService {
           'entertainer.name AS name',
           'entertainer.entertainer_name AS entertainer_name',
           'entertainer.isPiqueVerified AS isPiqueVerified',
-          'entertainer.category AS category',
-          'entertainer.specific_category AS specific_category',
-          'entertainer.performanceRole AS performanceRole',
-          'entertainer.pricePerEvent AS pricePerEvent',
+
           'entertainer.vaccinated AS vaccinated',
           'entertainer.status AS status',
           'entertainer.bio AS bio',
