@@ -43,6 +43,7 @@ export class UpdateEntertainerDto {
   })
   @Type(() => UserDto)
   user?: UserDto;
+
   @IsOptional()
   @Transform(({ value }) => {
     if (typeof value === 'string') {

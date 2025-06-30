@@ -59,9 +59,6 @@ class GeneralInfoDto {
   @IsNotEmpty()
   bio: string;
 
-  @IsIn(['solo', 'duo', 'trio', 'ensemble'])
-  @IsNotEmpty()
-  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
   @IsString()
   @IsNotEmpty()
   contactPerson: string;
