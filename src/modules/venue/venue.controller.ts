@@ -340,7 +340,7 @@ export class VenueController {
   })
   @Roles('findAll')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Post('/toogle/wishlist')
+  @Post('toogle/wishlist')
   toggleWishList(@Body() wishDto: WishlistDto, @Request() req) {
     const { refId } = req.user;
     return this.venueService.toggleWishlist(refId, wishDto);

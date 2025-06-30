@@ -851,6 +851,7 @@ export class EntertainerService {
           'entertainer.profileStep AS profileStep',
           'entertainer.isProfileComplete AS isProfileComplete',
           'entertainer.category AS category',
+          'entertainer.timezone AS timezone',
           'entertainer.specific_category AS specific_category',
         ])
         .addSelect(
@@ -990,6 +991,7 @@ export class EntertainerService {
           'entertainer.contact_person AS contactPerson',
           'entertainer.contact_number AS contactNumber',
           'entertainer.profileStep AS profileStep',
+          'entertainer.timezone AS timezone',
           'entertainer.isProfileComplete AS isProfileComplete',
         ])
         .addSelect(

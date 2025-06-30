@@ -187,7 +187,7 @@ export class BookingService {
       this.generateBookingLog(payload);
 
       return {
-        message: 'Invitation for event  sent successfully .',
+        message: 'Invitation for event sent successfully .',
         booking: bookingData,
         status: true,
       };
@@ -690,29 +690,6 @@ export class BookingService {
     }
   }
 
-  // async checkAvailability(
-  //   entertainerId: number,
-  //   showDate: string,
-  // ): Promise<boolean> {
-  //   const date = new Date(showDate);
-  //   const year = date.getFullYear();
-  //   const month = date.getMonth() + 1;
-  //   const weekday = date.getDay();
-
-  //   const availability = await this.availabilityRepository.findOne({
-  //     where: { entertainer_id: entertainerId, year, month },
-  //   });
-
-  //   if (!availability) return true; // If not set, assume available
-
-  //   const isUnavailable = availability.unavailable_dates.includes(showDate);
-  //   const isOverride = availability.available_dates.includes(showDate);
-  //   const isWeekdayBlocked =
-  //     availability.unavailable_weekdays.includes(weekday);
-
-  //   return !isUnavailable && (!isWeekdayBlocked || isOverride);
-  // }
-
   async entertainerBookingDetailsByEvent(eventId: number, refId: number) {
     try {
       const bookingDetails = await this.bookingRepository
@@ -810,7 +787,8 @@ export class BookingService {
         'entertainer.entertainer_name AS entertainerName',
         'user.email AS email',
         'event.slug AS eventName',
-        'event.eventDate AS eventDate',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventEndDateTime AS eventEndDateTime',
         'user.id AS entId',
       ])
       .where('booking.eventId IN (:...eventIds)', { eventIds })
@@ -838,7 +816,7 @@ export class BookingService {
         //     replacements: {
         //       entertainerName: req.entertainerName,
         //       eventName: req.eventName,
-        //       eventDate: format(req.eventDate, 'dd MM yyyy'),
+        //       eventDate: format(req.eventStartDateTime, 'dd MM yyyy'),
         //     },
         //   };
 

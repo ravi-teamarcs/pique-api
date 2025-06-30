@@ -935,6 +935,7 @@ export class VenueService {
         'entertainer.socialLinks AS socialLinks',
         'entertainer.contact_person AS contactPerson',
         'entertainer.contact_number AS contactNumber',
+        'entertainer.timezone AS timezone',
         'state.name AS stateName',
         'country.name AS countryName',
         'city.name AS cityName',
