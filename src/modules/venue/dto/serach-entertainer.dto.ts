@@ -84,12 +84,13 @@ export class SearchEntertainerDto {
   longitude?: number;
 
   @IsOptional()
+  @Transform(({ value }) => (value == 'true' ? true : false))
   @IsBoolean()
   isNearby?: boolean;
 
   @IsOptional()
   @IsNumber()
-  radius?: boolean;
+  radius?: number;
 
   @ApiProperty({ description: 'Date', required: false })
   @IsOptional()
