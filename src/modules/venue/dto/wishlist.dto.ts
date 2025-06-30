@@ -17,14 +17,6 @@ class WishlistDto {
   @IsNotEmpty()
   ratings: number;
 
-  // @IsNumber()
-  // @IsNotEmpty()
-  // category: number;
-
-  // @IsNumber()
-  // @IsNotEmpty()
-  // specific_category: number;
-
   @IsNumber()
   @IsNotEmpty()
   entId: number;
