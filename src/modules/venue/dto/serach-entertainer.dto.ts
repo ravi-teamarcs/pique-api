@@ -82,9 +82,12 @@ export class SearchEntertainerDto {
   @IsNumber()
   @Transform(({ value }) => Number(value))
   longitude?: number;
-
   @IsOptional()
-  @Transform(({ value }) => (value == 'true' ? true : false))
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value; // Let @IsBoolean handle invalid cases
+  })
   @IsBoolean()
   isNearby?: boolean;
 
