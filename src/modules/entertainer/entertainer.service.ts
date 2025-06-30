@@ -1778,8 +1778,6 @@ export class EntertainerService {
         bookingStats.completed.previous,
       );
 
-      console.log(bookingStats);
-      // ✅ Final API Response
       const res = {
         revenue: {
           currentMonthRevenue: currentTotalRevenue,

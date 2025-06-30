@@ -474,7 +474,7 @@ export class EntertainerService {
     await queryRunner.startTransaction();
 
     const { user, createLogin, entertainer } = dto;
-    console.log('Entertainer inside update method: ', entertainer);
+    console.log('Entertainer inside update method: ', dto, entertainer);
     const {
       contactPerson,
       contactNumber,
@@ -502,7 +502,6 @@ export class EntertainerService {
         name: stageName ?? entertainer.name,
         contact_number: contactNumber ?? entertainer.contact_number,
       };
-      console.log('Payload for update: ', contactPerson);
 
       const userId = entertainer?.user ? entertainer.user.id : null;
       const alreadyHaveLoginCredentials = entertainer?.user ? true : false;
