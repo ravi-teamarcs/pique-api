@@ -463,6 +463,265 @@ export class VenueService {
     };
   }
 
+  // async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
+  //   const {
+  //     category = [],
+  //     page = 1,
+  //     pageSize = 10,
+  //     location = null,
+  //     date = '',
+  //     startDate,
+  //     endDate,
+  //     vaccinated,
+  //     latitude,
+  //     longitude,
+  //     isNearby,
+  //     radius = 100,
+  //     startDateTime,
+  //     endDateTime,
+  //   } = query;
+
+  //   // Pagination
+  //   const skip = (Number(page) - 1) * Number(pageSize);
+  //   const take = Number(pageSize);
+  //   const DEFAULT_MEDIA_URL =
+  //     'https://digidemo.in/apim/uploads/assets/icons/avatar.png';
+
+  //   try {
+  //     // Build base query with all conditions but without pagination
+  //     const baseQuery = this.entertainerRepository
+  //       .createQueryBuilder('entertainer')
+  //       .leftJoin('cities', 'city', 'city.id = entertainer.city')
+  //       .leftJoin('states', 'state', 'state.id = entertainer.state')
+  //       .leftJoin('countries', 'country', 'country.id = entertainer.country')
+  //       .leftJoin(
+  //         'categories',
+  //         'category',
+  //         'category.id = entertainer.category',
+  //       )
+  //       .leftJoin(
+  //         'categories',
+  //         'subcat',
+  //         'entertainer.specific_category = subcat.id',
+  //       )
+  //       .leftJoin(
+  //         'wishlist',
+  //         'wish',
+  //         'wish.ent_id = entertainer.id AND wish.user_id = :userId',
+  //       )
+  //       .leftJoin(
+  //         'entertainer_media',
+  //         'media',
+  //         'media.user_id = entertainer.id AND media.type = :mediaType',
+  //       )
+  //       .where("entertainer.status = 'active'")
+  //       .setParameter('userId', userId)
+  //       .setParameter('mediaType', 'headshot')
+  //       .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+  //       .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL);
+
+  //     // Apply filters if provided
+  //     if (category && category.length > 0) {
+  //       baseQuery.andWhere('entertainer.category IN (:...category)', {
+  //         category,
+  //       });
+  //     }
+
+  //     if (vaccinated) {
+  //       baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+  //         vaccinated,
+  //       });
+  //     }
+
+  //     if (location) {
+  //       const [type, idStr] = location.split(',');
+  //       const locationId = parseInt(idStr, 10);
+
+  //       if (type === 'city') {
+  //         baseQuery.andWhere('entertainer.city = :locationId', {
+  //           locationId,
+  //         });
+  //       } else if (type === 'state') {
+  //         baseQuery.andWhere('entertainer.state = :locationId', {
+  //           locationId,
+  //         });
+  //       }
+  //     }
+
+  //     if (latitude && longitude) {
+  //       baseQuery
+  //         .setParameter('lat2', latitude)
+  //         .setParameter('lng2', longitude);
+
+  //       if (isNearby) {
+  //         baseQuery
+  //           .addSelect(
+  //             `
+  //   (
+  //     3959 * acos(
+  //       cos(radians(:latitude)) *
+  //       cos(radians(entertainer.latitude)) *
+  //       cos(radians(entertainer.longitude) - radians(:longitude)) +
+  //       sin(radians(:latitude)) *
+  //       sin(radians(entertainer.latitude))
+  //     )
+  //   )`,
+  //             'distance',
+  //           )
+  //           .andWhere(
+  //             `entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL`,
+  //           )
+  //           .andWhere(
+  //             `
+  //   (
+  //     3959 * acos(
+  //       cos(radians(:latitude)) *
+  //       cos(radians(entertainer.latitude)) *
+  //       cos(radians(entertainer.longitude) - radians(:longitude)) +
+  //       sin(radians(:latitude)) *
+  //       sin(radians(entertainer.latitude))
+  //     )
+  //   ) <= :radiusInMiles
+  // `,
+  //           )
+  //           .setParameters({
+  //             latitude,
+  //             longitude,
+  //             radius,
+  //           });
+  //       }
+  //     }
+
+  //     if (startDateTime && endDateTime) {
+  //       baseQuery.andWhere(
+  //         `NOT EXISTS (
+  //     SELECT 1
+  //     FROM booking b
+  //     JOIN event e ON e.id = b.eventId
+  //     WHERE b.entId = entertainer.id
+  //       AND e.eventStartDateTime < :endDateTime
+  //       AND e.eventEndDateTime > :startDateTime
+  //   )`,
+  //         {
+  //           startDateTime,
+  //           endDateTime,
+  //         },
+  //       );
+  //     }
+
+  //     if (startDate && endDate) {
+  //       const start = new Date(startDate);
+  //       const end = new Date(endDate);
+
+  //       if (end < start) {
+  //         throw new BadRequestException({
+  //           message: 'endDate cannot be earlier than startDate',
+  //           status: false,
+  //         });
+  //       }
+  //       baseQuery.andWhere(
+  //         (qb) => {
+  //           return `NOT EXISTS (
+  //           SELECT 1 FROM booking b
+  //           WHERE b.entId = .id
+  //           AND b.showDate BETWEEN :startDate AND :endDate
+  //         )`;
+  //         },
+  //         { startDate, endDate },
+  //       );
+  //     }
+
+  //     // First query: Get total count using a subquery to prevent pagination conflict
+  //     const totalCount = await baseQuery
+  //       .clone()
+  //       .select('COUNT(DISTINCT entertainer.id)', 'count')
+  //       .getRawOne()
+  //       .then((result) => Number(result?.count || 0));
+
+  //     // Second query: Get paginated data with all details
+  //     // This is a completely separate query to ensure reliable pagination
+  //     const results = await baseQuery
+  //       .select([
+  //         'entertainer.id AS eid',
+  //         'entertainer.name AS name',
+  //         'entertainer.entertainer_name AS entertainer_name',
+  //         'entertainer.isPiqueVerified AS isPiqueVerified',
+
+  //         'entertainer.performanceRole AS performanceRole',
+  //         'entertainer.pricePerEvent AS pricePerEvent',
+  //         'entertainer.vaccinated AS vaccinated',
+  //         'entertainer.status AS status',
+  //         'entertainer.bio AS bio',
+  //         'city.name AS city',
+  //         'state.name AS state',
+  //         'country.name AS country',
+  //         'category.name AS category_name',
+  //         'subcat.name AS specific_category_name',
+  //         `COALESCE(CONCAT(:serverUri, media.url), :defaultMediaUrl) AS mediaUrl`,
+  //         `CASE WHEN wish.ent_id IS NOT NULL THEN 1 ELSE 0 END AS isWishlisted`,
+  //         'wish.name AS record',
+  //         latitude && longitude
+  //           ? `CASE
+  //       WHEN entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL THEN
+  //         ROUND(
+  //           3959 * acos(
+  //             GREATEST(-1, LEAST(1,
+  //               cos(radians(:lat2)) *
+  //               cos(radians(entertainer.latitude)) *
+  //               cos(radians(entertainer.longitude) - radians(:lng2)) +
+  //               sin(radians(:lat2)) *
+  //               sin(radians(entertainer.latitude))
+  //             ))
+  //           ),
+  //           2
+  //         )
+  //       ELSE NULL
+  //    END AS distanceInMiles`
+  //           : 'NULL AS distanceInMiles',
+  //       ])
+  //       .orderBy('entertainer.name', 'ASC')
+  //       .offset(skip) // Use offset which is more explicit than skip for raw queries
+  //       .limit(take) // Use limit which is more explicit than take for raw queries
+  //       .getRawMany();
+
+  //     // Process results
+  //     const arr = [3, 4, 5, 2, 1]; // Example ratings logic
+
+  //     const entertainers = results.map(
+  //       (
+  //         { eid, isWishlisted, vaccinated, isPiqueVerified, ...item },
+  //         index,
+  //       ) => {
+  //         return {
+  //           eid: Number(eid),
+  //           ...item,
+  //           isPiqueVerified: isPiqueVerified === 1 ? true : false,
+  //           isWishlisted: Boolean(isWishlisted),
+  //           vaccination_status:
+  //             vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+  //           ratings: arr[index % arr.length], // Example for ratings
+  //         };
+  //       },
+  //     );
+
+  //     return {
+  //       message: 'Entertainers fetched successfully',
+  //       totalCount,
+  //       page,
+  //       pageSize,
+  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
+  //       entertainers,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     if (error instanceof HttpException) {
+  //       throw error;
+  //     }
+
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
+
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
     const {
       category = [],
@@ -481,14 +740,12 @@ export class VenueService {
       endDateTime,
     } = query;
 
-    // Pagination
     const skip = (Number(page) - 1) * Number(pageSize);
     const take = Number(pageSize);
     const DEFAULT_MEDIA_URL =
       'https://digidemo.in/apim/uploads/assets/icons/avatar.png';
 
     try {
-      // Build base query with all conditions but without pagination
       const baseQuery = this.entertainerRepository
         .createQueryBuilder('entertainer')
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
@@ -520,7 +777,6 @@ export class VenueService {
         .setParameter('serverUri', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL);
 
-      // Apply filters if provided
       if (category && category.length > 0) {
         baseQuery.andWhere('entertainer.category IN (:...category)', {
           category,
@@ -538,74 +794,60 @@ export class VenueService {
         const locationId = parseInt(idStr, 10);
 
         if (type === 'city') {
-          baseQuery.andWhere('entertainer.city = :locationId', {
-            locationId,
-          });
+          baseQuery.andWhere('entertainer.city = :locationId', { locationId });
         } else if (type === 'state') {
-          baseQuery.andWhere('entertainer.state = :locationId', {
-            locationId,
-          });
+          baseQuery.andWhere('entertainer.state = :locationId', { locationId });
         }
       }
 
       if (latitude && longitude) {
         baseQuery
-          .setParameter('lat2', latitude)
-          .setParameter('lng2', longitude);
+          .setParameter('latitude', latitude)
+          .setParameter('longitude', longitude);
 
         if (isNearby) {
           baseQuery
             .addSelect(
-              `
-    (
-      3959 * acos(
-        cos(radians(:latitude)) *
-        cos(radians(entertainer.latitude)) *
-        cos(radians(entertainer.longitude) - radians(:longitude)) +
-        sin(radians(:latitude)) *
-        sin(radians(entertainer.latitude))
-      )
-    )`,
+              `(
+              3959 * acos(
+                cos(radians(:latitude)) *
+                cos(radians(entertainer.latitude)) *
+                cos(radians(entertainer.longitude) - radians(:longitude)) +
+                sin(radians(:latitude)) *
+                sin(radians(entertainer.latitude))
+              )
+            )`,
               'distance',
             )
             .andWhere(
-              `entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL`,
+              'entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL',
             )
             .andWhere(
-              `
-    (
-      3959 * acos(
-        cos(radians(:latitude)) *
-        cos(radians(entertainer.latitude)) *
-        cos(radians(entertainer.longitude) - radians(:longitude)) +
-        sin(radians(:latitude)) *
-        sin(radians(entertainer.latitude))
-      )
-    ) <= :radiusInMiles
-  `,
+              `(
+            3959 * acos(
+              cos(radians(:latitude)) *
+              cos(radians(entertainer.latitude)) *
+              cos(radians(entertainer.longitude) - radians(:longitude)) +
+              sin(radians(:latitude)) *
+              sin(radians(entertainer.latitude))
             )
-            .setParameters({
-              latitude,
-              longitude,
-              radius,
-            });
+          ) <= :radius`,
+              { radius },
+            );
         }
       }
 
       if (startDateTime && endDateTime) {
         baseQuery.andWhere(
           `NOT EXISTS (
-      SELECT 1
-      FROM booking b
-      JOIN event e ON e.id = b.eventId
-      WHERE b.entId = entertainer.id
-        AND e.eventStartDateTime < :endDateTime
-        AND e.eventEndDateTime > :startDateTime
-    )`,
-          {
-            startDateTime,
-            endDateTime,
-          },
+          SELECT 1
+          FROM booking b
+          JOIN event e ON e.id = b.eventId
+          WHERE b.entId = entertainer.id
+            AND e.eventStartDateTime < :endDateTime
+            AND e.eventEndDateTime > :startDateTime
+        )`,
+          { startDateTime, endDateTime },
         );
       }
 
@@ -619,34 +861,31 @@ export class VenueService {
             status: false,
           });
         }
+
         baseQuery.andWhere(
-          (qb) => {
-            return `NOT EXISTS (
-            SELECT 1 FROM booking b
-            WHERE b.entId = .id
+          `NOT EXISTS (
+          SELECT 1 FROM booking b
+          WHERE b.entId = entertainer.id
             AND b.showDate BETWEEN :startDate AND :endDate
-          )`;
-          },
+        )`,
           { startDate, endDate },
         );
       }
 
-      // First query: Get total count using a subquery to prevent pagination conflict
       const totalCount = await baseQuery
         .clone()
         .select('COUNT(DISTINCT entertainer.id)', 'count')
         .getRawOne()
         .then((result) => Number(result?.count || 0));
 
-      // Second query: Get paginated data with all details
-      // This is a completely separate query to ensure reliable pagination
       const results = await baseQuery
         .select([
           'entertainer.id AS eid',
           'entertainer.name AS name',
           'entertainer.entertainer_name AS entertainer_name',
           'entertainer.isPiqueVerified AS isPiqueVerified',
-
+          'entertainer.performanceRole AS performanceRole',
+          'entertainer.pricePerEvent AS pricePerEvent',
           'entertainer.vaccinated AS vaccinated',
           'entertainer.status AS status',
           'entertainer.bio AS bio',
@@ -660,46 +899,43 @@ export class VenueService {
           'wish.name AS record',
           latitude && longitude
             ? `CASE
-        WHEN entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL THEN
-          ROUND(
-            3959 * acos(
-              GREATEST(-1, LEAST(1,
-                cos(radians(:lat2)) *
-                cos(radians(entertainer.latitude)) *
-                cos(radians(entertainer.longitude) - radians(:lng2)) +
-                sin(radians(:lat2)) *
-                sin(radians(entertainer.latitude))
-              ))
-            ),
-            2
-          )
-        ELSE NULL
-     END AS distanceInMiles`
+              WHEN entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL THEN
+                ROUND(
+                  3959 * acos(
+                    GREATEST(-1, LEAST(1,
+                      cos(radians(:latitude)) *
+                      cos(radians(entertainer.latitude)) *
+                      cos(radians(entertainer.longitude) - radians(:longitude)) +
+                      sin(radians(:latitude)) *
+                      sin(radians(entertainer.latitude))
+                    ))
+                  ),
+                  2
+                )
+              ELSE NULL
+            END AS distanceInMiles`
             : 'NULL AS distanceInMiles',
         ])
         .orderBy('entertainer.name', 'ASC')
-        .offset(skip) // Use offset which is more explicit than skip for raw queries
-        .limit(take) // Use limit which is more explicit than take for raw queries
+        .offset(skip)
+        .limit(take)
         .getRawMany();
 
-      // Process results
-      const arr = [3, 4, 5, 2, 1]; // Example ratings logic
+      const arr = [3, 4, 5, 2, 1];
 
       const entertainers = results.map(
         (
           { eid, isWishlisted, vaccinated, isPiqueVerified, ...item },
           index,
-        ) => {
-          return {
-            eid: Number(eid),
-            ...item,
-            isPiqueVerified: isPiqueVerified === 1 ? true : false,
-            isWishlisted: Boolean(isWishlisted),
-            vaccination_status:
-              vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
-            ratings: arr[index % arr.length], // Example for ratings
-          };
-        },
+        ) => ({
+          eid: Number(eid),
+          ...item,
+          isPiqueVerified: isPiqueVerified === 1,
+          isWishlisted: Boolean(isWishlisted),
+          vaccination_status:
+            vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+          ratings: arr[index % arr.length],
+        }),
       );
 
       return {
@@ -712,10 +948,7 @@ export class VenueService {
         status: true,
       };
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
-
+      if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(error.message);
     }
   }

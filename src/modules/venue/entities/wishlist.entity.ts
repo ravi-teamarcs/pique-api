@@ -17,7 +17,7 @@ export class Wishlist {
   @Column()
   url: string;
 
-  @Column()
+  @Column({ nullable: true })
   category: number;
 
   @Column()
@@ -26,7 +26,7 @@ export class Wishlist {
   @Column()
   ratings: number;
 
-  @Column()
+  @Column({ nullable: true })
   specific_category: number;
 
   @Column()
