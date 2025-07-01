@@ -13,7 +13,6 @@ export const VENUE_TYPES = [
   'Club',
   'Event Arena',
   'Hotel',
-  'Other (please describe)',
 ];
 
 export const ENTERTAINER_SKILLS_TYPES = [
