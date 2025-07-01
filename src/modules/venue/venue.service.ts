@@ -462,7 +462,7 @@ export class VenueService {
       status: true,
     };
   }
-
+  // (Old Working)
   // async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
   //   const {
   //     category = [],
@@ -940,6 +940,228 @@ export class VenueService {
 
       return {
         message: 'Entertainers fetched successfully',
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        entertainers,
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+  async findAllEntertainersForDashboard(query: SearchEntertainerDto) {
+    const {
+      category = [],
+      page = 1,
+      pageSize = 10,
+      location = null,
+      date = '',
+      startDate,
+      endDate,
+      vaccinated,
+      latitude,
+      longitude,
+      isNearby,
+      radius = 100,
+      startDateTime,
+      endDateTime,
+    } = query;
+
+    const skip = (Number(page) - 1) * Number(pageSize);
+    const take = Number(pageSize);
+    const DEFAULT_MEDIA_URL =
+      'https://digidemo.in/apim/uploads/assets/icons/avatar.png';
+
+    try {
+      const baseQuery = this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
+        .leftJoin(
+          'categories',
+          'category',
+          'category.id = entertainer.category',
+        )
+        .leftJoin(
+          'categories',
+          'subcat',
+          'entertainer.specific_category = subcat.id',
+        )
+
+        .leftJoin(
+          'entertainer_media',
+          'media',
+          'media.user_id = entertainer.id AND media.type = :mediaType',
+        )
+        .where("entertainer.status = 'active'")
+
+        .setParameter('mediaType', 'headshot')
+        .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL);
+
+      if (category && category.length > 0) {
+        baseQuery.andWhere('entertainer.category IN (:...category)', {
+          category,
+        });
+      }
+
+      if (vaccinated) {
+        baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+          vaccinated,
+        });
+      }
+
+      if (location) {
+        const [type, idStr] = location.split(',');
+        const locationId = parseInt(idStr, 10);
+
+        if (type === 'city') {
+          baseQuery.andWhere('entertainer.city = :locationId', { locationId });
+        } else if (type === 'state') {
+          baseQuery.andWhere('entertainer.state = :locationId', { locationId });
+        }
+      }
+
+      if (latitude && longitude) {
+        baseQuery
+          .setParameter('latitude', latitude)
+          .setParameter('longitude', longitude);
+
+        if (isNearby) {
+          baseQuery
+            .addSelect(
+              `(
+              3959 * acos(
+                cos(radians(:latitude)) *
+                cos(radians(entertainer.latitude)) *
+                cos(radians(entertainer.longitude) - radians(:longitude)) +
+                sin(radians(:latitude)) *
+                sin(radians(entertainer.latitude))
+              )
+            )`,
+              'distance',
+            )
+            .andWhere(
+              'entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL',
+            )
+            .andWhere(
+              `(
+            3959 * acos(
+              cos(radians(:latitude)) *
+              cos(radians(entertainer.latitude)) *
+              cos(radians(entertainer.longitude) - radians(:longitude)) +
+              sin(radians(:latitude)) *
+              sin(radians(entertainer.latitude))
+            )
+          ) <= :radius`,
+              { radius },
+            );
+        }
+      }
+
+      if (startDateTime && endDateTime) {
+        baseQuery.andWhere(
+          `NOT EXISTS (
+          SELECT 1
+          FROM booking b
+          JOIN event e ON e.id = b.eventId
+          WHERE b.entId = entertainer.id
+            AND e.eventStartDateTime < :endDateTime
+            AND e.eventEndDateTime > :startDateTime
+        )`,
+          { startDateTime, endDateTime },
+        );
+      }
+
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+
+        if (end < start) {
+          throw new BadRequestException({
+            message: 'endDate cannot be earlier than startDate',
+            status: false,
+          });
+        }
+
+        baseQuery.andWhere(
+          `NOT EXISTS (
+          SELECT 1 FROM booking b
+          WHERE b.entId = entertainer.id
+            AND b.showDate BETWEEN :startDate AND :endDate
+        )`,
+          { startDate, endDate },
+        );
+      }
+
+      const totalCount = await baseQuery
+        .clone()
+        .select('COUNT(DISTINCT entertainer.id)', 'count')
+        .getRawOne()
+        .then((result) => Number(result?.count || 0));
+
+      const results = await baseQuery
+        .select([
+          'entertainer.id AS eid',
+          'entertainer.name AS name',
+          'entertainer.entertainer_name AS entertainer_name',
+          'entertainer.isPiqueVerified AS isPiqueVerified',
+          'entertainer.performanceRole AS performanceRole',
+          'entertainer.pricePerEvent AS pricePerEvent',
+          'entertainer.vaccinated AS vaccinated',
+          'entertainer.status AS status',
+          'entertainer.bio AS bio',
+          'city.name AS city',
+          'state.name AS state',
+          'country.name AS country',
+          'category.name AS category_name',
+          'subcat.name AS specific_category_name',
+          `COALESCE(CONCAT(:serverUri, media.url), :defaultMediaUrl) AS mediaUrl`,
+
+          latitude && longitude
+            ? `CASE
+              WHEN entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL THEN
+                ROUND(
+                  3959 * acos(
+                    GREATEST(-1, LEAST(1,
+                      cos(radians(:latitude)) *
+                      cos(radians(entertainer.latitude)) *
+                      cos(radians(entertainer.longitude) - radians(:longitude)) +
+                      sin(radians(:latitude)) *
+                      sin(radians(entertainer.latitude))
+                    ))
+                  ),
+                  2
+                )
+              ELSE NULL
+            END AS distanceInMiles`
+            : 'NULL AS distanceInMiles',
+        ])
+        .orderBy('entertainer.name', 'ASC')
+        .offset(skip)
+        .limit(take)
+        .getRawMany();
+
+      const arr = [3, 4, 5, 2, 1];
+
+      const entertainers = results.map(
+        ({ eid, vaccinated, isPiqueVerified, ...item }, index) => ({
+          eid: Number(eid),
+          ...item,
+          isPiqueVerified: isPiqueVerified === 1,
+
+          vaccination_status:
+            vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+          ratings: arr[index % arr.length],
+        }),
+      );
+
+      return {
+        message: 'Entertainers details for dashboard fetched successfully',
         totalCount,
         page,
         pageSize,

@@ -154,6 +154,11 @@ export class VenueController {
     return this.venueService.findAllByUser(userId, refId);
   }
 
+  @Get('dashboard')
+  getVenueDashboard(@Query() query: SearchEntertainerDto) {
+    return this.venueService.findAllEntertainersForDashboard(query);
+  }
+
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @Roles('findAll')
@@ -181,6 +186,7 @@ export class VenueController {
     const { refId } = req.user;
     return this.venueService.findAllEntertainers(query, refId);
   }
+  // API for venue Dashboard
 
   @Get('entertainer-profile/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
