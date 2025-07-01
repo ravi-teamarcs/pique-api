@@ -44,11 +44,11 @@ export class ReminderService {
         'entertainer.userId AS entUser',
         'event.title AS eventTitle',
         'event.description AS eventDescription',
-        'event.eventDate As eventDate',
+        'event.eventStartDateTime As eventStartDateTime',
         'booking.id AS bookingId',
       ])
       .where('booking.status = :status', { status: 'confirmed' })
-      .andWhere('event.eventDate > :today', {
+      .andWhere('event.eventStartDateTime > :today', {
         today: today.toISOString().split('T')[0],
       })
       .getRawMany();
@@ -152,7 +152,7 @@ export class ReminderService {
 
       for (const event of confirmedEvents) {
         // const actualDate = event.eventDate.toISOString().split('T')[0];
-        const eventEnd = new Date(`${event.eventDate}T${event.endTime}`); // Assuming ISO strings
+        const eventEnd = new Date(event.eventEndDateTime); // Assuming ISO strings
         const oneHourLater = addHours(eventEnd, 1);
         const twentyFourLater = addHours(eventEnd, 24);
 
@@ -185,9 +185,8 @@ export class ReminderService {
         where: { status: 'confirmed' },
         select: [
           'title',
-          'endTime',
-          'startTime',
-          'eventDate',
+          'eventEndDateTime',
+          'eventStartDateTime',
           'slug',
           'id',
           'emailSentAfter1Hour',
@@ -208,9 +207,8 @@ export class ReminderService {
       .select([
         'user.email AS email',
         'event.slug AS eventName',
-        ' event.eventDate AS eventDate',
-        'event.startTime AS startTime',
-        'event.endTime AS endTime',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventEndDateTime AS eventEndDateTime',
         'venue.name AS venueName',
       ])
       .where('event.id =:eventId', { eventId })
@@ -223,7 +221,7 @@ export class ReminderService {
         replacements: {
           eventName: venue.eventName,
           venueName: venue.venueName,
-          eventDate: format(venue.eventDate, 'dd MM yyyy'),
+          eventDate: format(venue.eventStartDateTime, 'dd MM yyyy'),
         },
       };
       this.emailService.handleSendEmail(emailPayload);
@@ -239,9 +237,8 @@ export class ReminderService {
         'ent.entertainerName AS entertainerName',
         'user.email AS email',
         'event.slug AS eventName',
-        ' event.eventDate AS eventDate',
-        'event.startTime AS startTime',
-        'event.endTime AS endTime',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventEndDateTime AS eventEndDateTime',
         'venue.name AS venueName',
       ])
       .where('booking.eventId = :eventId', { eventId })
@@ -257,7 +254,7 @@ export class ReminderService {
             entertainerName: book.entertainerName,
             eventName: book.id,
             venueName: book.venueName,
-            eventDate: format(book.eventDate, 'dd MM yyyy'),
+            eventDate: format(book.eventStartDateTime, 'dd MM yyyy'),
           },
         };
         this.emailService.handleSendEmail(emailPayload);
