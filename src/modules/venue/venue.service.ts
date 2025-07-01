@@ -838,16 +838,26 @@ export class VenueService {
       }
 
       if (startDateTime && endDateTime) {
+        const start = new Date(startDateTime);
+        const end = new Date(endDateTime);
+
+        // Ensure endDateTime covers the full day
+        const extendedEnd = new Date(end);
+        extendedEnd.setUTCDate(extendedEnd.getUTCDate() + 1);
+
         baseQuery.andWhere(
           `NOT EXISTS (
-          SELECT 1
-          FROM booking b
-          JOIN event e ON e.id = b.eventId
-          WHERE b.entId = entertainer.id
-            AND e.eventStartDateTime < :endDateTime
-            AND e.eventEndDateTime > :startDateTime
-        )`,
-          { startDateTime, endDateTime },
+      SELECT 1
+      FROM booking b
+      JOIN event e ON e.id = b.eventId
+      WHERE b.entId = entertainer.id
+        AND e.eventStartDateTime < :endDateTime
+        AND e.eventEndDateTime > :startDateTime
+    )`,
+          {
+            startDateTime: start.toISOString(),
+            endDateTime: extendedEnd.toISOString(),
+          },
         );
       }
 
@@ -1064,16 +1074,26 @@ export class VenueService {
       }
 
       if (startDateTime && endDateTime) {
+        const start = new Date(startDateTime);
+        const end = new Date(endDateTime);
+
+        // Ensure endDateTime covers the full day
+        const extendedEnd = new Date(end);
+        extendedEnd.setUTCDate(extendedEnd.getUTCDate() + 1);
+
         baseQuery.andWhere(
           `NOT EXISTS (
-          SELECT 1
-          FROM booking b
-          JOIN event e ON e.id = b.eventId
-          WHERE b.entId = entertainer.id
-            AND e.eventStartDateTime < :endDateTime
-            AND e.eventEndDateTime > :startDateTime
-        )`,
-          { startDateTime, endDateTime },
+      SELECT 1
+      FROM booking b
+      JOIN event e ON e.id = b.eventId
+      WHERE b.entId = entertainer.id
+        AND e.eventStartDateTime < :endDateTime
+        AND e.eventEndDateTime > :startDateTime
+    )`,
+          {
+            startDateTime: start.toISOString(),
+            endDateTime: extendedEnd.toISOString(),
+          },
         );
       }
 

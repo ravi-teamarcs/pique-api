@@ -101,6 +101,7 @@ export class SearchEntertainerDto {
   date: string;
 
   @IsOptional()
+  @IsString()
   startDateTime: string;
 
   @IsOptional()
