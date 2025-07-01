@@ -1024,6 +1024,19 @@ export class VenueService {
           'media',
           'media.user_id = entertainer.id AND media.type = :mediaType',
         )
+        .leftJoin(
+          (qb) =>
+            qb
+              .select('feedback.revieweeId', 'revieweeId')
+              .addSelect('LEAST(FLOOR(AVG(feedback.rating)), 5)', 'avg_rating')
+              .from('feedback', 'feedback')
+              .where('feedback.revieweeType = :revieweeType', {
+                revieweeType: 'entertainer',
+              })
+              .groupBy('feedback.revieweeId'),
+          'fb',
+          'fb.revieweeId = entertainer.id',
+        )
         .where("entertainer.status = 'active'")
         .setParameter('mediaType', 'headshot')
         .setParameter('serverUri', this.config.get<string>('BASE_URL'))
@@ -1205,6 +1218,7 @@ export class VenueService {
             isPiqueVerified,
             distanceInMiles,
             categories,
+            ratings,
             ...item
           },
           index,
@@ -1215,7 +1229,7 @@ export class VenueService {
 
           vaccination_status:
             vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
-          ratings: arr[index % arr.length],
+          ratings: Number(ratings),
           distanceInMiles: distanceInMiles ? Number(distanceInMiles) : null,
           // Parse categories JSON if present
           categories: categories ? JSON.parse(categories) : [],
