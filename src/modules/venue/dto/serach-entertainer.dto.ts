@@ -59,16 +59,6 @@ export class SearchEntertainerDto {
   @Transform(({ value }) => Number(value))
   country: number;
 
-  @ApiProperty({ description: 'Start Date', required: false })
-  @IsOptional()
-  @IsString()
-  startDate: string;
-
-  @ApiProperty({ description: 'End Date', required: false })
-  @IsOptional()
-  @IsString()
-  endDate: string;
-
   @IsOptional()
   @IsString()
   vaccinated: 'yes' | 'no';
@@ -82,6 +72,7 @@ export class SearchEntertainerDto {
   @IsNumber()
   @Transform(({ value }) => Number(value))
   longitude?: number;
+
   @IsOptional()
   @Transform(({ value }) => {
     if (value === 'true' || value === true) return true;
@@ -93,12 +84,8 @@ export class SearchEntertainerDto {
 
   @IsOptional()
   @IsNumber()
+  @Transform(({ value }) => Number(value))
   radius?: number;
-
-  @ApiProperty({ description: 'Date', required: false })
-  @IsOptional()
-  @IsString()
-  date: string;
 
   @IsOptional()
   @IsString()
