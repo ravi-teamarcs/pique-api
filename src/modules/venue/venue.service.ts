@@ -763,6 +763,20 @@ export class VenueService {
           'media',
           'media.user_id = entertainer.id AND media.type = :mediaType',
         )
+        .leftJoin(
+          (qb) =>
+            qb
+              .select('feedback.revieweeId', 'revieweeId')
+              .addSelect('LEAST(FLOOR(AVG(feedback.rating)), 5)', 'avg_rating')
+              .from('feedback', 'feedback')
+              .where('feedback.revieweeType = :revieweeType', {
+                revieweeType: 'entertainer',
+              })
+              .groupBy('feedback.revieweeId'),
+          'fb',
+          'fb.revieweeId = entertainer.id',
+        )
+
         .where("entertainer.status = 'active'")
         .setParameter('userId', userId)
         .setParameter('mediaType', 'headshot')
@@ -882,6 +896,8 @@ export class VenueService {
         'city.name AS city',
         'state.name AS state',
         'country.name AS country',
+        `COALESCE(fb.avg_rating, 0) AS ratings`,
+
         `COALESCE(CONCAT(:serverUri, media.url), :defaultMediaUrl) AS mediaUrl`,
         `CASE WHEN wish.ent_id IS NOT NULL THEN 1 ELSE 0 END AS isWishlisted`,
         // Calculate distance inline in SELECT when coordinates are provided
@@ -936,8 +952,6 @@ export class VenueService {
         .limit(take)
         .getRawMany();
 
-      const arr = [3, 4, 5, 2, 1];
-
       const entertainers = results.map(
         (
           {
@@ -947,6 +961,7 @@ export class VenueService {
             isPiqueVerified,
             distanceInMiles,
             categories,
+            ratings,
             ...item
           },
           index,
@@ -957,7 +972,7 @@ export class VenueService {
           isWishlisted: Boolean(isWishlisted),
           vaccination_status:
             vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
-          ratings: arr[index % arr.length],
+          ratings: Number(ratings),
           distanceInMiles: distanceInMiles ? Number(distanceInMiles) : null,
           // Parse categories JSON if present
           categories: categories ? JSON.parse(categories) : [],
@@ -1743,6 +1758,36 @@ export class VenueService {
       status: true,
     };
   }
+
+  // Latest Code
+  // async getWishlist(venueId: number) {
+  //   const wishlistItems = await this.wishRepository
+  //     .createQueryBuilder('wish')
+  //     .leftJoin('entertainers', 'entertainer', 'entertainer.id = wish.ent_id')
+  //     .leftJoin('venue', 'venue', 'venue.id = wish.venue_id')
+  //     .leftJoin(
+  //       'entertainer_media',
+  //       'media',
+  //       'media.user_id = entertainer.id AND media.type = :mediaType',
+  //       { mediaType: 'headshot' },
+  //     )
+  //     .select([
+  //       'wish.id',
+  //       'entertainer.name AS name',
+  //       'entertainer.id AS eid',
+  //       'entertainer.entertainer_name AS user_name',
+  //       'media.url AS mediaUrl',
+  //       'wish.ratings AS ratings',
+  //     ])
+  //     .where('wish.venue_id = :venueId', { venueId })
+  //     .getRawMany();
+
+  //   return {
+  //     message: 'Wishlist fetched Successfully',
+  //     data: wishlistItems,
+  //     status: true,
+  //   };
+  // }
 
   async removeFromWishlist(id: number, venueId: number) {
     const wishlistItem = await this.wishRepository.findOne({

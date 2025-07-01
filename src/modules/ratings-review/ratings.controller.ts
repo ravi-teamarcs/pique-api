@@ -20,7 +20,7 @@ export class RatingsController {
   @Get('questions')
   async getQuestions(@Query('role') role: 'venue' | 'entertainer') {
     if (!role || (role !== 'venue' && role !== 'entertainer')) {
-      throw new Error('Invalid role. Must be venue or entertainer.');
+      throw new Error('Invalid role. must be venue or entertainer.');
     }
 
     return this.ratingsService.getQuestionsByRole(role);
