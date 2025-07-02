@@ -100,6 +100,8 @@ export class BookingService {
       const venue = await this.venueRepository
         .createQueryBuilder('venue')
         .leftJoin('venue.user', 'user')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('states', 'state', 'state.id = venue.state')
         .select([
           'venue.name AS name',
           'user.email AS email',
@@ -107,6 +109,9 @@ export class BookingService {
           'venue.contactNumber AS contactNumber',
           'venue.addressLine1 AS addressLine1',
           'venue.addressLine2 AS addressLine2',
+          'city.name AS cityName',
+          'state.name AS stateName',
+          'venue.zipCode AS zipCode',
         ])
         .where('venue.id =:id', { id: venueId })
         .getRawOne();
@@ -172,14 +177,18 @@ export class BookingService {
         const entertainer = await this.entertainerRepository
           .createQueryBuilder('entertainer')
           .leftJoin('entertainer.user', 'user')
-          .select(['entertainer.name AS name', 'user.email AS email'])
+          .select([
+            'entertainer.name AS name',
+            'entertainer.email AS email',
+            'user.email AS userEmail',
+          ])
           .where('entertainer.id =:id', { id: entertainerId })
           .getRawOne();
 
         // Send Email to the Entertainer
-        if (entertainer?.email) {
+        if (entertainer?.email || entertainer?.userEmail) {
           const emailPayload = {
-            to: entertainer.email,
+            to: entertainer.email || entertainer.userEmail,
             subject: 'New Booking Request',
             templateName: 'booking-request.html',
             replacements: {
@@ -199,7 +208,7 @@ export class BookingService {
               vname: venue.name,
               vemail: venue.email,
               vphone: venue.contactNumber,
-              Address: `${venue.addressLine1},${venue.addressLine2}`,
+              Address: `${venue.addressLine1},${venue.addressLine2} ,${venue.cityName}, ${venue.stateName}, ${venue.zipCode}`,
             },
           };
 
@@ -222,7 +231,7 @@ export class BookingService {
       );
 
       return {
-        message: 'Invitaion for event  sent successfully',
+        message: 'Invitaion for event sent successfully',
         data: details,
         status: true,
       };

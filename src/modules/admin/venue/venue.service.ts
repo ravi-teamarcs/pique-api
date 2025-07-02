@@ -823,6 +823,7 @@ export class VenueService {
             'booking.venueId AS vid',
             'booking.showStartDateTime AS showStartDateTime',
             'euser.email AS eEmail',
+            'entertainer.email AS email',
             'euser.name AS ename',
             'euser.id AS eid ',
             'euser.phoneNumber AS ephone',
@@ -850,7 +851,7 @@ export class VenueService {
 
         await this.logRepository.save(logPayload);
 
-        if (booking.eEmail) {
+        if (booking.email || booking.eEmail) {
           const formattedDate = format(
             booking.showStartDateTime,
             'dd MMM yyyy',
@@ -860,7 +861,7 @@ export class VenueService {
           );
 
           const emailPayload = {
-            to: booking.eEmail,
+            to: booking.email || booking.eEmail,
             subject: `Booking Request ${status}`,
             templateName:
               status === 'confirmed' ? 'confirmed-booking.html' : '',

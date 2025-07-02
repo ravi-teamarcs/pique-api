@@ -235,7 +235,8 @@ export class ReminderService {
       .leftJoin('users', 'user', 'user.id = ent.userId')
       .select([
         'ent.entertainerName AS entertainerName',
-        'user.email AS email',
+        'user.email AS userEmail',
+        'ent.email AS email',
         'event.slug AS eventName',
         'event.eventStartDateTime AS eventStartDateTime',
         'event.eventEndDateTime AS eventEndDateTime',
@@ -245,7 +246,7 @@ export class ReminderService {
       .getRawMany();
 
     for (const book of bookings) {
-      if (book.email) {
+      if (book.email || book.userEmail) {
         const emailPayload = {
           to: book.email,
           subject: `Reminder for booking status`,
@@ -254,7 +255,7 @@ export class ReminderService {
             entertainerName: book.entertainerName,
             eventName: book.id,
             venueName: book.venueName,
-            eventDate: format(book.eventStartDateTime, 'dd MM yyyy'),
+            eventDate: format(book.eventStartDateTime, 'dd MM yyyy HH:mm'),
           },
         };
         this.emailService.handleSendEmail(emailPayload);

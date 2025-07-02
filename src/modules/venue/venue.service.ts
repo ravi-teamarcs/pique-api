@@ -1207,8 +1207,6 @@ export class VenueService {
         .limit(take)
         .getRawMany();
 
-      const arr = [3, 4, 5, 2, 1];
-
       const entertainers = results.map(
         (
           {
@@ -1777,7 +1775,7 @@ export class VenueService {
   // async getWishlist(venueId: number) {
   //   const wishlistItems = await this.wishRepository
   //     .createQueryBuilder('wish')
-  //     .leftJoin('entertainers', 'entertainer', 'entertainer.id = wish.ent_id')
+  //     .leftJoin('entertainers', 'entertainer', 'entertainer.id = wish.entertainer_id')
   //     .leftJoin('venue', 'venue', 'venue.id = wish.venue_id')
   //     .leftJoin(
   //       'entertainer_media',
@@ -1785,20 +1783,39 @@ export class VenueService {
   //       'media.user_id = entertainer.id AND media.type = :mediaType',
   //       { mediaType: 'headshot' },
   //     )
+  //  .leftJoin(
+  //   (qb) =>
+  //     qb
+  //       .select('feedback.revieweeId', 'revieweeId')
+  //       .addSelect('LEAST(FLOOR(AVG(feedback.rating)), 5)', 'avg_rating')
+  //       .from('feedback', 'feedback')
+  //       .where('feedback.revieweeType = :revieweeType', {
+  //         revieweeType: 'entertainer',
+  //       })
+  //       .groupBy('feedback.revieweeId'),
+  //   'fb',
+  //   'fb.revieweeId = wish.entertainer_id',
+  // )
   //     .select([
   //       'wish.id',
   //       'entertainer.name AS name',
   //       'entertainer.id AS eid',
   //       'entertainer.entertainer_name AS user_name',
   //       'media.url AS mediaUrl',
-  //       'wish.ratings AS ratings',
+  //           `COALESCE(fb.avg_rating, 0) AS ratings`,
+  //
   //     ])
   //     .where('wish.venue_id = :venueId', { venueId })
   //     .getRawMany();
 
+  // const parsedWishlistItems = wishlistItems?.map(({ ratings, item }) => ({
+  //  ...item,
+  //   ratings: Number(ratings),
+  // }));
+
   //   return {
-  //     message: 'Wishlist fetched Successfully',
-  //     data: wishlistItems,
+  //     message:'Wishlist fetched Successfully',
+  //     data:parsedWishlistItems,
   //     status: true,
   //   };
   // }

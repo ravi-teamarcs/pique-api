@@ -209,6 +209,8 @@ export class BookingService {
         .createQueryBuilder('booking')
         .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
         .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('states', 'state', 'state.id = venue.state')
 
         .leftJoin('users', 'vuser', 'vuser.id = venue.userId')
         .leftJoin(
@@ -235,15 +237,15 @@ export class BookingService {
           'entertainer.name AS stageName',
           'euser.phoneNumber AS ephone',
           'venue.name  As  vname',
+          'venue.zipCode  As vZipCode',
           'vuser.email As vemail',
           'vuser.phoneNumber As vphone',
           'vuser.id As vid',
 
           'event.title AS  eventTitle',
           'event.description AS  eventDescription',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
-          'event.eventDate AS eventDate',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
         ])
         .where('booking.id = :id', { id: bookingId })
         .getRawOne();
@@ -301,7 +303,7 @@ export class BookingService {
           declined: {
             venueName: booking.vname,
             eventTitle: booking.slug,
-            eventDate: format(booking.showStartDateTime, 'dd MMM yyyy', {
+            eventDate: format(booking.showStartDateTime, 'dd MMM yyyy HH:mm', {
               timeZone: 'UTC',
             }),
             entertainerName: booking.stageName,
@@ -376,10 +378,14 @@ export class BookingService {
       .leftJoin('event', 'event', 'event.id = booking.eventId')
       .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
       .leftJoin('users', 'user', 'user.id = entertainer.userId')
+      .leftJoin('cities', 'city', 'city.id = venue.city')
+      .leftJoin('states', 'state', 'state.id = venue.state')
+      .leftJoin('users', 'user', 'user.id = entertainer.userId')
       .select([
         'booking.id AS id',
         'booking.status AS status',
         'entertainer.id AS eid',
+        'entertainer.email AS email',
         'entertainer.entertainerName AS entertainerName',
         'venue.id AS vuid',
         'user.id AS entertainer_user_id',
@@ -389,6 +395,9 @@ export class BookingService {
         'event.slug AS eventSlug',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
+        'venue.zipCode AS zipCode',
+        'city.name AS cityName',
+        'state.name AS stateName',
       ])
       .where('booking.eventId = :id', { id })
       .getRawMany();
@@ -426,7 +435,7 @@ export class BookingService {
           },
         );
 
-        if (booking.entertainer_email) {
+        if (booking.email || booking.entertainer_email) {
           // Send Email to Entertainer
           const newTime = format(
             new Date(`1970-01-01T${reqShowTime.slice(0, 5)}:00`),
@@ -434,7 +443,7 @@ export class BookingService {
           );
           const newDate = format(reqShowDate, 'dd MMM yyyy');
           const emailPayload = {
-            to: booking.entertainer_email,
+            to: booking.email || booking.entertainer_email,
             subject: `Event Date and Time Change`,
             templateName: 'modify-booking.html',
             replacements: {
@@ -442,7 +451,7 @@ export class BookingService {
               EventName: booking.eventSlug,
               NewTime: newTime,
               NewDate: newDate,
-              Location: `${booking.addressLine1 ?? ''}${booking.addressLine2 ?? ''}`,
+              Location: `${booking.addressLine1 ?? ''}${booking.addressLine2 ?? ''},${booking.cityName} ,${booking.stateName} ${booking.zipCode} `,
               Year: new Date().getFullYear(),
             },
           };
