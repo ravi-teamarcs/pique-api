@@ -205,6 +205,11 @@ export class VenueController {
     const { refId } = req.user;
     return this.venueService.findEntertainerDetails(Number(id), refId);
   }
+  // Wihtout Guard Api
+  @Get('entertainer-profile/:id/dashboard')
+  getEntertainerDetailsforDashboard(@Param('id', ParseIntPipe) id: number) {
+    return this.venueService.findEntertainerDetailsForDashboard(Number(id));
+  }
 
   // Booking Request   and create a new requet
   @ApiOperation({ summary: 'Create a new Booking' })

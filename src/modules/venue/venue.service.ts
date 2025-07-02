@@ -1600,6 +1600,184 @@ export class VenueService {
       status: true,
     };
   }
+  async findEntertainerDetailsForDashboard(id: number) {
+    const res = await this.entertainerRepository
+      .createQueryBuilder('entertainer')
+      .leftJoin('cities', 'city', 'city.id = entertainer.city')
+      .leftJoin('states', 'state', 'state.id = entertainer.state')
+      .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+      .leftJoin('categories', 'category', 'category.id = entertainer.category')
+
+      .leftJoin(
+        'categories',
+        'subcat',
+        'subcat.id = entertainer.specific_category',
+      )
+
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'media.user_id AS media_user_id',
+              `JSON_ARRAYAGG(
+          JSON_OBJECT(
+            "url", CONCAT(:serverUri, media.url),
+            "type", media.type
+          )
+        ) AS mediaDetails`,
+            ])
+            .from('entertainer_media', 'media') // ✅ changed table name only
+            .groupBy('media.user_id'),
+        'media', // keep subquery alias same
+        'media.media_user_id = entertainer.id', // join condition unchanged
+      )
+
+      .select([
+        'entertainer.id AS eid',
+        'entertainer.name AS name',
+        'entertainer.entertainer_name AS entertainer_name',
+        'entertainer.isPiqueVerified AS isPiqueVerified',
+        'entertainer.performanceRole AS performanceRole',
+        'entertainer.pricePerEvent AS pricePerEvent',
+        'entertainer.socialLinks AS socialLinks',
+        'entertainer.contact_person AS contactPerson',
+        'entertainer.contact_number AS contactNumber',
+        'entertainer.timezone AS timezone',
+        'state.name AS stateName',
+        'country.name AS countryName',
+        'city.name AS cityName',
+        'code.StateCode AS stateCode',
+
+        `CASE 
+       WHEN entertainer.services IS NULL OR entertainer.services = '' 
+       THEN '[]' 
+     ELSE entertainer.services 
+     END AS services`,
+        'entertainer.bio AS bio',
+        'entertainer.vaccinated AS vaccinated',
+
+        'COALESCE(media.mediaDetails, "[]") AS media',
+      ])
+      .where('entertainer.id = :id', { id })
+      .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+
+      .getRawOne();
+
+    //  Get Entertainer Details
+
+    const rawCategories = await this.entCatRepository
+      .createQueryBuilder('ecs')
+      .leftJoin('categories', 'cat', 'cat.id = ecs.category_id') // Category relation
+      .where('ecs.entertainerId = :entertainerId', { entertainerId: id })
+      .select([
+        'cat.id AS categoryId',
+        'cat.name AS categoryName',
+        'ecs.subcategoryIds AS subcategoryIds',
+      ])
+      .getRawMany();
+
+    const subcategoryIds = rawCategories.flatMap((row) =>
+      typeof row.subcategoryIds === 'string'
+        ? row.subcategoryIds.split(',').map(Number)
+        : [],
+    );
+
+    const uniqueSubcategoryIds = [...new Set(subcategoryIds)];
+
+    //   Now get all the subcategory
+
+    const subcategories = await this.catRepository
+      .createQueryBuilder('subcat')
+      .leftJoinAndSelect(
+        'subcategory_rates',
+        'subRates',
+        'subRates.subcategoryId = subcat.id',
+      )
+      .where('subcat.id IN (:...ids)', { ids: uniqueSubcategoryIds })
+      .select([
+        'subcat.id AS id',
+        'subcat.name AS name',
+        'subcat.catslug AS catslug',
+        'subcat.parentId AS parentId',
+        'subRates.basePrice AS basePrice',
+        'subRates.pricePerExtra30Min AS pricePerExtra30Min',
+      ])
+      .getRawMany();
+
+    const specialPrices = await this.specialSubcatRateRepo
+      .createQueryBuilder('sp')
+      .where('sp.subcategoryId IN (:...ids)', { ids: uniqueSubcategoryIds })
+      .select([
+        'sp.subcategoryId AS subcategoryId',
+        'sp.date AS date',
+        'sp.specialPrice AS price',
+      ])
+      .getRawMany();
+
+    const formatted = rawCategories.map((row) => {
+      const subcatIds =
+        typeof row.subcategoryIds === 'string'
+          ? row.subcategoryIds.split(',').map(Number)
+          : [];
+
+      const specific_category = subcategories
+        .filter((sub) => subcatIds.includes(sub.id))
+        .map((sub) => {
+          const specials = specialPrices
+            .filter((sp) => sp.subcategoryId === sub.id)
+            .map((sp) => ({
+              date: sp.date,
+              price: sp.price,
+            }));
+
+          return {
+            id: sub.id,
+            name: sub.name,
+            catslug: sub.catslug,
+            parentId: sub.parentId,
+            basePrice: sub.basePrice,
+            pricePerExtra30Min: sub.pricePerExtra30Min,
+            specialPrices: specials,
+          };
+        });
+
+      return {
+        id: row.categoryId,
+        categoryName: row.categoryName,
+        specific_category,
+      };
+    });
+
+    const finalPrice = await this.addMarkupToEntertainer(
+      Number(res.pricePerEvent),
+    );
+
+    const {
+      services,
+      media,
+      vaccinated,
+      isPiqueVerified,
+      socialLinks,
+      ...details
+    } = res;
+    return {
+      message: 'Entertainer details returned successfully for dashboard.',
+      data: {
+        ...details,
+
+        priceWithMarkup: finalPrice,
+        isPiqueVerified: isPiqueVerified === 1 ? true : false,
+        socialLinks: socialLinks ? JSON.parse(socialLinks) : {},
+        vaccination_status:
+          vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+        services: services ? services.split(',') : [],
+        media: JSON.parse(media),
+        categories: formatted,
+      },
+      status: true,
+    };
+  }
   // Working
   async getSearchSuggestions(query: string) {
     const categories = await this.catRepository.find({
