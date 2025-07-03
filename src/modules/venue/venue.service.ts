@@ -974,7 +974,6 @@ export class VenueService {
             vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
           ratings: Number(ratings),
           distanceInMiles: distanceInMiles ? Number(distanceInMiles) : null,
-          // Parse categories JSON if present
           categories: categories ? JSON.parse(categories) : [],
         }),
       );
@@ -2123,6 +2122,7 @@ export class VenueService {
     }
   }
 
+  // Working Both
   async entertainerPerformanceHistoryOnVenue(
     id: number,
     venueId: number,

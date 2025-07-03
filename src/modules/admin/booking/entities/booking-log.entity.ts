@@ -25,8 +25,9 @@ export class BookingLog {
       'accepted',
       'canceled',
       'declined',
-
+      'removed',
       'rescheduled',
+      'closed',
     ],
     default: 'invited',
   })
@@ -36,7 +37,9 @@ export class BookingLog {
     | 'canceled'
     | 'declined'
     | 'completed'
-    | 'rescheduled';
+    | 'removed'
+    | 'rescheduled'
+    | 'closed';
 
   @Column()
   performedBy: 'venue' | 'entertainer' | 'admin';
@@ -44,9 +47,9 @@ export class BookingLog {
   @Column()
   date: Date;
 
-  @CreateDateColumn({type: 'timestamp'})
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn({type: 'timestamp'})
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

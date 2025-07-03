@@ -129,12 +129,6 @@ export class BookingService {
 
         // Check for Availability.
 
-        // const { eventStartDateTime, eventEndDateTime } =
-        //   await this.eventRepository.findOne({
-        //     where: { id: payload.eventId },
-        //     select: ['eventStartDateTime', 'eventEndDateTime'],
-        //   });
-
         const availabilityPayload = {
           startTimeUtc: new Date(event.eventStartDateTime).toISOString(),
           endTimeUtc: new Date(event.eventEndDateTime).toISOString(),
@@ -279,6 +273,7 @@ export class BookingService {
 
   async bookingResponse(payload: AdminBookingResponseDto) {
     const { bookingId, status } = payload;
+
     const booking = await this.bookingRepository.findOne({
       where: { id: bookingId },
     });
@@ -309,10 +304,7 @@ export class BookingService {
           'event.title AS event_title',
           'event.description AS event_description',
           'event.slug AS event_slug',
-          'event.startTime AS event_endTime',
 
-          'event.endTime AS event_startTime',
-          'event.eventDate AS event_eventDate',
           // Added two  fields Here
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
@@ -330,8 +322,6 @@ export class BookingService {
           'entertainers.id AS entertainer_id',
           'entertainers.name AS stageName',
           'entertainers.entertainerName AS entertainerName',
-          'cat.name AS categoryName',
-          'subcat.name AS specificCategoryName',
 
           'invoice.id AS ent_invoice_id',
           'invoice.total_with_tax AS totalAmount',
@@ -442,7 +432,7 @@ export class BookingService {
   }
 
   async handleChangeRequest(id: number, bookingdto: ModifyBookingDto) {
-    const { reqShowDate, reqShowTime } = bookingdto;
+    const { eventStartDateTime, eventEndDateTime } = bookingdto;
 
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
@@ -491,21 +481,17 @@ export class BookingService {
           { id: booking.id },
           {
             status: 'rescheduled',
-            showDate: reqShowDate,
-            showTime: reqShowTime,
+            showStartDateTime: eventStartDateTime,
           },
         );
 
         if (booking.entertainer_email) {
           // Send Email to Entertainer
-          const newTime = format(
-            new Date(`1970-01-01T${reqShowTime.slice(0, 5)}:00`),
-            'hh:mm a',
-          );
-          const newDate = format(reqShowDate, 'dd MMM yyyy');
+          const newTime = format(eventStartDateTime, 'hh:mm a');
+          const newDate = format(eventStartDateTime, 'dd MMM yyyy HH:mm');
           const emailPayload = {
             to: booking.entertainer_email,
-            subject: `Event Date and Time Change`,
+            subject: `Event Rescheduled`,
             templateName: 'modify-booking.html',
             replacements: {
               EntertainerName: booking.entertainerName,
@@ -519,7 +505,6 @@ export class BookingService {
           await this.emailService.handleSendEmail(emailPayload);
 
           // Send Notification to Entertainer
-
           this.notifyService.sendPush(
             {
               title: 'Event Date and Time Change',
@@ -567,7 +552,7 @@ export class BookingService {
       where: { id: bookingId },
     });
 
-    if (!booking) throw new BadRequestException('Booking Not Found');
+    if (!booking) throw new BadRequestException('Booking not found');
     try {
       if (booking.status === 'confirmed') {
         const invoiceMetaData = await this.invoiceEventRepository.findOne({
@@ -585,8 +570,18 @@ export class BookingService {
         { id: bookingId },
         { status: 'removed' },
       );
+
+      // Log the removal Action
+      const logPayload = this.logRepository.create({
+        bookingId,
+        performedBy: 'admin',
+        status: 'removed',
+        user: null,
+        date: new Date(),
+      });
+      await this.logRepository.save(logPayload);
       return {
-        message: 'Entertainer booking remove successfully.',
+        message: 'Entertainer booking removed successfully.',
         status: true,
       };
     } catch (error) {

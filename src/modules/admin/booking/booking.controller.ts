@@ -77,6 +77,8 @@ export class BookingController {
     return this.bookingService.createBooking(bookingdto);
   }
 
+
+  // Out of Order
   @ApiOperation({
     description: 'Enable Admin To Respond on the Behalf of the Venue . ',
   })
@@ -121,13 +123,6 @@ export class BookingController {
       formattedToDate,
     );
   }
-
-  // To Reschedule Booking Request
-  // @Patch('rescheduled')
-  // @Roles('super-admin')
-  // modifybooking(@Body() dto: ModifyBookingDto) {
-  //   return this.bookingService.handleChangeRequest(dto);
-  // }
 
   // To Delete  Booking Request
   @Delete(':id')

@@ -847,6 +847,7 @@ export class VenueService {
           performedBy: 'admin',
           status,
           user: null,
+          date: new Date(),
         });
 
         await this.logRepository.save(logPayload);
@@ -904,16 +905,15 @@ export class VenueService {
         status: true,
       };
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error;
-      }
+      if (error instanceof HttpException) throw error;
+
       throw new InternalServerErrorException({
         message: error.message,
         status: false,
       });
     }
   }
-  // This needs Changes okay ..
+
   private async notSelectedforEvent(eventId: number, confirmedBookings) {
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
@@ -924,7 +924,8 @@ export class VenueService {
       .select([
         'booking.id AS id',
         'entertainer.entertainer_name AS entertainerName',
-        'user.email AS email',
+        'entertainer.email AS email',
+        'user.email AS userEmail',
         'venue.name AS venueName',
         'event.slug AS eventName',
         'event.eventStartDateTime AS eventStartDateTime',
@@ -937,6 +938,7 @@ export class VenueService {
       const rejectedRequest = bookings.filter(
         (item) => !confirmedBookings.includes(item.id),
       );
+
       // Canceled the booking First then send them the Booking Request
       for (const req of rejectedRequest) {
         const res = await this.bookingRepository.update(
@@ -944,31 +946,42 @@ export class VenueService {
           { status: 'closed' },
         );
 
-        // if (req.email) {
-        //   const emailPayload = {
-        //     to: req.email,
-        //     subject: `Status update of Booking Request`,
-        //     templateName: 'cancellation.html',
-        //     replacements: {
-        //       entertainerName: req.entertainerName,
-        //       eventName: req.eventName,
-        //       eventDate: format(req.eventStartDateTime, 'dd MMM yyyy', {
-        //         timeZone: 'UTC',
-        //       }),
-        //     },
-        //   };
+        // Add a closed log in log repository.
+        const logPayload = this.logRepository.create({
+          bookingId: req.id,
+          performedBy: 'admin',
+          status: 'closed',
+          user: null,
+        });
+        await this.logRepository.save(logPayload);
 
-        //   await this.emailService.handleSendEmail(emailPayload);
+        // Check any of email  exists then send Email.
+        if (req.email || req.userEmail) {
+          const emailPayload = {
+            to: req.email,
+            subject: `Status update of Booking Request`,
+            templateName: 'cancellation.html',
+            replacements: {
+              entertainerName: req.entertainerName,
+              eventName: req.eventName,
+              eventDate: format(req.eventStartDateTime, 'dd MMM yyyy HH:mm', {
+                timeZone: 'UTC',
+              }),
+            },
+          };
 
-        //   this.notifyService.sendPush(
-        //     {
-        //       title: 'Status update of booking ',
-        //       body: `${req.venueName} has canceled the booking `,
-        //       type: 'booking_response',
-        //     },
-        //     req.entId,
-        //   );
-        // }
+          await this.emailService.handleSendEmail(emailPayload);
+          if (req.entId) {
+            this.notifyService.sendPush(
+              {
+                title: 'Status update of booking invitation for event.',
+                body: `${req.venueName} has closed the position for ${req.eventName}event.`,
+                type: 'booking_response',
+              },
+              req.entId,
+            );
+          }
+        }
       }
     }
   }

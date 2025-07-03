@@ -29,22 +29,6 @@ import { deleteFileFromServer } from 'src/common/middlewares/multer.middleware';
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
-  //Change
-  @ApiOperation({
-    description: 'Enable Admin And Entertainer to review booking ',
-  })
-  @ApiResponse({ status: 200 })
-  @Post('approve/:requestId')
-  @HttpCode(200)
-  @Roles('findAll')
-  approveChange(
-    @Param('requestId') requestId: number,
-    @Body() reqDto: BookingReqResponse,
-    @Request() req: any,
-  ) {
-    const { userId } = req.user;
-    return this.bookingService.approveChange(requestId, reqDto, userId);
-  }
 
   @Get('by-event/:eventId')
   @Roles('findAll')
@@ -67,9 +51,10 @@ export class BookingController {
     return this.bookingService.getEntertainerDetailsPerEvent(eventId, refId);
   }
 
-  @Post('test-route')
-  @Roles('findAll')
-  async tetstingRoute(@Body('url') url: string) {
-    return deleteFileFromServer(url);
-  }
+  // Temporary route for testing file deletion
+  // @Post('test-route')
+  // @Roles('findAll')
+  // async tetstingRoute(@Body('url') url: string) {
+  //   return deleteFileFromServer(url);
+  // }
 }

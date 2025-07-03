@@ -108,8 +108,8 @@ export class EventService {
 
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         this.bookingService.handleChangeRequest(Number(event.id), {
-          reqShowDate: new Date(updatedEventDate).toISOString().split('T')[0],
-          reqShowTime: updatedStartTime,
+          eventStartDateTime: dto.eventStartDateTime,
+          eventEndDateTime: dto.eventEndDateTime,
         });
       }
       return { message: 'Event updated successfully', status: true };

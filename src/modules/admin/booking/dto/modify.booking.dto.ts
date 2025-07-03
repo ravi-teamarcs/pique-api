@@ -2,18 +2,13 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 class ModifyBookingDto {
-  // @ApiProperty({ description: 'Booking Id ' })
-  // @IsNumber()
-  // @IsNotEmpty()
-  // bookingId: number;
-
   @ApiProperty({ description: 'Requested Time' })
   @IsString()
-  reqShowTime: string;
+  eventStartDateTime: string;
 
   @ApiProperty({ description: 'Requested Date' })
   @IsString()
-  reqShowDate: string;
+  eventEndDateTime: string;
 }
 
 export { ModifyBookingDto };

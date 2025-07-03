@@ -34,6 +34,7 @@ import { getOverlappingSlots } from 'src/common/utils/slots-utils';
 import { DateTime } from 'luxon';
 import { Invoice } from '../invoice/entities/invoice.entity';
 import { InvoiceEvent } from '../admin/invoice/entities/invoices-event.entity';
+import { error } from 'console';
 
 @Injectable()
 export class BookingService {
@@ -370,7 +371,7 @@ export class BookingService {
 
   // approve service for both Entertainer and Admin
   async handleChangeRequest(id: number, bookingdto: ModifyBookingDto) {
-    const { reqShowDate, reqShowTime } = bookingdto;
+    const { eventStartDateTime, eventEndDateTime } = bookingdto;
 
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
@@ -408,6 +409,7 @@ export class BookingService {
 
     try {
       for (const booking of bookings) {
+        // Ignore status if lies in any one of them.
         const IGNORED_STATUSES = [
           'invited',
           'canceled',
@@ -416,35 +418,31 @@ export class BookingService {
         ];
         if (IGNORED_STATUSES.includes(booking.status)) continue;
 
-        const bookReq = this.reqRepository.create({
-          ...bookingdto,
-          vuid: booking.vuid,
-          euid: booking.eid,
-          reqEventId: booking.eventId,
-        });
-
-        await this.reqRepository.save(bookReq);
-
-        // This updates the booking
+        // Need changes Here (Fix this Date and Time issue)
         await this.bookingRepository.update(
           { id: booking.id },
           {
             status: 'rescheduled',
-            showDate: reqShowDate,
-            showTime: reqShowTime,
+            showStartDateTime: eventStartDateTime,
           },
         );
 
+        // Add a booking log for this rescheduled
+        const payload = {
+          bookingId: booking.id,
+          status: 'rescheduled',
+          user: booking.vuid,
+          performedBy: 'venue',
+        };
+
+        this.generateBookingLog(payload);
+
         if (booking.email || booking.entertainer_email) {
-          // Send Email to Entertainer
-          const newTime = format(
-            new Date(`1970-01-01T${reqShowTime.slice(0, 5)}:00`),
-            'hh:mm a',
-          );
-          const newDate = format(reqShowDate, 'dd MMM yyyy');
+          const newTime = format(eventStartDateTime, 'hh:mm a');
+          const newDate = format(eventStartDateTime, 'dd MMM yyyy');
           const emailPayload = {
             to: booking.email || booking.entertainer_email,
-            subject: `Event Date and Time Change`,
+            subject: `Event Rescheduled`,
             templateName: 'modify-booking.html',
             replacements: {
               EntertainerName: booking.entertainerName,
@@ -458,11 +456,10 @@ export class BookingService {
           await this.emailService.handleSendEmail(emailPayload);
 
           // Send Notification to Entertainer
-
           this.notifyService.sendPush(
             {
-              title: 'Event Date and Time Change',
-              body: `Your booking with ID ${booking.id} has been rescheduled to ${newDate} at ${newTime}`,
+              title: 'Event Rescheduled',
+              body: `Your booking for event ${booking.event_title ?? booking.eventSlug} has been rescheduled to ${newDate} at ${newTime}`,
               type: 'booking_date_time_change',
             },
             booking.entertainer_user_id,
@@ -471,99 +468,20 @@ export class BookingService {
       }
       return {
         message:
-          'Your Request for Time and Date  have registered Successfully.',
+          'Your request for date and time have been registered successfully.',
         status: true,
       };
     } catch (err) {
-      throw new InternalServerErrorException({
-        message: err.message,
-        status: false,
-      });
-    }
-  }
-
-  async approveChange(
-    requestId: number,
-    reqDto: BookingReqResponse,
-    userId: number,
-  ) {
-    const { response } = reqDto;
-
-    const request = await this.reqRepository.findOne({
-      where: { id: requestId, euid: userId },
-    });
-
-    if (!request) {
-      throw new NotFoundException({
-        message: 'Request not found',
-        status: false,
-      });
-    }
-
-    try {
-      const updatedRequest = await this.reqRepository.update(
-        { id: requestId },
-        { status: response },
-      );
-      if (!updatedRequest.affected) {
-        throw new NotFoundException({
-          message: 'Request not found',
-          status: false,
-        });
-      }
-      const res = response === 'approved' ? 'rescheduled' : 'confirmed';
-
-      const booking = await this.bookingRepository.update(
-        { id: request.bookingId },
-        {
-          status: res,
-          showTime: request.reqShowTime,
-          showDate: request.reqShowTime,
-          eventId: request.reqEventId,
-        },
-      );
-
-      this.notifyService.sendPush(
-        {
-          title: 'Booking Reschedule Request Update',
-          body: `The entertainer has ${response} your request to change the date and time of the booking.`,
-          type: 'change_date_time',
-        },
-
-        request.vuid,
-      );
-
-      const payload = {
-        bookingId: request.bookingId,
-        status: res,
-        user: userId,
-        performedBy: 'entertainer',
-      };
-      this.generateBookingLog(payload);
-
-      return {
-        message: `Request ${response} successfully`,
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: 'Failed to approve request',
-        status: false,
-      });
+      throw new InternalServerErrorException(err.message);
     }
   }
 
   private async generateBookingLog(payload) {
-    const { bookingId, user, status, performedBy } = payload;
-
     const log = this.logRepository.create({
       ...payload,
       date: new Date(),
     });
-
     await this.logRepository.save(log);
-
-    return { message: 'Log generated Successfully', status: true };
   }
 
   async updateBookingStatus(dto, userId: number) {
@@ -582,8 +500,6 @@ export class BookingService {
             'entertainer.id = booking.entId',
           )
           .leftJoin('users', 'euser', 'euser.id = entertainer.userId') // entertainer's user
-
-          // Join venue table
           .select([
             'booking.id AS id',
             'booking.status AS status',
@@ -593,6 +509,7 @@ export class BookingService {
             'booking.showStartDateTime AS showStartDateTime',
 
             'euser.email AS eEmail',
+            'entertainer.email AS email',
             'euser.name AS ename',
             'euser.id AS eid ',
             'euser.phoneNumber AS ephone',
@@ -607,35 +524,24 @@ export class BookingService {
 
         if (!booking) {
           throw new NotFoundException({
-            message: `Booking with ID ${bookingId} not found`,
+            message: `Booking with id ${bookingId} not found`,
           });
         }
 
+        // update the booking status
         await this.bookingRepository.update({ id: bookingId }, { status });
-        // If booking confirmed , also confirm the status of event.
 
-        // New logic added(not tested yet).
-
-        for (const eventId of eventIds) {
-          const invoiceMetaData = await this.invoiceEventRepository.findOne({
-            where: { eventId },
-          });
-          if (invoiceMetaData)
-            await this.invoiceRepository.update(
-              { id: invoiceMetaData.invoiceId },
-              { isOutdated: true },
-            );
-        }
-
+        // After that  generate the booking log for this.
         const logPayload = {
           bookingId,
           performedBy: 'venue',
           status,
           user: Number(booking.venueId),
         };
-        const log = await this.generateBookingLog(logPayload);
+        await this.generateBookingLog(logPayload);
 
-        if (booking.eEmail) {
+        // Send email and push notification if email is available
+        if (booking.email || booking.eEmail) {
           const formattedDate = format(
             booking.showStartDateTime,
             'dd MMM yyyy',
@@ -661,19 +567,22 @@ export class BookingService {
           };
 
           this.emailService.handleSendEmail(emailPayload);
+          if (booking.eid) {
+            this.notifyService.sendPush(
+              {
+                title: 'Booking Response',
+                body: `${booking.vname} venue has ${status} the booking request.`,
+                type: 'booking_response',
+              },
 
-          this.notifyService.sendPush(
-            {
-              title: 'Booking Response',
-              body: `${booking.vname} venue has ${status} the booking request.`,
-              type: 'booking_response',
-            },
-
-            booking.eid,
-          );
+              booking.eid,
+            );
+          }
         }
         updatedBookings.push(bookingId);
       }
+
+      // Update the status of the event to confirmed
       await Promise.all(
         eventIds.map(
           async (eventId: number) =>
@@ -683,6 +592,18 @@ export class BookingService {
             ),
         ),
       );
+
+      // Check if the  changes made in the event whose invoice already generated outdated the invoice.
+      for (const eventId of eventIds) {
+        const invoiceMetaData = await this.invoiceEventRepository.findOne({
+          where: { eventId },
+        });
+        if (invoiceMetaData)
+          await this.invoiceRepository.update(
+            { id: invoiceMetaData.invoiceId },
+            { isOutdated: true },
+          );
+      }
 
       this.notSelectedforEvent(eventIds, updatedBookings, userId);
 
@@ -794,7 +715,9 @@ export class BookingService {
       .select([
         'booking.id AS id',
         'entertainer.entertainer_name AS entertainerName',
-        'user.email AS email',
+        'entertainer.email AS email',
+        'user.email AS userEmail',
+        'venue.name AS venueName',
         'event.slug AS eventName',
         'event.eventStartDateTime AS eventStartDateTime',
         'event.eventEndDateTime AS eventEndDateTime',
@@ -810,36 +733,46 @@ export class BookingService {
       );
 
       for (const req of rejectedRequest) {
-        // Change the status for the rest of the bookings.
-
+        // Update the status of rest of the bookings to closed
         await this.bookingRepository.update(
           { id: req.id, status: In(['invited', 'accepted']) },
           { status: 'closed' },
         );
 
-        // if (req?.email) {
-        //   const emailPayload = {
-        //     to: req.email,
-        //     subject: `Status update of Booking Request`,
-        //     templateName: 'cancellation.html',
-        //     replacements: {
-        //       entertainerName: req.entertainerName,
-        //       eventName: req.eventName,
-        //       eventDate: format(req.eventStartDateTime, 'dd MM yyyy'),
-        //     },
-        //   };
+        // Add a log entry for the booking
+        const logPayload = {
+          bookingId: req.id,
+          status: 'closed',
+          user: Number(venueId),
+          performedBy: 'venue',
+        };
+        await this.generateBookingLog(logPayload);
 
-        //   await this.emailService.handleSendEmail(emailPayload);
+        // Send email and push notification to entertainer
+        if (req?.email || req?.userEmail) {
+          const emailPayload = {
+            to: req.email,
+            subject: `Status update of booking invitation for event.`,
+            templateName: 'cancellation.html',
+            replacements: {
+              entertainerName: req.entertainerName,
+              eventName: req.eventName,
+              eventDate: format(req.eventStartDateTime, 'dd MM yyyy HH:mm'),
+            },
+          };
 
-        //   this.notifyService.sendPush(
-        //     {
-        //       title: 'Status Update of Your Booking ',
-        //       body: `Venue has canceled booking `,
-        //       type: 'booking_response',
-        //     },
-        //     req.entId,
-        //   );
-        // }
+          await this.emailService.handleSendEmail(emailPayload);
+          if (req?.entId) {
+            this.notifyService.sendPush(
+              {
+                title: 'Status update of booking invitation for event',
+                body: `${req.venueName} has closed  the position for ${req.eventName} event `,
+                type: 'booking_response',
+              },
+              req.entId,
+            );
+          }
+        }
       }
     }
   }
