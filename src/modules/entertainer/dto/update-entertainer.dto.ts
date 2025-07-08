@@ -158,12 +158,6 @@ class GeneralInformationDto {
 
   @IsOptional()
   services: string[];
-  @IsNumber()
-  @Transform(({ value }) => {
-    return Number(value);
-  })
-  @IsOptional()
-  pricePerEvent: number;
 
   @IsString()
   @IsOptional()

@@ -22,6 +22,8 @@ import { Venue } from '../venue/entities/venue.entity';
 import { BookingService } from '../booking/booking.service';
 import { FilterEventDto } from './dto/filter-event.dto';
 import { Setting } from '../settings/entities/setting.entity';
+import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
+import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 
 @Injectable()
 export class EventService {
@@ -34,6 +36,11 @@ export class EventService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(Setting)
     private readonly settingRepo: Repository<Setting>,
+
+    @InjectRepository(SubcategoryRate)
+    private readonly rateCardRepo: Repository<SubcategoryRate>,
+    @InjectRepository(SpecialSubcategoryPrice)
+    private readonly specialRateCardRepo: Repository<SpecialSubcategoryPrice>,
 
     private readonly mediaService: MediaService,
     private readonly bookingService: BookingService,
@@ -472,6 +479,8 @@ export class EventService {
         .select([
           'booking.id AS bookingId',
           'booking.status AS bookingStatus',
+          'booking.categoryId AS categoryId',
+          'booking.subcategoryId AS subcategoryId',
           'ent.name AS entertainerName',
           'ent.contact_person AS contactPerson',
           'ent.contact_number AS contactNumber',
@@ -485,10 +494,34 @@ export class EventService {
       const totalCount = await events.getCount();
       const results = await events.getRawMany();
 
+      const event = await this.eventRepository.findOne({
+        where: { id: eventId },
+      });
+
+      // Rate Card Repo
+      const rateCard = await this.rateCardRepo.find();
+
+      const specialRateCard = await this.specialRateCardRepo.find({
+        where: {
+          date: new Date(event.eventStartDateTime).toISOString().split('T')[0],
+        },
+      });
+
+      // Now map the results to include the price with markup
+      if (!results || results.length === 0) return;
+
       const updatedResults = await Promise.all(
         results.map(async (result) => {
+          let price: number;
+          if (specialRateCard.length > 0)
+            price = specialRateCard.find(
+              (item) => item.subcategoryId === result.subcategoryId,
+            ).specialPrice;
+          price = rateCard.find(
+            (item) => item.subcategoryId === result.subcategoryId,
+          ).basePrice;
           const priceWithMarkup = await this.addMarkupToEntertainer(
-            result.pricePerHour,
+            Number(price),
           );
           return {
             ...result,
@@ -498,7 +531,7 @@ export class EventService {
       );
 
       return {
-        message: `Booking for Event Id ${eventId} fetched successfully`,
+        message: `Bookings for Event Id ${eventId} fetched successfully`,
         data: updatedResults,
         totalCount,
         status: true,

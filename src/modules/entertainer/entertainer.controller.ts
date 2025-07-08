@@ -183,6 +183,7 @@ export class EntertainerController {
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
   ) {
+    
     const { userId, refId } = req.user;
     let uploadedFiles: UploadedFile[] = [];
 
@@ -455,6 +456,7 @@ export class EntertainerController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   async setEntertainerRateCard(@Body() dto: EntertainerRateCardDto) {
+    console.log('Setting Rate Card:', dto);
     return this.entertainerService.setEntertainerRateCard(dto);
   }
 

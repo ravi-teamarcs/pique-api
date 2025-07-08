@@ -2232,6 +2232,7 @@ export class EntertainerService {
 
   async setEntertainerRateCard(dto: EntertainerRateCardDto) {
     const { rates } = dto;
+    console.log('___Rates___', rates);
     try {
       if (rates && rates.length > 0) {
         for (const rate of rates) {
