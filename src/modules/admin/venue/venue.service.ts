@@ -490,6 +490,7 @@ export class VenueService {
     await queryRunner.startTransaction();
 
     let { user, createLogin, venue } = dto;
+
     if (typeof user === 'string') {
       user = JSON.parse(user);
     }
@@ -520,7 +521,7 @@ export class VenueService {
             if (alreadyExists)
               throw new BadRequestException({
                 message:
-                  'Email Already taken by another user , cannot update email. ',
+                  'Email already taken by another user , cannot update email. ',
               });
           }
 
@@ -549,6 +550,8 @@ export class VenueService {
             role: 'venue',
           });
           const savedUser = await this.userRepository.save(newUser);
+          // Also add update on this.
+
           await this.venueRepository.update(
             { id: venue.id },
             { user: { id: savedUser.id } },
@@ -559,7 +562,29 @@ export class VenueService {
       if (typeof dto.venue === 'string') {
         dto.venue = JSON.parse(dto.venue);
       }
-      await queryRunner.manager.update(Venue, { id: venue.id }, dto.venue);
+
+      //
+
+      const city = await this.cityRepository.findOne({
+        where: { id: dto.venue.city },
+        select: ['name'],
+      });
+      const state = await this.stateRepository.findOne({
+        where: { id: dto.venue.state },
+        select: ['name'],
+      });
+
+      const fullAddress = `${dto.venue.addressLine1 ?? ''}, ${dto.venue.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.venue.zipCode}`;
+
+      // To get latitude and Longitude
+      const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      //  Update Payload
+      const updatedVenue = {
+        ...dto.venue,
+        latitude: lat,
+        longitude: lng,
+      };
+      await queryRunner.manager.update(Venue, { id: venue.id }, updatedVenue);
 
       if (uploadedFiles?.length > 0) {
         const res = await this.mediaService.handleMediaUpload(
