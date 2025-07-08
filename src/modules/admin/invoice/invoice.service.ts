@@ -1197,8 +1197,8 @@ export class InvoiceService {
   async sendInvoiceWithPdf(pdfBuffer: Buffer, invoiceId: number) {
     const invoice = await this.invoiceRepository
       .createQueryBuilder('invoice')
-      .leftJoin('users', 'user', 'user.id = invoice.user_id')
-      .leftJoin('venue', 'venue', 'venue.id = user.id')
+      .leftJoin('venue', 'venue', 'venue.id = invoice.user_id')
+      .leftJoin('users', 'user', 'user.id = venue.userId')
       .select([
         'invoice.id AS invoiceId',
         'invoice.issue_date AS issueDate',

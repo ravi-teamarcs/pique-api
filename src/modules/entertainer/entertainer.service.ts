@@ -71,6 +71,7 @@ import {
 import { EntertainerCategorySubcategory } from './entities/entertainer-category-subcategory.entity';
 import { EntertainerRateCard } from './entities/entertainer-rate-card.entity';
 import { EntertainerRateCardDto } from './dto/rate-card.dto';
+import { EntertainerInvoice } from '../invoice/entities/entertainer-invoice.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -91,6 +92,8 @@ export class EntertainerService {
     private readonly eventRepository: Repository<VenueEvent>,
     @InjectRepository(Invoice)
     private readonly invoiceRepository: Repository<Invoice>,
+    @InjectRepository(EntertainerInvoice)
+    private readonly entInvoiceRepository: Repository<EntertainerInvoice>,
     @InjectRepository(Cities)
     private readonly cityRepository: Repository<Cities>,
     @InjectRepository(States)
@@ -1679,7 +1682,7 @@ export class EntertainerService {
       const prevEndDate = new Date(currentYear, currentMonth, 0, 23, 59, 59);
 
       // Revenue Calculation Here
-      const revenueData = await this.invoiceRepository
+      const revenueData = await this.entInvoiceRepository
         .createQueryBuilder('invoice')
         .select([
           'SUM(CASE WHEN invoice.payment_date BETWEEN :startDate AND :endDate THEN invoice.total_with_tax ELSE 0 END) AS currentRevenue',
