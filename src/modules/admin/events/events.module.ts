@@ -11,6 +11,8 @@ import { MediaModule } from '../media/media.module';
 import { Venue } from 'src/modules/venue/entities/venue.entity';
 import { BookingModule } from '../booking/booking.module';
 import { Setting } from '../settings/entities/setting.entity';
+import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
+import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 
 @Module({
   imports: [
@@ -22,6 +24,9 @@ import { Setting } from '../settings/entities/setting.entity';
       Capability,
       Venue,
       Setting,
+      SubcategoryRate,
+      SpecialSubcategoryPrice
+
     ]),
     MediaModule,
     BookingModule,
