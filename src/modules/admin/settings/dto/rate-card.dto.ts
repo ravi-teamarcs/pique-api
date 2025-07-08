@@ -33,6 +33,10 @@ class SpecialPriceDto {
   @IsNotEmpty()
   subcategoryId: number;
 
+  @IsNumber()
+  @IsNotEmpty()
+  pricePerExtra30Min: number;
+
   @IsString()
   @IsOptional()
   date: string;

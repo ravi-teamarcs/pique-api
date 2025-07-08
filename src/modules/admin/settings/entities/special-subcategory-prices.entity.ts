@@ -20,6 +20,14 @@ export class SpecialSubcategoryPrice {
   @Column({ name: 'special_price', type: 'decimal', precision: 10, scale: 2 })
   specialPrice: number;
 
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    name: 'price_per_extra_30_min',
+  })
+  pricePerExtra30Min: number;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 

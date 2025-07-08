@@ -124,6 +124,7 @@ export class SettingsService {
           'subcat.id AS subCategoryId',
           'subcat.name AS subCategoryName',
           'rate.specialPrice AS specialPrice',
+          'rate.pricePerExtra30Min AS pricePerExtra30Min',
           'rate.date AS date',
         ])
         .getRawMany();
