@@ -2134,36 +2134,6 @@ export class EntertainerService {
       const fromDate = new Date(year, month - 1, 1);
       const toDate = new Date(year, month, 1);
 
-      // const completedEvents = await this.bookingRepository
-      //   .createQueryBuilder('booking')
-      //   .leftJoin('event', 'event', 'event.id = booking.eventId')
-      //   .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
-      //   .leftJoin('invoice_bookings', 'invoice', 'invoice.event_id != event.id')
-      //   .select([
-      //     'event.id AS eventId',
-      //     'booking.id AS bookingId',
-      //     'event.slug AS slug',
-      //     'event.eventDate AS eventDate',
-      //     'event.startTime AS startTime',
-      //     'event.endTime AS endTime',
-      //     'venue.name AS venueName',
-      //     'venue.addressLine1 AS addressLine1',
-      //     'venue.addressLine2 AS addressLine',
-      //   ])
-      //   .where('booking.entId = :id', { id })
-      //   .andWhere('booking.status = :bStatus', { bStatus: 'completed' })
-      //   .andWhere('event.status = :eStatus', { eStatus: 'completed' })
-      //   .andWhere(
-      //     'event.eventDate >= :fromDate AND event.eventDate < :toDate',
-      //     {
-      //       fromDate,
-      //       toDate,
-      //     },
-      //   )
-      //   .andWhere('')
-      //   .orderBy('event.eventDate', 'DESC')
-      //   .getRawMany();
-
       const completedEvents = await this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin('event', 'event', 'event.id = booking.eventId')
@@ -2172,7 +2142,7 @@ export class EntertainerService {
         .andWhere('booking.status = :bStatus', { bStatus: 'completed' })
         .andWhere('event.status = :eStatus', { eStatus: 'completed' })
         .andWhere(
-          'event.eventDate >= :fromDate AND event.eventDate < :toDate',
+          'event.eventStartDateTime >= :fromDate AND event.eventStartDateTime < :toDate',
           {
             fromDate,
             toDate,
@@ -2189,9 +2159,8 @@ export class EntertainerService {
           'event.id AS eventId',
           'booking.id AS bookingId',
           'event.slug AS slug',
-          'event.eventDate AS eventDate',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
+          'event.eventDate AS eventStartDateTime',
+          'event.startEndDateTime AS eventDateTime',
           'venue.name AS venueName',
           'venue.addressLine1 AS addressLine1',
           'venue.addressLine2 AS addressLine',
