@@ -2165,11 +2165,11 @@ export class EntertainerService {
           'venue.addressLine1 AS addressLine1',
           'venue.addressLine2 AS addressLine',
         ])
-        .orderBy('event.eventDate', 'DESC')
+        .orderBy('event.eventStartDateTime', 'DESC')
         .getRawMany();
 
       return {
-        message: `Completed Events fetched successfully.`,
+        message: `completed events fetched successfully.`,
         data: completedEvents,
         status: true,
       };
