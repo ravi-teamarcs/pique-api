@@ -1777,8 +1777,8 @@ export class EntertainerService {
         bookingStats.completed.previous,
       );
       const closedChange = calculateChange(
-        bookingStats.completed.current,
-        bookingStats.completed.previous,
+        bookingStats.closed.current,
+        bookingStats.closed.previous,
       );
 
       const res = {
