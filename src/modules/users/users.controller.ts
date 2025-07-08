@@ -83,6 +83,4 @@ export class UsersController {
     const { userId, role } = req.user;
     return this.usersService.handleGetUserProfile(userId, role);
   }
-
- 
 }

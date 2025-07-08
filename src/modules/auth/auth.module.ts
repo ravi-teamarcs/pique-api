@@ -17,6 +17,9 @@ import { NotificationModule } from '../notification/notification.module';
 import { EmailModule } from '../Email/email.module';
 import { Otp } from '../users/entities/otps.entity';
 import { Media } from '../media/entities/media.entity';
+import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
+import { Category } from '../entertainer/entities/categories.entity';
+import { EntertainerCategorySubcategory } from '../entertainer/entities/entertainer-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -40,6 +43,9 @@ import { Media } from '../media/entities/media.entity';
       EndPoints,
       Otp,
       Media,
+      Neighbourhood,
+      Category,
+      EntertainerCategorySubcategory,
     ]),
   ],
   controllers: [AuthController],
