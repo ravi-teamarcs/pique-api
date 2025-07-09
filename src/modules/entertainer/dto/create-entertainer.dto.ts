@@ -54,7 +54,7 @@ export class CreateEntertainerDto {
   @IsNumber()
   @IsNotEmpty()
   @Transform(({ value }) => Number(value))
-  category: number;
+  category: number[];
 
   @ApiProperty({
     example: 13,

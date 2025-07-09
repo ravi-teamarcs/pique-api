@@ -1368,6 +1368,8 @@ export class EntertainerService {
         updatedPayload,
       );
 
+      // also remove entertainer card if category don't exists
+
       if (uploadedFiles && uploadedFiles.length > 0) {
         const mediaUploadResult =
           await this.mediaService.handleEntertainerMediaUpload(

@@ -119,18 +119,16 @@ class GeneralInformationDto {
   stageName: string;
 
   @IsArray()
-  @IsNumber({}, { each: true })
   @Transform(({ value }) => {
     if (typeof value === 'string') {
       try {
-        return JSON.parse(value); // '[2]' => [2]
+        return JSON.parse(value);
       } catch {
         return value.split(',').map((v) => Number(v));
       }
     }
     return value;
   })
-  @Type(() => Number)
   category: number[];
 
   @IsArray()
