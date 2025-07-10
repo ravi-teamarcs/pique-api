@@ -497,15 +497,26 @@ export class EventService {
       const event = await this.eventRepository.findOne({
         where: { id: eventId },
       });
-
+      console.log(event);
+      console.log(
+        'Event Start Date Time ',
+        event.eventStartDateTime,
+        typeof event.eventStartDateTime,
+      );
       // Rate Card Repo
       const rateCard = await this.rateCardRepo.find();
 
+      console.log('Rate Card', rateCard);
+      let formattedDate = new Date(event.eventStartDateTime)
+        .toISOString()
+        .split('T')[0];
+
+      console.log('formattedDate', formattedDate);
+
       const specialRateCard = await this.specialRateCardRepo.find({
-        where: {
-          date: new Date(event.eventStartDateTime).toISOString().split('T')[0],
-        },
+        where: { date: formattedDate },
       });
+      console.log('specialRateCard', specialRateCard);
 
       // Now map the results to include the price with markup
       if (!results || results.length === 0) return;
@@ -513,13 +524,19 @@ export class EventService {
       const updatedResults = await Promise.all(
         results.map(async (result) => {
           let price: number;
-          if (specialRateCard.length > 0)
-            price = specialRateCard.find(
+          if (specialRateCard.length > 0) {
+            let res = specialRateCard.find(
               (item) => item.subcategoryId === result.subcategoryId,
-            ).specialPrice;
-          price = rateCard.find(
-            (item) => item.subcategoryId === result.subcategoryId,
-          ).basePrice;
+            );
+            console.log('Response inside res', res);
+            price = res.specialPrice;
+          } else {
+            let res = rateCard.find(
+              (item) => item.subcategoryId === result.subcategoryId,
+            );
+            price = res.basePrice;
+          }
+
           const priceWithMarkup = await this.addMarkupToEntertainer(
             Number(price),
           );
