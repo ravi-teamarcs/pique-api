@@ -1363,7 +1363,7 @@ export class EntertainerService {
         );
       }
 
-      const updated = await this.entertainerRepository.update(
+      await this.entertainerRepository.update(
         { id: Number(entertainer.id) },
         updatedPayload,
       );

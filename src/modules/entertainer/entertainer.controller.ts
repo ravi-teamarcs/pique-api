@@ -183,7 +183,6 @@ export class EntertainerController {
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
   ) {
-    
     const { userId, refId } = req.user;
     let uploadedFiles: UploadedFile[] = [];
 
