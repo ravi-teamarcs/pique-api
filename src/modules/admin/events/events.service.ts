@@ -454,6 +454,7 @@ export class EventService {
       const events = this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+        .leftJoin('categories', 'subcat', 'subcat.id = booking.subcategoryId')
         .leftJoin(
           (subQuery) =>
             subQuery
@@ -481,6 +482,7 @@ export class EventService {
           'booking.status AS bookingStatus',
           'booking.categoryId AS categoryId',
           'booking.subcategoryId AS subcategoryId',
+          'subcat.name AS subCategoryName',
           'ent.name AS entertainerName',
           'ent.contact_person AS contactPerson',
           'ent.contact_number AS contactNumber',
@@ -506,12 +508,10 @@ export class EventService {
         .toISOString()
         .split('T')[0];
 
-      console.log('formattedDate', formattedDate);
 
       const specialRateCard = await this.specialRateCardRepo.find({
         where: { date: formattedDate },
       });
-      console.log('specialRateCard', specialRateCard);
 
       // Now map the results to include the price with markup
       if (!results || results.length === 0) return;
