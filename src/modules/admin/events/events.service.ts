@@ -503,7 +503,6 @@ export class EventService {
       // Rate Card Repo
       const rateCard = await this.rateCardRepo.find();
 
-      console.log('Rate Card', rateCard);
       let formattedDate = new Date(event.eventStartDateTime)
         .toISOString()
         .split('T')[0];

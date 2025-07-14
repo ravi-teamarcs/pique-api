@@ -311,17 +311,6 @@ export class EntertainerController {
     return this.entertainerService.findAllBooking(refId, query);
   }
 
-  @Get('/booking/request/:eventId')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('findAll')
-  getBookingDetailsBasedOnEvent(
-    @Param('eventId') eventId: number,
-    @Request() req,
-  ) {
-    const { refId } = req.user;
-    return this.entertainerService.bookingDetailsBasedonEvent(eventId, refId);
-  }
-
   @Get('/booking/request/pending')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
@@ -333,6 +322,17 @@ export class EntertainerController {
   getPendingBookings(@Request() req) {
     const { refId } = req.user;
     return this.entertainerService.findPendingBookings(refId);
+  }
+
+  @Get('/booking/request/:eventId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getBookingDetailsBasedOnEvent(
+    @Param('eventId') eventId: number,
+    @Request() req,
+  ) {
+    const { refId } = req.user;
+    return this.entertainerService.bookingDetailsBasedonEvent(eventId, refId);
   }
 
   @ApiOperation({
