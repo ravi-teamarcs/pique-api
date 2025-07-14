@@ -497,12 +497,7 @@ export class EventService {
       const event = await this.eventRepository.findOne({
         where: { id: eventId },
       });
-      console.log(event);
-      console.log(
-        'Event Start Date Time ',
-        event.eventStartDateTime,
-        typeof event.eventStartDateTime,
-      );
+
       // Rate Card Repo
       const rateCard = await this.rateCardRepo.find();
 
@@ -524,25 +519,30 @@ export class EventService {
       const updatedResults = await Promise.all(
         results.map(async (result) => {
           let price: number;
+          let pricePerExtra30Min: number;
+
           if (specialRateCard.length > 0) {
             let res = specialRateCard.find(
               (item) => item.subcategoryId === result.subcategoryId,
             );
-            console.log('Response inside res', res);
+
             price = res.specialPrice;
+            pricePerExtra30Min = res.pricePerExtra30Min;
           } else {
             let res = rateCard.find(
               (item) => item.subcategoryId === result.subcategoryId,
             );
             price = res.basePrice;
+            pricePerExtra30Min = res.pricePerExtra30Min;
           }
 
-          const priceWithMarkup = await this.addMarkupToEntertainer(
-            Number(price),
-          );
+          // const priceWithMarkup = await this.addMarkupToEntertainer(
+          //   Number(price),
+          // );
           return {
             ...result,
-            priceWithMarkup,
+            pricePerHour: price,
+            pricePerExtra30Min,
           };
         }),
       );
