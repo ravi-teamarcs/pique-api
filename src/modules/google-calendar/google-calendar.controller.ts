@@ -94,9 +94,8 @@ export class GoogleCalendarController {
           const payload = {
             title: booking.title,
             description: booking.description,
-            eventDate: booking.eventDate.toISOString().split('T')[0],
-            startTime: booking.startTime,
-            endTime: booking.endTime,
+            eventStartDateTime: booking.eventStartDateTime,
+            eventEndDateTime: booking.eventEndDateTime,
           };
 
           const { id } = await this.googleCalendarService.createCalendarEvent(
@@ -114,28 +113,3 @@ export class GoogleCalendarController {
     return response_object.redirect('https://digidemo.in/p/successSync');
   }
 }
-
-// @ApiOperation({ summary: 'Allow User to Add Events to Google Calendar' })
-
-// @ApiResponse({
-//   status: 201,
-//   description: 'Event Created Succssfully.',
-// })
-// @Post('google/calendar/add-event')
-// @UseGuards(JwtAuthGuard)
-// async addBookingToCalendar(@Req() req, @Body() eventDetails: CreateEventDto) {
-//   try {
-//     const { userId } = req.user;
-//     const { data } =
-//       await this.googleCalendarService.getValidAccessToken(userId);
-//     return await this.googleCalendarService.createCalendarEvent(
-//       data,
-//       eventDetails,
-//     );
-//   } catch (error) {
-//     throw new InternalServerErrorException({
-//       message: 'Something went wrong ',
-//       status: false,
-//     });
-//   }
-// }

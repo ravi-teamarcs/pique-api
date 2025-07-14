@@ -128,8 +128,8 @@ export class InvoiceService {
     let {
       eventId,
       pricePerHour,
-      platformFee,
-      isFixed,
+      platformFee = 0,
+      isFixed = true,
       discountInPercent = 0,
     } = dto;
 
@@ -158,6 +158,7 @@ export class InvoiceService {
         'bookingId', booking.id,
         'entertainerId', booking.entId,
         'status', booking.status,
+        'subcategoryId', booking.subcategoryId,
         'stageName', entertainer.name
         
       )
@@ -204,31 +205,70 @@ export class InvoiceService {
 
       const newInvoiceNumber = `${invFormattedDate}-${parsedRecord.venueId}-${lastInvoiceNumber + 1} `;
 
-      // Logic to calculate the total amount based on the booking details
-      const durationInHours = this.getDurationInHours(
-        parsedRecord.eventStartDateTime,
-        parsedRecord.eventEndDateTime,
-      ); // (duartion)
+      //// New logic Inrodutction
+      const adminRateCard = await this.adminRateCardRepository.find();
 
-      //   New Logic
+      const specialRateCard = await this.specialRateCardRepository.find({
+        where: {
+          date: new Date(eventData.eventStartDateTime)
+            .toISOString()
+            .split('T')[0],
+        },
+      });
 
-      const totalAmount = this.roundToTwo(pricePerHour * durationInHours);
+      const parsedBookings = await Promise.all(
+        eventData?.bookings.map(async (book) => {
+          let newPricePerHour: number;
+          let pricePerExtra30Min: number;
 
-      const discountAmount = this.roundToTwo(
-        (totalAmount * discountInPercent) / 100,
+          // If special rate card is available then use it otherwise use admin rate card.
+
+          if (specialRateCard?.length > 0) {
+            const rateCard = specialRateCard.find(
+              (rate) => rate.subcategoryId === book.subcategoryId,
+            );
+
+            if (rateCard) {
+              newPricePerHour = rateCard.specialPrice;
+              pricePerExtra30Min = rateCard.pricePerExtra30Min;
+            }
+          } else if (adminRateCard?.length > 0) {
+            const rateCard = adminRateCard.find(
+              (rate) => rate.subcategoryId === book.subcategoryId,
+            );
+            if (rateCard) {
+              newPricePerHour = rateCard.basePrice;
+              pricePerExtra30Min = rateCard.pricePerExtra30Min;
+            }
+          }
+
+          if (!(newPricePerHour || pricePerExtra30Min)) return;
+
+          return {
+            ...book,
+            pricePerHour: newPricePerHour,
+            pricePerExtra30Min,
+          };
+        }),
       );
-      const discountedTotal = this.roundToTwo(totalAmount - discountAmount);
 
-      let totalWithPlatformFee = 0;
+      let totalAmount = 0;
+      let totalWithPlatformFee: number;
 
-      if (isFixed) {
-        totalWithPlatformFee = this.roundToTwo(discountedTotal + platformFee);
-      } else {
-        platformFee = (discountedTotal * platformFee) / 100;
+      for (const book of parsedBookings) {
+        // Provided Payload for calculation
+        const payload = {
+          eventStartDateTime: parsedRecord.eventStartDateTime,
+          eventEndDateTime: parsedRecord.eventEndDateTime,
+          pricePerHour: book.pricePerHour,
+          pricePerExtra30Min: book.pricePerExtra30Min,
+          discountInPercent,
+          isFixed,
+          platformFee: platformFee,
+        };
 
-        totalWithPlatformFee = this.roundToTwo(
-          discountedTotal + (discountedTotal * platformFee) / 100,
-        );
+        const totalWithPlatformFee = this.calculatingInvoiceAmount(payload);
+        totalAmount += Number(totalWithPlatformFee);
       }
 
       // Invoice Generated On and Due Date
@@ -245,8 +285,8 @@ export class InvoiceService {
         due_date: new Date(dueDate).toISOString().split('T')[0],
         total_amount: totalAmount,
         tax_rate: platformFee ?? 0,
-        tax_amount: parseFloat(discountedTotal.toFixed(2)),
-        total_with_tax: parseFloat(totalWithPlatformFee.toFixed(2)),
+        tax_amount: 0,
+        total_with_tax: parseFloat(totalAmount.toFixed(2)),
         status: InvoiceStatus.AWAITING_PAYMENT,
         payment_method: '',
         payment_date: null,
@@ -260,7 +300,7 @@ export class InvoiceService {
         invoiceId: savedInvoice.id,
         eventId: eventId,
         eventDate: new Date().toISOString(),
-        eventPrice: totalWithPlatformFee,
+        eventPrice: totalAmount,
       });
       await this.invEventRepository.save(invoiceMetaData);
 
@@ -718,7 +758,8 @@ export class InvoiceService {
     let {
       eventStartDateTime,
       eventEndDateTime,
-      priceWithMarkup,
+      pricePerHour,
+      pricePerExtra30Min,
       discountInPercent = 0,
       isFixed,
       platformFee = 0,
@@ -729,8 +770,19 @@ export class InvoiceService {
       eventEndDateTime,
     );
 
-    const totalAmount = this.roundToTwo(priceWithMarkup * durationInHours);
+    // new logic Introduction
 
+    let totalAmount = pricePerHour;
+
+    const extraHours = durationInHours - 1;
+
+    if (extraHours > 0) {
+      // Convert extra hours to number of 30-minute blocks (rounded up)
+      const extra30MinBlocks = Math.ceil(extraHours * 2);
+      totalAmount += extra30MinBlocks * pricePerExtra30Min;
+    }
+
+    totalAmount = this.roundToTwo(totalAmount);
     const discountAmount = this.roundToTwo(
       (totalAmount * discountInPercent) / 100,
     );
@@ -775,7 +827,7 @@ export class InvoiceService {
 
     if (alreadyExsits?.length > 0) return;
 
-    //Create an invoice complex.
+    // Create an invoice complex.
     const bookings = await this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
@@ -797,10 +849,12 @@ export class InvoiceService {
     const bookingWithMarkup = await Promise.all(
       bookings.map(async (book) => {
         let newPricePerHour: number;
+        let pricePerExtra30Min: number;
 
         // First fetch Entertainer Admin Rate  Card (New Rate Card Logic)
 
         const adminRateCard = await this.adminRateCardRepository.find();
+
         const specialRateCard = await this.specialRateCardRepository.find({
           where: {
             date: new Date(book.eventStartDateTime).toISOString().split('T')[0],
@@ -816,6 +870,7 @@ export class InvoiceService {
 
           if (rateCard) {
             newPricePerHour = rateCard.specialPrice;
+            pricePerExtra30Min = rateCard.pricePerExtra30Min;
           }
         } else if (adminRateCard?.length > 0) {
           const rateCard = adminRateCard.find(
@@ -823,16 +878,16 @@ export class InvoiceService {
           );
           if (rateCard) {
             newPricePerHour = rateCard.basePrice;
+            pricePerExtra30Min = rateCard.pricePerExtra30Min;
           }
         }
 
-        if (!newPricePerHour) return;
+        if (!(newPricePerHour || pricePerExtra30Min)) return;
 
         return {
           ...book,
-          priceWithMarkup: await this.addMarkupToEntertainer(
-            Number(newPricePerHour),
-          ),
+          pricePerHour: newPricePerHour,
+          pricePerExtra30Min,
         };
       }),
     );
@@ -844,13 +899,15 @@ export class InvoiceService {
       const payload = {
         eventStartDateTime: book.eventStartDateTime,
         eventEndDateTime: book.eventEndDateTime,
-        priceWithMarkup: book.priceWithMarkup,
+        pricePerHour: book.pricePerHour,
+        pricePerExtra30Min: book.pricePerExtra30Min,
         discountInPercent: 0,
         isFixed: true,
         platformFee: 0,
       };
 
       const price = this.calculatingInvoiceAmount(payload);
+
       eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
       totalAmount += Number(price);
     }
@@ -983,6 +1040,7 @@ export class InvoiceService {
       const bookingWithMarkup = await Promise.all(
         bookings.map(async ({ pricePerHour, ...book }) => {
           let newPricePerHour: number;
+          let pricePerExtra30Min: number;
 
           const adminRateCard = await this.adminRateCardRepository.find();
           const specialRateCard = await this.specialRateCardRepository.find({
@@ -1002,6 +1060,7 @@ export class InvoiceService {
 
             if (rateCard) {
               newPricePerHour = rateCard.specialPrice;
+              pricePerExtra30Min = rateCard.pricePerExtra30Min;
             }
           } else if (adminRateCard?.length > 0) {
             const rateCard = adminRateCard.find(
@@ -1009,16 +1068,16 @@ export class InvoiceService {
             );
             if (rateCard) {
               newPricePerHour = rateCard.basePrice;
+              pricePerExtra30Min = rateCard.pricePerExtra30Min;
             }
           }
 
-          if (!newPricePerHour) return;
+          if (!(newPricePerHour || pricePerExtra30Min)) return;
 
           return {
             ...book,
-            priceWithMarkup: await this.addMarkupToEntertainer(
-              Number(newPricePerHour),
-            ),
+            pricePerHour: newPricePerHour,
+            pricePerExtra30Min,
           };
         }),
       );
@@ -1029,7 +1088,8 @@ export class InvoiceService {
         const payload = {
           eventStartDateTime: book.eventStartDateTime,
           eventEndDateTime: book.eventEndDateTime,
-          priceWithMarkup: book.priceWithMarkup,
+          pricePerHour: book.pricePerHour,
+          pricePerExtra30Min: book.pricePerExtra30Min,
           discountInPercent: 0,
           isFixed: true,
           platformFee: 0,

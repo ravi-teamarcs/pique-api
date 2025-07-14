@@ -97,7 +97,8 @@ export class GoogleCalendarServices {
 
   // Add a booking to Google Calendar
   async createCalendarEvent(accessToken: string, eventDetails: CreateEventDto) {
-    const { eventDate, startTime, endTime, title, description } = eventDetails;
+    const { eventStartDateTime, eventEndDateTime, title, description } =
+      eventDetails;
     this.oauth2Client.setCredentials({ access_token: accessToken });
 
     const calendar = google.calendar({
@@ -109,10 +110,10 @@ export class GoogleCalendarServices {
       summary: title,
       description: description,
       start: {
-        dateTime: new Date(`${eventDate}T${startTime}`).toISOString(),
+        dateTime: new Date(eventStartDateTime).toISOString(),
       },
       end: {
-        dateTime: new Date(`${eventDate}T${endTime}`).toISOString(),
+        dateTime: new Date(eventEndDateTime).toISOString(),
       },
     };
 
@@ -222,13 +223,12 @@ export class GoogleCalendarServices {
         'booking.id AS bookingId',
         'event.title AS title',
         'event.description AS description',
-        'event.eventDate AS eventDate',
-        'event.startTime AS startTime',
-        'event.endTime AS endTime',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventEndDateTime AS eventEndDateTime',
       ])
       .where(conditionField + ' = :id', { id: conditionId }) // dynamic condition
       .andWhere('booking.status = :status', { status: 'confirmed' })
-      .andWhere('event.eventDate > :nowString', {
+      .andWhere('event.eventStartDateTime > :nowString', {
         nowString,
       }) // filter future events
       .getRawMany();
@@ -287,12 +287,11 @@ export class GoogleCalendarServices {
         'booking.id AS bookingId',
         'event.title AS title',
         'event.description AS description',
-        'event.eventDate AS eventDate',
-        'event.startTime AS startTime',
-        'event.endTime AS endTime',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventEndDateTime AS eventEndDateTime',
       ])
       .where('booking.status = :status', { status: 'confirmed' })
-      .andWhere('event.eventDate > :nowString', { nowString })
+      .andWhere('event.eventStartDateTime > :nowString', { nowString })
       .getRawMany();
 
     return bookings;
@@ -328,9 +327,8 @@ export class GoogleCalendarServices {
         const payload = {
           title: booking.title,
           description: booking.description,
-          eventDate: booking.eventDate.toISOString().split('T')[0],
-          startTime: booking.startTime,
-          endTime: booking.endTime,
+          eventStartDateTime: booking.startTime,
+          eventEndDateTime: booking.endTime,
         };
 
         const { id } = await this.createCalendarEvent(accessToken, payload);
