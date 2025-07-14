@@ -223,10 +223,15 @@ export class EntertainerController {
     @Body() body: CreateCategoryDto,
     @UploadedFiles() files: Array<Express.Multer.File>,
   ) {
-    const active = files.find((f) => f.fieldname === 'activeIcon');
+    let active;
+
+    if (files && files.length > 0) {
+      active = files.find((f) => f.fieldname === 'activeIcon');
+    }
+
     const iconUrl = active
       ? `uploads/assets/cat_icons/${active.filename}`
-      : undefined;
+      : `uploads/assets/cat_icons/defaulticon.png`;
 
     return this.EntertainerService.createCategory({
       ...body,

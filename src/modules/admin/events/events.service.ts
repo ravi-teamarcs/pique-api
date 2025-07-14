@@ -508,7 +508,6 @@ export class EventService {
         .toISOString()
         .split('T')[0];
 
-
       const specialRateCard = await this.specialRateCardRepo.find({
         where: { date: formattedDate },
       });

@@ -33,34 +33,9 @@ export class NotificationService {
 
     const res = await this.getUserTokens(userId);
 
-    // let message = {
-    //   tokens: res.data,
-    //   notification: {
-    //     title,
-    //     body,
-    //   },
-
-    //   fcmOptions: {
-    //     analyticsLabel: 'my-label',
-    //   },
-    //   android: { ttl: 3600 * 1000 },
-    //   apns: {
-    //     payload: {
-    //       aps: {
-    //         alert: {
-    //           titleLocKey: 'key1',
-    //           locKey: 'key2',
-    //           locArgs: ['value1'],
-    //         },
-    //       },
-    //       contentAvailable: true,
-    //     },
-    //   },
-    // };
-
     const message = {
       tokens: res.data, // Array of device tokens
-
+      data: { type },
       notification: {
         title,
         body,
@@ -155,6 +130,7 @@ export class NotificationService {
 
     const newToken = this.fcmTokenRepo.create({ userId, token, deviceType });
     await this.fcmTokenRepo.save(newToken);
+
     return { message: 'Token saved successfully', status: true };
   }
 

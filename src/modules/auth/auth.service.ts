@@ -220,6 +220,7 @@ export class AuthService {
     const token = this.jwtService.sign(payload);
 
     const deviceType = this.detectDevice(userAgent);
+
     if (fcmToken) {
       this.notificationService.storeFcmToken(user.id, fcmToken, deviceType);
     }
@@ -253,6 +254,7 @@ export class AuthService {
   }
 
   detectDevice(userAgent: string): Device {
+    console.log('In Case of mobile Phoine', userAgent);
     if (/mobile|android|iphone|ipad|ipod/i.test(userAgent)) {
       return 'mobile';
     }
@@ -266,7 +268,7 @@ export class AuthService {
 
     if (!user)
       throw new NotFoundException({
-        message: 'User not found or Email not verified',
+        message: 'user not found or email not verified',
         status: false,
       });
 
