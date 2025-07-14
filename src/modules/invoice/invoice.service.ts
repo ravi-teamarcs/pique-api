@@ -76,7 +76,6 @@ export class InvoiceService {
             'event.description AS eventDescription',
             'event.eventStartDateTime AS eventStartDateTime',
             'event.eventEndDateTime AS eventEndDateTime',
-            'ent.pricePerEvent AS pricePerEvent',
           ])
           .getRawOne();
 
@@ -100,15 +99,26 @@ export class InvoiceService {
         }
 
         const pricePerHour = Number(rateCardObj[0].basePrice);
+        const pricePerExtra30Min = Number(rateCardObj[0].pricePerExtra30Min);
 
         const durationInHours = this.getDurationInHours(
           eventStartDateTime,
           eventEndDateTime,
         );
         // calculation of Total Amount
-        const totalAmount = pricePerHour * durationInHours;
-        total += totalAmount;
+        // const totalAmount = pricePerHour * durationInHours;
+        // total += totalAmount;
 
+        // New Logic Introduction
+        total = pricePerHour;
+        const extraHours = durationInHours - 1;
+
+        if (extraHours > 0) {
+          // Convert extra hours to number of 30-minute blocks (rounded up)
+          const extra30MinBlocks = Math.ceil(extraHours * 2);
+          total += extra30MinBlocks * pricePerExtra30Min;
+        }
+        total = this.roundToTwo(total);
         invoiceDetails.push({ bookingId, eventId });
       }
 
@@ -182,6 +192,10 @@ export class InvoiceService {
     } catch (error) {
       throw new InternalServerErrorException({ message: error.message });
     }
+  }
+
+  private roundToTwo(num: number): number {
+    return Math.round(num * 100) / 100;
   }
 
   // Calculate Duration
@@ -612,6 +626,4 @@ export class InvoiceService {
   }
 
   // New Logic For Invoice Sending
-
- 
 }
