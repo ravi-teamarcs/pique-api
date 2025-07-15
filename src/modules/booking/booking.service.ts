@@ -629,18 +629,12 @@ export class BookingService {
           'entertainer',
           'entertainer.id = booking.entId',
         )
-        .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
-        .leftJoin(
-          'categories',
-          'subcat',
-          'subcat.id = entertainer.specific_category',
-        )
+        .leftJoin('categories', 'cat', 'cat.id = booking.categoryId')
+        .leftJoin('categories', 'subcat', 'subcat.id = booking.subcategoryId')
         .leftJoin('states', 'state', 'state.id = entertainer.state')
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
         .select([
           'booking.id',
-          'booking.showDate',
-          'booking.showTime',
           'entertainer.name AS satge_name',
           'entertainer.entertainer_name',
           'entertainer.contact_person',
