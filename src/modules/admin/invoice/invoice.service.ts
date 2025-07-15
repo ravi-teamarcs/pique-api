@@ -60,7 +60,7 @@ export class InvoiceService {
 
     @InjectRepository(SubcategoryRate)
     private readonly adminRateCardRepository: Repository<SubcategoryRate>,
-    @InjectRepository(InvoiceEvent)
+    @InjectRepository(SpecialSubcategoryPrice)
     private readonly specialRateCardRepository: Repository<SpecialSubcategoryPrice>,
 
     private readonly emailService: EmailService,
@@ -207,7 +207,9 @@ export class InvoiceService {
 
       //// New logic Inrodutction
       const adminRateCard = await this.adminRateCardRepository.find();
-
+      console.log(
+        new Date(eventData.eventStartDateTime).toISOString().split('T')[0],
+      );
       const specialRateCard = await this.specialRateCardRepository.find({
         where: {
           date: new Date(eventData.eventStartDateTime)
@@ -217,7 +219,7 @@ export class InvoiceService {
       });
 
       const parsedBookings = await Promise.all(
-        eventData?.bookings.map(async (book) => {
+        parsedRecord?.bookings.map(async (book) => {
           let newPricePerHour: number;
           let pricePerExtra30Min: number;
 
@@ -1025,8 +1027,10 @@ export class InvoiceService {
         .select([
           'booking.id AS id',
           'booking.venueId AS venueId',
+          'booking.subcategoryId AS subcategoryId',
           'ent.id AS entertainerId',
           'ent.pricePerEvent AS pricePerHour',
+          'event.id AS eventId',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
         ])
@@ -1038,7 +1042,7 @@ export class InvoiceService {
       // Get Rate from Api
 
       const bookingWithMarkup = await Promise.all(
-        bookings.map(async ({ pricePerHour, ...book }) => {
+        bookings.map(async (book) => {
           let newPricePerHour: number;
           let pricePerExtra30Min: number;
 

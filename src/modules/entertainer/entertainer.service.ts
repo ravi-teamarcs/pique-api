@@ -1948,9 +1948,7 @@ export class EntertainerService {
           'event.location AS location',
           'event.slug AS slug',
           'event.description AS description',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
-          'event.eventDate AS eventDate',
+
           // Added two new Fields...
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
