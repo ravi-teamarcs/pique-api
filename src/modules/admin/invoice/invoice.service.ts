@@ -255,15 +255,14 @@ export class InvoiceService {
       );
 
       let totalAmount = 0;
-      let totalWithPlatformFee: number;
 
       for (const book of parsedBookings) {
         // Provided Payload for calculation
         const payload = {
           eventStartDateTime: parsedRecord.eventStartDateTime,
           eventEndDateTime: parsedRecord.eventEndDateTime,
-          pricePerHour: book.pricePerHour,
-          pricePerExtra30Min: book.pricePerExtra30Min,
+          pricePerHour: Number(book.pricePerHour),
+          pricePerExtra30Min: Number(book.pricePerExtra30Min),
           discountInPercent,
           isFixed,
           platformFee: platformFee,
@@ -772,8 +771,6 @@ export class InvoiceService {
       eventEndDateTime,
     );
 
-    // new logic Introduction
-
     let totalAmount = pricePerHour;
 
     const extraHours = durationInHours - 1;
@@ -781,7 +778,8 @@ export class InvoiceService {
     if (extraHours > 0) {
       // Convert extra hours to number of 30-minute blocks (rounded up)
       const extra30MinBlocks = Math.ceil(extraHours * 2);
-      totalAmount += extra30MinBlocks * pricePerExtra30Min;
+
+      totalAmount = totalAmount + extra30MinBlocks * pricePerExtra30Min;
     }
 
     totalAmount = this.roundToTwo(totalAmount);
@@ -1092,8 +1090,8 @@ export class InvoiceService {
         const payload = {
           eventStartDateTime: book.eventStartDateTime,
           eventEndDateTime: book.eventEndDateTime,
-          pricePerHour: book.pricePerHour,
-          pricePerExtra30Min: book.pricePerExtra30Min,
+          pricePerHour: Number(book.pricePerHour),
+          pricePerExtra30Min: Number(book.pricePerExtra30Min),
           discountInPercent: 0,
           isFixed: true,
           platformFee: 0,
