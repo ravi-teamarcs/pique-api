@@ -105,9 +105,6 @@ export class InvoiceService {
           eventStartDateTime,
           eventEndDateTime,
         );
-        // calculation of Total Amount
-        // const totalAmount = pricePerHour * durationInHours;
-        // total += totalAmount;
 
         // New Logic Introduction
         total = pricePerHour;
