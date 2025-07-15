@@ -54,7 +54,7 @@ export class ReminderService {
       .getRawMany();
 
     for (const booking of futureBookings) {
-      const eventDate = new Date(booking.eventDate);
+      const eventDate = new Date(booking.eventStartDateTime);
       eventDate.setHours(0, 0, 0, 0);
       const daysLeft = Math.ceil(
         (eventDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
@@ -277,6 +277,7 @@ export class ReminderService {
       .select([
         'reminder.id As id',
         'venue.name AS venueName',
+        'venue.email AS venueEmail',
         'user.email AS email',
         'entertainer.name AS stageName',
       ])
@@ -286,7 +287,7 @@ export class ReminderService {
 
     for (const reminder of reminders) {
       const emailPayload = {
-        to: reminder.email,
+        to: reminder.venueEmail || reminder.email,
         subject: `Reminder for booking status`,
         templateName: 'entertainer-completion-reminder.html',
         replacements: {
@@ -325,6 +326,7 @@ export class ReminderService {
       .select([
         'reminder.id AS id',
         'venue.name AS venueName',
+        'venue.email AS venueEmail',
         'user.email AS email',
         'entertainer.name AS stageName',
       ])
@@ -338,7 +340,7 @@ export class ReminderService {
       for (const reminder of reminders) {
         if (reminder.email) {
           const emailPayload = {
-            to: reminder.email,
+            to: reminder?.venueEmail || reminder.email,
             subject: `Reminder for booking status`,
             templateName: 'entertainer-completion-reminder.html',
             replacements: {

@@ -65,7 +65,6 @@ export class InvoiceService {
     private readonly entertainerRateCard: Repository<EntertainerRateCard>,
     @InjectRepository(SpecialSubcategoryPrice)
     private readonly specialRateCardRepository: Repository<SpecialSubcategoryPrice>,
-
     private readonly emailService: EmailService,
     private readonly notifyService: NotificationService,
   ) {}
@@ -487,7 +486,9 @@ export class InvoiceService {
       .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
       .leftJoin('users', 'user', 'user.id = venue.userId')
       .select(['venue.name As venueName', 'invoices.*', 'user.id As userId'])
-      .where('invoices.status = :status', { status: InvoiceStatus.UNPAID })
+      .where('invoices.status = :status', {
+        status: InvoiceStatus.AWAITING_PAYMENT,
+      })
       .andWhere('invoices.user_type = :userType', { userType: UserType.VENUE })
       .getRawMany();
 
@@ -826,7 +827,6 @@ export class InvoiceService {
   // Generate Monthly Invoice Number.
   async invoiceForIndividualVenue(venue, monthStart, monthEnd) {
     const eventPrice = [];
-
     const confirmedEvents = await this.eventRepository.find({
       where: {
         venueId: venue.id,
@@ -837,7 +837,6 @@ export class InvoiceService {
     });
 
     const eventIds = confirmedEvents.map((event) => event.id);
-
     // Skip if no confirmed events
     if (eventIds.length === 0) return;
 
@@ -920,8 +919,8 @@ export class InvoiceService {
       const payload = {
         eventStartDateTime: book.eventStartDateTime,
         eventEndDateTime: book.eventEndDateTime,
-        pricePerHour: book.pricePerHour,
-        pricePerExtra30Min: book.pricePerExtra30Min,
+        pricePerHour: Number(book.pricePerHour),
+        pricePerExtra30Min: Number(book.pricePerExtra30Min),
         discountInPercent: 0,
         isFixed: true,
         platformFee: 0,

@@ -81,6 +81,7 @@ export class InvoiceCronService {
       );
     }
   }
+
   @Cron('0 * * * *') // Runs at minute 0 of every hour
   async syncAdminLatestBooking() {}
 
@@ -129,6 +130,7 @@ export class InvoiceCronService {
         where: {
           overdue: MoreThan(0),
           status: 'awaiting payment',
+          isOutdated: false,
         },
       });
       if (invoices.length > 0) {
