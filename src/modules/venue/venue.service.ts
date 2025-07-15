@@ -253,8 +253,14 @@ export class VenueService {
 
       await this.venueRepository.update(
         { id: venue.id },
-        { isProfileComplete: true, profileStep: 4 },
+        {
+          isProfileComplete: true,
+          profileStep: 4,
+          status: 'active',
+        },
       );
+      // Temporary code for removal
+      await this.userRepository.update({ id: userId }, { status: 'active' });
 
       let admins = await this.adminRepository.find({ where: { role: '1' } });
       if (admins?.length > 0) {

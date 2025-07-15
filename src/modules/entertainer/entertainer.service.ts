@@ -497,8 +497,16 @@ export class EntertainerService {
 
       await this.entertainerRepository.update(
         { id: ent.id },
-        { mediaLink: mediaLink, isProfileComplete: true, profileStep: 10 },
+        {
+          mediaLink: mediaLink,
+          isProfileComplete: true,
+          status: 'active',
+          profileStep: 10,
+        },
       );
+
+      // Temporary Code for Removal
+      await this.userRepository.update({ id: userId }, { status: 'active' });
 
       let admins = await this.adminRepository.find({ where: { role: '1' } });
       if (admins?.length > 0) {
