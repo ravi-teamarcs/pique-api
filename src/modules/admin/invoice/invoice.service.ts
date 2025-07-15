@@ -37,6 +37,7 @@ import { enUS } from 'date-fns/locale';
 import { EntertainerInvoice } from 'src/modules/invoice/entities/entertainer-invoice.entity';
 import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
+import { EntertainerRateCard } from '../../entertainer/entities/entertainer-rate-card.entity';
 
 @Injectable()
 export class InvoiceService {
@@ -60,6 +61,8 @@ export class InvoiceService {
 
     @InjectRepository(SubcategoryRate)
     private readonly adminRateCardRepository: Repository<SubcategoryRate>,
+    @InjectRepository(EntertainerRateCard)
+    private readonly entertainerRateCard: Repository<EntertainerRateCard>,
     @InjectRepository(SpecialSubcategoryPrice)
     private readonly specialRateCardRepository: Repository<SpecialSubcategoryPrice>,
 
@@ -636,6 +639,7 @@ export class InvoiceService {
         'invoices.isOutdated AS isOutdated',
 
         'ent.name AS entertainerName',
+        'ent.id AS entertainerId',
         'ent.addressLine1 AS addressLine1',
         'ent.addressLine2 AS addressLine2',
         'ent.contact_number AS contactNumber',
@@ -651,6 +655,7 @@ export class InvoiceService {
         `(
   SELECT JSON_ARRAYAGG(
     JSON_OBJECT(
+      'eventId', e.id,
       'slug', e.slug,
       'title', e.title,
       'eventStartDateTime', e.eventStartDateTime,
@@ -667,29 +672,45 @@ export class InvoiceService {
       .limit(pageSize)
       .getRawMany();
 
-    const parsedResults = data.map(({ events, pricePerHour, ...rest }) => {
-      return {
-        ...rest,
-        pricePerHour,
-        events: events
-          ? JSON.parse(events).map(
-              ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
-                const duration = this.getDurationInHours(
-                  eventStartDateTime,
-                  eventEndDateTime,
-                );
-                return {
-                  ...rest,
-                  eventStartDateTime,
-                  eventEndDateTime,
-                  amount: Number(pricePerHour * duration),
-                  duration,
-                };
-              },
-            )
-          : [], // Parse JSON string to object
-      };
-    });
+    const parsedResults = await Promise.all(
+      data.map(async ({ events, pricePerHour, ...rest }) => {
+        return {
+          ...rest,
+          pricePerHour,
+          events: events
+            ? await Promise.all(
+                JSON.parse(events).map(
+                  async ({
+                    eventStartDateTime,
+                    eventEndDateTime,
+                    ...eventRest
+                  }) => {
+                    const duration = this.getDurationInHours(
+                      eventStartDateTime,
+                      eventEndDateTime,
+                    );
+
+                    const calculatedAmount = await this.getCalculatedAmount(
+                      eventRest.entertainerId,
+                      eventRest.eventId,
+                      duration,
+                    );
+
+                    return {
+                      ...eventRest,
+                      eventStartDateTime,
+                      eventEndDateTime,
+                      amount: Number(calculatedAmount),
+                      duration,
+                    };
+                  },
+                ),
+              )
+            : [],
+        };
+      }),
+    );
+
     const totalCount = await this.invoiceRepository
       .createQueryBuilder('invoices')
       .andWhere('invoices.user_type = :role', { role: 'entertainer' })
@@ -1389,5 +1410,53 @@ export class InvoiceService {
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
+  }
+
+  async getCalculatedAmount(
+    entertainerId: number,
+    eventId: number,
+    durationInHours: number,
+  ) {
+    const rateCard = await this.entertainerRateCard.find({
+      where: { entertainerId },
+      select: ['subcategoryId', 'basePrice', 'pricePerExtra30Min', 'id'],
+    });
+
+    const adminRateCard = await this.adminRateCardRepository.find({});
+    let rateCardObj: any;
+
+    const relatedBooking = await this.bookingRepository.findOne({
+      where: { eventId, entId: entertainerId },
+      select: ['categoryId', 'subcategoryId'],
+    });
+    // Get entertainer rate Card If he set it  otherwise apply admin/rates
+    rateCardObj =
+      rateCard?.filter(
+        (item) => item.subcategoryId == relatedBooking?.subcategoryId,
+      ) || [];
+
+    if (rateCardObj.length === 0) {
+      rateCardObj =
+        adminRateCard?.filter(
+          (item) => item.subcategoryId == relatedBooking.subcategoryId,
+        ) || [];
+    }
+
+    if (rateCardObj.length === 0) {
+      return null;
+    }
+
+    const pricePerHour = Number(rateCardObj[0].basePrice);
+    const pricePerExtra30Min = Number(rateCardObj[0].pricePerExtra30Min);
+
+    // New Logic Introduction
+    let total = pricePerHour;
+    const extraHours = durationInHours - 1;
+
+    if (extraHours > 0) {
+      const extra30MinBlocks = Math.ceil(extraHours * 2);
+      total += extra30MinBlocks * pricePerExtra30Min;
+    }
+    return Number((total = this.roundToTwo(total)));
   }
 }

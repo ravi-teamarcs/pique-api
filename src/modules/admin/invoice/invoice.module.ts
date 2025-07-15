@@ -20,6 +20,7 @@ import { Setting } from '../settings/entities/setting.entity';
 import { EntertainerInvoice } from './entities/entertainer-invoice.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
+import { EntertainerRateCard } from '../../entertainer/entities/entertainer-rate-card.entity';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
       EntertainerInvoice,
       SpecialSubcategoryPrice,
       SubcategoryRate,
+      EntertainerRateCard
     ]),
     EmailModule,
     NotificationModule,

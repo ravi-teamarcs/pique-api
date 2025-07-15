@@ -443,6 +443,7 @@ export class InvoiceService {
         // This subquery gets all events in one JSON array for this invoice
         `(SELECT JSON_ARRAYAGG(
     JSON_OBJECT(
+      'eventId', e.id,
       'slug', e.slug,
       'title', e.title,
       'eventStartDateTime', e.eventStartDateTime,
@@ -459,26 +460,38 @@ export class InvoiceService {
       .offset((page - 1) * pageSize)
       .limit(pageSize)
       .getRawMany();
-    const parsedResults = data.map(({ events, ...rest }) => {
-      return {
-        ...rest,
-        events: events
-          ? JSON.parse(events).map((event: any) => {
-              {
+    const parsedResults = await Promise.all(
+      data.map(async ({ events, ...rest }) => {
+        const parsedEvents = events
+          ? await Promise.all(
+              JSON.parse(events).map(async (event: any) => {
                 const duration = this.getDurationInHours(
                   event.eventStartDateTime,
                   event.eventEndDateTime,
                 );
+
+                const calculatedAmount = await this.getCalculatedAmount(
+                  userId,
+                  event.eventId,
+                  duration,
+                );
+
                 return {
                   ...event,
-                  amount: Number(rest.pricePerHour * duration),
+                  amount: calculatedAmount,
                   duration,
                 };
-              }
-            })
-          : [], // Parse JSON string to object
-      };
-    });
+              }),
+            )
+          : [];
+
+        return {
+          ...rest,
+          events: parsedEvents,
+        };
+      }),
+    );
+
     const totalCount = await this.invoiceRepository
       .createQueryBuilder('invoices')
       .where('invoices.user_id = :userId', {
@@ -623,4 +636,49 @@ export class InvoiceService {
   }
 
   // New Logic For Invoice Sending
+
+  async getCalculatedAmount(
+    entertainerId: number,
+    eventId: number,
+    durationInHours: number,
+  ) {
+    const rateCard = await this.getEntertainerRateCard(Number(entertainerId));
+
+    const adminRateCard = await this.adminRateCardRepo.find({});
+    let rateCardObj: any;
+
+    const relatedBooking = await this.bookingRepository.findOne({
+      where: { eventId, entId: entertainerId },
+      select: ['categoryId', 'subcategoryId'],
+    });
+    // Get entertainer rate Card If he set it  otherwise apply admin/rates
+    rateCardObj =
+      rateCard?.filter(
+        (item) => item.subcategoryId == relatedBooking?.subcategoryId,
+      ) || [];
+
+    if (rateCardObj.length === 0) {
+      rateCardObj =
+        adminRateCard?.filter(
+          (item) => item.subcategoryId == relatedBooking.subcategoryId,
+        ) || [];
+    }
+
+    if (rateCardObj.length === 0) {
+      return null;
+    }
+
+    const pricePerHour = Number(rateCardObj[0].basePrice);
+    const pricePerExtra30Min = Number(rateCardObj[0].pricePerExtra30Min);
+
+    // New Logic Introduction
+    let total = pricePerHour;
+    const extraHours = durationInHours - 1;
+
+    if (extraHours > 0) {
+      const extra30MinBlocks = Math.ceil(extraHours * 2);
+      total += extra30MinBlocks * pricePerExtra30Min;
+    }
+    return Number((total = this.roundToTwo(total)));
+  }
 }
