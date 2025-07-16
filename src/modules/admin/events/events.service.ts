@@ -466,7 +466,10 @@ export class EventService {
                     .select('MAX(bl.id)', 'maxId')
                     .addSelect('bl.bookingId', 'bookingId')
                     .from('booking_log', 'bl')
-                    .where('bl.status = :status', { status: 'confirmed' })
+                    .where('bl.status IN (:...statuses)', {
+                      statuses: ['confirmed', 'completed'],
+                    })
+
                     .andWhere('bl.performedBy IN (:...performedBy)', {
                       performedBy: ['admin', 'venue'],
                     })
