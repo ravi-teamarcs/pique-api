@@ -55,7 +55,7 @@ export class VenueController {
   async getAllVenues(
     @Req() req,
     @Query('page') page: number = 1,
-    @Query('pageSize') pageSize: number = 10,
+    @Query('pageSize') pageSize: number = 100,
     @Query('search') search: string = '',
   ) {
     return this.venueService.getAllVenue({ page, pageSize, search });
