@@ -448,9 +448,11 @@ export class InvoiceService {
     const end = new Date(endTime);
 
     const diffInMinutes = differenceInMinutes(end, start);
-    const diffInHours = Math.ceil(diffInMinutes / 60);
 
-    return Number(diffInHours);
+    // Round up to nearest 30 minutes (0.5 hour)
+    const roundedToHalfHour = Math.ceil(diffInMinutes / 30) * 0.5;
+
+    return roundedToHalfHour;
   }
 
   private async generatePDF(htmlContent): Promise<Buffer> {

@@ -309,15 +309,18 @@ export class InvoiceService {
   //   });
   // }
 
-  private getDurationInHours(startTime: string, endTime: string): number {
-    const start = new Date(startTime);
-    const end = new Date(endTime);
+ private getDurationInHours(startTime: string, endTime: string): number {
+  const start = new Date(startTime);
+  const end = new Date(endTime);
 
-    const diffInMinutes = differenceInMinutes(end, start);
-    const diffInHours = Math.ceil(diffInMinutes / 60);
+  const diffInMinutes = differenceInMinutes(end, start);
 
-    return Number(diffInHours);
-  }
+  // Round up to nearest 30 minutes (0.5 hour)
+  const roundedToHalfHour = Math.ceil(diffInMinutes / 30) * 0.5;
+
+  return roundedToHalfHour;
+}
+
 
   async generateInvoiceHtml(data: any): Promise<string> {
     const filePath = path.resolve(
