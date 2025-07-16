@@ -170,11 +170,10 @@ export class InvoiceService {
         .leftJoin(
           'booking',
           'booking',
-          'booking.eventId = event.id AND booking.status = :status',
-          {
-            status: 'confirmed',
-          },
+          'booking.eventId = event.id AND booking.status IN (:...statuses)',
+          { statuses: ['confirmed', 'completed'] },
         )
+
         .leftJoin(
           'entertainers',
           'entertainer',
