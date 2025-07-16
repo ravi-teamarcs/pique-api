@@ -77,7 +77,7 @@ export class SettingsService {
       if (specialPrices && specialPrices.length > 0) {
         for (const rate of specialPrices) {
           const alreadyExists = await this.specialSubcatRateRepo.findOne({
-            where: { subcategoryId: rate.subcategoryId },
+            where: { subcategoryId: rate.subcategoryId, date: rate.date },
           });
           if (alreadyExists) {
             await this.specialSubcatRateRepo.update(
