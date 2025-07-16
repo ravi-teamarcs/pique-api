@@ -489,6 +489,7 @@ export class EventService {
           'ent.name AS entertainerName',
           'ent.contact_person AS contactPerson',
           'ent.contact_number AS contactNumber',
+          'ent.pricePerEvent AS pricePerHour',
 
           'log.createdAt AS confirmationDate',
           'log.performedBy AS performedBy',
