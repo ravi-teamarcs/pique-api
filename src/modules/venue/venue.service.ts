@@ -1546,6 +1546,7 @@ export class VenueService {
         'sp.subcategoryId AS subcategoryId',
         'sp.date AS date',
         'sp.specialPrice AS price',
+        'sp.pricePerExtra30Min AS pricePerExtra30Min',
       ])
       .getRawMany();
 

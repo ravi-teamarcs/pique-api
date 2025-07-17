@@ -117,7 +117,7 @@ class GeneralInformationDto {
   @IsString()
   @IsOptional()
   stageName: string;
-  
+
   @IsArray()
   @Transform(({ value }) => {
     if (typeof value === 'string') {
