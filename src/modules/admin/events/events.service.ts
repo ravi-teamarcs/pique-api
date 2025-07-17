@@ -516,18 +516,18 @@ export class EventService {
       // Rate Card Repo
       const rateCard = await this.rateCardRepo.find();
 
-      // let formattedDate = new Date(event.eventStartDateTime)
-      //   .toISOString()
-      //   .split('T')[0];
+      let formattedDate = new Date(event.eventStartDateTime)
+        .toISOString()
+        .split('T')[0];
 
-      const localTime = DateTime.fromISO(event.eventStartDateTime, {
-        zone: event?.timezone,
-      }).toLocal();
-      console.log('Local Date', localTime.toISODate());
+      // const localTime = DateTime.fromISO(event.eventStartDateTime, {
+      //   zone: event?.timezone,
+      // }).toLocal();
+      // console.log('Local Date', localTime.toISODate());
 
       const specialRateCard = await this.specialRateCardRepo.find({
         where: {
-          date: localTime.toISODate(),
+          date: formattedDate,
         },
       });
 
