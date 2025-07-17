@@ -36,22 +36,36 @@ function getTimezoneByCity(city: string, state?: string): string | null {
   }
 }
 
-function getTimezoneByLatLng(lat: number, lng: number): string {
-  try {
-    // Validate inputs: latitude [-90, 90], longitude [-180, 180]
-    if (
-      typeof lat !== 'number' ||
-      typeof lng !== 'number' ||
-      isNaN(lat) ||
-      isNaN(lng) ||
-      lat < -90 ||
-      lat > 90 ||
-      lng < -180 ||
-      lng > 180
-    ) {
-      return null;
-    }
+// function getTimezoneByLatLng(lat: number, lng: number): string {
+//   try {
+//     // Validate inputs: latitude [-90, 90], longitude [-180, 180]
+//     if (
+//       typeof lat !== 'number' ||
+//       typeof lng !== 'number' ||
+//       isNaN(lat) ||
+//       isNaN(lng) ||
+//       lat < -90 ||
+//       lat > 90 ||
+//       lng < -180 ||
+//       lng > 180
+//     ) {
+//       return null;
+//     }
 
+//     return tzlookup(lat, lng);
+//   } catch (error) {
+//     console.warn('tzlookup failed:', error);
+//     return null;
+//   }
+// }
+
+function getTimezoneByLatLng(lat: number, lng: number): string | null {
+  try {
+    // Validate latitude and longitude ranges
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+
+    // Return timezone using tz-lookup
     return tzlookup(lat, lng);
   } catch (error) {
     console.warn('tzlookup failed:', error);
