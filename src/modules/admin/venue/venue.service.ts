@@ -35,6 +35,7 @@ import { Cities } from '../location/entities/city.entity';
 import { GeocodingService } from 'src/modules/location/geocoding.service';
 import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
 import { Invoice } from '../invoice/entities/invoices.entity';
+import { getTimezoneByLatLng } from 'src/common/utils/slots-utils';
 
 @Injectable()
 export class VenueService {
@@ -265,6 +266,7 @@ export class VenueService {
         'venue.contact_person As contactNumber',
         'venue.zipCode AS zipCode',
         'venue.venueType AS venueType',
+        'venue.timezone AS timezone',
         'city.name AS city',
         'state.name AS state',
         'country.name AS country',
@@ -343,7 +345,8 @@ export class VenueService {
         'venue.contactNumber AS venueContactNumber',
         'venue.zipCode AS zipCode',
         'venue.isPiqueVerified AS isPiqueVerified',
-        'venue.venueType As venueType',
+        'venue.venueType AS venueType',
+        'venue.timezone AS timezone',
         'city.name AS city',
         'state.name AS state',
         'country.name AS country',
@@ -433,7 +436,14 @@ export class VenueService {
 
       // To get latitude and Longitude
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
-      let newVenuePayload = { ...venue, latitude: lat, longitude: lng };
+      let timezone = getTimezoneByLatLng(lat, lng);
+
+      let newVenuePayload = {
+        ...venue,
+        latitude: lat,
+        longitude: lng,
+        timezone,
+      };
 
       // 2. Create venue with reference to user (if present)
       const newVenue = this.venueRepository.create({
@@ -578,11 +588,14 @@ export class VenueService {
 
       // To get latitude and Longitude
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      let timezone = getTimezoneByLatLng(lat, lng);
+
       //  Update Payload
       const updatedVenue = {
         ...dto.venue,
         latitude: lat,
         longitude: lng,
+        timezone,
       };
       await queryRunner.manager.update(Venue, { id: venue.id }, updatedVenue);
 

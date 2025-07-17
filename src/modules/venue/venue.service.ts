@@ -55,6 +55,7 @@ import { DateTime } from 'luxon';
 import { EntertainerCategorySubcategory } from '../entertainer/entities/entertainer-category-subcategory.entity';
 import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../admin/settings/entities/special-subcategory-prices.entity';
+import { getTimezoneByLatLng } from 'src/common/utils/slots-utils';
 
 @Injectable()
 export class VenueService {
@@ -166,7 +167,9 @@ export class VenueService {
       const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
 
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
-      const newPayload = { ...dto, latitude: lat, longitude: lng };
+      let timezone = getTimezoneByLatLng(lat, lng);
+
+      const newPayload = { ...dto, latitude: lat, longitude: lng, timezone };
       // Assign address fields
       Object.assign(venue, newPayload);
 
@@ -332,7 +335,9 @@ export class VenueService {
     const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
 
     const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
-    const newPayload = { ...dto, latitude: lat, longitude: lng };
+    let timezone = getTimezoneByLatLng(lat, lng);
+
+    const newPayload = { ...dto, latitude: lat, longitude: lng, timezone };
 
     try {
       await this.venueRepository.update({ id: venue.id }, newPayload);
@@ -425,6 +430,7 @@ export class VenueService {
         'venue.contactNumber AS contactNumber',
         'venue.zipCode AS zipCode',
         'venue.venueType As venueType',
+        'venue.timezone As timezone',
         'venue.isPiqueVerified AS isPiqueVerified',
         'city.name AS city',
         'state.name AS state',

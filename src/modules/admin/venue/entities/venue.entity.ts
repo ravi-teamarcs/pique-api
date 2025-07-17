@@ -54,6 +54,9 @@ export class Venue {
   @Column({ type: 'text', nullable: true })
   description: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  timezone: string;
+
   @Column({ nullable: true })
   city: number;
 

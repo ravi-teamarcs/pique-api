@@ -38,6 +38,7 @@ import { EntertainerInvoice } from 'src/modules/invoice/entities/entertainer-inv
 import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 import { EntertainerRateCard } from '../../entertainer/entities/entertainer-rate-card.entity';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class InvoiceService {
@@ -148,12 +149,14 @@ export class InvoiceService {
     try {
       const eventData = await this.eventRepository
         .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
         .select([
           'event.id AS eventId',
           'event.slug AS eventName',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.venueId AS venueId',
+          'venue.timezone AS timezone',
           `
     JSON_ARRAYAGG(
       JSON_OBJECT(
@@ -208,16 +211,31 @@ export class InvoiceService {
 
       //// New logic Inrodutction
       const adminRateCard = await this.adminRateCardRepository.find();
+
+      const localTime = DateTime.fromISO(eventData.eventStartDateTime, {
+        zone: eventData?.timezone,
+      }).toLocal();
+
       console.log(
-        new Date(eventData.eventStartDateTime).toISOString().split('T')[0],
+        'LocalTime',
+        localTime,
+        'Converting Local time to ISO',
+        localTime.toISODate(),
       );
+
       const specialRateCard = await this.specialRateCardRepository.find({
         where: {
-          date: new Date(eventData.eventStartDateTime)
-            .toISOString()
-            .split('T')[0],
+          date: localTime.toISODate(),
         },
       });
+
+      // const specialRateCard = await this.specialRateCardRepository.find({
+      //   where: {
+      //     date: new Date(eventData.eventStartDateTime)
+      //       .toISOString()
+      //       .split('T')[0],
+      //   },
+      // });
 
       const parsedBookings = await Promise.all(
         parsedRecord?.bookings.map(async (book) => {
@@ -853,6 +871,7 @@ export class InvoiceService {
       .createQueryBuilder('booking')
       .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
       .leftJoin('event', 'event', 'event.id = booking.eventId')
+      .leftJoin('venue', 'venue', 'venue.id = event.venueId')
       .select([
         'booking.id AS id',
         'booking.venueId AS venueId',
@@ -861,6 +880,7 @@ export class InvoiceService {
         'event.id AS eventId',
         'event.eventStartDateTime AS eventStartDateTime',
         'event.eventEndDateTime AS eventEndDateTime',
+        'venue.timezone AS timezone',
       ])
       .where('booking.eventId IN (:...eventIds)', { eventIds })
 
@@ -876,9 +896,13 @@ export class InvoiceService {
 
         const adminRateCard = await this.adminRateCardRepository.find();
 
+        const localTime = DateTime.fromISO(book.eventStartDateTime, {
+          zone: book?.timezone,
+        }).toLocal();
+
         const specialRateCard = await this.specialRateCardRepository.find({
           where: {
-            date: new Date(book.eventStartDateTime).toISOString().split('T')[0],
+            date: localTime.toISODate(),
           },
         });
 
@@ -1043,6 +1067,8 @@ export class InvoiceService {
         .createQueryBuilder('booking')
         .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
         .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+
         .select([
           'booking.id AS id',
           'booking.venueId AS venueId',
@@ -1052,6 +1078,7 @@ export class InvoiceService {
           'event.id AS eventId',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
+          'venue.timezone AS timezone',
         ])
         .where('booking.eventId IN (:...eventIds)', { eventIds })
 
@@ -1066,11 +1093,14 @@ export class InvoiceService {
           let pricePerExtra30Min: number;
 
           const adminRateCard = await this.adminRateCardRepository.find();
+
+          const localTime = DateTime.fromISO(book.eventStartDateTime, {
+            zone: book?.timezone,
+          }).toLocal();
+
           const specialRateCard = await this.specialRateCardRepository.find({
             where: {
-              date: new Date(book.eventStartDateTime)
-                .toISOString()
-                .split('T')[0],
+              date: localTime.toISODate(),
             },
           });
 

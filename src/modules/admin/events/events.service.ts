@@ -24,6 +24,7 @@ import { FilterEventDto } from './dto/filter-event.dto';
 import { Setting } from '../settings/entities/setting.entity';
 import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class EventService {
@@ -201,7 +202,8 @@ export class EventService {
 
       .where('event.id = :id', { id })
       .getRawOne(); // Use getRawOne() for raw results
-
+    console.log(' Event Inside ', event.eventStartDateTime);
+    console.log(' Event Inside new Date ', new Date(event.eventStartDateTime));
     if (!event) {
       throw new NotFoundException(`Event with id ${id} not found`);
     }
@@ -500,19 +502,33 @@ export class EventService {
       const totalCount = await events.getCount();
       const results = await events.getRawMany();
 
-      const event = await this.eventRepository.findOne({
-        where: { id: eventId },
-      });
+      const event = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .select([
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'venue.timezone AS timezone',
+        ])
+        .where('event.id = :eventId', { eventId })
+        .getRawOne();
 
       // Rate Card Repo
       const rateCard = await this.rateCardRepo.find();
 
-      let formattedDate = new Date(event.eventStartDateTime)
-        .toISOString()
-        .split('T')[0];
+      // let formattedDate = new Date(event.eventStartDateTime)
+      //   .toISOString()
+      //   .split('T')[0];
+
+      const localTime = DateTime.fromISO(event.eventStartDateTime, {
+        zone: event?.timezone,
+      }).toLocal();
+      console.log('Local Date', localTime.toISODate());
 
       const specialRateCard = await this.specialRateCardRepo.find({
-        where: { date: formattedDate },
+        where: {
+          date: localTime.toISODate(),
+        },
       });
 
       // Now map the results to include the price with markup
@@ -538,9 +554,6 @@ export class EventService {
             pricePerExtra30Min = res.pricePerExtra30Min;
           }
 
-          // const priceWithMarkup = await this.addMarkupToEntertainer(
-          //   Number(price),
-          // );
           return {
             ...result,
             pricePerHour: price,

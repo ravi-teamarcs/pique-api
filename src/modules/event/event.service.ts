@@ -35,6 +35,7 @@ export class EventService {
       const { neighbourhoodId, ...rest } = dto;
       const obj = structuredClone(dto);
       const { title, venueId, eventStartDateTime, eventEndDateTime } = obj;
+      console.log(new Date(eventStartDateTime));
       const payload = {
         title,
         venueId,
