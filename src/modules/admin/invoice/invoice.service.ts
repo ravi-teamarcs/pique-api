@@ -212,20 +212,22 @@ export class InvoiceService {
       //// New logic Inrodutction
       const adminRateCard = await this.adminRateCardRepository.find();
 
-      const localTime = DateTime.fromISO(eventData.eventStartDateTime, {
-        zone: eventData?.timezone,
-      }).toLocal();
+      // const localTime = DateTime.fromISO(eventData.eventStartDateTime, {
+      //   zone: eventData?.timezone,
+      // }).toLocal();
 
-      console.log(
-        'LocalTime',
-        localTime,
-        'Converting Local time to ISO',
-        localTime.toISODate(),
-      );
+      // console.log(
+      //   'LocalTime',
+      //   localTime,
+      //   'Converting Local time to ISO',
+      //   localTime.toISODate(),
+      // );
 
       const specialRateCard = await this.specialRateCardRepository.find({
         where: {
-          date: localTime.toISODate(),
+          date: new Date(parsedRecord.eventStartDateTime)
+            .toISOString()
+            .split('T')[0],
         },
       });
 
@@ -1094,13 +1096,21 @@ export class InvoiceService {
 
           const adminRateCard = await this.adminRateCardRepository.find();
 
-          const localTime = DateTime.fromISO(book.eventStartDateTime, {
-            zone: book?.timezone,
-          }).toLocal();
+          // const localTime = DateTime.fromISO(book.eventStartDateTime, {
+          //   zone: book?.timezone,
+          // }).toLocal();
+
+          // const specialRateCard = await this.specialRateCardRepository.find({
+          //   where: {
+          //     date: localTime.toISODate(),
+          //   },
+          // });
 
           const specialRateCard = await this.specialRateCardRepository.find({
             where: {
-              date: localTime.toISODate(),
+              date: new Date(book.eventStartDateTime)
+                .toISOString()
+                .split('T')[0],
             },
           });
 
