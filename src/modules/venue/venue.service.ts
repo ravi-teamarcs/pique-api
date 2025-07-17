@@ -1564,6 +1564,7 @@ export class VenueService {
             .map((sp) => ({
               date: sp.date,
               price: sp.price,
+              pricePerExtra30Min: sp.pricePerExtra30Min,
             }));
 
           return {
