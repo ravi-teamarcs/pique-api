@@ -85,7 +85,15 @@ export class InvoiceService {
         rateCardObj =
           rateCard?.filter((item) => item.subcategoryId == subcategoryId) || [];
 
-        if (rateCardObj.length === 0) {
+        if (
+          rateCardObj.length === 0 ||
+          rateCardObj[0].basePrice === 0 ||
+          rateCardObj[0].basePrice === '0.00' ||
+          rateCardObj[0].pricePerExtra30Min === '0.00' ||
+          rateCardObj[0].pricePerExtra30Min === '0' ||
+          rateCardObj[0].pricePerExtra30Min === 0 ||
+          rateCardObj[0].basePrice == null
+        ) {
           rateCardObj =
             adminRateCard?.filter(
               (item) => item.subcategoryId == subcategoryId,
@@ -309,18 +317,17 @@ export class InvoiceService {
   //   });
   // }
 
- private getDurationInHours(startTime: string, endTime: string): number {
-  const start = new Date(startTime);
-  const end = new Date(endTime);
+  private getDurationInHours(startTime: string, endTime: string): number {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
 
-  const diffInMinutes = differenceInMinutes(end, start);
+    const diffInMinutes = differenceInMinutes(end, start);
 
-  // Round up to nearest 30 minutes (0.5 hour)
-  const roundedToHalfHour = Math.ceil(diffInMinutes / 30) * 0.5;
+    // Round up to nearest 30 minutes (0.5 hour)
+    const roundedToHalfHour = Math.ceil(diffInMinutes / 30) * 0.5;
 
-  return roundedToHalfHour;
-}
-
+    return roundedToHalfHour;
+  }
 
   async generateInvoiceHtml(data: any): Promise<string> {
     const filePath = path.resolve(
@@ -660,7 +667,15 @@ export class InvoiceService {
         (item) => item.subcategoryId == relatedBooking?.subcategoryId,
       ) || [];
 
-    if (rateCardObj.length === 0) {
+    if (
+      rateCardObj.length === 0 ||
+      rateCardObj[0].basePrice === 0 ||
+      rateCardObj[0].basePrice === '0.00' ||
+      rateCardObj[0].pricePerExtra30Min === '0.00' ||
+      rateCardObj[0].pricePerExtra30Min === '0' ||
+      rateCardObj[0].pricePerExtra30Min === 0 ||
+      rateCardObj[0].basePrice == null
+    ) {
       rateCardObj =
         adminRateCard?.filter(
           (item) => item.subcategoryId == relatedBooking.subcategoryId,
