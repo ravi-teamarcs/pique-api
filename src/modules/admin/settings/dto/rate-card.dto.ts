@@ -44,16 +44,16 @@ class SpecialPriceDto {
 
 export class RateCardDto {
   @IsArray()
-  @ArrayNotEmpty()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => BasePriceDto)
   @IsOptional()
-  rates: BasePriceDto[];
+  rates?: BasePriceDto[];
 
   @IsArray()
-  @ArrayNotEmpty()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => SpecialPriceDto)
   @IsOptional()
-  specialPrices: SpecialPriceDto[];
+  specialPrices?: SpecialPriceDto[];
 }

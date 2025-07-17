@@ -1,7 +1,9 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
+  Param,
   Patch,
   Post,
   Put,
@@ -39,5 +41,10 @@ export class SettingsController {
   @Get('category/base-price')
   async getCategoryPrice() {
     return this.settingsService.getCategoryBaseAndSpecialPrice();
+  }
+
+  @Delete('category/base-price/:id')
+  async deleteBasePrice(@Param() id: number) {
+    return this.settingsService.deleteSpecialPrice(id);
   }
 }

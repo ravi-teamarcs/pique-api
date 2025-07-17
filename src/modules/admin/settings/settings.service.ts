@@ -2,6 +2,7 @@ import {
   HttpException,
   Injectable,
   InternalServerErrorException,
+  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Setting } from './entities/setting.entity';
@@ -138,6 +139,26 @@ export class SettingsService {
       };
     } catch (error) {
       if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async deleteSpecialPrice(id: number) {
+    try {
+      const specialPrice = await this.specialSubcatRateRepo.findOne({
+        where: { id },
+      });
+
+      if (!specialPrice) {
+        throw new NotFoundException('specialPrice not Found');
+      }
+
+      await this.specialSubcatRateRepo.remove(specialPrice);
+      return {
+        message: 'Special Subcategory Price deleted successfully',
+        status: true,
+      };
+    } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
   }
