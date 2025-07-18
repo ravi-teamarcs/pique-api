@@ -898,13 +898,9 @@ export class InvoiceService {
 
         const adminRateCard = await this.adminRateCardRepository.find();
 
-        const localTime = DateTime.fromISO(book.eventStartDateTime, {
-          zone: book?.timezone,
-        }).toLocal();
-
         const specialRateCard = await this.specialRateCardRepository.find({
           where: {
-            date: localTime.toISODate(),
+            date: new Date(book.eventStartDateTime).toISOString().split('T')[0],
           },
         });
 
