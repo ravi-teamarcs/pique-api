@@ -16,4 +16,8 @@ export class UpdateInvoiceStatus {
   @IsIn(['paid'])
   @IsNotEmpty()
   status: 'paid';
+
+  @IsIn(['venue', 'entertainer'])
+  @IsNotEmpty()
+  role: 'venue' | 'entertainer';
 }

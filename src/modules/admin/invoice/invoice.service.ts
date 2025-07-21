@@ -600,25 +600,45 @@ export class InvoiceService {
   }
 
   async updateInvoiceStatus(invoiceId: number, dto: UpdateInvoiceStatus) {
-    const { invAmountPaid, status, chequeNo, paymentDate } = dto;
+    const { invAmountPaid, status, chequeNo, paymentDate , role} = dto;
 
     try {
-      const invoice = await this.invoiceRepository.findOne({
-        where: { id: invoiceId },
-      });
-      if (!invoice) {
-        throw new NotFoundException({
-          message: `Invoice with ID ${invoiceId} not found.`,
+      if (role === 'venue') {
+        const invoice = await this.invoiceRepository.findOne({
+          where: { id: invoiceId },
         });
+
+        if (!invoice) {
+          throw new NotFoundException({
+            message: `Invoice with ID ${invoiceId} not found.`,
+          });
+        }
+
+        await this.invoiceRepository.update(
+          { id: invoice.id },
+          { status, chequeNo, invAmountPaid, payment_date: paymentDate },
+        );
+
+        return { message: 'Invoice returned Successfully', status: true };
+      } else {
+        const invoice = await this.entInvoiceRepository.findOne({
+          where: { id: invoiceId },
+        });
+
+        if (!invoice) {
+          throw new NotFoundException({
+            message: `Invoice with ID ${invoiceId} not found.`,
+          });
+        }
+
+        await this.entInvoiceRepository.update(
+          { id: invoice.id },
+          { status, chequeNo, invAmountPaid, payment_date: paymentDate },
+        );
+        return { message: 'Invoice returned Successfully', status: true };
       }
 
-      this.invoiceRepository.update(
-        { id: invoice.id },
-        { status, chequeNo, invAmountPaid, payment_date: paymentDate },
-      );
-
-      await this.invoiceRepository.save(invoice);
-      return { message: 'Invoice returned Successfully', status: true }; // Save the updated invoice
+      // Save the updated invoice
     } catch (error) {
       if (error instanceof HttpException) {
         throw error;

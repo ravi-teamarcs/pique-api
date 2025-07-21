@@ -423,6 +423,7 @@ export class InvoiceService {
       .leftJoin('entertainers', 'ent', 'ent.id = invoices.user_id')
       .leftJoin('cities', 'city', 'city.id = ent.city')
       .leftJoin('states', 'state', 'state.id = ent.state')
+      .leftJoin('users', 'user', 'user.id = ent.userId')
       .where('invoices.user_id = :userId', {
         userId,
       })
@@ -441,14 +442,17 @@ export class InvoiceService {
         'invoices.payment_method AS payment_method',
         'invoices.payment_date AS payment_date',
 
-        'ent.name AS entertainerName',
+        'ent.name AS stageName',
+        'ent.entertainer_name AS entertainerName',
         'ent.addressLine1 AS addressLine1',
         'ent.addressLine2 AS addressLine2',
-        'ent.pricePerEvent AS pricePerHour',
+
         'ent.city AS city_code',
         'ent.state AS state_code',
         'state.name AS stateName',
         'city.name AS cityName',
+        'user.phoneNumber AS phoneNumber',
+        'ent.email AS email',
 
         // This subquery gets all events in one JSON array for this invoice
         `(SELECT JSON_ARRAYAGG(
