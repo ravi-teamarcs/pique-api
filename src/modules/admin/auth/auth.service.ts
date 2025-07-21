@@ -64,6 +64,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role,
+      status: 'completed',
     };
 
     const role = userrole.role_name;
