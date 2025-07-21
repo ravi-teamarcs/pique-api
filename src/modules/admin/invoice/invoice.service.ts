@@ -600,7 +600,7 @@ export class InvoiceService {
   }
 
   async updateInvoiceStatus(invoiceId: number, dto: UpdateInvoiceStatus) {
-    const { invAmountPaid, status, chequeNo, paymentDate , role} = dto;
+    const { invAmountPaid, status, chequeNo, paymentDate, role } = dto;
 
     try {
       if (role === 'venue') {
