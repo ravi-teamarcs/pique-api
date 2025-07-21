@@ -50,6 +50,7 @@ export class InvoiceService {
 
       const rateCard = await this.getEntertainerRateCard(Number(userId));
       const adminRateCard = await this.adminRateCardRepo.find({});
+      let totalAmount = 0;
 
       for (const eventid of eventIds) {
         const {
@@ -125,7 +126,11 @@ export class InvoiceService {
         }
         total = this.roundToTwo(total);
         invoiceDetails.push({ bookingId, eventId });
+
+        totalAmount += Number(total);
       }
+
+     
 
       const lastInvoice = await this.entertainerInvoiceRepository
         .createQueryBuilder('invoices')
@@ -148,10 +153,10 @@ export class InvoiceService {
         event_id: null,
         issue_date: issueDate.toISOString().split('T')[0],
         due_date: null,
-        total_amount: parseFloat(total.toFixed(2)),
+        total_amount: parseFloat(totalAmount.toFixed(2)),
         tax_rate: 0,
         tax_amount: 0,
-        total_with_tax: parseFloat(total.toFixed(2)),
+        total_with_tax: parseFloat(totalAmount.toFixed(2)),
         status: InvoiceStatus.UNPAID,
         payment_method: '',
         payment_date: null,
