@@ -733,7 +733,7 @@ export class InvoiceService {
                     );
 
                     const calculatedAmount = await this.getCalculatedAmount(
-                      eventRest.entertainerId,
+                      rest.entertainerId,
                       eventRest.eventId,
                       duration,
                     );
@@ -1473,10 +1473,7 @@ export class InvoiceService {
     eventId: number,
     durationInHours: number,
   ) {
-    const rateCard = await this.entertainerRateCard.find({
-      where: { entertainerId },
-      select: ['subcategoryId', 'basePrice', 'pricePerExtra30Min', 'id'],
-    });
+    const rateCard = await this.getEntertainerRateCard(Number(entertainerId));
 
     const adminRateCard = await this.adminRateCardRepository.find({});
     let rateCardObj: any;
@@ -1491,7 +1488,15 @@ export class InvoiceService {
         (item) => item.subcategoryId == relatedBooking?.subcategoryId,
       ) || [];
 
-    if (rateCardObj.length === 0) {
+    if (
+      rateCardObj.length === 0 ||
+      rateCardObj[0].basePrice === 0 ||
+      rateCardObj[0].basePrice === '0.00' ||
+      rateCardObj[0].pricePerExtra30Min === '0.00' ||
+      rateCardObj[0].pricePerExtra30Min === '0' ||
+      rateCardObj[0].pricePerExtra30Min === 0 ||
+      rateCardObj[0].basePrice == null
+    ) {
       rateCardObj =
         adminRateCard?.filter(
           (item) => item.subcategoryId == relatedBooking.subcategoryId,
@@ -1514,5 +1519,19 @@ export class InvoiceService {
       total += extra30MinBlocks * pricePerExtra30Min;
     }
     return Number((total = this.roundToTwo(total)));
+  }
+
+  async getEntertainerRateCard(entertainerId: number) {
+    try {
+      const rateCard = await this.entertainerRateCard.find({
+        where: { entertainerId },
+        select: ['subcategoryId', 'basePrice', 'pricePerExtra30Min', 'id'],
+      });
+
+      if (!rateCard) return null;
+      return rateCard;
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }
