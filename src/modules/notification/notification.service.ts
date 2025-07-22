@@ -36,7 +36,7 @@ export class NotificationService {
 
     const message = {
       tokens: res.data, // Array of device tokens
-      data: { type },
+      data: { type, title, body },
       notification: {
         title,
         body,
