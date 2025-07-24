@@ -36,7 +36,7 @@ export class NotificationService {
 
     const message = {
       tokens: res.data, // Array of device tokens
-      data: { type, title, body },
+      data: { type, title, body, click_action: 'FLUTTER_NOTIFICATION_CLICK' },
       notification: {
         title,
         body,
