@@ -22,6 +22,9 @@ export class InvoiceBooking {
   @Column({ name: 'event_id' })
   eventId: number;
 
+  @Column({ type: 'decimal', precision: 10, scale: 2, name: 'event_price' })
+  eventPrice: number;
+
   @CreateDateColumn()
   created_at: Date;
 }

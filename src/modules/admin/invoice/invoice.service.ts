@@ -701,7 +701,8 @@ export class InvoiceService {
       'slug', e.slug,
       'title', e.title,
       'eventStartDateTime', e.eventStartDateTime,
-      'eventEndDateTime', e.eventEndDateTime
+      'eventEndDateTime', e.eventEndDateTime,
+       'amount', ib.event_price
     )
   )
   FROM invoice_bookings ib
@@ -714,44 +715,67 @@ export class InvoiceService {
       .limit(pageSize)
       .getRawMany();
 
-    const parsedResults = await Promise.all(
-      data.map(async ({ events, pricePerHour, ...rest }) => {
-        return {
-          ...rest,
-          pricePerHour,
-          events: events
-            ? await Promise.all(
-                JSON.parse(events).map(
-                  async ({
-                    eventStartDateTime,
-                    eventEndDateTime,
-                    ...eventRest
-                  }) => {
-                    const duration = this.getDurationInHours(
-                      eventStartDateTime,
-                      eventEndDateTime,
-                    );
+    // const parsedResults = await Promise.all(
+    //   data.map(async ({ events, pricePerHour, ...rest }) => {
+    //     return {
+    //       ...rest,
+    //       pricePerHour,
+    //       events: events
+    //         ? await Promise.all(
+    //             JSON.parse(events).map(
+    //               async ({
+    //                 eventStartDateTime,
+    //                 eventEndDateTime,
+    //                 ...eventRest
+    //               }) => {
+    //                 const duration = this.getDurationInHours(
+    //                   eventStartDateTime,
+    //                   eventEndDateTime,
+    //                 );
 
-                    const calculatedAmount = await this.getCalculatedAmount(
-                      rest.entertainerId,
-                      eventRest.eventId,
-                      duration,
-                    );
+    //                 const calculatedAmount = await this.getCalculatedAmount(
+    //                   rest.entertainerId,
+    //                   eventRest.eventId,
+    //                   duration,
+    //                 );
 
-                    return {
-                      ...eventRest,
-                      eventStartDateTime,
-                      eventEndDateTime,
-                      amount: Number(calculatedAmount),
-                      duration,
-                    };
-                  },
-                ),
-              )
-            : [],
-        };
-      }),
-    );
+    //                 return {
+    //                   ...eventRest,
+    //                   eventStartDateTime,
+    //                   eventEndDateTime,
+    //                   amount: Number(calculatedAmount),
+    //                   duration,
+    //                 };
+    //               },
+    //             ),
+    //           )
+    //         : [],
+    //     };
+    //   }),
+    // );
+    const parsedResults = data.map(({ events, pricePerHour, ...rest }) => {
+      return {
+        ...rest,
+        pricePerHour,
+        events: events
+          ? JSON.parse(events).map(
+              ({ eventStartDateTime, eventEndDateTime, ...eventRest }) => {
+                const duration = this.getDurationInHours(
+                  eventStartDateTime,
+                  eventEndDateTime,
+                );
+
+                return {
+                  ...eventRest,
+                  eventStartDateTime,
+                  eventEndDateTime,
+                  duration,
+                };
+              },
+            )
+          : [],
+      };
+    });
 
     const totalCount = await this.invoiceRepository
       .createQueryBuilder('invoices')

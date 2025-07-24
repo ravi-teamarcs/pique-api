@@ -125,12 +125,10 @@ export class InvoiceService {
           total += extra30MinBlocks * pricePerExtra30Min;
         }
         total = this.roundToTwo(total);
-        invoiceDetails.push({ bookingId, eventId });
+        invoiceDetails.push({ bookingId, eventId, eventPrice: Number(total) });
 
         totalAmount += Number(total);
       }
-
-     
 
       const lastInvoice = await this.entertainerInvoiceRepository
         .createQueryBuilder('invoices')
@@ -460,14 +458,15 @@ export class InvoiceService {
         'ent.email AS email',
 
         // This subquery gets all events in one JSON array for this invoice
-        `(SELECT JSON_ARRAYAGG(
+        `(
+  SELECT JSON_ARRAYAGG(
     JSON_OBJECT(
       'eventId', e.id,
       'slug', e.slug,
       'title', e.title,
       'eventStartDateTime', e.eventStartDateTime,
-      'eventEndDateTime', e.eventEndDateTime
-      
+      'eventEndDateTime', e.eventEndDateTime,
+      'amount', ib.event_price
     )
   )
   FROM invoice_bookings ib
@@ -479,37 +478,57 @@ export class InvoiceService {
       .offset((page - 1) * pageSize)
       .limit(pageSize)
       .getRawMany();
-    const parsedResults = await Promise.all(
-      data.map(async ({ events, ...rest }) => {
-        const parsedEvents = events
-          ? await Promise.all(
-              JSON.parse(events).map(async (event: any) => {
-                const duration = this.getDurationInHours(
-                  event.eventStartDateTime,
-                  event.eventEndDateTime,
-                );
+    // const parsedResults = await Promise.all(
+    //   data.map(async ({ events, ...rest }) => {
+    //     const parsedEvents = events
+    //       ? await Promise.all(
+    //           JSON.parse(events).map(async (event: any) => {
+    //             const duration = this.getDurationInHours(
+    //               event.eventStartDateTime,
+    //               event.eventEndDateTime,
+    //             );
 
-                const calculatedAmount = await this.getCalculatedAmount(
-                  userId,
-                  event.eventId,
-                  duration,
-                );
+    //             const calculatedAmount = await this.getCalculatedAmount(
+    //               userId,
+    //               event.eventId,
+    //               duration,
+    //             );
 
-                return {
-                  ...event,
-                  amount: calculatedAmount,
-                  duration,
-                };
-              }),
-            )
-          : [];
+    //             return {
+    //               ...event,
+    //               amount: calculatedAmount,
+    //               duration,
+    //             };
+    //           }),
+    //         )
+    //       : [];
 
-        return {
-          ...rest,
-          events: parsedEvents,
-        };
-      }),
-    );
+    //     return {
+    //       ...rest,
+    //       events: parsedEvents,
+    //     };
+    //   }),
+    // );
+    const parsedResults = data.map(({ events, ...rest }) => {
+      const parsedEvents = events
+        ? JSON.parse(events).map((event: any) => {
+            const duration = this.getDurationInHours(
+              event.eventStartDateTime,
+              event.eventEndDateTime,
+            );
+
+            return {
+              ...event,
+              duration,
+            };
+          })
+        : [];
+
+      return {
+        ...rest,
+        events: parsedEvents,
+      };
+    });
 
     const totalCount = await this.invoiceRepository
       .createQueryBuilder('invoices')
