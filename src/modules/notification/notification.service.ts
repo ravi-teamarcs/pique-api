@@ -44,6 +44,8 @@ export class NotificationService {
         click_action: 'FLUTTER_NOTIFICATION_CLICK',
       },
       notification: {
+        source: type,
+        type,
         title,
         body,
       },
