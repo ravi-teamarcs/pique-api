@@ -41,11 +41,10 @@ export class NotificationService {
         type,
         title,
         body,
+        screen: 'AllNewBooking',
         click_action: 'FLUTTER_NOTIFICATION_CLICK',
       },
       notification: {
-        source: type,
-        type,
         title,
         body,
       },
