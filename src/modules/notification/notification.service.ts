@@ -43,10 +43,10 @@ export class NotificationService {
         body,
         click_action: 'FLUTTER_NOTIFICATION_CLICK',
       },
-      notification: {
-        title,
-        body,
-      },
+      // notification: {
+      //   title,
+      //   body,
+      // },
 
       android: {
         ttl: 3600 * 1000,
