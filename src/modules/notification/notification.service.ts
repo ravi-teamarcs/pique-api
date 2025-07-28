@@ -51,12 +51,7 @@ export class NotificationService {
 
       android: {
         ttl: 3600 * 1000,
-        notification: {
-          icon: 'ic_launcher', // must be present in app resources
-          color: '#f45342',
-          sound: 'default',
-          clickAction: 'FLUTTER_NOTIFICATION_CLICK', // Optional for Android
-        },
+       
       },
 
       apns: {
