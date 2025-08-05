@@ -1822,8 +1822,8 @@ export class EntertainerService {
         bookingStats.invited.previous,
       );
       const confirmedChange = calculateChange(
-        bookingStats.invited.current,
-        bookingStats.invited.previous,
+        bookingStats.confirmed.current,
+        bookingStats.confirmed.previous,
       );
       const acceptedChange = calculateChange(
         bookingStats.accepted.current,
@@ -1948,6 +1948,9 @@ export class EntertainerService {
         .leftJoin('media', 'media', 'media.eventId = event.id')
         .where('booking.entId = :userId', { userId })
         .andWhere('booking.status = :status', { status: 'confirmed' })
+        .andWhere('event.status NOT IN (:...eventStatus)', {
+          eventStatus: ['canceled', 'completed'],
+        })
         .andWhere('booking.showStartDateTime >= :now', { now: new Date() })
 
         .select([
