@@ -51,7 +51,6 @@ export class NotificationService {
 
       android: {
         ttl: 3600 * 1000,
-       
       },
 
       apns: {

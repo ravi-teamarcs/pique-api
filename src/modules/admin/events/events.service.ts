@@ -292,7 +292,7 @@ export class EventService {
       // Step 1: Get total count of events (without join)
       const totalCount = await this.eventRepository
         .createQueryBuilder('event')
-        .where('event.eventStartDateTime > :now', { now })
+        .where('DATE(event.eventStartDateTime) > :now', { now })
         .getCount();
 
       // Step 2: Paginate with join and select raw fields
@@ -302,7 +302,7 @@ export class EventService {
         .leftJoin('cities', 'city', 'city.id = venue.city')
         .leftJoin('states', 'state', 'state.id = venue.state')
         .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
-        .where('event.eventStartDateTime > :now', { now })
+        .where('DATE(event.eventStartDateTime) > :now', { now })
         .select([
           'event.id AS event_id',
           'event.title AS title',
@@ -599,7 +599,7 @@ export class EventService {
 
       const events = await this.eventRepository
         .createQueryBuilder('event')
-        .where('event.eventStartDateTime BETWEEN :start AND :end', {
+        .where('DATE(event.eventStartDateTime) BETWEEN :start AND :end', {
           start,
           end,
         })
