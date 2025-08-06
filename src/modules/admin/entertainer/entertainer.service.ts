@@ -763,21 +763,19 @@ export class EntertainerService {
       const qb = this.bookingRepository
         .createQueryBuilder('booking')
         .innerJoin('event', 'event', 'event.id = booking.eventId')
-        .andWhere('YEAR(event.eventDate) = :year', { year })
-        .andWhere('MONTH(event.eventDate) = :month', { month })
+        .andWhere('YEAR(event.eventStartDateTime) = :year', { year })
+        .andWhere('MONTH(event.eventStartDateTime) = :month', { month })
         .select([
           'event.id AS event_id',
           'event.title AS title',
           'event.location AS location',
-          'event.eventDate AS eventDate',
           'event.description AS description',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
-          'event.recurring AS recurring',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
           'event.status AS status',
           'event.isAdmin AS isAdmin',
         ])
-        .orderBy('event.eventDate', 'ASC');
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC');
 
       if (status) {
         qb.andWhere('event.status=:status', { status });

@@ -1312,9 +1312,6 @@ export class VenueService {
           'event.title AS event_title',
           'event.status AS event_status',
           'event.recurring AS event_recurring',
-          'event.startTime AS event_start_time',
-          'event.endTime AS event_end_time',
-          'event.eventDate AS event_date',
           // Added new Fields
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',

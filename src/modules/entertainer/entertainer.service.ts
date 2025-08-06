@@ -1701,9 +1701,8 @@ export class EntertainerService {
         'event.title AS title',
         'event.status AS status',
         'event.description AS description',
-        'event.startTime AS startTime',
-        'event.endTime AS endTime',
-        'event.eventDate AS eventDate',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventStartDateTime AS eventEndDateTime',
         'event.slug AS slug',
         'event.status AS status',
         'event.recurring AS recurring',
@@ -1980,7 +1979,7 @@ export class EntertainerService {
         ])
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
-        .orderBy('event.startTime', 'ASC');
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC');
 
       if (search && search.trim()) {
         events.andWhere('LOWER(event.title) LIKE :search', {
@@ -2048,10 +2047,9 @@ export class EntertainerService {
           'event.id AS event_id',
           'event.title AS title',
           'event.location AS location',
-          'event.eventDate AS eventDate',
           'event.description AS description',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
+
+
           //Added to new Fields...
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',

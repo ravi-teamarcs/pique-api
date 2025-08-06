@@ -122,50 +122,6 @@ export class EventService {
       });
     }
   }
-  // Created for venues
-  // async getAllEvents(id: number, page: number = 1, pageSize: number = 20) {
-  //   try {
-  //     const today = startOfDay(new Date());
-  //     const skip = (Number(page) - 1) * Number(pageSize);
-  //     const take = Number(pageSize);
-  //     const [events, totalCount] = await this.eventRepository
-  //       .createQueryBuilder('event')
-  //       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
-  //       .where('event.venueId = :id', { id })
-  //       .orderBy('event.createdAt', 'DESC')
-  //       .select([
-  //         'event.id',
-  //         'event.title',
-  //         'event.location',
-  //         'event.venueId',
-  //         'event.description',
-  //         'event.startTime',
-  //         'event.endTime',
-  //         'event.recurring',
-  //         'event.status',
-  //         'event.slug',
-  //         'event.createdAt',
-  //         'event.eventDate',
-  //         'hood.id',
-  //         'hood.name',
-  //       ])
-  //       .take(take)
-  //       .skip(skip)
-  //       .getManyAndCount();
-
-  //     return {
-  //       message: 'Events fetched successfully',
-  //       count: totalCount,
-  //       page,
-  //       pageSize,
-  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
-  //       data: events,
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(error.message);
-  //   }
-  // }
 
   async getAllEvents(id: number, page: number = 1, pageSize: number = 10) {
     try {
@@ -183,16 +139,12 @@ export class EventService {
           'event.location AS location',
           'event.venueId AS venueId',
           'event.description AS description',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
           // Added two new Fields
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
-
           'event.recurring AS recurring',
           'event.status AS status',
           'event.slug AS slug',
-          'event.eventDate AS eventDate',
           'event.createdAt AS createdAt',
           'hood.id AS neighbourhoodId',
           'hood.name AS neighbourhoodName',
@@ -219,94 +171,6 @@ export class EventService {
     }
   }
 
-  //   try {
-  //     const today = startOfDay(new Date());
-  //     const skip = (Number(page) - 1) * Number(pageSize);
-  //     const take = Number(pageSize);
-
-  //     const [events, totalCount] = await this.eventRepository
-  //       .createQueryBuilder('event')
-  //       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
-  //       .where('event.venueId = :id', { id })
-  //       .orderBy('event.createdAt', 'DESC')
-  //       .select([
-  //         'event.id',
-  //         'event.title',
-  //         'event.location',
-  //         'event.venueId',
-  //         'event.description',
-  //         'event.startTime',
-  //         'event.endTime',
-  //         'event.recurring',
-  //         'event.status',
-  //         'event.slug',
-  //         'event.eventDate',
-  //         'event.createdAt', // ✅ Fix: include this because you're ordering by it
-  //         'hood.id AS neighbourhoodId',
-  //       ])
-  //       .take(take)
-  //       .skip(skip)
-  //       .getManyAndCount();
-
-  //     return {
-  //       message: 'Events fetched successfully',
-  //       count: totalCount,
-  //       page,
-  //       pageSize,
-  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
-  //       data: events,
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(error.message);
-  //   }
-  // }
-  // async getAllEvents(id: number, page: number = 1, pageSize: number = 20) {
-  //   try {
-  //     const skip = (Number(page) - 1) * Number(pageSize);
-  //     const take = Number(pageSize);
-  //     const events = await this.eventRepository
-  //       .createQueryBuilder('event')
-  //       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
-  //       .where('event.venueId = :id', { id })
-  //       .orderBy('event.createdAt', 'DESC')
-  //       .select([
-  //         'event.id',
-  //         'event.title',
-  //         'event.location',
-  //         'event.venueId',
-  //         'event.description',
-  //         'event.startTime',
-  //         'event.endTime',
-  //         'event.recurring',
-  //         'event.status',
-  //         'event.slug',
-  //         'event.eventDate',
-  //         'event.createdAt',
-  //         'hood.id AS neighbourhoodId',
-  //         'hood.name AS neighbourhoodName',
-  //       ])
-  //       .limit(take)
-  //       .offset(skip)
-  //       .getRawMany(); // ← this returns raw data with aliases
-  //     const totalCount = await this.eventRepository
-  //       .createQueryBuilder('event')
-  //       .where('event.venueId = :id', { id })
-  //       .getCount();
-  //     return {
-  //       message: 'Events fetched successfully',
-  //       count: totalCount,
-  //       page,
-  //       pageSize,
-  //       totalPages: Math.ceil(totalCount / Number(pageSize)),
-  //       data: events,
-  //       status: true,
-  //     };
-  //   } catch (error) {
-  //     throw new InternalServerErrorException(error.message);
-  //   }
-  // }
-
   // Api Working
   async getEventListDropdown(id: number) {
     try {
@@ -326,15 +190,12 @@ export class EventService {
           'event.location',
           'event.venueId',
           'event.description',
-          'event.startTime',
-          'event.endTime',
           'event.eventStartDateTime',
           'event.eventEndDateTime',
           'event.endTime',
           'event.recurring',
           'event.status',
           'event.slug',
-          'event.eventDate',
         ])
         .getManyAndCount();
 

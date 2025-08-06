@@ -151,7 +151,6 @@ export class ReminderService {
       if (confirmedEvents && confirmedEvents.length < 1) return;
 
       for (const event of confirmedEvents) {
-        // const actualDate = event.eventDate.toISOString().split('T')[0];
         const eventEnd = new Date(event.eventEndDateTime); // Assuming ISO strings
         const oneHourLater = addHours(eventEnd, 1);
         const twentyFourLater = addHours(eventEnd, 24);

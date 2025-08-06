@@ -380,7 +380,7 @@ export class BookingService {
           'log.bookingId = booking.id',
         )
 
-        .orderBy('event.eventDate', 'ASC')
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC')
         .getRawMany();
 
       return {

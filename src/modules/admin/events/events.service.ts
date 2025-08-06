@@ -351,21 +351,19 @@ export class EventService {
     try {
       const qb = this.eventRepository
         .createQueryBuilder('event')
-        .andWhere('YEAR(event.startTime) = :year', { year })
-        .andWhere('MONTH(event.startTime) = :month', { month })
+        .andWhere('YEAR(event.eventStartDateTime) = :year', { year })
+        .andWhere('MONTH(event.eventStartDateTime) = :month', { month })
         .select([
           'event.id AS event_id',
           'event.title AS title',
           'event.location AS location',
           'event.userId AS userId',
           'event.description AS description',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
           'event.recurring AS recurring',
           'event.status AS status',
           'event.isAdmin AS isAdmin',
         ])
-        .orderBy('event.startTime', 'ASC');
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC');
 
       if (status) {
         qb.andWhere('event.status=:status', { status });
