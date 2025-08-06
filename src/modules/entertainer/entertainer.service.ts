@@ -2067,7 +2067,7 @@ export class EntertainerService {
           'venue.city AS cityCode',
           'venue.state AS stateCode',
         ])
-        .orderBy('event.eventStartDateTime', 'ASC');
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC');
 
       if (status) {
         qb.andWhere('event.status=:status', { status });
