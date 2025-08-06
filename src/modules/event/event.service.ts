@@ -439,6 +439,7 @@ export class EventService {
     const event = await this.eventRepository
       .createQueryBuilder('event')
       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+      .leftJoin('venue', 'venue', 'venue.id = event.venueId')
       .where('event.id = :eventId AND event.venueId = :venueId', {
         eventId: id,
         venueId,
@@ -453,6 +454,10 @@ export class EventService {
         'event.endTime AS endTime',
         'event.slug AS slug',
         'event.status AS status',
+        'venue.name AS name',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+        'venue.timezone AS venueTimeZone',
         'hood.id AS neighbourhoodId',
         'hood.name AS neighbourhoodName',
         'hood.contactPerson AS contactPerson',
@@ -482,12 +487,14 @@ export class EventService {
         )
         .leftJoin('users', 'user', 'user.id = entertainer.userId')
         .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
         .select([
           'user.email AS email',
           'entertainer.name AS entertainerName',
           'event.slug AS slug',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS  eventEndDateTime',
+          'venue.timezone AS venueTimeZone',
         ])
         .where('booking.eventId = :eventId', { eventId })
         .getRawMany();
@@ -500,11 +507,11 @@ export class EventService {
             templateName: 'cancelled-event-template.html',
             replacements: {
               eventName: book.slug,
-              eventDate: formatTz(book.eventStartDateTime, 'dd MMM yyyy', {
-                timeZone: 'UTC',
+              eventDate: formatTz(book.eventStartDateTime, 'dd MMM yyyy z', {
+                timeZone: book.venueTimeZone ?? 'UTC',
               }),
               eventTime: formatTz(book.eventStartDateTime, 'HH:mm', {
-                timeZone: 'UTC',
+                timeZone: book.venueTimeZone ?? 'UTC',
               }),
               year: new Date().getFullYear(),
             },
@@ -520,7 +527,11 @@ export class EventService {
       const venueDetails = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId ')
-        .select(['venue.name AS venueName', 'venue.id AS venueId'])
+        .select([
+          'venue.name AS venueName',
+          'venue.id AS venueId',
+          'venue.timezone AS venueTimeZone',
+        ])
         .where('event.id =:id', { id })
         .getRawOne();
 
