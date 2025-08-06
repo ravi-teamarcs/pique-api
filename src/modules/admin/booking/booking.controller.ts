@@ -56,17 +56,6 @@ export class BookingController {
   }
 
   @ApiOperation({
-    description: 'Enable Admin To Track the Booking Request. ',
-  })
-  @ApiResponse({ status: 200, description: 'Booking fetched Successfully. ' })
-  @Get(':id/request')
-  @HttpCode(200)
-  @Roles('super-admin')
-  getAllBookingById(@Query() query: BookingQueryDto, @Param('id') userId) {
-    return this.bookingService.getAllBookingById(query, Number(userId));
-  }
-
-  @ApiOperation({
     description: 'Enable Admin To Create booking on behalf of Venue. ',
   })
   @ApiResponse({ status: 200, description: 'Booking Created Successfully' })
@@ -76,7 +65,6 @@ export class BookingController {
   createBooking(@Body() bookingdto: AdminBookingDto) {
     return this.bookingService.createBooking(bookingdto);
   }
-
 
   // Out of Order
   @ApiOperation({

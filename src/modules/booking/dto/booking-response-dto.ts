@@ -14,6 +14,6 @@ export class ResponseDto {
     | 'confirmed'
     | 'canceled'
     | 'declined'
-    | 'accepted'
+    | 'applied'
     | 'rescheduled';
 }

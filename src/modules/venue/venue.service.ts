@@ -431,8 +431,8 @@ export class VenueService {
         'venue.contactPerson AS contactPerson',
         'venue.contactNumber AS contactNumber',
         'venue.zipCode AS zipCode',
-        'venue.venueType As venueType',
-        'venue.timezone As timezone',
+        'venue.venueType AS venueType',
+        'venue.timezone AS timezone',
         'venue.isPiqueVerified AS isPiqueVerified',
         'city.name AS city',
         'state.name AS state',
@@ -2102,17 +2102,13 @@ export class VenueService {
           'event.title AS title',
           'event.slug AS slug',
           `CONCAT(venue.addressLine1, ' ', venue.addressLine2) AS location`,
-          'event.eventDate AS eventDate',
           'event.description AS description',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
           // Added two new fields
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
-
           'event.status AS status',
         ])
-        .orderBy('event.eventStartDateTime', 'ASC');
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC');
 
       if (status) {
         qb.andWhere('event.status=:status', { status });
@@ -2148,14 +2144,14 @@ export class VenueService {
     try {
       const skip = (Number(page) - 1) * Number(pageSize);
       const take = Number(pageSize);
-      const currentDate = new Date();
+
+      const currentDate = new Date().toISOString().split('T')[0];
+
       const history = await this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin('event', 'event', 'event.id = booking.eventId')
         .select([
           'booking.id AS id ',
-          'booking.showDate AS showDate',
-          'booking.showTime AS showTime',
           'event.eventStartDateTime AS eventStartDateTime',
         ])
         .where(
@@ -2166,9 +2162,11 @@ export class VenueService {
             status: ['completed'],
           },
         )
-        .andWhere('booking.showDate <= :currentDate', { currentDate })
+        .andWhere('DATE(event.eventStartDateTime) <= :currentDate', {
+          currentDate,
+        })
         .andWhere('event.status = "completed"')
-        .orderBy('booking.showDate', 'DESC')
+        .orderBy('DATE(event.eventStartDateTime)', 'DESC')
         .offset(skip)
         .limit(take)
         .getRawMany();

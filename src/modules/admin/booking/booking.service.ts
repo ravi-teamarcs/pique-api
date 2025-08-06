@@ -112,6 +112,7 @@ export class BookingService {
           'city.name AS cityName',
           'state.name AS stateName',
           'venue.zipCode AS zipCode',
+          'venue.timezone AS venueTimeZone',
         ])
         .where('venue.id =:id', { id: venueId })
         .getRawOne();
@@ -191,13 +192,13 @@ export class BookingService {
               entertainerName: entertainer.name,
               bookingDate: format(
                 savedBooking.showStartDateTime,
-                'dd MMM yyyy',
+                'dd MMM yyyy z',
                 {
-                  timeZone: 'UTC',
+                  timeZone: venue.venueTimeZone ?? 'UTC',
                 },
               ),
               bookingTime: format(savedBooking.showStartDateTime, 'HH:mm', {
-                timeZone: 'UTC',
+                timeZone: venue.venueTimezone ?? 'UTC',
               }),
               vname: venue.name,
               vemail: venue.email,
@@ -232,42 +233,6 @@ export class BookingService {
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(error.message);
-    }
-  }
-
-  async getAllBookingById(query: BookingQueryDto, userId: number) {
-    try {
-      const { page = 1, status = 'pending', pageSize = 10 } = query;
-      const skip = (Number(page) - 1) * Number(pageSize);
-      const [bookings, count] = await this.bookingRepository
-        .createQueryBuilder('booking')
-        .leftJoin('venue', 'venue', 'venue.id=booking.venueId')
-        .leftJoin('entertainers', 'ent', 'ent.id=booking.entId')
-        .where('booking.venueUser.id = :userId', { userId })
-        .andWhere('booking.status = :status', { status })
-        .select([
-          'booking.id AS id',
-          'booking.status AS status',
-          'booking.venueId AS venueId',
-          'booking.showTime AS show',
-          'booking.showDate',
-          'booking.eventId',
-          'booking.specialNotes',
-        ])
-        .skip(Number(skip))
-        .take(Number(pageSize))
-        .getManyAndCount();
-
-      return {
-        messsage: 'Bookings returned Successfully',
-        pageSize,
-        page,
-        totalCount: count,
-        data: bookings,
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException({ message: error.message });
     }
   }
 
@@ -453,6 +418,7 @@ export class BookingService {
         'event.slug AS eventSlug',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
+        'venue.timezone AS venueTimeZone',
       ])
       .where('booking.eventId = :id', { id })
       .getRawMany();
@@ -487,8 +453,12 @@ export class BookingService {
 
         if (booking.entertainer_email) {
           // Send Email to Entertainer
-          const newTime = format(eventStartDateTime, 'hh:mm a');
-          const newDate = format(eventStartDateTime, 'dd MMM yyyy HH:mm');
+          const newTime = format(eventStartDateTime, 'hh:mm a', {
+            timeZone: booking.venueTimeZone,
+          });
+          const newDate = format(eventStartDateTime, 'dd MMM yyyy HH:mm z', {
+            timeZone: booking.venueTimeZone,
+          });
           const emailPayload = {
             to: booking.entertainer_email,
             subject: `Event Rescheduled`,
@@ -580,6 +550,7 @@ export class BookingService {
         date: new Date(),
       });
       await this.logRepository.save(logPayload);
+
       return {
         message: 'Entertainer booking removed successfully.',
         status: true,

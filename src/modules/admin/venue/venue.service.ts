@@ -76,111 +76,6 @@ export class VenueService {
     private readonly geoService: GeocodingService,
   ) {}
 
-  // async getAllVenue({
-  //   page,
-  //   pageSize,
-  //   search,
-  // }: {
-  //   page: number;
-  //   pageSize: number;
-  //   search: string;
-  // }) {
-  //   const skip = (page - 1) * pageSize;
-
-  //   const res = this.venueRepository
-  //     .createQueryBuilder('venue')
-  //     .leftJoinAndSelect('venue.user', 'user')
-  //     .leftJoin('cities', 'city', 'city.id = venue.city')
-  //     .leftJoin('states', 'state', 'state.id = venue.state')
-  //     .leftJoin('countries', 'country', 'country.id = venue.country')
-  //     .leftJoin(
-  //       (qb) =>
-  //         qb
-  //           .select([
-  //             'media.user_id AS media_user_id',
-  //             `JSON_ARRAYAGG(
-  //           JSON_OBJECT(
-  //             "url", CONCAT(:serverUri, media.url),
-  //             "type", media.type,
-  //             "id", media.id
-  //           )
-  //         ) AS mediaDetails`,
-  //           ])
-  //           .from('media', 'media')
-  //           .groupBy('media.user_id'),
-  //       'media',
-  //       'media.media_user_id = venue.id',
-  //     )
-  //     .leftJoin(
-  //       (qb) =>
-  //         qb
-  //           .select([
-  //             'neighbourhood.venueId AS nh_venue_id',
-  //             `JSON_ARRAYAGG(
-  //           JSON_OBJECT(
-  //             "id", neighbourhood.id,
-  //             "name", neighbourhood.name,
-  //             "contactPerson", neighbourhood.contact_person,
-  //             "contactNumber", neighbourhood.contact_number
-  //           )
-  //         ) AS neighbourhoodDetails`,
-  //           ])
-  //           .from('neighbourhood', 'neighbourhood')
-  //           .groupBy('neighbourhood.venueId'),
-  //       'neighbourhoods',
-  //       'neighbourhoods.nh_venue_id = venue.id',
-  //     )
-  //     .select([
-  //       'venue.id AS id',
-  //       'venue.name AS name',
-  //       'venue.addressLine1 AS addressLine1',
-  //       'venue.addressLine2 AS addressLine2',
-  //       'venue.description AS description',
-  //       'venue.city AS city_code',
-  //       'venue.state AS state_code',
-  //       'venue.country AS country_code',
-  //       'venue.zipCode AS zipCode',
-  //       'city.name AS city',
-  //       'state.name AS state',
-  //       'country.name AS country',
-  //       'user.email AS email',
-  //       'venue.status AS status',
-  //       'COALESCE(media.mediaDetails, "[]") AS media',
-  //       'COALESCE(neighbourhoods.neighbourhoodDetails, "[]") AS neighbourhoods',
-  //     ])
-  //     .where('venue.status IN (:...statuses)', {
-  //       statuses: ['active', 'inactive'],
-  //     })
-
-  //     .orderBy('venue.id', 'DESC')
-  //     .setParameter('serverUri', this.config.get<string>('BASE_URL'));
-
-  //   if (search) {
-  //     res.andWhere('LOWER(venue.name) LIKE LOWER(:search)', {
-  //       search: `%${search}%`,
-  //     });
-  //   }
-
-  //   const totalCount = await res.getCount();
-
-  //   // Paginate
-  //   const venues = await res.skip(skip).take(pageSize).getRawMany();
-  //   const parsedVenues = venues.map((v) => ({
-  //     ...v,
-  //     media: JSON.parse(v.media),
-  //     neighbourhoods: JSON.parse(v.neighbourhoods),
-  //   }));
-
-  //   return {
-  //     message: 'Venue Details fetched Successfully',
-  //     records: parsedVenues,
-  //     total: totalCount,
-  //     page,
-  //     pageSize,
-  //     pageCount: Math.ceil(totalCount / pageSize),
-  //   };
-  // }
-
   async getAllVenue({
     page,
     pageSize,
@@ -642,90 +537,6 @@ export class VenueService {
     });
   }
 
-  async addVenueLocation(locDto: AddLocationDto) {
-    const { venueId, ...rest } = locDto;
-    const parentVenue = await this.venueRepository.findOne({
-      where: { id: venueId, isParent: true },
-      relations: ['user'],
-    });
-
-    if (!parentVenue) {
-      throw new BadRequestException({
-        message: 'Can not Add venue Location',
-        status: false,
-        error: 'Parent venue do not exists',
-      });
-    }
-
-    const venueLoc = this.venueRepository.create({
-      ...rest,
-      name: parentVenue.name,
-      user: { id: parentVenue.user.id },
-      description: parentVenue.description,
-      parentId: parentVenue.id,
-      isParent: false,
-    });
-
-    await this.venueRepository.save(venueLoc);
-
-    try {
-      return { message: 'Location Added Successfully', status: true };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: 'Error Adding Location',
-        status: false,
-      });
-    }
-  }
-
-  async updateLocation(id: number, dto: UpdateLocationDto) {
-    const venueExists = await this.venueRepository.findOne({
-      where: { id, isParent: false },
-    });
-    if (!venueExists) {
-      throw new NotFoundException({
-        message: 'Location not Found',
-        status: false,
-      });
-    }
-
-    try {
-      await this.venueRepository.update({ id: venueExists.id }, dto);
-      return {
-        message: 'Location updatesd Successfully',
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
-        status: false,
-      });
-    }
-  }
-
-  async removeLocation(id: number) {
-    const venueExists = await this.venueRepository.findOne({
-      where: { id, isParent: false },
-    });
-    if (!venueExists) {
-      throw new NotFoundException({
-        message: 'Location not Found',
-        status: false,
-      });
-    }
-    try {
-      await this.venueRepository.remove(venueExists);
-      return {
-        message: 'Location removed Successfully',
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
-        status: false,
-      });
-    }
-  }
   // Creation Logic Neighbourhood
   async create(dto: CreateNeighbourhoodDto) {
     const neighbourhood = this.neighbourRepository.create(dto);
@@ -965,6 +776,7 @@ export class VenueService {
         'entertainer.email AS email',
         'user.email AS userEmail',
         'venue.name AS venueName',
+        'venue.timezone AS venueTimeZone',
         'event.slug AS eventName',
         'event.eventStartDateTime AS eventStartDateTime',
         'user.id AS entId',
@@ -980,7 +792,7 @@ export class VenueService {
       // Canceled the booking First then send them the Booking Request
       for (const req of rejectedRequest) {
         const res = await this.bookingRepository.update(
-          { id: req.id, status: In(['invited', 'accepted']) },
+          { id: req.id, status: In(['invited', 'applied']) },
           { status: 'closed' },
         );
 
@@ -1002,8 +814,8 @@ export class VenueService {
             replacements: {
               entertainerName: req.entertainerName,
               eventName: req.eventName,
-              eventDate: format(req.eventStartDateTime, 'dd MMM yyyy HH:mm', {
-                timeZone: 'UTC',
+              eventDate: format(req.eventStartDateTime, 'dd MMM yyyy HH:mm z', {
+                timeZone: req.venueTimeZone ?? 'UTC',
               }),
             },
           };

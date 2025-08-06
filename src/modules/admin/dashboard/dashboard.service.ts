@@ -101,44 +101,32 @@ export class DashboardService {
 
   async upcomingEvents() {
     try {
-      const currentDate = new Date();
-      const baseUrl = this.configService.get<string>('BASE_URL'); // Base URL for images
-      const fallbackUrl =
-        'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+      const currentDate = new Date().toISOString().split('T')[0];
 
       const upcomingEvent = await this.eventRepo
         .createQueryBuilder('event')
-        .leftJoin(
-          'media',
-          'media',
-          'media.eventId = event.id AND media.type = :mediaType',
-        )
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
         .where('event.status = :status', { status: 'confirmed' })
-        .andWhere('event.startTime > :currentDate', { currentDate })
-        .orderBy('event.startTime', 'ASC')
+        .andWhere('DATE(event.eventStartDateTime) > :currentDate', {
+          currentDate,
+        })
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC')
+
         .select([
           'event.id AS id',
           'event.title AS title',
-          'event.location AS location',
           'event.userId AS userId',
           'event.venueId AS venueId',
           'event.description AS description',
-          'event.startTime AS startTime',
-          'event.endTime AS endTime',
-          'event.recurring AS recurring',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.endEndDateTime AS eventEndDateTime',
           'event.status AS status',
-
-          `COALESCE(
-            CASE 
-              WHEN media.url IS NOT NULL THEN CONCAT(:baseUrl, media.url) 
-              ELSE :fallbackUrl 
-            END, :fallbackUrl
-          ) AS image_url`,
+          'venue.name AS venueName',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'venue.timezone AS timezone',
         ])
         .setParameters({
-          mediaType: 'event_headshot',
-          baseUrl,
-          fallbackUrl,
           status: 'confirmed',
           currentDate,
         })
@@ -209,7 +197,6 @@ export class DashboardService {
         year: new Date().getFullYear(),
       })
       .where('invoice.user_type = :userType', { userType: 'venue' })
-
       .groupBy('month')
       .orderBy('month', 'ASC')
       .getRawMany();
@@ -259,7 +246,7 @@ export class DashboardService {
     const year = date ? Number(date.split('-')[0]) : current.getFullYear();
     const month = date ? Number(date.split('-')[1]) : current.getMonth() + 1;
 
-    const skip = (page - 1) * pageSize;
+    const skip = Number((page - 1) * pageSize);
 
     try {
       const qb = this.eventRepo
@@ -270,32 +257,26 @@ export class DashboardService {
         .leftJoin('cities', 'city', 'city.id = venue.city')
         .andWhere('YEAR(event.eventStartDateTime) = :year', { year })
         .andWhere('MONTH(event.eventStartDateTime) = :month', { month })
-
         .select([
           'event.id AS event_id',
           'event.title AS title',
-          'event.eventDate AS eventDate',
-          'event.description AS description',
-          // added new Fields
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
-          'event.recurring AS recurring',
           'event.status AS status',
-          'event.isAdmin AS isAdmin',
           'venue.id AS venueId',
           'venue.name AS venueName',
           'venue.addressLine1 AS addressLine1',
           'venue.addressLine2 AS addressLine2',
           'venue.latitude AS latitude',
           'venue.longitude AS longitude',
+          'venue.timezone AS timezone',
           'venue.city AS cityCode',
           'venue.state AS stateCode',
           'city.name AS cityName',
           'state.name AS stateName',
           'code.stateCode AS stateNameCode',
         ])
-        .orderBy('event.eventStartDateTime', 'ASC');
-
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC');
       if (status) {
         qb.andWhere('event.status=:status', { status });
       }

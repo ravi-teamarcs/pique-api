@@ -1,12 +1,9 @@
-import { User } from '../../users/entities/users.entity';
-
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
 } from 'typeorm';
 
 @Entity('booking')
@@ -28,7 +25,7 @@ export class Booking {
     enum: [
       'invited',
       'confirmed',
-      'accepted',
+      'applied',
       'canceled',
       'declined',
       'completed',
@@ -44,16 +41,10 @@ export class Booking {
     | 'canceled'
     | 'declined'
     | 'completed'
-    | 'accepted'
+    | 'applied'
     | 'rescheduled'
     | 'closed'
     | 'removed';
-
-  @Column({ type: 'time', nullable: true })
-  showTime: Date;
-
-  @Column({ type: 'date', nullable: true })
-  showDate: Date;
 
   @Column({ name: 'category_id' })
   categoryId: number;
@@ -68,12 +59,12 @@ export class Booking {
   @Column({ nullable: true })
   specialNotes: string;
 
-  @Column({
-    type: 'enum',
-    enum: ['soloist', 'duo', 'trio', 'ensemble'],
-    nullable: true,
-  })
-  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
+  // @Column({
+  //   type: 'enum',
+  //   enum: ['soloist', 'duo', 'trio', 'ensemble'],
+  //   nullable: true,
+  // })
+  // performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

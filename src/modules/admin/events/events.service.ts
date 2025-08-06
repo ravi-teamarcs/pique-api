@@ -25,6 +25,7 @@ import { Setting } from '../settings/entities/setting.entity';
 import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 import { DateTime } from 'luxon';
+import { format as tzFormat, toZonedTime } from 'date-fns-tz';
 
 @Injectable()
 export class EventService {
@@ -37,12 +38,10 @@ export class EventService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(Setting)
     private readonly settingRepo: Repository<Setting>,
-
     @InjectRepository(SubcategoryRate)
     private readonly rateCardRepo: Repository<SubcategoryRate>,
     @InjectRepository(SpecialSubcategoryPrice)
     private readonly specialRateCardRepo: Repository<SpecialSubcategoryPrice>,
-
     private readonly mediaService: MediaService,
     private readonly bookingService: BookingService,
     private readonly config: ConfigService,
@@ -124,7 +123,6 @@ export class EventService {
       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
       .select([
         // Event Details
-
         'event.id AS id',
         'event.title  AS title',
         'event.status AS status',
@@ -132,7 +130,6 @@ export class EventService {
         'event.eventEndDateTime AS eventEndDateTime',
         'event.description  AS description',
         'event.slug  AS slug',
-
         'event.venueId AS venueId',
         'hood.name AS neighbourhood_name',
         'hood.name AS neighbourhood_name',
@@ -142,6 +139,7 @@ export class EventService {
         'venue.name AS venueName',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
+        'venue.timezone AS venueTimeZone',
       ])
       .where(search ? 'event.title LIKE :search' : '1=1', {
         search: `%${search}%`,
@@ -288,8 +286,8 @@ export class EventService {
 
     try {
       const now = new Date().toISOString().split('T')[0];
-
       // Step 1: Get total count of events (without join)
+
       const totalCount = await this.eventRepository
         .createQueryBuilder('event')
         .where('DATE(event.eventStartDateTime) > :now', { now })
@@ -306,24 +304,21 @@ export class EventService {
         .select([
           'event.id AS event_id',
           'event.title AS title',
-          'event.location AS location',
           'event.slug AS slug',
           'event.description AS description',
-          'event.startTime AS startTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.eventStartDateTime AS eventStartDateTime',
-          'event.recurring AS recurring',
           'event.status AS status',
-          'event.isAdmin AS isAdmin',
           'venue.id AS venue_id',
           'venue.name AS venue_name',
           'venue.addressLine1 AS adressLine1',
           'venue.addressLine2 AS adressLine2',
+          'venue.timezone AS timezone',
           'city.name AS cityName',
           'state.name AS stateName',
           'code.StateCode AS stateCode',
         ])
-        .orderBy('event.eventStartDateTime', 'ASC')
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC')
         .offset(skip)
         .limit(Number(pageSize))
         .getRawMany();
@@ -431,6 +426,7 @@ export class EventService {
           'venue.state AS stateId',
           'venue.addressLine1 AS addressLine1',
           'venue.addressLine2 AS addressLine2',
+          'venue.timezone AS venueTimeZone',
           'city.name AS city',
           'code.StateCode AS stateCode',
           'hood.name AS neighbourhoodName',

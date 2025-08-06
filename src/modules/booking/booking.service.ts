@@ -11,10 +11,8 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Booking } from './entities/booking.entity';
-import { ChangeBooking } from '../venue/dto/change-booking.dto';
 import { Venue } from '../venue/entities/venue.entity';
 import { BookingRequest } from './entities/changeBooking.entity';
-import { BookingReqResponse } from './dto/request-booking.dto';
 import { ResponseDto } from './dto/booking-response-dto';
 import { BookingLog } from './entities/booking-log.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
@@ -26,7 +24,6 @@ import { BookingCalendarSync } from './entities/booking-sync.entity';
 import { AvailabilityService } from '../entertainer/availability.service';
 import { EntertainerAvailability } from '../entertainer/entities/availability.entity';
 import { ConfigService } from '@nestjs/config';
-import { eventNames } from 'process';
 import { VenueEvent } from '../event/entities/event.entity';
 import { ModifyBookingDto } from './dto/update-booking.dto';
 import { format } from 'date-fns-tz';
@@ -34,8 +31,6 @@ import { getOverlappingSlots } from 'src/common/utils/slots-utils';
 import { DateTime } from 'luxon';
 import { Invoice } from '../invoice/entities/invoice.entity';
 import { InvoiceEvent } from '../admin/invoice/entities/invoices-event.entity';
-import { error } from 'console';
-
 @Injectable()
 export class BookingService {
   constructor(
@@ -49,7 +44,6 @@ export class BookingService {
     private readonly reqRepository: Repository<BookingRequest>,
     @InjectRepository(BookingLog)
     private readonly logRepository: Repository<BookingLog>,
-
     @InjectRepository(EntertainerAvailability)
     private readonly availabilityRepository: Repository<EntertainerAvailability>,
     @InjectRepository(Entertainer)
@@ -58,7 +52,6 @@ export class BookingService {
     private readonly invoiceRepository: Repository<Invoice>,
     @InjectRepository(InvoiceEvent)
     private readonly invoiceEventRepository: Repository<InvoiceEvent>,
-
     private readonly emailService: EmailService,
     private readonly notifyService: NotificationService,
     private readonly googleCalService: GoogleCalendarServices,
@@ -135,6 +128,7 @@ export class BookingService {
           'venue.contactNumber AS contactNumber',
           'venue.addressLine1 AS addressLine1',
           'venue.addressLine2 AS addressLine2',
+          'venue.timezone AS timeZone',
         ])
         .where('venue.id =:id', { id: venueId })
         .getRawOne();
@@ -154,11 +148,15 @@ export class BookingService {
             venueName: venue.name,
             eventName: event?.slug || '',
             entertainerName: ent.name,
-            bookingDate: format(savedBooking.showStartDateTime, 'dd MMM yyyy', {
-              timeZone: 'UTC',
-            }),
+            bookingDate: format(
+              savedBooking.showStartDateTime,
+              'dd MMM yyyy z',
+              {
+                timeZone: venue.timeZone ?? 'UTC',
+              },
+            ),
             bookingTime: format(savedBooking.showStartDateTime, 'HH:mm', {
-              timeZone: 'UTC',
+              timeZone: venue.timeZone ?? 'UTC',
             }),
             vname: venue.name,
             vemail: venue.email,
@@ -225,7 +223,6 @@ export class BookingService {
           'booking.id AS id',
           'booking.status AS status',
           'booking.venueId AS vid',
-
           'booking.showStartDateTime AS showStartDateTime',
           `CONCAT(venue.addressLine1, ', ', venue.addressLine2) AS address`,
           'event.id AS eventId',
@@ -237,12 +234,12 @@ export class BookingService {
           'euser.id AS eid ',
           'entertainer.name AS stageName',
           'euser.phoneNumber AS ephone',
-          'venue.name  As  vname',
-          'venue.zipCode  As vZipCode',
+          'venue.name  AS  vname',
+          'venue.zipCode  AS vZipCode',
+          'venue.timezone AS  venueTimeZone',
           'vuser.email As vemail',
           'vuser.phoneNumber As vphone',
           'vuser.id As vid',
-
           'event.title AS  eventTitle',
           'event.description AS  eventDescription',
           'event.eventStartDateTime AS eventStartDateTime',
@@ -281,7 +278,7 @@ export class BookingService {
       if (booking.eEmail || booking.vemail) {
         // Ends Here
         const statusToTemplateMap = {
-          accepted: 'request-accepted.html',
+          applied: 'request-accepted.html',
           declined: 'entertainer-declined-booking.html',
           confirmed: 'entertainer-confirmed.html',
           canceled: 'entertainer-cancellation.html',
@@ -293,20 +290,24 @@ export class BookingService {
             entertainerName: booking.stageName,
             eventName: booking.slug,
             id: booking.id,
-            bookingTime: format(booking.showStartDateTime, 'dd MMM yyyy', {
-              timeZone: 'UTC',
+            bookingTime: format(booking.showStartDateTime, 'dd MMM yyyy z', {
+              timeZone: booking.venueTimeZone ?? 'UTC',
             }),
             bookingDate: format(booking.showStartDateTime, 'HH:mm', {
-              timeZone: 'UTC',
+              timeZone: booking.venueTimeZone ?? 'UTC',
             }),
           },
 
           declined: {
             venueName: booking.vname,
             eventTitle: booking.slug,
-            eventDate: format(booking.showStartDateTime, 'dd MMM yyyy HH:mm', {
-              timeZone: 'UTC',
-            }),
+            eventDate: format(
+              booking.showStartDateTime,
+              'dd MMM yyyy HH:mm z',
+              {
+                timeZone: booking.venueTimeZone ?? 'UTC',
+              },
+            ),
             entertainerName: booking.stageName,
           },
           confirmed: {
@@ -320,11 +321,11 @@ export class BookingService {
             eventTitle: booking.slug,
             entertainerName: booking.stageName,
             address: booking.address,
-            eventDate: format(booking.showStartDateTime, 'dd MMM yyyy', {
-              timeZone: 'UTC',
+            eventDate: format(booking.showStartDateTime, 'dd MMM yyyy z', {
+              timeZone: booking.venueTimeZone ?? 'UTC',
             }),
             eventTime: format(booking.showStartDateTime, 'HH:mm', {
-              timeZone: 'UTC',
+              timeZone: booking.venueTimeZone ?? 'UTC',
             }),
             year: new Date().getFullYear(),
           },
@@ -396,6 +397,7 @@ export class BookingService {
         'event.slug AS eventSlug',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
+        'venue.timezone AS venueTimeZone',
         'venue.zipCode AS zipCode',
         'city.name AS cityName',
         'state.name AS stateName',
@@ -438,8 +440,12 @@ export class BookingService {
         this.generateBookingLog(payload);
 
         if (booking.email || booking.entertainer_email) {
-          const newTime = format(eventStartDateTime, 'hh:mm a');
-          const newDate = format(eventStartDateTime, 'dd MMM yyyy');
+          const newTime = format(eventStartDateTime, 'hh:mm a', {
+            timeZone: booking.venueTimeZone ?? null,
+          });
+          const newDate = format(eventStartDateTime, 'dd MMM yyyy z', {
+            timeZone: booking.venueTimeZone ?? null,
+          });
           const emailPayload = {
             to: booking.email || booking.entertainer_email,
             subject: `Event Rescheduled`,
@@ -504,20 +510,17 @@ export class BookingService {
             'booking.id AS id',
             'booking.status AS status',
             'booking.venueId AS venueId',
-            'booking.showTime AS showTime',
-            'booking.showDate AS showDate',
             'booking.showStartDateTime AS showStartDateTime',
-
             'euser.email AS eEmail',
             'entertainer.email AS email',
             'euser.name AS ename',
             'euser.id AS eid ',
             'euser.phoneNumber AS ephone',
-
-            'venue.name  As  vname',
-            'vuser.email As vemail',
-            'vuser.phoneNumber As vphone',
-            'vuser.id As vid',
+            'venue.name  AS  vname',
+            'venue.timezone AS venueTimeZone',
+            'vuser.email AS vemail',
+            'vuser.phoneNumber AS vphone',
+            'vuser.id AS vid',
           ])
           .where('booking.id = :id', { id: bookingId })
           .getRawOne();
@@ -544,13 +547,13 @@ export class BookingService {
         if (booking.email || booking.eEmail) {
           const formattedDate = format(
             booking.showStartDateTime,
-            'dd MMM yyyy',
+            'dd MMM yyyy z',
             {
-              timeZone: 'UTC',
+              timeZone: booking.venueTimeZone ?? 'UTC',
             },
           ); // e.g. '2025-05-01'
           const newTime = format(booking.showStartDateTime, 'HH:mm', {
-            timeZone: 'UTC',
+            timeZone: booking.venueTimeZone ?? 'UTC',
           });
           const emailPayload = {
             to: booking.eEmail,
@@ -712,6 +715,7 @@ export class BookingService {
         'entertainer.email AS email',
         'user.email AS userEmail',
         'venue.name AS venueName',
+        'venue.timezone AS venueTimeZone',
         'event.slug AS eventName',
         'event.eventStartDateTime AS eventStartDateTime',
         'event.eventEndDateTime AS eventEndDateTime',
@@ -729,7 +733,7 @@ export class BookingService {
       for (const req of rejectedRequest) {
         // Update the status of rest of the bookings to closed
         await this.bookingRepository.update(
-          { id: req.id, status: In(['invited', 'accepted']) },
+          { id: req.id, status: In(['invited', 'applied']) },
           { status: 'closed' },
         );
 
@@ -740,18 +744,21 @@ export class BookingService {
           user: Number(venueId),
           performedBy: 'venue',
         };
+
         await this.generateBookingLog(logPayload);
 
         // Send email and push notification to entertainer
         if (req?.email || req?.userEmail) {
           const emailPayload = {
             to: req.email,
-            subject: `Status update of booking invitation for event.`,
+            subject: `Event Position closed`,
             templateName: 'cancellation.html',
             replacements: {
               entertainerName: req.entertainerName,
               eventName: req.eventName,
-              eventDate: format(req.eventStartDateTime, 'dd MM yyyy HH:mm'),
+              eventDate: format(req.eventStartDateTime, 'dd MM yyyy HH:mm z', {
+                timeZone: req.venueTimeZone ?? 'UTC',
+              }),
             },
           };
 
@@ -759,8 +766,8 @@ export class BookingService {
           if (req?.entId) {
             this.notifyService.sendPush(
               {
-                title: 'Status update of booking invitation for event',
-                body: `${req.venueName} has closed  the position for ${req.eventName} event `,
+                title: 'Position closed for the event.',
+                body: `${req.venueName} has closed  the position for ${req.eventName} event . Thanks for your intreste. `,
                 type: 'booking_response',
               },
               req.entId,

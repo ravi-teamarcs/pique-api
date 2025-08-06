@@ -6,19 +6,11 @@ import {
   UpdateDateColumn,
   ManyToOne,
 } from 'typeorm';
-import { User } from '../../users/entities/users.entity';
 
 @Entity('booking')
 export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
-
-  @Column({
-    type: 'enum',
-    enum: ['soloist', 'duo', 'trio', 'ensemble'],
-    nullable: true,
-  })
-  performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
 
   @Column({ nullable: false })
   venueId: number;
@@ -34,7 +26,7 @@ export class Booking {
     enum: [
       'invited',
       'confirmed',
-      'accepted',
+      'applied',
       'canceled',
       'completed',
       'rescheduled',
@@ -49,17 +41,12 @@ export class Booking {
     | 'confirmed'
     | 'closed'
     | 'canceled'
-    | 'accepted'
+    | 'applied'
     | 'completed'
     | 'rescheduled'
     | 'declined'
     | 'removed';
 
-  @Column({ type: 'time', nullable: true })
-  showTime: Date;
-
-  @Column({ type: 'date', nullable: true })
-  showDate: Date;
   //Added new Column
   @Column({ type: 'timestamp' })
   showStartDateTime: Date;

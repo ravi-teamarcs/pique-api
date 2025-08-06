@@ -55,7 +55,7 @@ export class VenueController {
   async getAllVenues(
     @Req() req,
     @Query('page') page: number = 1,
-    @Query('pageSize') pageSize: number = 100,
+    @Query('pageSize') pageSize: number = 1000,
     @Query('search') search: string = '',
   ) {
     return this.venueService.getAllVenue({ page, pageSize, search });
@@ -151,28 +151,6 @@ export class VenueController {
   }
 
   // Location Logic
-  @ApiOperation({ summary: 'Add venue Location' })
-  @ApiResponse({
-    status: 201,
-    description: 'Venue Added Successfully',
-  })
-  @Roles('super-admin', 'venue-admin')
-  @Post('location')
-  addLocation(@Body() dto: AddLocationDto) {
-    return this.venueService.addVenueLocation(dto);
-  }
-
-  @Roles('super-admin', 'venue-admin')
-  @Put('location/:id')
-  updateLocation(@Param('id') id: number, @Body() dto: UpdateLocationDto) {
-    return this.venueService.updateLocation(Number(id), dto);
-  }
-
-  @Roles('super-admin', 'venue-admin')
-  @Delete('location/:id')
-  removeLocation(@Param('id') id: number) {
-    return this.venueService.removeLocation(Number(id));
-  }
 
   @Roles('super-admin', 'venue-admin')
   @Get(':id/neighbourhoods')

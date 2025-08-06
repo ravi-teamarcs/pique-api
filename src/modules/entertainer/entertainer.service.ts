@@ -1488,10 +1488,8 @@ export class EntertainerService {
           'booking.showStartDateTime AS showStartDateTime',
           'booking.specialNotes  As specialNotes',
           'booking.performanceRole AS performanceRole',
-
           'event.id AS event_id',
           'event.title AS event_title',
-
           'event.description AS event_description',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
@@ -1505,6 +1503,7 @@ export class EntertainerService {
           'state.name AS state_name',
           'venue.latitude AS latitude',
           'venue.longitude AS longitude',
+          'venue.timezone AS venueTimezone',
         ])
         .orderBy('booking.createdAt', 'DESC'); // Corrected sorting
 
@@ -1604,14 +1603,13 @@ export class EntertainerService {
         .leftJoin('countries', 'country', 'country.id = venue.country')
         .where('booking.entId = :userId', { userId })
         .andWhere('booking.status IN (:...status)', {
-          status: ['invited', 'accepted'],
+          status: ['invited', 'applied'],
         })
         .select([
           'booking.id AS id',
           'booking.status AS status',
           'booking.showStartDateTime AS showStartDateTime',
           'booking.specialNotes AS specialNotes',
-          'booking.performanceRole AS performanceRole',
           'venue.name AS name',
           'event.id AS event_id',
           'event.title AS event_title',
@@ -1627,6 +1625,7 @@ export class EntertainerService {
           'venue.addressLine2 As addressLine2',
           'venue.latitude AS latitude',
           'venue.longitude AS longitude',
+          'venue.timezone AS venueTimeZone',
           'city.name AS city_name',
           'country.name AS country_name',
           'state.name AS state_name',
@@ -1790,7 +1789,7 @@ export class EntertainerService {
       const bookingStats = {
         invited: { current: 0, previous: 0 },
         confirmed: { current: 0, previous: 0 },
-        accepted: { current: 0, previous: 0 },
+        applied: { current: 0, previous: 0 },
         completed: { current: 0, previous: 0 },
         closed: { current: 0, previous: 0 },
       };
@@ -1826,8 +1825,8 @@ export class EntertainerService {
         bookingStats.confirmed.previous,
       );
       const acceptedChange = calculateChange(
-        bookingStats.accepted.current,
-        bookingStats.accepted.previous,
+        bookingStats.applied.current,
+        bookingStats.applied.previous,
       );
       const completedChange = calculateChange(
         bookingStats.completed.current,
@@ -1873,9 +1872,9 @@ export class EntertainerService {
                   ? 'decrease'
                   : 'same',
           },
-          accepted: {
-            currentMonthBookings: bookingStats.accepted.current,
-            previousMonthBookings: bookingStats.accepted.previous,
+          applied: {
+            currentMonthBookings: bookingStats.applied.current,
+            previousMonthBookings: bookingStats.applied.previous,
             bookingChangePercentage: acceptedChange,
             bookingTrend:
               acceptedChange > 0
@@ -1939,6 +1938,7 @@ export class EntertainerService {
     try {
       const URL =
         'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
+
       const events = this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin('event', 'event', 'event.id = booking.eventId') // simple join
@@ -1951,7 +1951,9 @@ export class EntertainerService {
         .andWhere('event.status NOT IN (:...eventStatus)', {
           eventStatus: ['canceled', 'completed'],
         })
-        .andWhere('booking.showStartDateTime >= :now', { now: new Date() })
+        .andWhere('DATE(booking.showStartDateTime) >= :now', {
+          now: new Date(),
+        })
 
         .select([
           'event.id AS event_id',
@@ -2290,7 +2292,6 @@ export class EntertainerService {
 
   async setEntertainerRateCard(dto: EntertainerRateCardDto) {
     const { rates } = dto;
-    console.log('___Rates___', rates);
     try {
       if (rates && rates.length > 0) {
         for (const rate of rates) {
