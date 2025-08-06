@@ -25,7 +25,7 @@ import { Setting } from '../settings/entities/setting.entity';
 import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 import { DateTime } from 'luxon';
-import { format as tzFormat, toZonedTime } from 'date-fns-tz';
+import { format as formatTz, toZonedTime } from 'date-fns-tz';
 
 @Injectable()
 export class EventService {
@@ -47,13 +47,6 @@ export class EventService {
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
   ) {}
-
-  // Create a new event
-  async create(createEventDto: CreateEventDto) {
-    const event = this.eventRepository.create(createEventDto);
-    const data = await this.eventRepository.save(event);
-    return { message: 'Event Created Successfully', data: event, status: true };
-  }
 
   // New code of Venue Creation with Media
   async createEvent(dto: CreateEventDto) {
@@ -192,6 +185,7 @@ export class EventService {
         'venue.name AS venueName',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
+        'venue.timezone AS venueTimeZone',
         'inv.invoice_number AS invoiceNumber',
         'inv.id AS invoiceId',
         'inv.status AS invoiceStatus',
@@ -200,8 +194,7 @@ export class EventService {
 
       .where('event.id = :id', { id })
       .getRawOne(); // Use getRawOne() for raw results
-    console.log(' Event Inside ', event.eventStartDateTime);
-    console.log(' Event Inside new Date ', new Date(event.eventStartDateTime));
+
     if (!event) {
       throw new NotFoundException(`Event with id ${id} not found`);
     }
@@ -229,7 +222,7 @@ export class EventService {
         dto.eventStartDateTime ?? event.eventStartDateTime;
       let updatedStartTime = dto.eventStartDateTime ?? event.eventStartDateTime;
 
-      updatedStartTime = format(updatedStartTime, 'HH:mm:ss');
+      // updatedStartTime = format(updatedStartTime, 'HH:mm:ss');
       const slugPayload = {
         title: updatedTitle,
         neighbourhoodId: updatedNeighbourhoodId,
@@ -407,11 +400,7 @@ export class EventService {
       eventEndDateTime,
     } = payload;
 
-    const date = new Date(eventStartDateTime);
-    const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
-    const timeUTC = format(new Date(eventStartDateTime), 'HH:mm');
-
-    const { name, neighbourhoodName, city, stateCode } =
+    const { name, neighbourhoodName, city, stateCode, venueTimeZone } =
       await this.venueRepository
         .createQueryBuilder('venue')
         .leftJoin('cities', 'city', 'city.id = venue.city')
@@ -436,13 +425,18 @@ export class EventService {
         .where('venue.id = :id', { id: venueId })
         .getRawOne();
 
+    const date = toZonedTime(eventStartDateTime, venueTimeZone ?? 'UTC');
+    const formattedDate = format(date, 'M/d');
+    const format12HourTime = formatTz(new Date(eventStartDateTime), 'hh:mm a', {
+      timeZone: venueTimeZone ?? 'UTC',
+    });
+
     const titleString = title ? `(${title})` : '';
     const neighbourhoodNameString = neighbourhoodName
       ? `${neighbourhoodName}/`
       : '';
     const stateString = stateCode ? `, ${stateCode}` : '';
-
-    const slug = `${formattedDate} at ${timeUTC} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''}${stateString}`;
+    const slug = `${formattedDate} at ${format12HourTime} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''}${stateString}`;
 
     return slug;
   }
@@ -488,7 +482,6 @@ export class EventService {
           'ent.contact_person AS contactPerson',
           'ent.contact_number AS contactNumber',
           'ent.pricePerEvent AS pricePerHour',
-
           'log.createdAt AS confirmationDate',
           'log.performedBy AS performedBy',
         ])
@@ -504,7 +497,7 @@ export class EventService {
         .select([
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
-          'venue.timezone AS timezone',
+          'venue.timezone AS venueTimeZone',
         ])
         .where('event.id = :eventId', { eventId })
         .getRawOne();
@@ -515,11 +508,6 @@ export class EventService {
       let formattedDate = new Date(event.eventStartDateTime)
         .toISOString()
         .split('T')[0];
-
-      // const localTime = DateTime.fromISO(event.eventStartDateTime, {
-      //   zone: event?.timezone,
-      // }).toLocal();
-      // console.log('Local Date', localTime.toISODate());
 
       const specialRateCard = await this.specialRateCardRepo.find({
         where: {

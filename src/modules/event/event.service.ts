@@ -13,7 +13,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Venue } from '../venue/entities/venue.entity';
 import { format, startOfDay } from 'date-fns';
-import { format as formatTz } from 'date-fns-tz';
+import { format as formatTz, toZonedTime } from 'date-fns-tz';
 import { EmailService } from '../Email/email.service';
 import { BookingService } from '../booking/booking.service';
 
@@ -376,11 +376,7 @@ export class EventService {
       startEndDateTime,
     } = payload;
 
-    const date = new Date(eventStartDateTime);
-    const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
-    const timeUTC = format(new Date(eventStartDateTime), 'HH:mm');
-
-    const { name, neighbourhoodName, city, stateCode } =
+    const { name, neighbourhoodName, city, stateCode, venueTimeZone } =
       await this.venueRepository
         .createQueryBuilder('venue')
         .leftJoin('states', 'state', 'state.id = venue.state')
@@ -394,6 +390,7 @@ export class EventService {
           'venue.name AS name',
           'venue.addressLine1 AS addressLine1',
           'venue.addressLine2 AS addressLine2',
+          'venue.timezone AS venueTimeZone',
           'city.name AS city',
           'code.StateCode AS stateCode',
           'hood.name AS neighbourhoodName',
@@ -402,6 +399,13 @@ export class EventService {
         ])
         .where('venue.id = :id', { id: venueId })
         .getRawOne();
+    // New Logic to get Local Time Instead of(UTC)
+    // @ formatTz  alias for format from tz
+    const date = toZonedTime(eventStartDateTime, venueTimeZone ?? 'UTC');
+    const formattedDate = format(date, 'M/d');
+    const format12HourTime = formatTz(new Date(eventStartDateTime), 'hh:mm a', {
+      timeZone: venueTimeZone ?? 'UTC',
+    });
 
     const titleString = title ? `(${title})` : '';
     const neighbourhoodNameString = neighbourhoodName
@@ -409,7 +413,7 @@ export class EventService {
       : '';
     const stateString = stateCode ? `, ${stateCode})` : '';
 
-    const slug = `${formattedDate} at ${timeUTC} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''}${stateString}`;
+    const slug = `${formattedDate} at ${format12HourTime} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''}${stateString}`;
 
     return slug;
   }
