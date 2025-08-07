@@ -1295,8 +1295,6 @@ export class VenueService {
         .select([
           'booking.id AS id',
           'booking.status AS status',
-          'booking.showDate AS showDate',
-          'booking.showTime AS showTime',
           // New field Added
           'booking.showStartDateTime AS showStartDateTime',
           'booking.specialNotes AS specialNotes',

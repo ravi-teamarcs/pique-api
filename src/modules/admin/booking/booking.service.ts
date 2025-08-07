@@ -67,7 +67,6 @@ export class BookingService {
         'booking.status',
         'booking.venueId',
         'booking.showTime',
-        'booking.showDate',
         'booking.eventId',
         'booking.specialNotes',
         'ent.name',

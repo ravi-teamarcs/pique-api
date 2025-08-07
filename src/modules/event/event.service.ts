@@ -316,7 +316,6 @@ export class EventService {
         'event.venueId AS venueId',
         'event.eventStartDateTime AS eventStartDateTime',
         'event.eventEndDateTime AS eventEndDateTime',
-        'event.endTime AS endTime',
         'event.slug AS slug',
         'event.status AS status',
         'venue.name AS name',
@@ -384,7 +383,7 @@ export class EventService {
               eventDate: formatTz(book.eventStartDateTime, 'dd MMM yyyy z', {
                 timeZone: book.venueTimeZone ?? 'UTC',
               }),
-              eventTime: formatTz(book.eventStartDateTime, 'HH:mm', {
+              eventTime: formatTz(book.eventStartDateTime, 'hh:mm a', {
                 timeZone: book.venueTimeZone ?? 'UTC',
               }),
               year: new Date().getFullYear(),
@@ -397,7 +396,7 @@ export class EventService {
             title: 'Event Canceled',
             body: `Venue ${book.venueName} has canceled the event ${book.slug} scheduled on date : ${formatTz(
               book.eventStartDateTime,
-              'dd MMM yyyy z',
+              'dd MMM yyyy hh:mm a z',
               {
                 timeZone: book.venueTimeZone ?? 'UTC',
               },

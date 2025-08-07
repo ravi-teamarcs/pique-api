@@ -244,7 +244,6 @@ export class InvoiceService {
   //           'event.slug AS eventName',
   //           'event.description AS eventDescription',
   //           'event.startTime AS eventStartTime',
-  //           'event.endTime AS eventEndTime',
   //           'ent.pricePerEvent AS pricePerEvent',
   //           'invoice.invoice_number  AS invoiceNumber',
   //           'invoice.issue_date  AS issueDate',

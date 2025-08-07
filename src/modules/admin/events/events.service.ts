@@ -581,12 +581,20 @@ export class EventService {
 
       const events = await this.eventRepository
         .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
         .where('DATE(event.eventStartDateTime) BETWEEN :start AND :end', {
           start,
           end,
         })
+        .select([
+          'event.*',
+          'venue.name AS venueName',
+          'venue.timezone AS venueTimeZone',
+          'venue.addressLine1 AS addressLine1',
+          'venue.timezone AS addressLine2',
+        ])
         .orderBy('event.id', 'DESC')
-        .getMany();
+        .getRawMany();
 
       return {
         message: 'Filtered events returned successfully',

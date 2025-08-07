@@ -382,7 +382,6 @@ export class BookingService {
       .leftJoin('users', 'user', 'user.id = entertainer.userId')
       .leftJoin('cities', 'city', 'city.id = venue.city')
       .leftJoin('states', 'state', 'state.id = venue.state')
-      .leftJoin('users', 'user', 'user.id = entertainer.userId')
       .select([
         'booking.id AS id',
         'booking.status AS status',
@@ -395,6 +394,7 @@ export class BookingService {
         'event.id AS event_id',
         'event.title AS event_title',
         'event.slug AS eventSlug',
+        'venue.name AS venueName',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
         'venue.timezone AS venueTimeZone',
@@ -441,10 +441,10 @@ export class BookingService {
 
         if (booking.email || booking.entertainer_email) {
           const newTime = format(eventStartDateTime, 'hh:mm a', {
-            timeZone: booking.venueTimeZone ?? null,
+            timeZone: booking.venueTimeZone ?? 'UTC',
           });
           const newDate = format(eventStartDateTime, 'dd MMM yyyy z', {
-            timeZone: booking.venueTimeZone ?? null,
+            timeZone: booking.venueTimeZone ?? 'UTC',
           });
           const emailPayload = {
             to: booking.email || booking.entertainer_email,
@@ -465,7 +465,7 @@ export class BookingService {
           this.notifyService.sendPush(
             {
               title: 'Event Rescheduled',
-              body: `Your booking for event ${booking.event_title ?? booking.eventSlug} has been rescheduled to ${newDate} at ${newTime}`,
+              body: `Your booking for event ${booking.event_title ?? booking.eventSlug} with venue ${booking?.venueName ?? ''} has been rescheduled to ${newDate} at ${newTime}`,
               type: 'booking_date_time_change',
             },
             booking.entertainer_user_id,

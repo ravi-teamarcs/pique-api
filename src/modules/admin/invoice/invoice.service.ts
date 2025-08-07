@@ -667,6 +667,7 @@ export class InvoiceService {
         'invoices.id AS id',
         'invoices.invoice_number AS invoice_number',
         'invoices.user_id AS user_id',
+        'invoices.user_type AS user_type',
         'invoices.issue_date AS issue_date',
         'invoices.due_date AS due_date',
         'invoices.total_amount AS total_amount',
