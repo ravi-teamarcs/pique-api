@@ -746,8 +746,7 @@ export class VenueService {
         { id: eventId },
         { status: 'confirmed' },
       );
-      // Add Logic
-      this.notSelectedforEvent(eventId, updatedBookings);
+
       return {
         message: 'Booking status updated successfully',
         data: updatedBookings,
@@ -763,78 +762,78 @@ export class VenueService {
     }
   }
 
-  private async notSelectedforEvent(eventId: number, confirmedBookings) {
-    const bookings = await this.bookingRepository
-      .createQueryBuilder('booking')
-      .leftJoin('event', 'event', 'event.id = booking.eventId')
-      .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
-      .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
-      .leftJoin('users', 'user', 'user.id = entertainer.userId')
-      .select([
-        'booking.id AS id',
-        'entertainer.entertainer_name AS entertainerName',
-        'entertainer.email AS email',
-        'user.email AS userEmail',
-        'venue.name AS venueName',
-        'venue.timezone AS venueTimeZone',
-        'event.slug AS eventName',
-        'event.eventStartDateTime AS eventStartDateTime',
-        'user.id AS entId',
-      ])
-      .where('booking.eventId=:eventId', { eventId })
-      .getRawMany();
+  // private async notSelectedforEvent(eventId: number, confirmedBookings) {
+  //   const bookings = await this.bookingRepository
+  //     .createQueryBuilder('booking')
+  //     .leftJoin('event', 'event', 'event.id = booking.eventId')
+  //     .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
+  //     .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+  //     .leftJoin('users', 'user', 'user.id = entertainer.userId')
+  //     .select([
+  //       'booking.id AS id',
+  //       'entertainer.entertainer_name AS entertainerName',
+  //       'entertainer.email AS email',
+  //       'user.email AS userEmail',
+  //       'venue.name AS venueName',
+  //       'venue.timezone AS venueTimeZone',
+  //       'event.slug AS eventName',
+  //       'event.eventStartDateTime AS eventStartDateTime',
+  //       'user.id AS entId',
+  //     ])
+  //     .where('booking.eventId=:eventId', { eventId })
+  //     .getRawMany();
 
-    if (bookings && bookings.length > 0) {
-      const rejectedRequest = bookings.filter(
-        (item) => !confirmedBookings.includes(item.id),
-      );
+  //   if (bookings && bookings.length > 0) {
+  //     const rejectedRequest = bookings.filter(
+  //       (item) => !confirmedBookings.includes(item.id),
+  //     );
 
-      // Canceled the booking First then send them the Booking Request
-      for (const req of rejectedRequest) {
-        const res = await this.bookingRepository.update(
-          { id: req.id, status: In(['invited', 'applied']) },
-          { status: 'closed' },
-        );
+  //     // Canceled the booking First then send them the Booking Request
+  //     for (const req of rejectedRequest) {
+  //       const res = await this.bookingRepository.update(
+  //         { id: req.id, status: In(['invited', 'applied']) },
+  //         { status: 'closed' },
+  //       );
 
-        // Add a closed log in log repository.
-        const logPayload = this.logRepository.create({
-          bookingId: req.id,
-          performedBy: 'admin',
-          status: 'closed',
-          user: null,
-        });
-        await this.logRepository.save(logPayload);
+  //       // Add a closed log in log repository.
+  //       const logPayload = this.logRepository.create({
+  //         bookingId: req.id,
+  //         performedBy: 'admin',
+  //         status: 'closed',
+  //         user: null,
+  //       });
+  //       await this.logRepository.save(logPayload);
 
-        // Check any of email  exists then send Email.
-        if (req.email || req.userEmail) {
-          const emailPayload = {
-            to: req.email,
-            subject: `Status update of Booking Request`,
-            templateName: 'cancellation.html',
-            replacements: {
-              entertainerName: req.entertainerName,
-              eventName: req.eventName,
-              eventDate: format(req.eventStartDateTime, 'dd MMM yyyy HH:mm z', {
-                timeZone: req.venueTimeZone ?? 'UTC',
-              }),
-            },
-          };
+  //       // Check any of email  exists then send Email.
+  //       if (req.email || req.userEmail) {
+  //         const emailPayload = {
+  //           to: req.email,
+  //           subject: `Status update of Booking Request`,
+  //           templateName: 'cancellation.html',
+  //           replacements: {
+  //             entertainerName: req.entertainerName,
+  //             eventName: req.eventName,
+  //             eventDate: format(req.eventStartDateTime, 'dd MMM yyyy HH:mm z', {
+  //               timeZone: req.venueTimeZone ?? 'UTC',
+  //             }),
+  //           },
+  //         };
 
-          await this.emailService.handleSendEmail(emailPayload);
-          if (req.entId) {
-            this.notifyService.sendPush(
-              {
-                title: 'Status update of booking invitation for event.',
-                body: `${req.venueName} has closed the position for ${req.eventName}event.`,
-                type: 'booking_response',
-              },
-              req.entId,
-            );
-          }
-        }
-      }
-    }
-  }
+  //         await this.emailService.handleSendEmail(emailPayload);
+  //         if (req.entId) {
+  //           this.notifyService.sendPush(
+  //             {
+  //               title: 'Status update of booking invitation for event.',
+  //               body: `${req.venueName} has closed the position for ${req.eventName}event.`,
+  //               type: 'booking_response',
+  //             },
+  //             req.entId,
+  //           );
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
 
   async toggleVerificationFlag(venueId: number) {
     const venue = await this.venueRepository.findOne({
@@ -858,5 +857,13 @@ export class VenueService {
       status: true,
       data: savedVerification,
     };
+  }
+
+  async sendPositionClosedNotificationAndEmail(eventId: number) {
+    try {
+      
+    } catch (error) {
+      throw new InternalServerErrorException(error.mesage);
+    }
   }
 }

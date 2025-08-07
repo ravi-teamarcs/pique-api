@@ -29,16 +29,6 @@ export class VenueEvent {
   @Column()
   description: string;
 
-  @Column({ type: 'time', nullable: true })
-  startTime: Date;
-
-  @Column({ type: 'time', nullable: true })
-  endTime: Date;
-
-  @Column({ type: 'date', nullable: true })
-  eventDate: Date;
-  // New Column added
-
   @Column({ type: 'timestamp' })
   eventStartDateTime: Date;
 
@@ -76,8 +66,6 @@ export class VenueEvent {
 
   @Column({ type: 'boolean' })
   isAdmin: boolean;
-
-  // events.entity.ts
 
   @Column({ default: false })
   emailSentAfter1Hour: boolean;

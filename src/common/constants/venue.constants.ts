@@ -5,7 +5,7 @@ export const VENUE_TYPES = [
   'Memory',
   'Nursing',
   'Rehabilitation',
-  'Senior living',
+  'Senior Center',
   'Private individual/Family',
   'School',
   'Restaurant',

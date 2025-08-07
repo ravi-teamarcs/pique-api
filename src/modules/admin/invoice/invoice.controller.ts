@@ -18,7 +18,6 @@ import { Invoice, InvoiceStatus, UserType } from './entities/invoices.entity';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './Dto/create-invoice.dto';
 import { InvoiceService } from './invoice.service';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { GenerateInvoiceService } from 'src/common/invoice/generateinvoice.service';
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';

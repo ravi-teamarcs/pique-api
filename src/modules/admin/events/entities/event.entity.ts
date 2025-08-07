@@ -35,17 +35,9 @@ export class Event {
 
   @Column({ type: 'text' })
   slug: string;
+
   @Column()
   description: string;
-
-  @Column({ type: 'time', nullable: true })
-  startTime: Date;
-
-  @Column({ type: 'time', nullable: true })
-  endTime: Date;
-
-  @Column({ type: 'date', nullable: true })
-  eventDate: Date;
 
   @Column({
     type: 'enum',
