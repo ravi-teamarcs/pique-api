@@ -231,7 +231,6 @@ export class UsersService {
           'entertainer.isPiqueVerified AS isPiqueVerified',
           'entertainer.bio AS bio',
           'entertainer.pricePerEvent AS pricePerEvent',
-          'entertainer.performanceRole AS performanceRole',
           'entertainer.city AS city_code',
           'entertainer.state AS state_code',
           'entertainer.country AS country_code',

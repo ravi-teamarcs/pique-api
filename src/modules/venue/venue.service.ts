@@ -1295,7 +1295,6 @@ export class VenueService {
         .select([
           'booking.id AS id',
           'booking.status AS status',
-          // New field Added
           'booking.showStartDateTime AS showStartDateTime',
           'booking.specialNotes AS specialNotes',
           'booking.venueId AS vid',
@@ -1303,14 +1302,12 @@ export class VenueService {
           'entertainer.name AS name',
           'entertainer.category AS category',
           'entertainer.specific_category AS specific_category',
-          'entertainer.performanceRole AS performanceRole',
           'entertainer.pricePerEvent AS pricePerEvent',
           'event.id AS event_id',
           'event.slug AS slug',
           'event.title AS event_title',
           'event.status AS event_status',
           'event.recurring AS event_recurring',
-          // Added new Fields
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.description AS event_description',
@@ -1452,7 +1449,7 @@ export class VenueService {
           )
         ) AS mediaDetails`,
             ])
-            .from('entertainer_media', 'media') // ✅ changed table name only
+            .from('entertainer_media', 'media')
             .groupBy('media.user_id'),
         'media', // keep subquery alias same
         'media.media_user_id = entertainer.id', // join condition unchanged
@@ -1463,7 +1460,6 @@ export class VenueService {
         'entertainer.name AS name',
         'entertainer.entertainer_name AS entertainer_name',
         'entertainer.isPiqueVerified AS isPiqueVerified',
-        'entertainer.performanceRole AS performanceRole',
         'entertainer.pricePerEvent AS pricePerEvent',
         'entertainer.socialLinks AS socialLinks',
         'entertainer.contact_person AS contactPerson',
@@ -1648,7 +1644,6 @@ export class VenueService {
         'entertainer.name AS name',
         'entertainer.entertainer_name AS entertainer_name',
         'entertainer.isPiqueVerified AS isPiqueVerified',
-        'entertainer.performanceRole AS performanceRole',
         'entertainer.pricePerEvent AS pricePerEvent',
         'entertainer.socialLinks AS socialLinks',
         'entertainer.contact_person AS contactPerson',

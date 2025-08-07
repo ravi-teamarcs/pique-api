@@ -53,6 +53,7 @@ export class EventService {
     const { neighbourhoodId, ...rest } = dto;
     const obj = structuredClone(dto);
     const { title, venueId, eventStartDateTime, eventEndDateTime } = obj;
+   
     const payload = {
       title,
       venueId,
@@ -60,6 +61,8 @@ export class EventService {
       eventEndDateTime,
       neighbourhoodId,
     };
+
+    // Convert
 
     const slug = await this.generateSlug(payload);
 

@@ -641,7 +641,6 @@ export class BookingService {
           'entertainer.name AS satge_name',
           'entertainer.entertainer_name',
           'entertainer.contact_person',
-          'entertainer.performanceRole',
           'booking.status',
           'entertainer.contact_number',
           'subcat.name',
