@@ -16,6 +16,7 @@ import { format, startOfDay } from 'date-fns';
 import { format as formatTz, toZonedTime } from 'date-fns-tz';
 import { EmailService } from '../Email/email.service';
 import { BookingService } from '../booking/booking.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class EventService {
@@ -28,6 +29,7 @@ export class EventService {
     private readonly bookingRepository: Repository<Booking>,
     private readonly emailService: EmailService,
     private readonly bookingService: BookingService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async createEvent(dto: CreateEventDto) {
@@ -192,8 +194,6 @@ export class EventService {
           'event.description',
           'event.eventStartDateTime',
           'event.eventEndDateTime',
-          'event.endTime',
-          'event.recurring',
           'event.status',
           'event.slug',
         ])
@@ -354,20 +354,29 @@ export class EventService {
         .leftJoin('event', 'event', 'event.id = booking.eventId')
         .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
         .select([
+          'booking.id AS bookingId',
           'user.email AS email',
+          'user.id AS userId',
           'entertainer.name AS entertainerName',
+          'entertainer.email AS entertainerEmail',
           'event.slug AS slug',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS  eventEndDateTime',
+          'venue.name AS venueName',
           'venue.timezone AS venueTimeZone',
         ])
         .where('booking.eventId = :eventId', { eventId })
         .getRawMany();
 
       for (const book of bookings) {
-        if (book.email) {
+        await this.bookingRepository.update(
+          { id: book.bookingId },
+          { status: 'closed' },
+        );
+
+        if (book.entertainerEmail || book.email) {
           const emailPayload = {
-            to: book.email,
+            to: book.entertainerEmail || book.email,
             subject: `Event ${status}`,
             templateName: 'cancelled-event-template.html',
             replacements: {
@@ -382,6 +391,20 @@ export class EventService {
             },
           };
           this.emailService.handleSendEmail(emailPayload);
+        }
+        if (book.userId) {
+          const notificationPayload = {
+            title: 'Event Canceled',
+            body: `Venue ${book.venueName} has canceled the event ${book.slug} scheduled on date : ${formatTz(
+              book.eventStartDateTime,
+              'dd MMM yyyy z',
+              {
+                timeZone: book.venueTimeZone ?? 'UTC',
+              },
+            )}`,
+            type: 'event_cancelled',
+          };
+          this.notificationService.sendPush(notificationPayload, book.userId);
         }
       }
     }

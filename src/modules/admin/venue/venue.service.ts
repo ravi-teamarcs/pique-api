@@ -861,7 +861,6 @@ export class VenueService {
 
   async sendPositionClosedNotificationAndEmail(eventId: number) {
     try {
-      
     } catch (error) {
       throw new InternalServerErrorException(error.mesage);
     }

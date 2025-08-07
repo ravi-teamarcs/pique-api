@@ -12,6 +12,7 @@ import { Venue } from '../venue/entities/venue.entity';
 import { EmailModule } from '../Email/email.module';
 import { Booking } from '../booking/entities/booking.entity';
 import { BookingModule } from '../booking/booking.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { BookingModule } from '../booking/booking.module';
     ]),
     EmailModule,
     BookingModule,
+    NotificationModule,
   ],
   controllers: [EventController],
   providers: [EventService],
