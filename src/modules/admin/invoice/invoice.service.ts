@@ -1282,7 +1282,7 @@ export class InvoiceService {
       'eventId', e.id,
       'eventStartDateTime', e.eventStartDateTime,
       'eventEndDateTime', e.eventEndDateTime,
-      c
+     'amount', ie.event_price
     )
   )
   FROM invoice_events ie

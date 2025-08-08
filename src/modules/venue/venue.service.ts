@@ -1454,6 +1454,19 @@ export class VenueService {
         'media', // keep subquery alias same
         'media.media_user_id = entertainer.id', // join condition unchanged
       )
+      .leftJoin(
+        (qb) =>
+          qb
+            .select('feedback.revieweeId', 'revieweeId')
+            .addSelect('LEAST(FLOOR(AVG(feedback.rating)), 5)', 'avg_rating')
+            .from('feedback', 'feedback')
+            .where('feedback.revieweeType = :revieweeType', {
+              revieweeType: 'entertainer',
+            })
+            .groupBy('feedback.revieweeId'),
+        'fb',
+        'fb.revieweeId = entertainer.id',
+      )
 
       .select([
         'entertainer.id AS eid',
@@ -1469,6 +1482,7 @@ export class VenueService {
         'country.name AS countryName',
         'city.name AS cityName',
         'code.StateCode AS stateCode',
+        `COALESCE(fb.avg_rating, 0) AS ratings`,
 
         `CASE 
        WHEN entertainer.services IS NULL OR entertainer.services = '' 
@@ -1919,89 +1933,93 @@ export class VenueService {
     }
   }
 
+  // async getWishlist(venueId: number) {
+  //   const wishlistItems = await this.wishRepository
+  //     .createQueryBuilder('wish')
+  //     .leftJoin(
+  //       'categories',
+  //       'cat',
+  //       'cat.id = wish.category AND cat.parentId = 0',
+  //     )
+  //     .leftJoin(
+  //       'categories',
+  //       'subcat',
+  //       'subcat.id = wish.specific_category AND subcat.parentId = wish.category ',
+  //     )
+  //     .select([
+  //       'wish.id',
+  //       'wish.name AS name',
+  //       'wish.category AS category',
+  //       'wish.specific_category AS specific_category',
+  //       'wish.ent_id AS eid',
+  //       'wish.username AS user_name',
+  //       'wish.url AS mediaUrl',
+  //       'wish.ratings AS ratings',
+  //       'cat.name AS category_name',
+  //       'subcat.name AS specific_category_name',
+  //     ])
+  //     .where('wish.user_id = :venueId', { venueId })
+  //     .getRawMany();
+
+  //   console.log('Old', wishlistItems);
+
+  //   return {
+  //     message: 'Wishlist fetched Successfully',
+  //     data: wishlistItems,
+  //     status: true,
+  //   };
+  // }
+
+  // Latest Code
   async getWishlist(venueId: number) {
     const wishlistItems = await this.wishRepository
       .createQueryBuilder('wish')
+      .leftJoin('entertainers', 'entertainer', 'entertainer.id = wish.ent_id')
+      .leftJoin('venue', 'venue', 'venue.id = wish.user_id')
       .leftJoin(
-        'categories',
-        'cat',
-        'cat.id = wish.category AND cat.parentId = 0',
+        'entertainer_media',
+        'media',
+        'media.user_id = entertainer.id AND media.type = :mediaType',
+        { mediaType: 'headshot' },
       )
       .leftJoin(
-        'categories',
-        'subcat',
-        'subcat.id = wish.specific_category AND subcat.parentId = wish.category ',
+        (qb) =>
+          qb
+            .select('feedback.revieweeId', 'revieweeId')
+            .addSelect('LEAST(FLOOR(AVG(feedback.rating)), 5)', 'avg_rating')
+            .from('feedback', 'feedback')
+            .where('feedback.revieweeType = :revieweeType', {
+              revieweeType: 'entertainer',
+            })
+            .groupBy('feedback.revieweeId'),
+        'fb',
+        'fb.revieweeId = wish.ent_id',
       )
       .select([
         'wish.id',
-        'wish.name AS name',
-        'wish.category AS category',
-        'wish.specific_category AS specific_category',
-        'wish.ent_id AS eid',
-        'wish.username AS user_name',
-        'wish.url AS mediaUrl',
-        'wish.ratings AS ratings',
-        'cat.name AS category_name',
-        'subcat.name AS specific_category_name',
+        'entertainer.name AS name',
+        'entertainer.id AS eid',
+        'entertainer.entertainer_name AS user_name',
+        'media.url AS mediaUrl',
+        `COALESCE(fb.avg_rating, 0) AS ratings`,
       ])
       .where('wish.user_id = :venueId', { venueId })
       .getRawMany();
 
+    const BASE_URL = this.config.get<'string'>('BASE_URL');
+    const parsedWishlistItems = wishlistItems?.map(
+      ({ ratings, mediaUrl, ...item }) => ({
+        ...item,
+        mediaUrl: `${BASE_URL}${mediaUrl}`,
+        ratings: Number(ratings),
+      }),
+    );
     return {
       message: 'Wishlist fetched Successfully',
-      data: wishlistItems,
+      data: parsedWishlistItems,
       status: true,
     };
   }
-
-  // Latest Code
-  // async getWishlist(venueId: number) {
-  //   const wishlistItems = await this.wishRepository
-  //     .createQueryBuilder('wish')
-  //     .leftJoin('entertainers', 'entertainer', 'entertainer.id = wish.entertainer_id')
-  //     .leftJoin('venue', 'venue', 'venue.id = wish.venue_id')
-  //     .leftJoin(
-  //       'entertainer_media',
-  //       'media',
-  //       'media.user_id = entertainer.id AND media.type = :mediaType',
-  //       { mediaType: 'headshot' },
-  //     )
-  //  .leftJoin(
-  //   (qb) =>
-  //     qb
-  //       .select('feedback.revieweeId', 'revieweeId')
-  //       .addSelect('LEAST(FLOOR(AVG(feedback.rating)), 5)', 'avg_rating')
-  //       .from('feedback', 'feedback')
-  //       .where('feedback.revieweeType = :revieweeType', {
-  //         revieweeType: 'entertainer',
-  //       })
-  //       .groupBy('feedback.revieweeId'),
-  //   'fb',
-  //   'fb.revieweeId = wish.entertainer_id',
-  // )
-  //     .select([
-  //       'wish.id',
-  //       'entertainer.name AS name',
-  //       'entertainer.id AS eid',
-  //       'entertainer.entertainer_name AS user_name',
-  //       'media.url AS mediaUrl',
-  //           `COALESCE(fb.avg_rating, 0) AS ratings`,
-  //
-  //     ])
-  //     .where('wish.venue_id = :venueId', { venueId })
-  //     .getRawMany();
-
-  // const parsedWishlistItems = wishlistItems?.map(({ ratings, item }) => ({
-  //  ...item,
-  //   ratings: Number(ratings),
-  // }));
-
-  //   return {
-  //     message:'Wishlist fetched Successfully',
-  //     data:parsedWishlistItems,
-  //     status: true,
-  //   };
-  // }
 
   async removeFromWishlist(id: number, venueId: number) {
     const wishlistItem = await this.wishRepository.findOne({

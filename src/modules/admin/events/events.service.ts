@@ -27,6 +27,7 @@ import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 import { DateTime } from 'luxon';
 import { format as formatTz, zonedTimeToUtc } from 'date-fns-tz';
+import { convertUtcToTimezoneString } from 'src/common/utils/common.utils';
 
 @Injectable()
 export class EventService {
@@ -542,6 +543,20 @@ export class EventService {
       const totalCount = await events.getCount();
       const results = await events.getRawMany();
 
+      // ParsedResult (Venue Local TimeZone)
+
+      const parsedResult = results.map(
+        ({ confirmationDate, venueTimeZone, ...item }) => ({
+          venueLocalConfirmationDate: convertUtcToTimezoneString(
+            confirmationDate,
+            venueTimeZone,
+          ),
+          timezone: venueTimeZone,
+          confirmationDate,
+          ...item,
+        }),
+      );
+
       const event = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
@@ -590,7 +605,7 @@ export class EventService {
           }
 
           return {
-            ...result,
+            ...parsedResult,
             pricePerHour: price,
             pricePerExtra30Min,
           };

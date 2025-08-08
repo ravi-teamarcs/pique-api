@@ -186,16 +186,23 @@ export class NotificationService {
         take: pageSize,
       });
 
+      let unreadCount = 0;
+      data.length > 0 &&
+        data.map((notification) => {
+          if (notification?.isRead === false) unreadCount++;
+        });
+
+      // console.log('Actual Count', count);
       // Count unread notifications separately
-      const unreadCount = await this.notificationRepo.count({
-        where: {
-          userId,
-          isRead: false,
-        },
-        order: { createdAt: 'DESC' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      });
+      // const unreadCount = await this.notificationRepo.count({
+      //   where: {
+      //     userId,
+      //     isRead: false,
+      //   },
+      //   order: { createdAt: 'DESC' },
+      //   skip: (page - 1) * pageSize,
+      //   take: pageSize,
+      // });
 
       return {
         message: 'Notifications fetched successfully',
@@ -379,17 +386,22 @@ export class NotificationService {
         take: pageSize,
       });
 
+      let unreadCount = 0;
+      data.length > 0 &&
+        data.map((notification) => {
+          if (notification?.isRead === false) unreadCount++;
+        });
       // Count unread notifications separately
-      const unreadCount = await this.notificationRepo.count({
-        where: {
-          userId: adminId,
-          isAdmin: true,
-          isRead: false,
-        },
-        order: { createdAt: 'DESC' },
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-      });
+      // const unreadCount = await this.notificationRepo.count({
+      //   where: {
+      //     userId: adminId,
+      //     isAdmin: true,
+      //     isRead: false,
+      //   },
+      //   order: { createdAt: 'DESC' },
+      //   skip: (page - 1) * pageSize,
+      //   take: pageSize,
+      // });
 
       return {
         message: 'Notifications fetched successfully',

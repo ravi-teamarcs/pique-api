@@ -268,8 +268,6 @@ export class BookingService {
           'event.title AS event_title',
           'event.description AS event_description',
           'event.slug AS event_slug',
-
-          // Added two  fields Here
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.status AS event_status',
@@ -304,14 +302,15 @@ export class BookingService {
           'inv.cheque_no AS venueChequeNo',
           'inv.inv_amount_paid AS venueInvAmountPaid',
           'inv.payment_date AS venuePaymentDate',
-          'venue.name As venueName',
+          'venue.name AS venueName',
+          'venue.timezone AS venueTimeZone',
           'hood.name AS neighbourhood_name',
           'city.name AS  venueCityName',
           'state.name AS  venueStateName',
           'log.venueConfirmation',
         ])
         .where('entertainers.status=:status', { status: 'active' })
-        .where('event.eventStartDateTime BETWEEN :from AND :to', {
+        .where('DATE(event.eventStartDateTime) BETWEEN :from AND :to', {
           from: fromDate,
           to: toDate,
         })
@@ -323,7 +322,7 @@ export class BookingService {
             'canceled',
             'rescheduled',
             'completed',
-            'accepted',
+            'applied',
           ],
         })
 

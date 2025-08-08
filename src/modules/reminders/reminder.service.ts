@@ -45,6 +45,7 @@ export class ReminderService {
         'event.title AS eventTitle',
         'event.description AS eventDescription',
         'event.eventStartDateTime As eventStartDateTime',
+        'venue.timezone AS venueTimeZone',
         'booking.id AS bookingId',
       ])
       .where('booking.status = :status', { status: 'confirmed' })
@@ -81,8 +82,6 @@ export class ReminderService {
             entertainerUser,
           );
         }
-
-        // Optional: log or save that reminder was sent for this day
       }
     }
   }
@@ -209,6 +208,7 @@ export class ReminderService {
         'event.eventStartDateTime AS eventStartDateTime',
         'event.eventEndDateTime AS eventEndDateTime',
         'venue.name AS venueName',
+        'venue.timezone AS venueTimeZone',
       ])
       .where('event.id =:eventId', { eventId })
       .getRawOne();
@@ -240,6 +240,7 @@ export class ReminderService {
         'event.eventStartDateTime AS eventStartDateTime',
         'event.eventEndDateTime AS eventEndDateTime',
         'venue.name AS venueName',
+        'venue.timezone AS venueTimeZone',
       ])
       .where('booking.eventId = :eventId', { eventId })
       .getRawMany();
@@ -254,7 +255,7 @@ export class ReminderService {
             entertainerName: book.entertainerName,
             eventName: book.id,
             venueName: book.venueName,
-            eventDate: format(book.eventStartDateTime, 'dd MM yyyy HH:mm'),
+            eventDate: format(book.eventStartDateTime, 'dd MM yyyy hh:mm'),
           },
         };
         this.emailService.handleSendEmail(emailPayload);
@@ -292,7 +293,7 @@ export class ReminderService {
         replacements: {
           entertainerName: reminder.entertainerName,
           venueName: reminder.venueName,
-          bookingLink: 'http://dummyBooking',
+          bookingLink: `http://digidemo.in/p`,
         },
       };
       await this.emailService.handleSendEmail(emailPayload);

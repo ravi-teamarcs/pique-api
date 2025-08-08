@@ -59,13 +59,6 @@ export class Booking {
   @Column({ nullable: true })
   specialNotes: string;
 
-  // @Column({
-  //   type: 'enum',
-  //   enum: ['soloist', 'duo', 'trio', 'ensemble'],
-  //   nullable: true,
-  // })
-  // performanceRole: 'soloist' | 'duo' | 'trio' | 'ensemble';
-
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 

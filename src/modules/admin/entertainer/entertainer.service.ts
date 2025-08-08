@@ -43,6 +43,8 @@ import { GeocodingService } from '../../location/geocoding.service';
 import { EntertainerCategorySubcategory } from 'src/modules/entertainer/entities/entertainer-category-subcategory.entity';
 import { EntertainerRateCard } from 'src/modules/entertainer/entities/entertainer-rate-card.entity';
 import { EntertainerRateCardDto } from 'src/modules/entertainer/dto/rate-card.dto';
+import { utcToZonedTime } from 'date-fns-tz';
+import { convertUtcToTimezoneString } from 'src/common/utils/common.utils';
 
 @Injectable()
 export class EntertainerService {
@@ -944,32 +946,64 @@ export class EntertainerService {
           'state.name AS state',
         ])
 
-        // Add previous booking date using addSelect with correlated subquery
+        // Previous booking full timestamp
         .addSelect(
           `(
-        SELECT DATE_FORMAT(b1.showStartDateTime, '%Y-%m-%d')
-        FROM booking b1
-        WHERE b1.entId = entertainer.id
-          AND b1.status IN ('invited', 'completed', 'accepted', 'confirmed')
-          AND DATE(b1.showStartDateTime) < '${todayString}'
-        ORDER BY b1.showStartDateTime DESC
-        LIMIT 1
-      )`,
+    SELECT b1.showStartDateTime
+    FROM booking b1
+    JOIN venue v1 ON v1.id = b1.venueId
+    WHERE b1.entId = entertainer.id
+      AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
+      AND DATE(b1.showStartDateTime) < '${todayString}'
+    ORDER BY b1.showStartDateTime DESC
+    LIMIT 1
+  )`,
           'previousBookingDate',
         )
 
-        // Add upcoming booking date using addSelect with correlated subquery
+        // Previous booking timezone
         .addSelect(
           `(
-        SELECT DATE_FORMAT(b2.showStartDateTime, '%Y-%m-%d')
-        FROM booking b2
-        WHERE b2.entId = entertainer.id
-          AND b2.status IN ('invited', 'completed', 'accepted', 'confirmed')
-          AND DATE(b2.showStartDateTime) > '${todayString}'
-        ORDER BY b2.showStartDateTime ASC
-        LIMIT 1
-      )`,
+    SELECT v1.timezone
+    FROM booking b1
+    JOIN venue v1 ON v1.id = b1.venueId
+    WHERE b1.entId = entertainer.id
+      AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
+      AND DATE(b1.showStartDateTime) < '${todayString}'
+    ORDER BY b1.showStartDateTime DESC
+    LIMIT 1
+  )`,
+          'previousBookingTimezone',
+        )
+
+        // Upcoming booking full timestamp
+        .addSelect(
+          `(
+    SELECT b2.showStartDateTime
+    FROM booking b2
+    JOIN venue v2 ON v2.id = b2.venueId
+    WHERE b2.entId = entertainer.id
+      AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
+      AND DATE(b2.showStartDateTime) > '${todayString}'
+    ORDER BY b2.showStartDateTime ASC
+    LIMIT 1
+  )`,
           'upcomingBookingDate',
+        )
+
+        // Upcoming booking timezone
+        .addSelect(
+          `(
+    SELECT v2.timezone
+    FROM booking b2
+    JOIN venue v2 ON v2.id = b2.venueId
+    WHERE b2.entId = entertainer.id
+      AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
+      AND DATE(b2.showStartDateTime) > '${todayString}'
+    ORDER BY b2.showStartDateTime ASC
+    LIMIT 1
+  )`,
+          'upcomingBookingTimezone',
         );
 
       if (search) {
@@ -1011,8 +1045,15 @@ export class EntertainerService {
               priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
               pricePerEvent,
               categories,
-              previousBookingDate: previousBookingDate || null,
-              upcomingBookingDate: upcomingBookingDate || null,
+              previousBookingDate: convertUtcToTimezoneString(
+                previousBookingDate,
+                rest.previousBookingTimezone,
+              ),
+              upcomingBookingDate: convertUtcToTimezoneString(
+                upcomingBookingDate,
+                rest.upcomingBookingTimezone,
+              ),
+
               ...rest,
             };
           },
