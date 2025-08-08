@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
@@ -83,8 +84,8 @@ export class EventService {
     const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
 
     const savePayload = {
-      eventStartDateTime: startTime,
-      eventEndDateTime: endTime,
+      eventStartDateTime: startTime.toISOString(),
+      eventEndDateTime: endTime.toISOString(),
       venueId,
       title,
       description: rest.description,
@@ -233,9 +234,8 @@ export class EventService {
 
   // Update an event by id
   async update(id: number, dto: UpdateEventDto) {
-    const { neighbourhoodId, ...rest } = dto;
-    const payload = { ...rest };
-    if (neighbourhoodId) payload['sub_venue_id'] = neighbourhoodId;
+    const { neighbourhoodId, eventStartDateTime, eventEndDateTime, ...rest } =
+      dto;
 
     const event = await this.eventRepository.findOne({ where: { id } });
     if (!event) {
@@ -245,35 +245,61 @@ export class EventService {
       });
     }
     try {
+      const venue = await this.venueRepository.findOne({
+        where: { id: dto.venueId },
+        select: ['timezone'],
+      });
+
+      if (!venue.timezone) {
+        console.warn(
+          `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+        );
+      }
+
+      const startTime = zonedTimeToUtc(
+        eventStartDateTime,
+        venue.timezone ?? 'UTC',
+      );
+
+      const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
+
+      const payload = {
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
+        venueId: dto.venueId,
+        title: dto.title,
+        description: rest.description,
+      };
+      if (neighbourhoodId) payload['sub_venue_id'] = neighbourhoodId;
+
       const updatedNeighbourhoodId = neighbourhoodId ?? event.sub_venue_id;
       const updatedVenueId = dto.venueId ?? event.venueId;
       const updatedTitle = dto.title ?? event.title;
       const updatedEventDate =
         dto.eventStartDateTime ?? event.eventStartDateTime;
-      let updatedStartTime = dto.eventStartDateTime ?? event.eventStartDateTime;
 
-      // updatedStartTime = format(updatedStartTime, 'HH:mm:ss');
       const slugPayload = {
         title: updatedTitle,
         neighbourhoodId: updatedNeighbourhoodId,
         venueId: updatedVenueId,
         eventStartDateTime: updatedEventDate,
-        eventEndDateTime: dto.eventEndDateTime ?? event.eventEndDateTime,
+        eventEndDateTime: dto.eventEndDateTime,
       };
       const slug = await this.generateSlug(slugPayload);
       payload['slug'] = slug;
 
+      // Here Comparison is with ISO String
       const hasStartDateTimeChanged =
-        dto.eventStartDateTime &&
-        dto.eventStartDateTime !==
+        startTime &&
+        startTime.toISOString() !==
           format(
             new Date(event.eventStartDateTime),
             "yyyy-MM-dd'T'HH:mm:ss'Z'",
           );
 
       const hasEndDateTimeChanged =
-        dto.eventEndDateTime &&
-        dto.eventEndDateTime !==
+        endTime &&
+        endTime.toISOString() !==
           format(new Date(event.eventEndDateTime), "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
@@ -283,16 +309,14 @@ export class EventService {
 
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         this.bookingService.handleChangeRequest(Number(event.id), {
-          eventStartDateTime: dto.eventStartDateTime,
-          eventEndDateTime: dto.eventEndDateTime,
+          eventStartDateTime: startTime.toISOString(),
+          eventEndDateTime: endTime.toISOString(),
         });
       }
       return { message: 'Event updated successfully', data: dto, status: true };
     } catch (error) {
-      throw new InternalServerErrorException({
-        message: error.message,
-        status: false,
-      });
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
     }
   }
 

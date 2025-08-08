@@ -26,21 +26,6 @@ export class CreateEventDto {
     example: '2025-02-13T14:30:00Z',
     description: 'Start dateTime of the event',
   })
-  // @IsNotEmpty()
-  // @IsString()
-  // startTime: string;
-
-  // @ApiProperty({
-  //   example: '2025-02-13T14:30:00Z',
-  //   description: 'End dateTime of the event',
-  // })
-  // @IsNotEmpty()
-  // @IsString()
-  // endTime: string;
-
-  // @IsNotEmpty()
-  // @IsString()
-  // eventDate: string;
   @IsString()
   @IsNotEmpty()
   eventStartDateTime: string;

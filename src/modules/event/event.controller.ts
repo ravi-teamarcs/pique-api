@@ -29,7 +29,7 @@ export class EventController {
     status: 201,
     description: 'Event has been  Created Sucessfully.',
   })
-  @Post() // Working Fine
+  @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   createEvent(@Body() createEventDto: CreateEventDto, @Req() req) {

@@ -13,7 +13,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Venue } from '../venue/entities/venue.entity';
 import { format, startOfDay } from 'date-fns';
-import { format as formatTz } from 'date-fns-tz';
+import { format as formatTz, zonedTimeToUtc } from 'date-fns-tz';
 import { EmailService } from '../Email/email.service';
 import { BookingService } from '../booking/booking.service';
 import { NotificationService } from '../notification/notification.service';
@@ -34,10 +34,40 @@ export class EventService {
 
   async createEvent(dto: CreateEventDto) {
     try {
-      const { neighbourhoodId, ...rest } = dto;
-      const obj = structuredClone(dto);
-      const { title, venueId, eventStartDateTime, eventEndDateTime } = obj;
-      console.log(new Date(eventStartDateTime));
+      const {
+        title,
+        venueId,
+        description,
+        eventStartDateTime,
+        eventEndDateTime,
+        neighbourhoodId,
+      } = dto;
+
+      const venue = await this.venueRepository.findOne({
+        where: { id: venueId },
+        select: ['timezone'],
+      });
+
+      if (!venue.timezone) {
+        console.warn(
+          `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+        );
+      }
+
+      const startTime = zonedTimeToUtc(
+        eventStartDateTime,
+        venue.timezone ?? 'UTC',
+      );
+      const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
+
+      const savePayload = {
+        eventStartDateTime: startTime.toISOString(),
+        eventEndDateTime: endTime.toISOString(),
+        venueId,
+        title,
+        description: description,
+      };
+
       const payload = {
         title,
         venueId,
@@ -45,11 +75,12 @@ export class EventService {
         eventEndDateTime,
         neighbourhoodId,
       };
+
       const slug = await this.generateSlug(payload);
       const event = this.eventRepository.create({
         sub_venue_id: neighbourhoodId,
         slug,
-        ...rest,
+        ...savePayload,
       });
 
       const savedEvent = await this.eventRepository.save(event);
@@ -60,9 +91,14 @@ export class EventService {
   }
 
   async handleUpdateEvent(dto: any, venueId: number) {
-    const { eventId, neighbourhoodId, ...rest } = dto;
-    const payload = { ...rest };
-    if (neighbourhoodId) payload['sub_venue_id'] = neighbourhoodId;
+    const {
+      title,
+      description,
+      eventId,
+      neighbourhoodId,
+      eventStartDateTime,
+      eventEndDateTime,
+    } = dto;
 
     const event = await this.eventRepository.findOne({
       where: { id: eventId, venueId },
@@ -73,14 +109,29 @@ export class EventService {
     }
 
     try {
+      const venue = await this.venueRepository.findOne({
+        where: { id: venueId },
+        select: ['timezone'],
+      });
+
+      if (!venue.timezone) {
+        console.warn(
+          `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+        );
+      }
+
+      const startTime = zonedTimeToUtc(
+        eventStartDateTime,
+        venue.timezone ?? 'UTC',
+      );
+      const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
+
       const updatedNeighbourhoodId = neighbourhoodId ?? event.sub_venue_id;
       const updatedVenueId = dto.venueId ?? event.venueId;
       const updatedTitle = dto.title ?? event.title;
       const updatedEventDate =
         dto.eventStartDateTime ?? event.eventStartDateTime;
-      let updatedStartTime = dto.eventStartDateTime ?? event.eventStartDateTime;
 
-      updatedStartTime = format(updatedStartTime, 'HH:mm:ss');
       const slugPayload = {
         title: updatedTitle,
         neighbourhoodId: updatedNeighbourhoodId,
@@ -89,30 +140,38 @@ export class EventService {
         eventEndDateTime: dto.eventEndDateTime ?? event.eventEndDateTime,
       };
       const slug = await this.generateSlug(slugPayload);
-      payload['slug'] = slug;
+
+      const updatePayload = {
+        title,
+        description,
+        eventStartDateTime: startTime.toISOString(),
+        eventEndDateTime: endTime.toISOString(),
+        venueId,
+        sub_venue_id: neighbourhoodId,
+      };
 
       const hasStartDateTimeChanged =
-        dto.eventStartDateTime &&
-        dto.eventStartDateTime !==
+        startTime.toISOString() &&
+        startTime.toISOString() !==
           format(
             new Date(event.eventStartDateTime),
             "yyyy-MM-dd'T'HH:mm:ss'Z'",
           );
 
       const hasEndDateTimeChanged =
-        dto.eventEndDateTime &&
-        dto.eventEndDateTime !==
+        endTime.toISOString() &&
+        endTime.toISOString() !==
           format(new Date(event.eventEndDateTime), "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
-        payload['status'] = 'rescheduled';
+        updatePayload['status'] = 'rescheduled';
       }
-      await this.eventRepository.update({ id: event.id }, payload);
+      await this.eventRepository.update({ id: event.id }, updatePayload);
 
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         this.bookingService.handleChangeRequest(Number(event.id), {
-          eventStartDateTime: dto.eventStartDateTime,
-          eventEndDateTime: dto.eventEndDateTime,
+          eventStartDateTime: startTime.toISOString(),
+          eventEndDateTime: endTime.toISOString(),
         });
       }
       return { message: 'Event updated successfully', status: true };

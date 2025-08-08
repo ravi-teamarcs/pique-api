@@ -54,6 +54,7 @@ import { CreateNeighbourhoodDto } from './dto/create-neighbourhood.dto';
 import { UpdateBookingStatusDto } from './dto/update-booking-status.dto';
 import { EventsByMonthDto } from '../entertainer/dto/get-events-bymonth.dto';
 import { VENUE_TYPES } from 'src/common/constants/venue.constants';
+import { PublicGuard } from '../auth/public.guard';
 
 @ApiTags('venues')
 @ApiBearerAuth()
@@ -155,6 +156,7 @@ export class VenueController {
   }
 
   @Get('dashboard')
+  // @UseGuards(PublicGuard)
   getVenueDashboard(@Query() query: SearchEntertainerDto) {
     return this.venueService.findAllEntertainersForDashboard(query);
   }
@@ -207,6 +209,7 @@ export class VenueController {
   }
   // Wihtout Guard Api
   @Get('entertainer-profile/:id/dashboard')
+  // @UseGuards(PublicGuard)
   getEntertainerDetailsforDashboard(@Param('id', ParseIntPipe) id: number) {
     return this.venueService.findEntertainerDetailsForDashboard(Number(id));
   }
