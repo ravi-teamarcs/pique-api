@@ -1281,7 +1281,8 @@ export class InvoiceService {
       'title', e.title,
       'eventId', e.id,
       'eventStartDateTime', e.eventStartDateTime,
-      'eventEndDateTime', e.eventEndDateTime
+      'eventEndDateTime', e.eventEndDateTime,
+      c
     )
   )
   FROM invoice_events ie
@@ -1315,8 +1316,7 @@ export class InvoiceService {
       });
 
       return {
-        message:
-          ' Pending Invoices for sending over email  fetched successfully',
+        message: 'Invoices fetched successfully',
         records: parsedResults,
         total,
         page,

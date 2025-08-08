@@ -174,6 +174,7 @@ export class InvoiceService {
         const mapping = this.invoiceBookingRepo.create({
           invoiceId: item.invoiceId,
           eventId: item.eventId,
+          eventPrice: Number(item.eventPrice),
           bookingId: item.bookingId,
         });
         await this.invoiceBookingRepo.save(mapping);
@@ -588,7 +589,8 @@ export class InvoiceService {
       'title', e.title,
       'eventId', e.id,
       'eventStartDateTime', e.eventStartDateTime,
-      'eventEndDateTime', e.eventEndDateTime
+      'eventEndDateTime', e.eventEndDateTime,
+      'amount', ie.event_price
     )
   )
   FROM invoice_events ie

@@ -13,7 +13,7 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Venue } from '../venue/entities/venue.entity';
 import { format, startOfDay } from 'date-fns';
-import { format as formatTz, toZonedTime } from 'date-fns-tz';
+import { format as formatTz } from 'date-fns-tz';
 import { EmailService } from '../Email/email.service';
 import { BookingService } from '../booking/booking.service';
 import { NotificationService } from '../notification/notification.service';
@@ -260,13 +260,9 @@ export class EventService {
         ])
         .where('venue.id = :id', { id: venueId })
         .getRawOne();
-    // New Logic to get Local Time Instead of(UTC)
-    // @ formatTz  alias for format from tz
-    const date = toZonedTime(eventStartDateTime, venueTimeZone ?? 'UTC');
-    const formattedDate = format(date, 'M/d');
-    const format12HourTime = formatTz(new Date(eventStartDateTime), 'hh:mm a', {
-      timeZone: venueTimeZone ?? 'UTC',
-    });
+
+    const formattedDate = format(new Date(eventStartDateTime), 'M/d');
+    const format12HourTime = format(new Date(eventStartDateTime), 'hh:mm a');
 
     const titleString = title ? `(${title})` : '';
     const neighbourhoodNameString = neighbourhoodName

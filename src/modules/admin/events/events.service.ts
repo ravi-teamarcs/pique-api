@@ -25,7 +25,7 @@ import { Setting } from '../settings/entities/setting.entity';
 import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 import { DateTime } from 'luxon';
-import { format as formatTz, toZonedTime } from 'date-fns-tz';
+import { format as formatTz, zonedTimeToUtc } from 'date-fns-tz';
 
 @Injectable()
 export class EventService {
@@ -53,7 +53,7 @@ export class EventService {
     const { neighbourhoodId, ...rest } = dto;
     const obj = structuredClone(dto);
     const { title, venueId, eventStartDateTime, eventEndDateTime } = obj;
-   
+
     const payload = {
       title,
       venueId,
@@ -62,15 +62,42 @@ export class EventService {
       neighbourhoodId,
     };
 
-    // Convert
+    const venue = await this.venueRepository.findOne({
+      where: { id: venueId },
+      select: ['timezone'],
+    });
 
+    if (!venue.timezone) {
+      console.warn(
+        `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+      );
+    }
+
+    const startTime = zonedTimeToUtc(
+      eventStartDateTime,
+      venue.timezone ?? 'UTC',
+    );
+
+    console.log('StartTime', startTime);
+
+    const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
+
+    const savePayload = {
+      eventStartDateTime: startTime,
+      eventEndDateTime: endTime,
+      venueId,
+      title,
+      description: rest.description,
+    };
+
+    //  Create Venue
     const slug = await this.generateSlug(payload);
 
     try {
       const event = this.eventRepository.create({
         sub_venue_id: neighbourhoodId,
         slug,
-        ...rest,
+        ...savePayload,
       });
 
       await this.eventRepository.save(event);
@@ -426,11 +453,8 @@ export class EventService {
         .where('venue.id = :id', { id: venueId })
         .getRawOne();
 
-    const date = toZonedTime(eventStartDateTime, venueTimeZone ?? 'UTC');
-    const formattedDate = format(date, 'M/d');
-    const format12HourTime = formatTz(new Date(eventStartDateTime), 'hh:mm a', {
-      timeZone: venueTimeZone ?? 'UTC',
-    });
+    const formattedDate = format(new Date(eventStartDateTime), 'M/d');
+    const format12HourTime = format(new Date(eventStartDateTime), 'hh:mm a');
 
     const titleString = title ? `(${title})` : '';
     const neighbourhoodNameString = neighbourhoodName
