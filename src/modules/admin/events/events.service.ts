@@ -495,6 +495,7 @@ export class EventService {
       const events = this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
         .leftJoin('categories', 'subcat', 'subcat.id = booking.subcategoryId')
         .leftJoin(
           (subQuery) =>
@@ -533,6 +534,7 @@ export class EventService {
           'ent.pricePerEvent AS pricePerHour',
           'log.createdAt AS confirmationDate',
           'log.performedBy AS performedBy',
+          'venue.timezone AS venueTimeZone',
         ])
         .where('booking.eventId = :eventId', { eventId })
         .orderBy('booking.id', 'DESC');
