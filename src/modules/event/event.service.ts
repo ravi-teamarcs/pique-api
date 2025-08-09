@@ -13,7 +13,11 @@ import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { Venue } from '../venue/entities/venue.entity';
 import { format, startOfDay } from 'date-fns';
-import { format as formatTz, zonedTimeToUtc } from 'date-fns-tz';
+import {
+  format as formatTz,
+  utcToZonedTime,
+  zonedTimeToUtc,
+} from 'date-fns-tz';
 import { EmailService } from '../Email/email.service';
 import { BookingService } from '../booking/booking.service';
 import { NotificationService } from '../notification/notification.service';
@@ -60,6 +64,13 @@ export class EventService {
       );
       const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
 
+      console.log(
+        'startTime',
+        startTime,
+        'startTime .toISOString() ---',
+        startTime.toISOString(),
+      );
+
       const savePayload = {
         eventStartDateTime: startTime.toISOString(),
         eventEndDateTime: endTime.toISOString(),
@@ -71,8 +82,8 @@ export class EventService {
       const payload = {
         title,
         venueId,
-        eventStartDateTime,
-        eventEndDateTime,
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
         neighbourhoodId,
       };
 
@@ -293,7 +304,7 @@ export class EventService {
       title,
       venueId,
       eventStartDateTime,
-      startEndDateTime,
+      eventEndDateTime,
     } = payload;
 
     const { name, neighbourhoodName, city, stateCode, venueTimeZone } =
@@ -320,8 +331,16 @@ export class EventService {
         .where('venue.id = :id', { id: venueId })
         .getRawOne();
 
-    const formattedDate = format(new Date(eventStartDateTime), 'M/d');
-    const format12HourTime = format(new Date(eventStartDateTime), 'hh:mm a');
+    const venueLocalTime = utcToZonedTime(eventStartDateTime, venueTimeZone);
+
+    console.log(
+      'Venue Local Time formatted:',
+      formatTz(venueLocalTime, 'yyyy-MM-dd HH:mm zzz', {
+        timeZone: venueTimeZone,
+      }),
+    );
+    const formattedDate = format(venueLocalTime, 'M/d');
+    const format12HourTime = format(venueLocalTime, 'hh:mm a');
 
     const titleString = title ? `(${title})` : '';
     const neighbourhoodNameString = neighbourhoodName
