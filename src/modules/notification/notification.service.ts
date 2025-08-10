@@ -32,7 +32,6 @@ export class NotificationService {
     await this.notificationRepo.save(notify);
 
     const res = await this.getUserTokens(userId);
-    console.log('Response of notification', res);
 
     const message = {
       tokens: res.data, // Array of device tokens
@@ -87,26 +86,6 @@ export class NotificationService {
         analyticsLabel: 'my-unified-push',
       },
     };
-
-    //   tokens: res.data,
-    //   data: {
-    //     title: 'Booking Request',
-    //     body: 'hey new booking',
-    //     type: 'booking_req',
-    //     click_action: 'FLUTTER_NOTIFICATION_CLICK',
-    //   },
-    //   android: {
-    //     ttl: 3600 * 1000,
-    //     notification: {
-    //       icon: 'ic_launcher',
-    //       color: '#f45342',
-    //       sound: 'default',
-    //     },
-    //   },
-    //   fcmOptions: {
-    //     analyticsLabel: 'booking_push',
-    //   },
-    // };
 
     try {
       if (res.data.length > 0) {

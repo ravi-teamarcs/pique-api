@@ -56,6 +56,7 @@ import { EntertainerCategorySubcategory } from '../entertainer/entities/entertai
 import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../admin/settings/entities/special-subcategory-prices.entity';
 import { getTimezoneByLatLng } from 'src/common/utils/slots-utils';
+import { zonedTimeToUtc } from 'date-fns-tz';
 
 @Injectable()
 export class VenueService {
@@ -762,6 +763,12 @@ export class VenueService {
       'https://digidemo.in/apim/uploads/assets/icons/avatar.png';
 
     try {
+      // Find Venue Here
+      const venue = await this.venueRepository.findOne({
+        where: { id: userId },
+        select: ['timezone'],
+      });
+
       const baseQuery = this.entertainerRepository
         .createQueryBuilder('entertainer')
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
@@ -869,25 +876,25 @@ export class VenueService {
       }
 
       if (startDateTime && endDateTime) {
-        const start = new Date(startDateTime);
-        const end = new Date(endDateTime);
-
-        // Ensure endDateTime covers the full day
-        const extendedEnd = new Date(end);
-        extendedEnd.setUTCDate(extendedEnd.getUTCDate() + 1);
+        // Convert venue local times → UTC
+        const startUtc = zonedTimeToUtc(
+          startDateTime,
+          venue?.timezone ?? 'UTC',
+        );
+        const endUtc = zonedTimeToUtc(endDateTime, venue?.timezone ?? 'UTC');
 
         baseQuery.andWhere(
           `NOT EXISTS (
-        SELECT 1
-        FROM booking b
-        JOIN event e ON e.id = b.eventId
-        WHERE b.entId = entertainer.id
-          AND e.eventStartDateTime < :endDateTime
-          AND e.eventEndDateTime > :startDateTime
-      )`,
+      SELECT 1
+      FROM booking b
+      JOIN event e ON e.id = b.eventId
+      WHERE b.entId = entertainer.id
+        AND e.eventStartDateTime < :endDateTime
+        AND e.eventEndDateTime > :startDateTime
+    )`,
           {
-            startDateTime: start.toISOString(),
-            endDateTime: extendedEnd.toISOString(),
+            startDateTime: startUtc.toISOString(),
+            endDateTime: endUtc.toISOString(),
           },
         );
       }

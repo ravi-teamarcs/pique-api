@@ -79,6 +79,9 @@ export class Event {
   @Column({ default: false })
   emailSentAfter24Hour: boolean;
 
+  @Column({ default: false })
+  isCloseToggleActive: boolean;
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 

@@ -744,7 +744,7 @@ export class VenueService {
       // Here update the status of event (to 'confirmed' )
       await this.eventRepository.update(
         { id: eventId },
-        { status: 'confirmed' },
+        { status: 'confirmed', isCloseToggleActive: true },
       );
 
       return {

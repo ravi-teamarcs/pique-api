@@ -127,4 +127,10 @@ export class BookingController {
   ) {
     return this.bookingService.removeEntertainerFromBooking(bookingId);
   }
+
+  @Patch('close-toggle')
+  @Roles('super-admin')
+  closeBoooking(@Body() payload: { eventId: number; sendEmail: boolean }) {
+    return this.bookingService.toggleCloseBookings(payload);
+  }
 }

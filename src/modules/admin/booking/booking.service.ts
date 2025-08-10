@@ -20,7 +20,12 @@ import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Event } from '../events/entities/event.entity';
 import { BookingLog } from './entities/booking-log.entity';
 import { Venue } from '../venue/entities/venue.entity';
-import { format } from 'date-fns-tz';
+import {
+  format,
+  formatInTimeZone,
+  utcToZonedTime,
+  zonedTimeToUtc,
+} from 'date-fns-tz';
 import { Invoice } from '../invoice/entities/invoices.entity';
 import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
 import { getOverlappingSlots } from 'src/common/utils/slots-utils';
@@ -87,8 +92,9 @@ export class BookingService {
   }
 
   async createBooking(payload: AdminBookingDto) {
-    const { venueId, entertainerIds, ...data } = payload;
+    const { venueId, entertainerIds, showStartDateTime, ...data } = payload;
     const details = [];
+    let isReinvited = false;
 
     const event = await this.eventRepository.findOne({
       where: { id: payload.eventId },
@@ -122,16 +128,28 @@ export class BookingService {
         });
 
         if (alreadyBooked) {
-          throw new BadRequestException({
-            message: `Entertainer has been already invited for event.`,
-          });
+          if (alreadyBooked.status === 'removed') {
+            isReinvited = true;
+          } else {
+            throw new BadRequestException({
+              message: `Entertainer has been already invited for event.`,
+            });
+          }
         }
 
         // Check for Availability.
 
         const availabilityPayload = {
-          startTimeUtc: new Date(event.eventStartDateTime).toISOString(),
-          endTimeUtc: new Date(event.eventEndDateTime).toISOString(),
+          startTimeUtc: formatInTimeZone(
+            new Date(event.eventStartDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          ),
+          endTimeUtc: formatInTimeZone(
+            new Date(event.eventEndDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          ),
           entertainerId,
         };
 
@@ -149,6 +167,11 @@ export class BookingService {
           ...data,
           venueId: venueId,
           entId: entertainerId,
+          showStartDateTime: zonedTimeToUtc(
+            showStartDateTime,
+            venue.venueTimeZone ?? 'UTC',
+          ),
+          status: isReinvited === true ? 'reinvited' : 'invited',
         });
         const savedBooking = await this.bookingRepository.save(newBooking);
 
@@ -196,7 +219,7 @@ export class BookingService {
                   timeZone: venue.venueTimeZone ?? 'UTC',
                 },
               ),
-              bookingTime: format(savedBooking.showStartDateTime, 'HH:mm', {
+              bookingTime: format(savedBooking.showStartDateTime, 'hh:mm a', {
                 timeZone: venue.venueTimezone ?? 'UTC',
               }),
               vname: venue.name,
@@ -454,7 +477,7 @@ export class BookingService {
           const newTime = format(eventStartDateTime, 'hh:mm a', {
             timeZone: booking.venueTimeZone,
           });
-          const newDate = format(eventStartDateTime, 'dd MMM yyyy HH:mm z', {
+          const newDate = format(eventStartDateTime, 'dd MMM yyyy  z', {
             timeZone: booking.venueTimeZone,
           });
           const emailPayload = {
@@ -567,37 +590,29 @@ export class BookingService {
     endTimeUtc: string;
     entertainerId: number;
   }): Promise<boolean> {
-    const date = new Date(startTimeUtc);
-    const year = getYear(date); // 2025
-    const month = getMonth(date) + 1;
+    // Get entertainer Timezone from  entertainer table .
+    const entertainer = await this.entertainerRepository.findOne({
+      where: { id: entertainerId },
+      select: ['timezone'],
+    });
+
+    if (!entertainer || entertainer.timezone === null) {
+      return true; // Consider entertainer available
+    }
+
+    const { bookingDate, startTime, endTime, startLocal, year, month } =
+      this.convertEventTimes(
+        startTimeUtc,
+        endTimeUtc,
+        entertainer.timezone ?? 'UTC',
+      );
 
     const availability = await this.availabilityRepository.findOne({
       where: { entertainer_id: entertainerId, year, month },
     });
     if (!availability) return true;
 
-    // Get entertainer Timezone from  entertainer table .
-    const entertainer = await this.entertainerRepository.findOne({
-      where: { id: entertainerId },
-      select: ['timezone'],
-    });
-    if (!entertainer || entertainer.timezone === null) {
-      return true;
-    }
     const { unavailable_dates } = availability;
-
-    // Convert into entertainer Local Timezone
-
-    const startLocal = DateTime.fromISO(startTimeUtc, { zone: 'utc' }).setZone(
-      entertainer.timezone,
-    );
-    const endLocal = DateTime.fromISO(endTimeUtc, { zone: 'utc' }).setZone(
-      entertainer.timezone,
-    );
-
-    const bookingDate = startLocal.toISODate(); // e.g. "2025-07-17"
-    const startTime = startLocal.toFormat('HH:mm');
-    const endTime = endLocal.toFormat('HH:mm');
 
     const unavailable = unavailable_dates.find((u) => u.date === bookingDate);
     if (!unavailable) return true;
@@ -613,5 +628,110 @@ export class BookingService {
     }
 
     return true;
+  }
+
+  convertEventTimes(
+    startTimeUtc: string,
+    endTimeUtc: string,
+    entertainerTz: string,
+  ) {
+    // 1. Convert UTC → entertainer local
+    const startLocal = utcToZonedTime(startTimeUtc, entertainerTz);
+    const endLocal = utcToZonedTime(endTimeUtc, entertainerTz);
+    const year = startLocal.getFullYear();
+    const month = startLocal.getMonth() + 1;
+    // 2. Extract local date and time
+    const bookingDate = format(startLocal, 'yyyy-MM-dd', {
+      timeZone: entertainerTz,
+    });
+    const startTime = format(startLocal, 'HH:mm', { timeZone: entertainerTz });
+    const endTime = format(endLocal, 'HH:mm', { timeZone: entertainerTz });
+
+    return {
+      bookingDate,
+      startTime,
+      endTime,
+      startLocal,
+      endLocal,
+      year,
+      month,
+    };
+  }
+
+  async toggleCloseBookings(payload) {
+    const { eventId, sendEmail } = payload;
+    const bookingsToClose = await this.bookingRepository
+      .createQueryBuilder('booking')
+      .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+      .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
+      .leftJoin('users', 'user', 'user.id = entertainer.userId')
+      .select([
+        'booking.id AS id',
+        'entertainer.entertainer_name AS entertainerName',
+        'entertainer.email AS email',
+        'user.email AS userEmail',
+        'venue.name AS venueName',
+        'venue.timezone AS venueTimeZone',
+        'event.slug AS eventName',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventEndDateTime AS eventEndDateTime',
+        'user.id AS entId',
+      ])
+      .where('booking.event = :eventId', { eventId })
+      .andWhere('emailSentClose = :emailStatus', { emailStatus: false })
+      .andWhere('booking.status = (:...bookingStatuses)', {
+        bookingStatuses: ['invited', 'applied', 'reinvited'],
+      })
+      .getRawMany();
+
+    for (const booking of bookingsToClose) {
+      // 2. Update booking status to closed
+      await this.bookingRepository.update(
+        { id: booking.id },
+        { status: 'closed' },
+      );
+
+      // After Updating the booking status  set the status of toggle flag to flase
+
+      const event = await this.eventRepository.findOne({
+        where: { id: eventId },
+      });
+      await this.eventRepository.update(
+        { id: event?.id },
+        { isCloseToggleActive: false },
+      );
+
+      if (booking?.email || booking?.userEmail) {
+        const emailPayload = {
+          to: booking.email,
+          subject: `Event Position closed`,
+          templateName: 'cancellation.html',
+          replacements: {
+            entertainerName: booking.entertainerName,
+            eventName: booking.eventName,
+            eventDate: format(
+              booking.eventStartDateTime,
+              'dd MM yyyy HH:mm z',
+              {
+                timeZone: booking.venueTimeZone ?? 'UTC',
+              },
+            ),
+          },
+        };
+
+        await this.emailService.handleSendEmail(emailPayload);
+        if (booking?.entId) {
+          this.notifyService.sendPush(
+            {
+              title: 'Position closed for the event.',
+              body: `${booking.venueName} has closed  the position for ${booking.eventName} event . Thanks for your intreste. `,
+              type: 'booking_response',
+            },
+            booking.entId,
+          );
+        }
+      }
+    }
+    return { message: 'Booking closed sucessfully', status: true };
   }
 }

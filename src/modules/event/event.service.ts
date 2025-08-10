@@ -14,6 +14,7 @@ import { UpdateEventDto } from './dto/update-event.dto';
 import { Venue } from '../venue/entities/venue.entity';
 import { format, startOfDay } from 'date-fns';
 import {
+  formatInTimeZone,
   format as formatTz,
   utcToZonedTime,
   zonedTimeToUtc,
@@ -137,18 +138,12 @@ export class EventService {
       );
       const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
 
-      const updatedNeighbourhoodId = neighbourhoodId ?? event.sub_venue_id;
-      const updatedVenueId = dto.venueId ?? event.venueId;
-      const updatedTitle = dto.title ?? event.title;
-      const updatedEventDate =
-        dto.eventStartDateTime ?? event.eventStartDateTime;
-
       const slugPayload = {
-        title: updatedTitle,
-        neighbourhoodId: updatedNeighbourhoodId,
-        venueId: updatedVenueId,
-        eventStartDateTime: updatedEventDate,
-        eventEndDateTime: dto.eventEndDateTime ?? event.eventEndDateTime,
+        title,
+        neighbourhoodId,
+        venueId,
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
       };
       const slug = await this.generateSlug(slugPayload);
 
@@ -158,21 +153,27 @@ export class EventService {
         eventStartDateTime: startTime.toISOString(),
         eventEndDateTime: endTime.toISOString(),
         venueId,
+        slug,
         sub_venue_id: neighbourhoodId,
       };
 
       const hasStartDateTimeChanged =
         startTime.toISOString() &&
         startTime.toISOString() !==
-          format(
+          formatInTimeZone(
             new Date(event.eventStartDateTime),
+            'UTC',
             "yyyy-MM-dd'T'HH:mm:ss'Z'",
           );
 
       const hasEndDateTimeChanged =
         endTime.toISOString() &&
         endTime.toISOString() !==
-          format(new Date(event.eventEndDateTime), "yyyy-MM-dd'T'HH:mm:ss'Z'");
+          formatInTimeZone(
+            new Date(event.eventStartDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
 
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         updatePayload['status'] = 'rescheduled';

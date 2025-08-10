@@ -32,6 +32,7 @@ export class Booking {
       'rescheduled',
       'removed',
       'closed',
+      'reinvited',
     ],
     default: 'invited',
   })
@@ -44,6 +45,7 @@ export class Booking {
     | 'applied'
     | 'rescheduled'
     | 'closed'
+    | 'reinvited'
     | 'removed';
 
   @Column({ name: 'category_id' })
@@ -58,6 +60,9 @@ export class Booking {
 
   @Column({ nullable: true })
   specialNotes: string;
+
+  @Column({ default: false })
+  emailSentOnClose: boolean;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

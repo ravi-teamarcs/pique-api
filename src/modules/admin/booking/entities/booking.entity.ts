@@ -33,6 +33,7 @@ export class Booking {
       'declined',
       'removed',
       'closed',
+      'reinvited',
     ],
     default: 'invited',
   })
@@ -45,6 +46,7 @@ export class Booking {
     | 'completed'
     | 'rescheduled'
     | 'declined'
+    | 'reinvited'
     | 'removed';
 
   //Added new Column
@@ -59,6 +61,9 @@ export class Booking {
 
   @Column({ name: 'subcategory_id' })
   subcategoryId: number;
+
+  @Column({ default: false })
+  emailSentOnClose: boolean;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

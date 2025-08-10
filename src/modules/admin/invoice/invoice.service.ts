@@ -39,6 +39,7 @@ import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 import { EntertainerRateCard } from '../../entertainer/entities/entertainer-rate-card.entity';
 import { DateTime } from 'luxon';
+import { utcToZonedTime, format as tzFormat } from 'date-fns-tz';
 
 @Injectable()
 export class InvoiceService {
@@ -212,32 +213,17 @@ export class InvoiceService {
       //// New logic Inrodutction
       const adminRateCard = await this.adminRateCardRepository.find();
 
-      // const localTime = DateTime.fromISO(eventData.eventStartDateTime, {
-      //   zone: eventData?.timezone,
-      // }).toLocal();
-
-      // console.log(
-      //   'LocalTime',
-      //   localTime,
-      //   'Converting Local time to ISO',
-      //   localTime.toISODate(),
-      // );
-
+      const zonedDate = utcToZonedTime(
+        parsedRecord.eventStartDateTime,
+        parsedRecord.timeZone,
+      );
       const specialRateCard = await this.specialRateCardRepository.find({
         where: {
-          date: new Date(parsedRecord.eventStartDateTime)
-            .toISOString()
-            .split('T')[0],
+          date: tzFormat(zonedDate, 'yyyy-MM-dd', {
+            timeZone: parsedRecord.timeZone,
+          }),
         },
       });
-
-      // const specialRateCard = await this.specialRateCardRepository.find({
-      //   where: {
-      //     date: new Date(eventData.eventStartDateTime)
-      //       .toISOString()
-      //       .split('T')[0],
-      //   },
-      // });
 
       const parsedBookings = await Promise.all(
         parsedRecord?.bookings.map(async (book) => {
@@ -942,10 +928,16 @@ export class InvoiceService {
         // First fetch Entertainer Admin Rate  Card (New Rate Card Logic)
 
         const adminRateCard = await this.adminRateCardRepository.find();
+        const zonedDate = utcToZonedTime(
+          book.eventStartDateTime,
+          book.timezone ?? 'UTC',
+        );
 
         const specialRateCard = await this.specialRateCardRepository.find({
           where: {
-            date: new Date(book.eventStartDateTime).toISOString().split('T')[0],
+            date: tzFormat(zonedDate, 'yyyy-MM-dd', {
+              timeZone: book.timeZone ?? 'UTC',
+            }),
           },
         });
 
@@ -1137,21 +1129,16 @@ export class InvoiceService {
 
           const adminRateCard = await this.adminRateCardRepository.find();
 
-          // const localTime = DateTime.fromISO(book.eventStartDateTime, {
-          //   zone: book?.timezone,
-          // }).toLocal();
-
-          // const specialRateCard = await this.specialRateCardRepository.find({
-          //   where: {
-          //     date: localTime.toISODate(),
-          //   },
-          // });
+          const zonedDate = utcToZonedTime(
+            book.eventStartDateTime,
+            book.timezone ?? 'UTC',
+          );
 
           const specialRateCard = await this.specialRateCardRepository.find({
             where: {
-              date: new Date(book.eventStartDateTime)
-                .toISOString()
-                .split('T')[0],
+              date: tzFormat(zonedDate, 'yyyy-MM-dd', {
+                timeZone: book.timeZone ?? 'UTC',
+              }),
             },
           });
 

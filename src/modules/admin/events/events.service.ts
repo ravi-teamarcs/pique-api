@@ -26,7 +26,12 @@ import { Setting } from '../settings/entities/setting.entity';
 import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 import { DateTime } from 'luxon';
-import { format as formatTz, zonedTimeToUtc } from 'date-fns-tz';
+import {
+  formatInTimeZone,
+  format as formatTz,
+  utcToZonedTime,
+  zonedTimeToUtc,
+} from 'date-fns-tz';
 import { convertUtcToTimezoneString } from 'src/common/utils/common.utils';
 
 @Injectable()
@@ -52,17 +57,14 @@ export class EventService {
 
   // New code of Venue Creation with Media
   async createEvent(dto: CreateEventDto) {
-    const { neighbourhoodId, ...rest } = dto;
-    const obj = structuredClone(dto);
-    const { title, venueId, eventStartDateTime, eventEndDateTime } = obj;
-
-    const payload = {
+    const {
       title,
       venueId,
       eventStartDateTime,
       eventEndDateTime,
+      description,
       neighbourhoodId,
-    };
+    } = dto;
 
     const venue = await this.venueRepository.findOne({
       where: { id: venueId },
@@ -84,16 +86,24 @@ export class EventService {
 
     const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
 
+    const slugPayload = {
+      title,
+      venueId,
+      eventStartDateTime: startTime,
+      eventEndDateTime: endTime,
+      neighbourhoodId,
+    };
+
     const savePayload = {
       eventStartDateTime: startTime.toISOString(),
       eventEndDateTime: endTime.toISOString(),
       venueId,
       title,
-      description: rest.description,
+      description: description,
     };
 
     //  Create Venue
-    const slug = await this.generateSlug(payload);
+    const slug = await this.generateSlug(slugPayload);
 
     try {
       const event = this.eventRepository.create({
@@ -235,8 +245,14 @@ export class EventService {
 
   // Update an event by id
   async update(id: number, dto: UpdateEventDto) {
-    const { neighbourhoodId, eventStartDateTime, eventEndDateTime, ...rest } =
-      dto;
+    const {
+      neighbourhoodId,
+      eventStartDateTime,
+      eventEndDateTime,
+      title,
+      description,
+      venueId,
+    } = dto;
 
     const event = await this.eventRepository.findOne({ where: { id } });
     if (!event) {
@@ -265,26 +281,20 @@ export class EventService {
       const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
 
       const payload = {
-        eventStartDateTime: startTime,
-        eventEndDateTime: endTime,
-        venueId: dto.venueId,
-        title: dto.title,
-        description: rest.description,
+        eventStartDateTime: startTime.toISOString(),
+        eventEndDateTime: endTime.toISOString(),
+        venueId,
+        title,
+        description,
       };
       if (neighbourhoodId) payload['sub_venue_id'] = neighbourhoodId;
 
-      const updatedNeighbourhoodId = neighbourhoodId ?? event.sub_venue_id;
-      const updatedVenueId = dto.venueId ?? event.venueId;
-      const updatedTitle = dto.title ?? event.title;
-      const updatedEventDate =
-        dto.eventStartDateTime ?? event.eventStartDateTime;
-
       const slugPayload = {
-        title: updatedTitle,
-        neighbourhoodId: updatedNeighbourhoodId,
-        venueId: updatedVenueId,
-        eventStartDateTime: updatedEventDate,
-        eventEndDateTime: dto.eventEndDateTime,
+        title,
+        neighbourhoodId,
+        venueId,
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
       };
       const slug = await this.generateSlug(slugPayload);
       payload['slug'] = slug;
@@ -293,15 +303,20 @@ export class EventService {
       const hasStartDateTimeChanged =
         startTime &&
         startTime.toISOString() !==
-          format(
+          formatInTimeZone(
             new Date(event.eventStartDateTime),
+            'UTC',
             "yyyy-MM-dd'T'HH:mm:ss'Z'",
           );
 
       const hasEndDateTimeChanged =
         endTime &&
         endTime.toISOString() !==
-          format(new Date(event.eventEndDateTime), "yyyy-MM-dd'T'HH:mm:ss'Z'");
+          formatInTimeZone(
+            new Date(event.eventEndDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
 
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         payload['status'] = 'rescheduled';
@@ -478,8 +493,16 @@ export class EventService {
         .where('venue.id = :id', { id: venueId })
         .getRawOne();
 
-    const formattedDate = format(new Date(eventStartDateTime), 'M/d');
-    const format12HourTime = format(new Date(eventStartDateTime), 'hh:mm a');
+    const venueLocalTime = utcToZonedTime(eventStartDateTime, venueTimeZone);
+
+    console.log(
+      'Venue Local Time formatted:',
+      formatTz(venueLocalTime, 'yyyy-MM-dd HH:mm zzz', {
+        timeZone: venueTimeZone,
+      }),
+    );
+    const formattedDate = format(venueLocalTime, 'M/d');
+    const format12HourTime = format(venueLocalTime, 'hh:mm a');
 
     const titleString = title ? `(${title})` : '';
     const neighbourhoodNameString = neighbourhoodName

@@ -26,7 +26,12 @@ import { EntertainerAvailability } from '../entertainer/entities/availability.en
 import { ConfigService } from '@nestjs/config';
 import { VenueEvent } from '../event/entities/event.entity';
 import { ModifyBookingDto } from './dto/update-booking.dto';
-import { format } from 'date-fns-tz';
+import {
+  format,
+  formatInTimeZone,
+  utcToZonedTime,
+  zonedTimeToUtc,
+} from 'date-fns-tz';
 import { getOverlappingSlots } from 'src/common/utils/slots-utils';
 import { DateTime } from 'luxon';
 import { Invoice } from '../invoice/entities/invoice.entity';
@@ -59,7 +64,7 @@ export class BookingService {
   ) {}
 
   async createBooking(dto: CreateBookingDto, venueId: number) {
-    const { entertainerId, ...bookingData } = dto;
+    const { entertainerId, showStartDateTime, ...bookingData } = dto;
 
     try {
       const booking = await this.bookingRepository.findOne({
@@ -79,9 +84,18 @@ export class BookingService {
           select: ['eventStartDateTime', 'eventEndDateTime'],
         });
 
+      //  Issues are Here
       const availabilityPayload = {
-        startTimeUtc: new Date(eventStartDateTime).toISOString(),
-        endTimeUtc: new Date(eventEndDateTime).toISOString(),
+        startTimeUtc: formatInTimeZone(
+          new Date(eventStartDateTime),
+          'UTC',
+          "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        ),
+        endTimeUtc: formatInTimeZone(
+          new Date(eventEndDateTime),
+          'UTC',
+          "yyyy-MM-dd'T'HH:mm:ss'Z'",
+        ),
         entertainerId,
       };
 
@@ -93,8 +107,16 @@ export class BookingService {
           'Entertainer is not available in given time slot. ',
         );
 
+      // Get Venue Timezone
+
+      const { timezone } = await this.venueRepository.findOne({
+        where: { id: venueId },
+        select: ['timezone'],
+      });
+
       const newBooking = this.bookingRepository.create({
         ...bookingData,
+        showStartDateTime: zonedTimeToUtc(showStartDateTime, timezone ?? 'UTC'),
         venueId: venueId,
         entId: entertainerId,
       });
@@ -155,7 +177,7 @@ export class BookingService {
                 timeZone: venue.timeZone ?? 'UTC',
               },
             ),
-            bookingTime: format(savedBooking.showStartDateTime, 'HH:mm', {
+            bookingTime: format(savedBooking.showStartDateTime, 'hh:mm a', {
               timeZone: venue.timeZone ?? 'UTC',
             }),
             vname: venue.name,
@@ -787,15 +809,6 @@ export class BookingService {
     endTimeUtc: string;
     entertainerId: number;
   }): Promise<boolean> {
-    const date = new Date(startTimeUtc);
-    const year = getYear(date); // 2025
-    const month = getMonth(date) + 1;
-
-    const availability = await this.availabilityRepository.findOne({
-      where: { entertainer_id: entertainerId, year, month },
-    });
-    if (!availability) return true;
-
     // Get entertainer Timezone from  entertainer table .
     const entertainer = await this.entRepository.findOne({
       where: { id: entertainerId },
@@ -806,20 +819,19 @@ export class BookingService {
       return true; // Consider entertainer available
     }
 
+    const { bookingDate, startTime, endTime, startLocal, year, month } =
+      this.convertEventTimes(
+        startTimeUtc,
+        endTimeUtc,
+        entertainer.timezone ?? 'UTC',
+      );
+
+    const availability = await this.availabilityRepository.findOne({
+      where: { entertainer_id: entertainerId, year, month },
+    });
+    if (!availability) return true;
+
     const { unavailable_dates } = availability;
-
-    // Convert into entertainer Local Timezone
-
-    const startLocal = DateTime.fromISO(startTimeUtc, { zone: 'utc' }).setZone(
-      entertainer.timezone,
-    );
-    const endLocal = DateTime.fromISO(endTimeUtc, { zone: 'utc' }).setZone(
-      entertainer.timezone,
-    );
-
-    const bookingDate = startLocal.toISODate(); // e.g. "2025-07-17"
-    const startTime = startLocal.toFormat('HH:mm');
-    const endTime = endLocal.toFormat('HH:mm');
 
     const unavailable = unavailable_dates.find((u) => u.date === bookingDate);
     if (!unavailable) return true;
@@ -835,5 +847,33 @@ export class BookingService {
     }
 
     return true;
+  }
+
+  convertEventTimes(
+    startTimeUtc: string,
+    endTimeUtc: string,
+    entertainerTz: string,
+  ) {
+    // 1. Convert UTC → entertainer local
+    const startLocal = utcToZonedTime(startTimeUtc, entertainerTz);
+    const endLocal = utcToZonedTime(endTimeUtc, entertainerTz);
+    const year = startLocal.getFullYear();
+    const month = startLocal.getMonth() + 1;
+    // 2. Extract local date and time
+    const bookingDate = format(startLocal, 'yyyy-MM-dd', {
+      timeZone: entertainerTz,
+    });
+    const startTime = format(startLocal, 'HH:mm', { timeZone: entertainerTz });
+    const endTime = format(endLocal, 'HH:mm', { timeZone: entertainerTz });
+
+    return {
+      bookingDate,
+      startTime,
+      endTime,
+      startLocal,
+      endLocal,
+      year,
+      month,
+    };
   }
 }

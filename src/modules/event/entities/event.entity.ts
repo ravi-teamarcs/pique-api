@@ -73,6 +73,9 @@ export class VenueEvent {
   @Column({ default: false })
   emailSentAfter24Hour: boolean;
 
+  @Column({ default: false })
+  isCloseToggleActive: boolean; // true = toggle enabled, false = disabled
+
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
