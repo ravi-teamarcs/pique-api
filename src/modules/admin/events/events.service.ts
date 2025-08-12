@@ -26,6 +26,8 @@ import { Setting } from '../settings/entities/setting.entity';
 import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 import { DateTime } from 'luxon';
+import { format as tzFormat } from 'date-fns-tz';
+
 import {
   formatInTimeZone,
   format as formatTz,
@@ -219,6 +221,7 @@ export class EventService {
         'event.description  AS description',
         'event.slug  AS slug',
         'event.venueId AS venueId',
+        '(event.isCloseToggleActive = 1) AS isCloseToggleActive',
         'hood.name AS neighbourhood_name',
         'hood.name AS neighbourhood_name',
         'hood.contactPerson AS neighbourhood_contact_person',
@@ -236,11 +239,15 @@ export class EventService {
 
       .where('event.id = :id', { id })
       .getRawOne(); // Use getRawOne() for raw results
-
+    const { isCloseToggleActive, ...rest } = event;
     if (!event) {
       throw new NotFoundException(`Event with id ${id} not found`);
     }
-    return event;
+    const response = {
+      ...rest,
+      isCloseToggleActive: isCloseToggleActive === 1 ? true : false,
+    };
+    return response;
   }
 
   // Update an event by id
@@ -565,6 +572,7 @@ export class EventService {
 
       const totalCount = await events.getCount();
       const results = await events.getRawMany();
+      console.log(results);
 
       // ParsedResult (Venue Local TimeZone)
 
@@ -579,7 +587,7 @@ export class EventService {
           ...item,
         }),
       );
-
+      console.log('Parsed Result', parsedResult);
       const event = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
@@ -594,13 +602,11 @@ export class EventService {
       // Rate Card Repo
       const rateCard = await this.rateCardRepo.find();
 
-      let formattedDate = new Date(event.eventStartDateTime)
-        .toISOString()
-        .split('T')[0];
-
       const specialRateCard = await this.specialRateCardRepo.find({
         where: {
-          date: formattedDate,
+          date: tzFormat(event.eventStartDateTime, 'yyyy-MM-dd', {
+            timeZone: event.venueTimeZone ?? 'UTC',
+          }),
         },
       });
 
@@ -608,7 +614,7 @@ export class EventService {
       if (!results || results.length === 0) return;
 
       const updatedResults = await Promise.all(
-        results.map(async (result) => {
+        parsedResult.map(async (result) => {
           let price: number;
           let pricePerExtra30Min: number;
 
@@ -628,7 +634,7 @@ export class EventService {
           }
 
           return {
-            ...parsedResult,
+            ...result,
             pricePerHour: price,
             pricePerExtra30Min,
           };

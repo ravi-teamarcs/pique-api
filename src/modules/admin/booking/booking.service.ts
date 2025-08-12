@@ -701,34 +701,36 @@ export class BookingService {
         { isCloseToggleActive: false },
       );
 
-      if (booking?.email || booking?.userEmail) {
-        const emailPayload = {
-          to: booking.email,
-          subject: `Event Position closed`,
-          templateName: 'cancellation.html',
-          replacements: {
-            entertainerName: booking.entertainerName,
-            eventName: booking.eventName,
-            eventDate: format(
-              booking.eventStartDateTime,
-              'dd MM yyyy HH:mm z',
-              {
-                timeZone: booking.venueTimeZone ?? 'UTC',
-              },
-            ),
-          },
-        };
-
-        await this.emailService.handleSendEmail(emailPayload);
-        if (booking?.entId) {
-          this.notifyService.sendPush(
-            {
-              title: 'Position closed for the event.',
-              body: `${booking.venueName} has closed  the position for ${booking.eventName} event . Thanks for your intreste. `,
-              type: 'booking_response',
+      if (sendEmail) {
+        if (booking?.email || booking?.userEmail) {
+          const emailPayload = {
+            to: booking.email,
+            subject: `Event Position closed`,
+            templateName: 'cancellation.html',
+            replacements: {
+              entertainerName: booking.entertainerName,
+              eventName: booking.eventName,
+              eventDate: format(
+                booking.eventStartDateTime,
+                'dd MM yyyy HH:mm z',
+                {
+                  timeZone: booking.venueTimeZone ?? 'UTC',
+                },
+              ),
             },
-            booking.entId,
-          );
+          };
+
+          await this.emailService.handleSendEmail(emailPayload);
+          if (booking?.entId) {
+            this.notifyService.sendPush(
+              {
+                title: 'Position closed for the event.',
+                body: `${booking.venueName} has closed  the position for ${booking.eventName} event . Thanks for your intreste. `,
+                type: 'booking_response',
+              },
+              booking.entId,
+            );
+          }
         }
       }
     }
