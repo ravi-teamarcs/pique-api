@@ -35,6 +35,8 @@ import {
   zonedTimeToUtc,
 } from 'date-fns-tz';
 import { convertUtcToTimezoneString } from 'src/common/utils/common.utils';
+import { NotificationService } from 'src/modules/notification/notification.service';
+import { EmailService } from 'src/modules/Email/email.service';
 
 @Injectable()
 export class EventService {
@@ -55,6 +57,8 @@ export class EventService {
     private readonly bookingService: BookingService,
     private readonly config: ConfigService,
     private readonly dataSource: DataSource,
+    private readonly notificationService: NotificationService,
+    private readonly emailService: EmailService,
   ) {}
 
   // New code of Venue Creation with Media
@@ -83,8 +87,6 @@ export class EventService {
       eventStartDateTime,
       venue.timezone ?? 'UTC',
     );
-
-    console.log('StartTime', startTime);
 
     const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
 
@@ -259,6 +261,7 @@ export class EventService {
       title,
       description,
       venueId,
+      status,
     } = dto;
 
     const event = await this.eventRepository.findOne({ where: { id } });
@@ -288,8 +291,8 @@ export class EventService {
       const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
 
       const payload = {
-        eventStartDateTime: startTime.toISOString(),
-        eventEndDateTime: endTime.toISOString(),
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
         venueId,
         title,
         description,
@@ -307,9 +310,10 @@ export class EventService {
       payload['slug'] = slug;
 
       // Here Comparison is with ISO String
+
       const hasStartDateTimeChanged =
         startTime &&
-        startTime.toISOString() !==
+        formatInTimeZone(startTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
           formatInTimeZone(
             new Date(event.eventStartDateTime),
             'UTC',
@@ -318,7 +322,7 @@ export class EventService {
 
       const hasEndDateTimeChanged =
         endTime &&
-        endTime.toISOString() !==
+        formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
           formatInTimeZone(
             new Date(event.eventEndDateTime),
             'UTC',
@@ -328,6 +332,7 @@ export class EventService {
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         payload['status'] = 'rescheduled';
       }
+      if (status) payload['status'] = status;
       await this.eventRepository.update({ id: event.id }, payload);
 
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
@@ -587,7 +592,6 @@ export class EventService {
           ...item,
         }),
       );
-      console.log('Parsed Result', parsedResult);
       const event = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
@@ -716,5 +720,74 @@ export class EventService {
         ? basePrice + markupValue
         : basePrice + (markupValue / 100) * basePrice;
     return finalPrice;
+  }
+
+  private async checkStatusAndSendEmail(status, eventId: number) {
+    if (status === 'canceled') {
+      const bookings = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin(
+          'entertainers',
+          'entertainer',
+          'entertainer.id = booking.entId',
+        )
+        .leftJoin('users', 'user', 'user.id = entertainer.userId')
+        .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+        .select([
+          'booking.id AS bookingId',
+          'user.email AS email',
+          'user.id AS userId',
+          'entertainer.name AS entertainerName',
+          'entertainer.email AS entertainerEmail',
+          'event.slug AS slug',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS  eventEndDateTime',
+          'venue.name AS venueName',
+          'venue.timezone AS venueTimeZone',
+        ])
+        .where('booking.eventId = :eventId', { eventId })
+        .getRawMany();
+
+      for (const book of bookings) {
+        await this.bookingRepository.update(
+          { id: book.bookingId },
+          { status: 'closed' },
+        );
+
+        if (book.entertainerEmail || book.email) {
+          const emailPayload = {
+            to: book.entertainerEmail || book.email,
+            subject: `Event ${status}`,
+            templateName: 'cancelled-event-template.html',
+            replacements: {
+              eventName: book.slug,
+              eventDate: formatTz(book.eventStartDateTime, 'dd MMM yyyy z', {
+                timeZone: book.venueTimeZone ?? 'UTC',
+              }),
+              eventTime: formatTz(book.eventStartDateTime, 'hh:mm a', {
+                timeZone: book.venueTimeZone ?? 'UTC',
+              }),
+              year: new Date().getFullYear(),
+            },
+          };
+          this.emailService.handleSendEmail(emailPayload);
+        }
+        if (book.userId) {
+          const notificationPayload = {
+            title: 'Event Canceled',
+            body: `Venue ${book.venueName} has canceled the event ${book.slug} scheduled on date : ${formatTz(
+              book.eventStartDateTime,
+              'dd MMM yyyy hh:mm a z',
+              {
+                timeZone: book.venueTimeZone ?? 'UTC',
+              },
+            )}`,
+            type: 'event_cancelled',
+          };
+          this.notificationService.sendPush(notificationPayload, book.userId);
+        }
+      }
+    }
   }
 }

@@ -13,6 +13,8 @@ import { BookingModule } from '../booking/booking.module';
 import { Setting } from '../settings/entities/setting.entity';
 import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
+import { EmailModule } from 'src/modules/Email/email.module';
+import { NotificationModule } from 'src/modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -25,11 +27,12 @@ import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategor
       Venue,
       Setting,
       SubcategoryRate,
-      SpecialSubcategoryPrice
-
+      SpecialSubcategoryPrice,
     ]),
     MediaModule,
     BookingModule,
+    EmailModule,
+    NotificationModule,
   ],
   controllers: [EventController],
   providers: [EventService],

@@ -158,8 +158,8 @@ export class EventService {
       };
 
       const hasStartDateTimeChanged =
-        startTime.toISOString() &&
-        startTime.toISOString() !==
+        startTime &&
+        formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
           formatInTimeZone(
             new Date(event.eventStartDateTime),
             'UTC',
@@ -167,8 +167,8 @@ export class EventService {
           );
 
       const hasEndDateTimeChanged =
-        endTime.toISOString() &&
-        endTime.toISOString() !==
+        endTime &&
+        formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
           formatInTimeZone(
             new Date(event.eventStartDateTime),
             'UTC',

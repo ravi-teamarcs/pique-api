@@ -13,7 +13,6 @@ export function loadEmailTemplate(
     `${templateName}`,
   );
 
-  // console.log('templatePath of the template ', templatePath);
 
   if (!fs.existsSync(templatePath)) {
     throw new Error(`Email template not found: ${templateName}`);

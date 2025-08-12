@@ -120,7 +120,7 @@ export class EventController {
   @Put()
   async updateEventStatus(
     @Param('eventId', ParseIntPipe) eventId: number,
-    status: 'published' | 'unpublished' | 'completed',
+    status: 'published' | 'unpublished' | 'completed' | 'canceled',
   ) {
     return this.eventService.updateEventStatus(eventId, status);
   }
