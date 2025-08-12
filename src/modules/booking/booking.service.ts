@@ -251,7 +251,7 @@ export class BookingService {
         .select([
           'booking.id AS id',
           'booking.status AS status',
-          'booking.venueId AS vid',
+          'booking.venueId AS venueId',
           'booking.showStartDateTime AS showStartDateTime',
           `CONCAT(venue.addressLine1, ', ', venue.addressLine2) AS address`,
           'event.id AS eventId',
@@ -266,9 +266,9 @@ export class BookingService {
           'venue.name  AS  vname',
           'venue.zipCode  AS vZipCode',
           'venue.timezone AS  venueTimeZone',
-          'vuser.email As vemail',
-          'vuser.phoneNumber As vphone',
-          'vuser.id As vid',
+          'vuser.email AS vemail',
+          'vuser.phoneNumber AS vphone',
+          'vuser.id AS vid',
           'event.title AS  eventTitle',
           'event.description AS  eventDescription',
           'event.eventStartDateTime AS eventStartDateTime',
@@ -283,7 +283,7 @@ export class BookingService {
 
       if (
         role === 'entertainer' &&
-        !['invited', 'rescheduled'].includes(booking.status)
+        !['invited', 'rescheduled', 'reinvited'].includes(booking.status)
       ) {
         return {
           message: 'You have already responded to this booking',
@@ -304,7 +304,7 @@ export class BookingService {
             { isOutdated: true },
           );
       }
-      if (booking.eEmail || booking.vemail) {
+      if (booking.vemail) {
         // Ends Here
         const statusToTemplateMap = {
           applied: 'request-accepted.html',
@@ -363,7 +363,7 @@ export class BookingService {
         const template = statusToTemplateMap[status.toLowerCase()];
 
         const emailPayload = {
-          to: role === 'entertainer' ? booking.vemail : booking.eEmail,
+          to: booking.vemail,
           subject: `Booking Request ${status}`,
           templateName: template,
           replacements: statusToReplacementMap[status.toLowerCase()],
@@ -378,7 +378,7 @@ export class BookingService {
             type: 'booking_response',
           },
 
-          role === 'entertainer' ? booking.vid : booking.eid,
+          booking.vid,
         );
       }
 

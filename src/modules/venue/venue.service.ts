@@ -268,7 +268,7 @@ export class VenueService {
 
       let admins = await this.adminRepository.find({ where: { role: '1' } });
       if (admins?.length > 0) {
-        const message = `A Venue has completed their profile. Please review and approve.`;
+        const message = `A  new venue ${venue?.name} has completed their profile. Please review and approve.`;
         const notification_payload = {
           title: 'New Venue Profile Submitted',
           body: message,

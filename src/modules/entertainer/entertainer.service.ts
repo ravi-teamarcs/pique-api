@@ -510,7 +510,7 @@ export class EntertainerService {
 
       let admins = await this.adminRepository.find({ where: { role: '1' } });
       if (admins?.length > 0) {
-        const message = `An entertainer has completed their profile. Please review and approve.`;
+        const message = `An entertainer ${ent?.entertainerName || ''} has completed their profile. Please review and approve.`;
         const notification_payload = {
           title: 'New Entertainer Profile Submitted',
           body: message,
@@ -1970,6 +1970,7 @@ export class EntertainerService {
           'venue.name AS venue_name',
           'venue.addressLine1 AS venue_addressLine1',
           'venue.addressLine2 AS venue_addressLine2',
+          'venue.timezone AS venueTimeZone',
           'venue.latitude AS latitude',
           'venue.longitude AS longitude',
           `CASE WHEN media.url IS NOT NULL THEN CONCAT(:baseUrl, media.url) ELSE :defaultMediaUrl END AS image_url`,
@@ -2045,7 +2046,6 @@ export class EntertainerService {
           'event.title AS title',
           'event.location AS location',
           'event.description AS description',
-
 
           //Added to new Fields...
           'event.eventStartDateTime AS eventStartDateTime',
