@@ -198,6 +198,7 @@ export class BookingService {
             'entertainer.name AS name',
             'entertainer.email AS email',
             'user.email AS userEmail',
+            'user.id AS  userId',
           ])
           .where('entertainer.id =:id', { id: entertainerId })
           .getRawOne();
@@ -236,7 +237,7 @@ export class BookingService {
               body: `You have new booking request from ${venue.name}`,
               type: 'booking_req',
             },
-            entertainerId,
+            entertainer.userId,
           );
         }
       }

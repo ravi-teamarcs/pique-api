@@ -135,7 +135,12 @@ export class BookingService {
       const ent = await this.entRepository
         .createQueryBuilder('entertainer')
         .leftJoin('entertainer.user', 'user')
-        .select(['entertainer.name AS name', 'user.email AS email'])
+        .select([
+          'entertainer.name AS name',
+          'entertainer.email AS entertainerEmail',
+          'user.email AS userEmail',
+          'user.id AS  userId',
+        ])
         .where('entertainer.id =:id', { id: entUserId })
         .getRawOne();
 
@@ -159,7 +164,7 @@ export class BookingService {
         select: ['slug', 'title'],
       });
 
-      if (ent.email) {
+      if (ent.entertainerEmail) {
         // let parsedTime = parse(savedBooking.showTime, 'HH:mm:ss', new Date());
 
         const emailPayload = {
@@ -188,14 +193,16 @@ export class BookingService {
         };
 
         this.emailService.handleSendEmail(emailPayload);
-        this.notifyService.sendPush(
-          {
-            title: 'Booking Request',
-            body: `You have new booking request from ${venue.name}`,
-            type: 'booking_req',
-          },
-          entertainerId,
-        );
+        if (ent.userId) {
+          this.notifyService.sendPush(
+            {
+              title: 'Booking Request',
+              body: `You have new booking request from ${venue.name}`,
+              type: 'booking_req',
+            },
+            ent.userId,
+          );
+        }
       }
 
       const payload = {
