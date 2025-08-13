@@ -286,6 +286,14 @@ export class EventService {
     }
     try {
       const res = await this.eventRepository.remove(event);
+      const bookings = await this.bookingRepository.find({
+        where: { eventId },
+      });
+
+      for (const book of bookings) {
+        await this.bookingRepository.remove(book);
+      }
+
       return { message: 'Event deleted successfully', data: res, status: true };
     } catch (error) {
       throw new InternalServerErrorException(error.message);
