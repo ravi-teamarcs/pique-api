@@ -146,7 +146,7 @@ export class VenueController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   @Roles('findAll') // Restrict access to the 'venue' role
   @ApiOperation({ summary: 'Get all venues for logged-in user' })
   @ApiResponse({ status: 200, description: 'List of venues.', type: Venue })
@@ -156,7 +156,7 @@ export class VenueController {
   }
 
   @Get('dashboard')
-  @UseGuards(PublicGuard)
+  // @UseGuards(PublicGuard)
   getVenueDashboard(@Query() query: SearchEntertainerDto) {
     return this.venueService.findAllEntertainersForDashboard(query);
   }
