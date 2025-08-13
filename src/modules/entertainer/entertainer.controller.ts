@@ -466,7 +466,7 @@ export class EntertainerController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
   async setEntertainerRateCard(@Body() dto: EntertainerRateCardDto) {
-    console.log('Setting Rate Card:', dto);
+    // console.log('Setting Rate Card:', dto);
     return this.entertainerService.setEntertainerRateCard(dto);
   }
 

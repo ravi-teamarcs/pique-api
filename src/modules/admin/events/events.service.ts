@@ -507,12 +507,12 @@ export class EventService {
 
     const venueLocalTime = utcToZonedTime(eventStartDateTime, venueTimeZone);
 
-    console.log(
-      'Venue Local Time formatted:',
-      formatTz(venueLocalTime, 'yyyy-MM-dd HH:mm zzz', {
-        timeZone: venueTimeZone,
-      }),
-    );
+    // console.log(
+    //   'Venue Local Time formatted:',
+    //   formatTz(venueLocalTime, 'yyyy-MM-dd HH:mm zzz', {
+    //     timeZone: venueTimeZone,
+    //   }),
+    // );
     const formattedDate = format(venueLocalTime, 'M/d');
     const format12HourTime = format(venueLocalTime, 'hh:mm a');
 
@@ -577,9 +577,6 @@ export class EventService {
 
       const totalCount = await events.getCount();
       const results = await events.getRawMany();
-      console.log(results);
-
-      // ParsedResult (Venue Local TimeZone)
 
       const parsedResult = results.map(
         ({ confirmationDate, venueTimeZone, ...item }) => ({

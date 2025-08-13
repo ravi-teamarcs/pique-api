@@ -65,13 +65,6 @@ export class EventService {
       );
       const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
 
-      console.log(
-        'startTime',
-        startTime,
-        'startTime .toISOString() ---',
-        startTime.toISOString(),
-      );
-
       const savePayload = {
         eventStartDateTime: startTime.toISOString(),
         eventEndDateTime: endTime.toISOString(),

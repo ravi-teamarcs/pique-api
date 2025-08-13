@@ -660,12 +660,13 @@ export class BookingService {
   }
 
   async toggleCloseBookings(payload) {
-    const { eventId, sendEmail } = payload;
+    const { eventId, sendEmail } = payload.payload;
     const bookingsToClose = await this.bookingRepository
       .createQueryBuilder('booking')
       .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
       .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
       .leftJoin('users', 'user', 'user.id = entertainer.userId')
+      .leftJoin('event', 'event', 'event.id = booking.eventId')
       .select([
         'booking.id AS id',
         'entertainer.entertainer_name AS entertainerName',
@@ -678,9 +679,11 @@ export class BookingService {
         'event.eventEndDateTime AS eventEndDateTime',
         'user.id AS entId',
       ])
-      .where('booking.event = :eventId', { eventId })
-      .andWhere('emailSentClose = :emailStatus', { emailStatus: false })
-      .andWhere('booking.status = (:...bookingStatuses)', {
+      .where('booking.eventId = :eventId', { eventId })
+      .andWhere('booking.emailSentOnClose = :emailStatus', {
+        emailStatus: false,
+      })
+      .andWhere('booking.status IN (:...bookingStatuses)', {
         bookingStatuses: ['invited', 'applied', 'reinvited'],
       })
       .getRawMany();
@@ -693,14 +696,6 @@ export class BookingService {
       );
 
       // After Updating the booking status  set the status of toggle flag to flase
-
-      const event = await this.eventRepository.findOne({
-        where: { id: eventId },
-      });
-      await this.eventRepository.update(
-        { id: event?.id },
-        { isCloseToggleActive: false },
-      );
 
       if (sendEmail) {
         if (booking?.email || booking?.userEmail) {
@@ -734,6 +729,14 @@ export class BookingService {
           }
         }
       }
+
+      const event = await this.eventRepository.findOne({
+        where: { id: eventId },
+      });
+      await this.eventRepository.update(
+        { id: event?.id },
+        { isCloseToggleActive: false },
+      );
     }
     return { message: 'Booking closed sucessfully', status: true };
   }

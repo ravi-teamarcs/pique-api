@@ -581,7 +581,7 @@ export class BookingService {
               timeZone: booking.venueTimeZone ?? 'UTC',
             },
           ); // e.g. '2025-05-01'
-          const newTime = format(booking.showStartDateTime, 'HH:mm', {
+          const newTime = format(booking.showStartDateTime, 'hh:mm a', {
             timeZone: booking.venueTimeZone ?? 'UTC',
           });
           const emailPayload = {
