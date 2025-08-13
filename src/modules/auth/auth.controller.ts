@@ -81,7 +81,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
+  // @UseGuards(JwtAuthGuard)
   logout(@Body('token') token: string) {
     return this.authService.logout(token);
   }
