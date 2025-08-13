@@ -156,7 +156,7 @@ export class VenueController {
   }
 
   @Get('dashboard')
-  // @UseGuards(PublicGuard)
+  @UseGuards(PublicGuard)
   getVenueDashboard(@Query() query: SearchEntertainerDto) {
     return this.venueService.findAllEntertainersForDashboard(query);
   }
@@ -209,7 +209,7 @@ export class VenueController {
   }
   // Wihtout Guard Api
   @Get('entertainer-profile/:id/dashboard')
-  // @UseGuards(PublicGuard)
+  @UseGuards(PublicGuard)
   getEntertainerDetailsforDashboard(@Param('id', ParseIntPipe) id: number) {
     return this.venueService.findEntertainerDetailsForDashboard(Number(id));
   }
