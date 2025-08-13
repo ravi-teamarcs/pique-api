@@ -128,7 +128,10 @@ export class BookingService {
         });
 
         if (alreadyBooked) {
-          if (alreadyBooked.status === 'removed') {
+          if (
+            alreadyBooked.status === 'removed' ||
+            alreadyBooked.status === 'closed'
+          ) {
             isReinvited = true;
           } else {
             throw new BadRequestException({

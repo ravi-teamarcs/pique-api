@@ -335,6 +335,10 @@ export class EventService {
       if (status) payload['status'] = status;
       await this.eventRepository.update({ id: event.id }, payload);
 
+      if (status && status === 'canceled') {
+        this.checkStatusAndSendEmail(status, event.id);
+      }
+
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         this.bookingService.handleChangeRequest(Number(event.id), {
           eventStartDateTime: startTime.toISOString(),

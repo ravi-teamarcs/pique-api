@@ -918,11 +918,16 @@ export class EntertainerService {
             .subQuery()
             .select('1')
             .from('booking', 'book')
-            .where('book.entId = entertainer.id')
-            .andWhere('book.eventId = :eventId')
+            .where('book.entId = entertainer.id') // booking belongs to entertainer
+            .andWhere('book.eventId = :eventId') // booking is for this event
+            .andWhere('book.status IN (:...bookStats)', {
+              bookStats: ['invited', 'applied'], // only these statuses matter
+            })
             .getQuery();
+
           return `NOT EXISTS ${subQuery}`;
         })
+
         .setParameter('eventId', eventId)
         .setParameter('todayString', todayString)
 
