@@ -876,7 +876,6 @@ export class VenueService {
       }
 
       if (startDateTime && endDateTime) {
-        // Convert venue local times → UTC
         const startUtc = zonedTimeToUtc(
           startDateTime,
           venue?.timezone ?? 'UTC',
@@ -893,8 +892,8 @@ export class VenueService {
         AND e.eventEndDateTime > :startDateTime
     )`,
           {
-            startDateTime: startUtc.toISOString(),
-            endDateTime: endUtc.toISOString(),
+            startDateTime: startUtc, // Pass as Date object
+            endDateTime: endUtc,
           },
         );
       }
