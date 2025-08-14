@@ -757,6 +757,8 @@ export class VenueService {
       endDateTime,
     } = query;
 
+    console.log('Query Inside Search Entertainer', query);
+
     const skip = (Number(page) - 1) * Number(pageSize);
     const take = Number(pageSize);
     const DEFAULT_MEDIA_URL =

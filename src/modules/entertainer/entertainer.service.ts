@@ -1556,7 +1556,6 @@ export class EntertainerService {
           'booking.status AS status',
           'booking.showStartDateTime AS showStartDateTime',
           'booking.specialNotes  As specialNotes',
-          'booking.performanceRole AS performanceRole',
 
           'event.id AS event_id',
           'event.title AS event_title',

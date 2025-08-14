@@ -30,8 +30,6 @@ import { Invoice } from '../invoice/entities/invoices.entity';
 import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
 import { getOverlappingSlots } from 'src/common/utils/slots-utils';
 import { getMonth, getYear } from 'date-fns';
-import { DateTime } from 'luxon';
-import { Availability } from 'src/common/enums/entertainer.enum';
 import { EntertainerAvailability } from '../entertainer/entities/entertainer-availability.entity';
 
 @Injectable()
@@ -177,6 +175,8 @@ export class BookingService {
           status: isReinvited === true ? 'reinvited' : 'invited',
         });
         const savedBooking = await this.bookingRepository.save(newBooking);
+        console.log('saved Booking', savedBooking);
+        console.log('Saved Booking ::', savedBooking.showStartDateTime);
 
         details.push({
           entertainerId,
