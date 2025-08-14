@@ -31,6 +31,7 @@ import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
 import { getOverlappingSlots } from 'src/common/utils/slots-utils';
 import { getMonth, getYear } from 'date-fns';
 import { EntertainerAvailability } from '../entertainer/entities/entertainer-availability.entity';
+import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
 
 @Injectable()
 export class BookingService {
@@ -92,6 +93,7 @@ export class BookingService {
   async createBooking(payload: AdminBookingDto) {
     const { venueId, entertainerIds, showStartDateTime, ...data } = payload;
     const details = [];
+
     let isReinvited = false;
 
     const event = await this.eventRepository.findOne({
@@ -121,6 +123,7 @@ export class BookingService {
         .getRawOne();
 
       for (const entertainerId of entertainerIds) {
+        let savedBooking;
         const alreadyBooked = await this.bookingRepository.findOne({
           where: { entId: entertainerId, eventId: data.eventId },
         });
@@ -164,29 +167,34 @@ export class BookingService {
             message: 'Entertainer is unavailable during this time.',
           });
 
-        const newBooking = this.bookingRepository.create({
-          ...data,
-          venueId: venueId,
-          entId: entertainerId,
-          showStartDateTime: zonedTimeToUtc(
-            showStartDateTime,
-            venue.venueTimeZone ?? 'UTC',
-          ),
-          status: isReinvited === true ? 'reinvited' : 'invited',
-        });
-        const savedBooking = await this.bookingRepository.save(newBooking);
-        console.log('saved Booking', savedBooking);
-        console.log('Saved Booking ::', savedBooking.showStartDateTime);
+        if (isReinvited) {
+          await this.bookingRepository.update(
+            { id: alreadyBooked.id },
+            { status: 'reinvited' },
+          );
+        } else {
+          const newBooking = this.bookingRepository.create({
+            ...data,
+            venueId: venueId,
+            entId: entertainerId,
+            showStartDateTime: zonedTimeToUtc(
+              showStartDateTime,
+              venue.venueTimeZone ?? 'UTC',
+            ),
+            status: 'invited',
+          });
+          savedBooking = await this.bookingRepository.save(newBooking);
 
-        details.push({
-          entertainerId,
-          available: true,
-          message: 'Booking created successfully.',
-          bookingId: savedBooking.id,
-        });
+          details.push({
+            entertainerId,
+            available: true,
+            message: 'Booking created successfully.',
+            bookingId: savedBooking.id,
+          });
+        }
 
         const logPayload = this.logRepository.create({
-          bookingId: newBooking.id,
+          bookingId: isReinvited === true ? alreadyBooked.id : savedBooking.id,
           performedBy: 'admin',
           status: 'invited',
           user: null,
@@ -217,15 +225,23 @@ export class BookingService {
               eventName: event?.slug || '',
               entertainerName: entertainer.name,
               bookingDate: format(
-                savedBooking.showStartDateTime,
+                isReinvited == true
+                  ? alreadyBooked.showStartDateTime
+                  : savedBooking.showStartDateTime,
                 'dd MMM yyyy z',
                 {
                   timeZone: venue.venueTimeZone ?? 'UTC',
                 },
               ),
-              bookingTime: format(savedBooking.showStartDateTime, 'hh:mm a', {
-                timeZone: venue.venueTimezone ?? 'UTC',
-              }),
+              bookingTime: format(
+                isReinvited == true
+                  ? alreadyBooked.showStartDateTime
+                  : savedBooking.showStartDateTime,
+                'hh:mm a',
+                {
+                  timeZone: venue.venueTimezone ?? 'UTC',
+                },
+              ),
               vname: venue.name,
               vemail: venue.email,
               vphone: venue.contactNumber,

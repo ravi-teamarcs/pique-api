@@ -28,6 +28,7 @@ export class BookingLog {
       'removed',
       'rescheduled',
       'closed',
+      'reinvited',
     ],
     default: 'invited',
   })
@@ -39,7 +40,8 @@ export class BookingLog {
     | 'completed'
     | 'removed'
     | 'rescheduled'
-    | 'closed';
+    | 'closed'
+    | 'reinvited';
 
   @Column()
   performedBy: 'venue' | 'entertainer' | 'admin';
