@@ -743,7 +743,7 @@ export class EventService {
           'entertainer.email AS entertainerEmail',
           'event.slug AS slug',
           'event.eventStartDateTime AS eventStartDateTime',
-          'event.eventEndDateTime AS  eventEndDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
           'venue.name AS venueName',
           'venue.timezone AS venueTimeZone',
         ])

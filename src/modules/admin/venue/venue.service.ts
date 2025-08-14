@@ -677,10 +677,11 @@ export class VenueService {
             'euser.id AS eid ',
             'euser.phoneNumber AS ephone',
 
-            'venue.name  As  vname',
-            'vuser.email As vemail',
-            'vuser.phoneNumber As vphone',
-            'vuser.id As vid',
+            'venue.name  AS  vname',
+            'vuser.email AS vemail',
+            'vuser.phoneNumber AS vphone',
+            'vuser.id AS vid',
+            'venue.timezone AS  venueTimeZone',
           ])
           .where('booking.id = :id', { id: bookingId })
           .getRawOne();
@@ -704,9 +705,9 @@ export class VenueService {
         if (booking.email || booking.eEmail) {
           const formattedDate = format(
             booking.showStartDateTime,
-            'dd MMM yyyy',
+            'dd MMM yyyy z',
             {
-              timeZone: 'UTC',
+              timeZone: booking.venueTimeZone ?? 'UTC',
             },
           );
 
@@ -719,8 +720,8 @@ export class VenueService {
               venueName: booking.vname,
               entertainerName: booking.ename,
               id: booking.id,
-              bookingTime: format(booking.showStartDateTime, 'HH:mm', {
-                timeZone: 'UTC',
+              bookingTime: format(booking.showStartDateTime, 'hh:mm a', {
+                timeZone: booking.venueTimeZone ?? 'UTC',
               }),
               bookingDate: formattedDate,
             },
