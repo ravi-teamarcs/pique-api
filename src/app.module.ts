@@ -57,6 +57,7 @@ import { RatingsModule } from './modules/ratings-review/ratings.module';
       serveRoot: '/uploads',
     }),
     AuthModule,
+
     UsersModule,
     VenueModule,
     EntertainerModule,

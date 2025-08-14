@@ -29,3 +29,7 @@ export function convertUtcToTimezoneString(
     return utcString; // fallback
   }
 }
+
+export function nowUtc(): Date {
+  return new Date(new Date()); 
+}

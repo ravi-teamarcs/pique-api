@@ -1,9 +1,12 @@
+import { Series } from 'src/modules/series/entities/series.entity';
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
   UpdateDateColumn,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 
 @Entity('event')
@@ -75,6 +78,13 @@ export class VenueEvent {
 
   @Column({ default: false })
   isCloseToggleActive: boolean; // true = toggle enabled, false = disabled
+
+  @ManyToOne(() => Series, (series) => series.events, {
+    nullable: true,
+    onDelete: 'SET NULL',
+  })
+  @JoinColumn({ name: 'series_id' }) // Explicitly name the FK column
+  series: Series;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

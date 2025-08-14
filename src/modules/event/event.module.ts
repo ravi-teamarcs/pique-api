@@ -13,6 +13,7 @@ import { EmailModule } from '../Email/email.module';
 import { Booking } from '../booking/entities/booking.entity';
 import { BookingModule } from '../booking/booking.module';
 import { NotificationModule } from '../notification/notification.module';
+import { Series } from '../series/entities/series.entity';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { NotificationModule } from '../notification/notification.module';
       EndPoints,
       Venue,
       Booking,
+      Series,
     ]),
     EmailModule,
     BookingModule,
