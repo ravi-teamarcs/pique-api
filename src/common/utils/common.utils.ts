@@ -31,5 +31,46 @@ export function convertUtcToTimezoneString(
 }
 
 export function nowUtc(): Date {
-  return new Date(new Date().toISOString()); 
+  return new Date(new Date().toISOString());
+}
+
+/**
+ * Converts a UTC timestamp to a formatted date string in a given timezone.
+ *
+ * @param utcDateTime - UTC datetime string or Date object (e.g., "2025-08-17T10:00:00Z")
+ * @param timeZone - IANA timezone name (e.g., "Europe/London", "Asia/Kolkata")
+ * @param formatStr - Output format string (default: "dd MMM yyyy HH:mm z")
+ * @returns Formatted date string in target timezone
+ */
+
+export function formatUtcToTimezone(
+  utcDateTime: string | Date,
+  timeZone: string,
+  formatStr = 'dd MMM yyyy HH:mm z',
+): string {
+  if (!utcDateTime) return '';
+
+  // Ensure we have a Date object (must represent UTC)
+  const date =
+    typeof utcDateTime === 'string' ? new Date(utcDateTime) : utcDateTime;
+
+  // Convert from UTC → target timezone
+  const zonedDate = utcToZonedTime(date, timeZone);
+
+  // Format in target timezone
+  return format(zonedDate, formatStr, { timeZone });
+}
+
+export function formatUtcToTimezoneParts(
+  utcDateTime: string | Date,
+  timeZone: string,
+) {
+  const date =
+    typeof utcDateTime === 'string' ? new Date(utcDateTime) : utcDateTime;
+  const zonedDate = utcToZonedTime(date, timeZone);
+
+  return {
+    Date: format(zonedDate, 'dd MMM yyyy z', { timeZone }),
+    Time: format(zonedDate, 'hh:mm a', { timeZone }),
+  };
 }

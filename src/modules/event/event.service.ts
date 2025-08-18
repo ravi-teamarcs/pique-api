@@ -22,6 +22,7 @@ import {
 import { EmailService } from '../Email/email.service';
 import { BookingService } from '../booking/booking.service';
 import { NotificationService } from '../notification/notification.service';
+import { formatUtcToTimezoneParts } from 'src/common/utils/common.utils';
 
 @Injectable()
 export class EventService {
@@ -450,36 +451,35 @@ export class EventService {
         );
 
         if (book.entertainerEmail || book.email) {
+          const { Date: eventDate, Time: startTime } = formatUtcToTimezoneParts(
+            book.eventStartDateTime,
+            book.venueTimeZone,
+          );
+          const { Time: endTime } = formatUtcToTimezoneParts(
+            book.eventEndDateTime,
+            book.venueTimeZone,
+          );
           const emailPayload = {
             to: book.entertainerEmail || book.email,
             subject: `Event ${status}`,
             templateName: 'cancelled-event-template.html',
             replacements: {
               eventName: book.slug,
-              eventDate: formatTz(book.eventStartDateTime, 'dd MMM yyyy z', {
-                timeZone: book.venueTimeZone ?? 'UTC',
-              }),
-              eventTime: formatTz(book.eventStartDateTime, 'hh:mm a', {
-                timeZone: book.venueTimeZone ?? 'UTC',
-              }),
+              eventDate,
+              eventTime: `${startTime} to ${endTime}`,
               year: new Date().getFullYear(),
             },
           };
           this.emailService.handleSendEmail(emailPayload);
-        }
-        if (book.userId) {
-          const notificationPayload = {
-            title: 'Event Canceled',
-            body: `Venue ${book.venueName} has canceled the event ${book.slug} scheduled on date : ${formatTz(
-              book.eventStartDateTime,
-              'dd MMM yyyy hh:mm a z',
-              {
-                timeZone: book.venueTimeZone ?? 'UTC',
-              },
-            )}`,
-            type: 'event_cancelled',
-          };
-          this.notificationService.sendPush(notificationPayload, book.userId);
+
+          if (book.userId) {
+            const notificationPayload = {
+              title: 'Event Canceled',
+              body: `Venue ${book.venueName} has canceled the event ${book.slug} scheduled on date : ${eventDate} and Time : ${startTime} to ${endTime}`,
+              type: 'event_canceled',
+            };
+            this.notificationService.sendPush(notificationPayload, book.userId);
+          }
         }
       }
     }

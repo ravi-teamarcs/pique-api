@@ -36,6 +36,10 @@ import { getOverlappingSlots } from 'src/common/utils/slots-utils';
 import { DateTime } from 'luxon';
 import { Invoice } from '../invoice/entities/invoice.entity';
 import { InvoiceEvent } from '../admin/invoice/entities/invoices-event.entity';
+import {
+  formatUtcToTimezone,
+  formatUtcToTimezoneParts,
+} from 'src/common/utils/common.utils';
 @Injectable()
 export class BookingService {
   constructor(
@@ -84,6 +88,13 @@ export class BookingService {
           select: ['eventStartDateTime', 'eventEndDateTime'],
         });
 
+      console.log(
+        'Event Start Date Time',
+        eventStartDateTime,
+        'eventEndDateTime',
+        eventEndDateTime,
+      );
+
       //  Issues are Here
       const availabilityPayload = {
         startTimeUtc: formatInTimeZone(
@@ -124,6 +135,8 @@ export class BookingService {
       // changes must be there
       const savedBooking = await this.bookingRepository.save(newBooking);
 
+      console.log('Saved Booking', savedBooking);
+
       // update status of event to invited
       await this.eventRepository.update(
         { id: dto.eventId },
@@ -163,10 +176,12 @@ export class BookingService {
         where: { id: savedBooking.eventId },
         select: ['slug', 'title'],
       });
-
       if (ent.entertainerEmail) {
         // let parsedTime = parse(savedBooking.showTime, 'HH:mm:ss', new Date());
-
+        const { Date, Time } = formatUtcToTimezoneParts(
+          eventStartDateTime,
+          venue.timeZone,
+        );
         const emailPayload = {
           to: ent.entertainerEmail || ent.userEmail,
           subject: 'New Booking Request',
@@ -175,16 +190,8 @@ export class BookingService {
             venueName: venue.name,
             eventName: event?.slug || '',
             entertainerName: ent.name,
-            bookingDate: format(
-              savedBooking.showStartDateTime,
-              'dd MMM yyyy z',
-              {
-                timeZone: venue.timeZone ?? 'UTC',
-              },
-            ),
-            bookingTime: format(savedBooking.showStartDateTime, 'hh:mm a', {
-              timeZone: venue.timeZone ?? 'UTC',
-            }),
+            bookingDate: Date,
+            bookingTime: Time,
             vname: venue.name,
             vemail: venue.email,
             vphone: venue.contactNumber,
@@ -305,7 +312,11 @@ export class BookingService {
           );
       }
       if (booking.vemail) {
-        // Ends Here
+        const { Date: eventDate, Time } = formatUtcToTimezoneParts(
+          booking.eventStartDateTime,
+          booking.venueTimeZone,
+        );
+
         const statusToTemplateMap = {
           applied: 'request-accepted.html',
           declined: 'entertainer-declined-booking.html',
@@ -314,29 +325,20 @@ export class BookingService {
         };
 
         const statusToReplacementMap = {
-          accepted: {
+          applied: {
             venueName: booking.vname,
             entertainerName: booking.stageName,
             eventName: booking.slug,
             id: booking.id,
-            bookingTime: format(booking.showStartDateTime, 'dd MMM yyyy z', {
-              timeZone: booking.venueTimeZone ?? 'UTC',
-            }),
-            bookingDate: format(booking.showStartDateTime, 'HH:mm', {
-              timeZone: booking.venueTimeZone ?? 'UTC',
-            }),
+            bookingTime: Time,
+            bookingDate: eventDate,
           },
 
           declined: {
             venueName: booking.vname,
             eventTitle: booking.slug,
-            eventDate: format(
-              booking.showStartDateTime,
-              'dd MMM yyyy HH:mm z',
-              {
-                timeZone: booking.venueTimeZone ?? 'UTC',
-              },
-            ),
+            eventDate: eventDate,
+            eventTime: Time,
             entertainerName: booking.stageName,
           },
           confirmed: {
@@ -350,12 +352,8 @@ export class BookingService {
             eventTitle: booking.slug,
             entertainerName: booking.stageName,
             address: booking.address,
-            eventDate: format(booking.showStartDateTime, 'dd MMM yyyy z', {
-              timeZone: booking.venueTimeZone ?? 'UTC',
-            }),
-            eventTime: format(booking.showStartDateTime, 'HH:mm', {
-              timeZone: booking.venueTimeZone ?? 'UTC',
-            }),
+            eventDate: eventDate,
+            eventTime: Time,
             year: new Date().getFullYear(),
           },
         };
@@ -469,12 +467,14 @@ export class BookingService {
         this.generateBookingLog(payload);
 
         if (booking.email || booking.entertainer_email) {
-          const newTime = format(eventStartDateTime, 'hh:mm a', {
-            timeZone: booking.venueTimeZone ?? 'UTC',
-          });
-          const newDate = format(eventStartDateTime, 'dd MMM yyyy z', {
-            timeZone: booking.venueTimeZone ?? 'UTC',
-          });
+          const { Date: eventDate, Time } = formatUtcToTimezoneParts(
+            eventStartDateTime,
+            booking.venueTimeZone ?? 'UTC',
+          );
+          const { Time: endTime } = formatUtcToTimezoneParts(
+            eventEndDateTime,
+            booking.venueTimeZone ?? 'UTC',
+          );
           const emailPayload = {
             to: booking.email || booking.entertainer_email,
             subject: `Event Rescheduled`,
@@ -482,8 +482,8 @@ export class BookingService {
             replacements: {
               EntertainerName: booking.entertainerName,
               EventName: booking.eventSlug,
-              NewTime: newTime,
-              NewDate: newDate,
+              NewTime: `${Time} to ${endTime}`,
+              NewDate: eventDate,
               Location: `${booking.addressLine1 ?? ''}${booking.addressLine2 ?? ''},${booking.cityName} ,${booking.stateName} ${booking.zipCode} `,
               Year: new Date().getFullYear(),
             },
@@ -494,7 +494,7 @@ export class BookingService {
           this.notifyService.sendPush(
             {
               title: 'Event Rescheduled',
-              body: `Your booking for event ${booking.event_title ?? booking.eventSlug} with venue ${booking?.venueName ?? ''} has been rescheduled to ${newDate} at ${newTime}`,
+              body: `Your booking for event ${booking.event_title ?? booking.eventSlug} with venue ${booking?.venueName ?? ''} has been rescheduled to ${eventDate} at ${Time}`,
               type: 'booking_date_time_change',
             },
             booking.entertainer_user_id,
@@ -528,6 +528,7 @@ export class BookingService {
         const booking = await this.bookingRepository
           .createQueryBuilder('booking')
           .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+          .leftJoin('event', 'event', 'event.id = booking.eventId')
           .leftJoin('users', 'vuser', 'vuser.id = venue.userId') // venue's user
           .leftJoin(
             'entertainers',
@@ -540,6 +541,7 @@ export class BookingService {
             'booking.status AS status',
             'booking.venueId AS venueId',
             'booking.showStartDateTime AS showStartDateTime',
+            'event.eventStartDateTime AS eventStartDateTime',
             'euser.email AS eEmail',
             'entertainer.email AS email',
             'euser.name AS ename',
@@ -574,16 +576,10 @@ export class BookingService {
 
         // Send email and push notification if email is available
         if (booking.email || booking.eEmail) {
-          const formattedDate = format(
-            booking.showStartDateTime,
-            'dd MMM yyyy z',
-            {
-              timeZone: booking.venueTimeZone ?? 'UTC',
-            },
-          ); // e.g. '2025-05-01'
-          const newTime = format(booking.showStartDateTime, 'hh:mm a', {
-            timeZone: booking.venueTimeZone ?? 'UTC',
-          });
+          const { Date, Time } = formatUtcToTimezoneParts(
+            booking.eventStartDateTime,
+            booking.venueTimeZone,
+          );
           const emailPayload = {
             to: booking.eEmail,
             subject: `Booking Request ${status}`,
@@ -593,8 +589,8 @@ export class BookingService {
               venueName: booking.vname,
               entertainerName: booking.ename,
               id: booking.id,
-              bookingTime: newTime,
-              bookingDate: formattedDate,
+              bookingTime: Time,
+              bookingDate: Date,
             },
           };
 
@@ -777,6 +773,10 @@ export class BookingService {
 
         // Send email and push notification to entertainer
         if (req?.email || req?.userEmail) {
+          const { Date, Time } = formatUtcToTimezoneParts(
+            req.eventStartDateTime,
+            req.venueTimeZone,
+          );
           const emailPayload = {
             to: req.email,
             subject: `Event Position closed`,
@@ -784,9 +784,7 @@ export class BookingService {
             replacements: {
               entertainerName: req.entertainerName,
               eventName: req.eventName,
-              eventDate: format(req.eventStartDateTime, 'dd MM yyyy HH:mm z', {
-                timeZone: req.venueTimeZone ?? 'UTC',
-              }),
+              eventDate: `${Date} ${Time}`,
             },
           };
 

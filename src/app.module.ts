@@ -44,6 +44,7 @@ import { RatingsModule } from './modules/ratings-review/ratings.module';
         username: configService.get<string>('DB_USER'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
+        timezone: 'Z',
         entities: [join(process.cwd(), 'dist/**/*.entity.js')],
         // logging: true,
         // logger: 'advanced-console',

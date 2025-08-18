@@ -448,7 +448,7 @@ export class VenueController {
   @Roles('findAll')
   async getUpcomingEvents(@Request() req, @Query() query: EventsByMonthDto) {
     const { refId } = req.user;
-    return this.venueService.getEventDetailsByMonth(refId, query);
+    return this.venueService.getEventDetailsByMonth(refId, query); 
   }
 
   @Get('entertainer/:id/performance-history')

@@ -9,8 +9,7 @@ import { MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { Venue } from '../venue/entities/venue.entity';
 import { nowUtc } from 'src/common/utils/common.utils';
 import { startOfDay } from 'date-fns';
-import { format } from 'date-fns-tz';
-import { log } from 'console';
+import { format, utcToZonedTime } from 'date-fns-tz';
 
 @Injectable()
 export class SeriesService {
@@ -26,7 +25,6 @@ export class SeriesService {
         where: { id },
         select: ['id', 'timezone'],
       });
-      console.log(nowUtc());
 
       const event = await this.eventRepository.find({
         where: {
@@ -40,32 +38,29 @@ export class SeriesService {
           'eventEndDateTime',
           'slug',
         ],
+        order: {
+          id: 'DESC',
+        },
       });
-
-      console.log('Series Event', event);
 
       const parsedResult = event.map(
         ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
-          console.log(
-            format(eventStartDateTime, 'yyyy-MM-dd hh:mm a z', {
-              timeZone: venue.timezone ?? 'UTC',
-            }),
-          );
+          const eventStart = utcToZonedTime(eventStartDateTime, venue.timezone);
+          const eventEnd = utcToZonedTime(eventEndDateTime, venue.timezone);
+
           return {
             ...rest,
-            evenStartDateTimeLocal: format(
-              eventStartDateTime,
-              'yyyy-MM-dd hh:mm a z',
-              { timeZone: venue.timezone ?? 'UTC' },
-            ),
-            eventStartDateTime,
-            evenEndDateTimeLocal: format(
-              eventEndDateTime,
+            eventStartDateTimeLocal: format(
+              eventStart,
               'yyyy-MM-dd hh:mm a z',
               {
                 timeZone: venue.timezone ?? 'UTC',
               },
             ),
+            eventStartDateTime,
+            eventEndDateTimeLocal: format(eventEnd, 'yyyy-MM-dd hh:mm a z', {
+              timeZone: venue.timezone ?? 'UTC',
+            }),
 
             eventEndDateTime,
           };
