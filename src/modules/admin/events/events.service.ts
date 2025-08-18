@@ -753,6 +753,21 @@ export class EventService {
         .where('booking.eventId = :eventId', { eventId })
         .getRawMany();
 
+      const event = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('users', 'user', 'user.id = venue.userId')
+        .select([
+          'user.id As userId',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.slug AS slugName',
+          'venue.name AS venueName',
+          'venue.timezone AS venueTimeZone',
+        ])
+        .where('event.id = :eventId', { eventId })
+        .getRawOne();
+
       for (const book of bookings) {
         await this.bookingRepository.update(
           { id: book.bookingId },
@@ -791,6 +806,24 @@ export class EventService {
             this.notificationService.sendPush(notificationPayload, book.userId);
           }
         }
+      }
+
+      const { Date: eventDate, Time: startTime } = formatUtcToTimezoneParts(
+        event.eventStartDateTime,
+        event.venueTimeZone,
+      );
+      const { Time: endTime } = formatUtcToTimezoneParts(
+        event.eventEndDateTime,
+        event.venueTimeZone,
+      );
+
+      if (event.userId) {
+        const notificationPayload = {
+          title: 'Event Canceled',
+          body: `Venue ${event.venueName} has canceled the event ${event.slug} scheduled on date : ${eventDate} and Time : ${startTime} to ${endTime}`,
+          type: 'event_canceled',
+        };
+        this.notificationService.sendPush(notificationPayload, event.userId);
       }
     }
   }

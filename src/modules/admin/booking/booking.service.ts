@@ -437,6 +437,7 @@ export class BookingService {
       .leftJoin('event', 'event', 'event.id = booking.eventId')
       .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
       .leftJoin('users', 'user', 'user.id = entertainer.userId')
+
       .select([
         'booking.id AS id',
         'booking.status AS status',
@@ -520,6 +521,40 @@ export class BookingService {
           );
         }
       }
+
+      const event = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id =  event.venueId')
+        .leftJoin('users', 'user', 'user.id = venue.userId')
+        .select([
+          'event.id AS id',
+          'event.title AS title',
+          'user.id AS userId',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime  AS eventEndDateTime',
+          'venue.timezone AS venueTimeZone',
+        ])
+        .where('event.id = :eventId', { eventId: id })
+        .getRawOne();
+
+      const { Date: eventDate, Time: startTime } = formatUtcToTimezoneParts(
+        eventStartDateTime,
+        event.venueTimeZone,
+      );
+      const { Time: endTime } = formatUtcToTimezoneParts(
+        eventEndDateTime,
+        event.venueTimeZone,
+      );
+
+      this.notifyService.sendPush(
+        {
+          title: 'Event Date and Time Change',
+          body: `Your Event has been rescheduled to ${eventDate} at ${startTime}-${endTime}`,
+          type: 'booking_date_time_change',
+        },
+        event.userId,
+      );
+
       return {
         message:
           'Your Request for Time and Date  have registered Successfully.',
