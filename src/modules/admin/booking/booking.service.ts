@@ -459,9 +459,11 @@ export class BookingService {
     try {
       for (const booking of bookings) {
         const IGNORED_STATUSES = [
-          'invited',
+          // 'invited',
           'canceled',
           'declined',
+          'closed',
+          'removed',
           'completed',
         ];
         if (IGNORED_STATUSES.includes(booking.status)) continue;
