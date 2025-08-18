@@ -13,6 +13,8 @@ import { startOfDay } from 'date-fns';
 import { format, utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
 import { Series } from './entities/series.entity';
 import { SeriesDto } from './dto/series.dto';
+import { throwError } from 'rxjs';
+import { Status } from 'src/common/enums/event.enum';
 
 @Injectable()
 export class SeriesService {
@@ -203,6 +205,7 @@ export class SeriesService {
       const savedEvent = await this.eventRepository.save(event);
       return { message: 'Event created Successfully', event, status: true };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -224,6 +227,7 @@ export class SeriesService {
 
       return { message: 'Event added successfully', status: true };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(error.message);
     }
   }
@@ -275,5 +279,46 @@ export class SeriesService {
     const slug = `${formattedDate} at ${format12HourTime} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''}${stateString}`;
 
     return slug;
+  }
+
+  async removeEventFromSeries(id: number, seriesId: number) {
+    try {
+      const event = await this.eventRepository.findOne({
+        where: { id, series: { id: seriesId } },
+      });
+      if (!event) new NotFoundException('Event Not Found');
+
+      await this.eventRepository.update(
+        { id: event.id },
+        { series: { id: null } },
+      );
+      return { message: 'Event removed from series', status: true };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async removeSeriesAndEvents(seriesId: number, venueId: number) {
+    try {
+      const series = await this.seriesRepository.findOne({
+        where: { id: seriesId },
+      });
+      if (!series) throw new NotFoundException('Series not Found');
+      await this.seriesRepository.remove(series);
+
+      const events = await this.eventRepository.find({
+        where: { series: { id: series.id }, venueId },
+      });
+      if (events && events.length > 0) {
+        for (const event of events) {
+          await this.eventRepository.remove(event);
+        }
+      }
+      return { message: 'Series and Event deleted Successfully', status: true };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
   }
 }

@@ -16,6 +16,7 @@ import { Roles } from '../auth/roles.decorator';
 import { SeriesDto } from './dto/series.dto';
 import { SeriesEventDto } from './dto/add-event.dto';
 import { AddExistingEventToSeriesDto } from './dto/existing-event.dto';
+import { RemoveEventDto } from './dto/remove-event.dto';
 
 @Controller('series')
 export class SeriesController {
@@ -79,5 +80,18 @@ export class SeriesController {
   }
 
   @Delete()
-  removeEventfromSeries() {}
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  removeSeriesAndEvent(@Body('seriesId') seriesId: number, @Req() req) {
+    const { refId } = req.user;
+    return this.seriesService.removeSeriesAndEvents(seriesId, refId);
+  }
+
+  @Delete('remove-event')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  removeEventfromSeries(payload: RemoveEventDto) {
+    const { eventId, seriesId } = payload;
+    return this.seriesService.removeEventFromSeries(eventId, seriesId);
+  }
 }

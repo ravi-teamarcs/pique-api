@@ -516,7 +516,7 @@ export class BookingService {
           this.notifyService.sendPush(
             {
               title: 'Event Date and Time Change',
-              body: `Your booking with ID ${booking.id} has been rescheduled to ${eventDate} at ${startTime}`,
+              body: `Your booking for event ${booking.eventSlug || booking.event_title} has been rescheduled to ${eventDate} at ${startTime}`,
               type: 'booking_date_time_change',
             },
             booking.entertainer_user_id,
@@ -531,6 +531,7 @@ export class BookingService {
         .select([
           'event.id AS id',
           'event.title AS title',
+          'event.slug AS slugName',
           'user.id AS userId',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime  AS eventEndDateTime',
@@ -551,7 +552,7 @@ export class BookingService {
       this.notifyService.sendPush(
         {
           title: 'Event Date and Time Change',
-          body: `Your Event has been rescheduled to ${eventDate} at ${startTime}-${endTime}`,
+          body: `Your Event ${event?.slugName || event?.title}has been rescheduled to ${eventDate} at ${startTime}-${endTime}`,
           type: 'booking_date_time_change',
         },
         event.userId,
