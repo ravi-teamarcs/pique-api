@@ -884,6 +884,8 @@ export class VenueService {
         );
         const endUtc = zonedTimeToUtc(endDateTime, venue?.timezone ?? 'UTC');
 
+        console.log('StartUtc', startUtc, 'endTime', endUtc);
+
         baseQuery.andWhere(
           `NOT EXISTS (
       SELECT 1
