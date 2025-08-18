@@ -115,6 +115,7 @@ export class SeriesService {
       const series = await this.seriesRepository.findOne({
         where: { id, venueId },
       });
+      if (!series) throw new NotFoundException('Series Not Found');
 
       return {
         message: 'series returned Successfully',
@@ -130,6 +131,7 @@ export class SeriesService {
     try {
       const {
         title,
+        seriesId,
         venueId,
         description,
         eventStartDateTime,
@@ -160,6 +162,7 @@ export class SeriesService {
         venueId,
         title,
         description: description,
+          series: { id: seriesId },
       };
 
       const payload = {
@@ -168,6 +171,7 @@ export class SeriesService {
         eventStartDateTime: startTime,
         eventEndDateTime: endTime,
         neighbourhoodId,
+      
       };
 
       const slug = await this.generateSlug(payload);
@@ -193,7 +197,7 @@ export class SeriesService {
       const event = await this.eventRepository.findOne({
         where: { id: eventId, venueId },
       });
-      if (event) throw new NotFoundException('Event not found');
+      if (!event) throw new NotFoundException('Event not found');
       this.eventRepository.update(
         { id: event.id },
         { series: { id: seriesId } },
