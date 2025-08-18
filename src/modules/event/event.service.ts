@@ -349,7 +349,7 @@ export class EventService {
     const neighbourhoodNameString = neighbourhoodName
       ? `${neighbourhoodName}/`
       : '';
-    const stateString = stateCode ? `, ${stateCode})` : '';
+    const stateString = stateCode ? `, ${stateCode}` : '';
 
     const slug = `${formattedDate} at ${format12HourTime} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''}${stateString}`;
 

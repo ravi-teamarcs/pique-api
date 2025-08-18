@@ -16,6 +16,9 @@ export class Series {
   @Column({ name: 'series_name' })
   seriesName: string;
 
+  @Column({ name: 'venue_id' })
+  venueId: number;
+
   @OneToMany(() => VenueEvent, (event) => event.series)
   events: Event[];
 

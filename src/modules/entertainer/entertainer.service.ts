@@ -1944,7 +1944,7 @@ export class EntertainerService {
         .andWhere('event.status NOT IN (:...eventStatus)', {
           eventStatus: ['canceled', 'completed'],
         })
-        .andWhere('DATE(booking.showStartDateTime) >= :now', {
+        .andWhere('booking.showStartDateTime >= :now', {
           now: new Date(),
         })
 
