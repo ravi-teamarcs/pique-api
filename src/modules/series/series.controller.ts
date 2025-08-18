@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -37,6 +38,14 @@ export class SeriesController {
     return this.seriesService.getAllSeriesOfVenue(venueId);
   }
 
+  @Get('events/upcoming')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getUpcomingEvent(@Req() req) {
+    const { refId } = req.user;
+    return this.seriesService.getUpcomingEventForSeries(refId);
+  }
+
   @Get(':seriesId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
@@ -69,11 +78,6 @@ export class SeriesController {
     );
   }
 
-  @Get('events/upcoming')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('findAll')
-  getUpcomingEvent(@Req() req) {
-    const { refId } = req.user;
-    return this.seriesService.getUpcomingEventForSeries(refId);
-  }
+  @Delete()
+  removeEventfromSeries() {}
 }

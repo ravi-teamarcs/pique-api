@@ -31,22 +31,28 @@ export class SeriesService {
         select: ['id', 'timezone'],
       });
 
-      const event = await this.eventRepository.find({
-        where: {
-          venueId: venue.id,
-          eventStartDateTime: MoreThan(nowUtc()),
-        },
-        select: [
-          'id',
-          'venueId',
-          'eventStartDateTime',
-          'eventEndDateTime',
-          'slug',
-        ],
-        order: {
-          id: 'DESC',
-        },
-      });
+      const event = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+        .select([
+          'event.id AS id',
+          'event.description AS description',
+          'event.title AS title',
+          'event.slug AS slug',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.title AS eventTitle',
+          'venue.name AS venueName',
+          'venue.addressLine1 AS venueAddressLine1',
+          'venue.addressLine1 AS venueAddressLine2',
+          'hood.id AS neighbourHoodId',
+          'hood.name AS neighbourHoodName',
+        ])
+        .where('event.venueId = :venueId', { venueId: venue.id })
+        .andWhere('event.eventStartDateTime >= :time ', { time: nowUtc() })
+        .orderBy('event.id', 'DESC')
+        .getRawMany();
 
       const parsedResult = event.map(
         ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
@@ -98,7 +104,6 @@ export class SeriesService {
           };
         });
         for (const event of newRecords) {
-          console.log('newRecord', newRecords);
           await this.addNewEventToSeries(event);
         }
       }

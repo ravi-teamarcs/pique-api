@@ -762,6 +762,7 @@ export class EventService {
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.slug AS slugName',
+          'event.title AS title',
           'venue.name AS venueName',
           'venue.timezone AS venueTimeZone',
         ])
@@ -820,7 +821,7 @@ export class EventService {
       if (event.userId) {
         const notificationPayload = {
           title: 'Event Canceled',
-          body: `Venue ${event.venueName} has canceled the event ${event.slug} scheduled on date : ${eventDate} and Time : ${startTime} to ${endTime}`,
+          body: `Venue ${event.venueName} has canceled the event ${event?.slugName || event?.title} scheduled on date : ${eventDate} and Time : ${startTime} to ${endTime}`,
           type: 'event_canceled',
         };
         this.notificationService.sendPush(notificationPayload, event.userId);
