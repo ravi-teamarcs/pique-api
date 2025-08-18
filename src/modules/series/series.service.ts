@@ -121,7 +121,10 @@ export class SeriesService {
 
   async getAllSeriesOfVenue(venueId: number) {
     try {
-      const series = await this.seriesRepository.find({ where: { venueId } });
+      const series = await this.seriesRepository.find({
+        where: { venueId },
+        relations: ['events']
+      });
       return {
         message: 'series returned Successfully',
         data: series,
