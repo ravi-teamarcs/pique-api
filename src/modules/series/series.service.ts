@@ -84,9 +84,24 @@ export class SeriesService {
   }
 
   async createSeries(payload: SeriesDto) {
+    const { seriesName, venueId, events } = payload;
     try {
-      const series = this.seriesRepository.create(payload);
+      const seriesPayload = { seriesName, venueId };
+      const series = this.seriesRepository.create(seriesPayload);
       const savedSeries = await this.seriesRepository.save(series);
+
+      if (events && events.length > 0) {
+        const newRecords = events.map((event: any) => {
+          return {
+            ...event,
+            seriesId: savedSeries.id,
+          };
+        });
+        for (const event of newRecords) {
+          console.log('newRecord', newRecords);
+          await this.addNewEventToSeries(event);
+        }
+      }
       return {
         message: 'Series created successfully',
         status: true,
@@ -162,7 +177,7 @@ export class SeriesService {
         venueId,
         title,
         description: description,
-          series: { id: seriesId },
+        series: { id: seriesId },
       };
 
       const payload = {
@@ -171,7 +186,6 @@ export class SeriesService {
         eventStartDateTime: startTime,
         eventEndDateTime: endTime,
         neighbourhoodId,
-      
       };
 
       const slug = await this.generateSlug(payload);
