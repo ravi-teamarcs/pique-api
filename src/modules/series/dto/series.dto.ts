@@ -14,6 +14,9 @@ export class SeriesDto {
   @IsOptional()
 
   existingEvents: number[];
+  @IsArray()
+  @IsOptional()
+  updateEvents:[];
 
   @IsOptional()
   venueId: number;

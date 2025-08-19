@@ -332,7 +332,8 @@ export class SeriesService {
 
   async updateSeries(venueId: number, payload) {
     try {
-      const { seriesName, events, seriesId } = payload;
+      const { seriesName, events, seriesId, existingEvents, updateEvents } =
+        payload;
 
       const series = await this.seriesRepository.findOne({
         where: { id: seriesId },
@@ -345,7 +346,25 @@ export class SeriesService {
         { seriesName, venueId },
       );
 
-      for (const event of events) {
+      if (events && events.length > 0) {
+        const newRecords = events.map((event: any) => {
+          return {
+            ...event,
+            seriesId: series.id,
+          };
+        });
+        for (const event of newRecords) {
+          await this.addNewEventToSeries(event);
+        }
+      }
+
+      if (existingEvents && existingEvents.length > 0) {
+        for (const eventId of existingEvents) {
+          await this.addExistingEventToSeries(eventId, series.id, venueId);
+        }
+      }
+
+      for (const event of updateEvents) {
         // Need to use external Service
         await this.handleUpdateEvent(event, venueId);
       }
