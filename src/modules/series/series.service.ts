@@ -458,7 +458,7 @@ export class SeriesService {
       //     eventStartDateTime: startTime.toISOString(),
       //     eventEndDateTime: endTime.toISOString(),
       //   });
-      // }
+      // } new
       return { message: 'Event updated successfully', status: true };
     } catch (error) {
       throw new InternalServerErrorException({
