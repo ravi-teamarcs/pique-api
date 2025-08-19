@@ -92,7 +92,7 @@ export class SeriesService {
   }
 
   async createSeries(payload: SeriesDto) {
-    const { seriesName, venueId, events } = payload;
+    const { seriesName, venueId, events, existingEvents } = payload;
     try {
       const seriesPayload = { seriesName, venueId };
       const series = this.seriesRepository.create(seriesPayload);
@@ -109,6 +109,12 @@ export class SeriesService {
           await this.addNewEventToSeries(event);
         }
       }
+
+      if (existingEvents && existingEvents.length > 0) {
+        for (const eventId of existingEvents) {
+          await this.addExistingEventToSeries(eventId, savedSeries.id, venueId);
+        }
+      }
       return {
         message: 'Series created successfully',
         status: true,
@@ -123,7 +129,7 @@ export class SeriesService {
     try {
       const series = await this.seriesRepository.find({
         where: { venueId },
-        relations: ['events']
+        relations: ['events'],
       });
       return {
         message: 'series returned Successfully',
