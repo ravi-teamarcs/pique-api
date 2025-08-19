@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  ParseIntPipe,
   Patch,
   Post,
   Req,
@@ -80,10 +81,13 @@ export class SeriesController {
     );
   }
 
-  @Delete()
+  @Delete(':seriesId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
-  removeSeriesAndEvent(@Body('seriesId') seriesId: number, @Req() req) {
+  removeSeriesAndEvent(
+    @Param('seriesId', ParseIntPipe) seriesId: number,
+    @Req() req,
+  ) {
     const { refId } = req.user;
     return this.seriesService.removeSeriesAndEvents(seriesId, refId);
   }
@@ -98,7 +102,7 @@ export class SeriesController {
 
   @Patch()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('findAll') 
+  @Roles('findAll')
   updateSeries(@Body() payload, @Req() req) {
     const { refId: venueId } = req.user;
     return this.seriesService.updateSeries(venueId, payload);
