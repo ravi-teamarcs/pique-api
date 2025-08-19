@@ -332,7 +332,7 @@ export class SeriesService {
 
   async updateSeries(venueId: number, payload) {
     try {
-      const { seriesName, events, seriesId, existingEvents, updateEvents } =
+      const { seriesName, events, seriesId, existingEvents, updatedEvents } =
         payload;
 
       const series = await this.seriesRepository.findOne({
@@ -364,7 +364,7 @@ export class SeriesService {
         }
       }
 
-      for (const event of updateEvents) {
+      for (const event of updatedEvents) {
         // Need to use external Service
         await this.handleUpdateEvent(event, venueId);
       }
