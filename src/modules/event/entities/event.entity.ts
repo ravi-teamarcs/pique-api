@@ -81,7 +81,7 @@ export class VenueEvent {
 
   @ManyToOne(() => Series, (series) => series.events, {
     nullable: true,
-    onDelete: 'SET NULL',
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'series_id' }) // Explicitly name the FK column
   series: Series;

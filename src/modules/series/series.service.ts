@@ -323,14 +323,6 @@ export class SeriesService {
       if (!series) throw new NotFoundException('Series not Found');
       await this.seriesRepository.remove(series);
 
-      const events = await this.eventRepository.find({
-        where: { series: { id: series.id }, venueId },
-      });
-      if (events && events.length > 0) {
-        for (const event of events) {
-          await this.eventRepository.remove(event);
-        }
-      }
       return { message: 'Series and Event deleted Successfully', status: true };
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -355,7 +347,7 @@ export class SeriesService {
 
       for (const event of events) {
         // Need to use external Service
-        await this.eventRepository.update({ id: event.id }, event);
+        await this.handleUpdateEvent(event, venueId);
       }
 
       return { message: 'Series updated successfully', status: true };
