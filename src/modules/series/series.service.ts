@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   HttpException,
   Injectable,
   InternalServerErrorException,
@@ -10,7 +11,12 @@ import { MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { Venue } from '../venue/entities/venue.entity';
 import { nowUtc } from 'src/common/utils/common.utils';
 import { startOfDay } from 'date-fns';
-import { format, utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import {
+  format,
+  formatInTimeZone,
+  utcToZonedTime,
+  zonedTimeToUtc,
+} from 'date-fns-tz';
 import { Series } from './entities/series.entity';
 import { SeriesDto } from './dto/series.dto';
 import { throwError } from 'rxjs';
@@ -145,6 +151,7 @@ export class SeriesService {
     try {
       const series = await this.seriesRepository.findOne({
         where: { id, venueId },
+        relations: ['events'],
       });
       if (!series) throw new NotFoundException('Series Not Found');
 
@@ -328,6 +335,126 @@ export class SeriesService {
     } catch (error) {
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async updateSeries(venueId: number, payload) {
+    try {
+      const { seriesName, events, seriesId } = payload;
+
+      const series = await this.seriesRepository.findOne({
+        where: { id: seriesId },
+      });
+
+      if (!series) throw new NotFoundException('series not found');
+
+      await this.seriesRepository.update(
+        { id: series.id },
+        { seriesName, venueId },
+      );
+
+      for (const event of events) {
+        // Need to use external Service
+        await this.eventRepository.update({ id: event.id }, event);
+      }
+
+      return { message: 'Series updated successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async handleUpdateEvent(dto: any, venueId: number) {
+    const {
+      title,
+      description,
+      eventId,
+      neighbourhoodId,
+      eventStartDateTime,
+      eventEndDateTime,
+    } = dto;
+
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId, venueId },
+    });
+
+    if (!event) {
+      throw new BadRequestException('Event not found');
+    }
+
+    try {
+      const venue = await this.venueRepository.findOne({
+        where: { id: venueId },
+        select: ['timezone'],
+      });
+
+      if (!venue.timezone) {
+        console.warn(
+          `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+        );
+      }
+
+      const startTime = zonedTimeToUtc(
+        eventStartDateTime,
+        venue.timezone ?? 'UTC',
+      );
+      const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
+
+      const slugPayload = {
+        title,
+        neighbourhoodId,
+        venueId,
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
+      };
+      const slug = await this.generateSlug(slugPayload);
+
+      const updatePayload = {
+        title,
+        description,
+        eventStartDateTime: startTime.toISOString(),
+        eventEndDateTime: endTime.toISOString(),
+        venueId,
+        slug,
+        sub_venue_id: neighbourhoodId,
+      };
+
+      const hasStartDateTimeChanged =
+        startTime &&
+        formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
+          formatInTimeZone(
+            new Date(event.eventStartDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
+
+      const hasEndDateTimeChanged =
+        endTime &&
+        formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
+          formatInTimeZone(
+            new Date(event.eventStartDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
+
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+        updatePayload['status'] = 'rescheduled';
+      }
+      await this.eventRepository.update({ id: event.id }, updatePayload);
+
+      // if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+      //   this.bookingService.handleChangeRequest(Number(event.id), {
+      //     eventStartDateTime: startTime.toISOString(),
+      //     eventEndDateTime: endTime.toISOString(),
+      //   });
+      // }
+      return { message: 'Event updated successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error updating event',
+        error: error.message,
+        status: error.status,
+      });
     }
   }
 }

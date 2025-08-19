@@ -338,6 +338,7 @@ export class BookingService {
           'inv.payment_date AS venuePaymentDate',
           'venue.name AS venueName',
           'venue.timezone AS venueTimeZone',
+
           'hood.name AS neighbourhood_name',
           'city.name AS  venueCityName',
           'state.name AS  venueStateName',

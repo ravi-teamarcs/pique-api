@@ -17,6 +17,7 @@ import { SeriesDto } from './dto/series.dto';
 import { SeriesEventDto } from './dto/add-event.dto';
 import { AddExistingEventToSeriesDto } from './dto/existing-event.dto';
 import { RemoveEventDto } from './dto/remove-event.dto';
+import { isThisSecond } from 'date-fns';
 
 @Controller('series')
 export class SeriesController {
@@ -93,5 +94,13 @@ export class SeriesController {
   removeEventfromSeries(payload: RemoveEventDto) {
     const { eventId, seriesId } = payload;
     return this.seriesService.removeEventFromSeries(eventId, seriesId);
+  }
+
+  @Patch()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll') 
+  updateSeries(@Body() payload, @Req() req) {
+    const { refId: venueId } = req.user;
+    return this.seriesService.updateSeries(venueId, payload);
   }
 }
