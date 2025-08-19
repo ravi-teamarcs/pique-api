@@ -11,7 +11,8 @@ export class SeriesDto {
   events: [];
 
   @IsArray()
-  @Optional()
+  @IsOptional()
+
   existingEvents: number[];
 
   @IsOptional()
