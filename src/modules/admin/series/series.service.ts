@@ -169,6 +169,7 @@ export class AdminSeriesService {
   async getSeriesById(id: number) {
     try {
       const series = await this.seriesRepository.findOne({
+        where: { id },
         relations: ['events'],
       });
       if (!series) throw new NotFoundException('Series Not Found');
