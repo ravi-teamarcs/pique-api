@@ -46,7 +46,8 @@ export class AdminSeriesService {
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.title AS eventTitle',
-           
+          'event.series_id AS seriesId',
+
           'venue.id AS venueId',
           'venue.name AS venueName',
           'venue.addressLine1 AS venueAddressLine1',
@@ -56,6 +57,7 @@ export class AdminSeriesService {
           'hood.name AS neighbourHoodName',
         ])
         .andWhere('event.eventStartDateTime >= :time ', { time: nowUtc() })
+        .andWhere('event.series_id IS NULL')
         .orderBy('event.id', 'DESC')
         .getRawMany();
 

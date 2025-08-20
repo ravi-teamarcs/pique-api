@@ -51,6 +51,7 @@ export class SeriesService {
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.title AS eventTitle',
+          'event.series_id AS seriesId',
           'venue.name AS venueName',
           'venue.addressLine1 AS venueAddressLine1',
           'venue.addressLine1 AS venueAddressLine2',
@@ -59,6 +60,7 @@ export class SeriesService {
         ])
         .where('event.venueId = :venueId', { venueId: venue.id })
         .andWhere('event.eventStartDateTime >= :time ', { time: nowUtc() })
+        .andWhere('event.series_id IS NULL')
         .orderBy('event.id', 'DESC')
         .getRawMany();
 
