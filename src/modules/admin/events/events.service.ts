@@ -687,6 +687,7 @@ export class EventService {
       const events = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('series', 'series', 'series.id = event.series_id')
         .where('DATE(event.eventStartDateTime) BETWEEN :start AND :end', {
           start,
           end,
@@ -697,6 +698,7 @@ export class EventService {
           'venue.timezone AS venueTimeZone',
           'venue.addressLine1 AS addressLine1',
           'venue.timezone AS addressLine2',
+          'series.seriesName AS seriesName',
         ])
         .orderBy('event.id', 'DESC')
         .getRawMany();

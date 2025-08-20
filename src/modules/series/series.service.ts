@@ -42,6 +42,7 @@ export class SeriesService {
       const event = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('series', 'series', 'series.id = event.series_id')
         .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
         .select([
           'event.id AS id',
@@ -52,6 +53,7 @@ export class SeriesService {
           'event.eventEndDateTime AS eventEndDateTime',
           'event.title AS eventTitle',
           'event.series_id AS seriesId',
+          'series.seriesName AS seriesName',
           'venue.name AS venueName',
           'venue.addressLine1 AS venueAddressLine1',
           'venue.addressLine1 AS venueAddressLine2',
