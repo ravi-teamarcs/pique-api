@@ -30,6 +30,13 @@ export class SeriesController {
     return this.seriesService.createSeries(payload);
   }
 
+  @Get('events/upcoming')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('findAll')
+  getUpcomingEvent(@Req() req) {
+    return this.seriesService.getUpcomingEventForSeries();
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuardAdmin)
   @Roles('findAll')
@@ -85,6 +92,5 @@ export class SeriesController {
   @Roles('findAll')
   updateSeries(@Body() payload: UpdateSeriesDto, @Req() req) {
     return this.seriesService.updateSeries(payload);
-   
   }
 }

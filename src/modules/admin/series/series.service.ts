@@ -11,8 +11,14 @@ import { Venue } from '../venue/entities/venue.entity';
 import { Repository } from 'typeorm';
 import { Event } from '../events/entities/event.entity';
 import { AddSeriesDto } from './dto/add-series.dto';
-import { formatInTimeZone, utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import {
+  format as tzFormat,
+  formatInTimeZone,
+  utcToZonedTime,
+  zonedTimeToUtc,
+} from 'date-fns-tz';
 import { format } from 'date-fns';
+import { nowUtc } from 'src/common/utils/common.utils';
 
 @Injectable()
 export class SeriesService {
@@ -25,6 +31,68 @@ export class SeriesService {
     private readonly seriesRepository: Repository<Series>,
   ) {}
 
+  async getUpcomingEventForSeries() {
+    try {
+      const event = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+        .select([
+          'event.id AS id',
+          'event.description AS description',
+          'event.title AS title',
+          'event.slug AS slug',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.title AS eventTitle',
+          'venue.name AS venueName',
+          'venue.addressLine1 AS venueAddressLine1',
+          'venue.addressLine1 AS venueAddressLine2',
+          'venue.timezone AS venueTimeZone',
+          'hood.id AS neighbourHoodId',
+          'hood.name AS neighbourHoodName',
+        ])
+        .andWhere('event.eventStartDateTime >= :time ', { time: nowUtc() })
+        .orderBy('event.id', 'DESC')
+        .getRawMany();
+
+      const parsedResult = event.map(
+        ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
+          const eventStart = utcToZonedTime(
+            eventStartDateTime,
+            rest.venueTimeZone,
+          );
+          const eventEnd = utcToZonedTime(eventEndDateTime, rest.venueTimeZone);
+
+          return {
+            ...rest,
+            eventStartDateTimeLocal: tzFormat(
+              eventStart,
+              'yyyy-MM-dd hh:mm a z',
+              {
+                timeZone: rest.venueTimeZone ?? 'UTC',
+              },
+            ),
+            eventStartDateTime,
+            eventEndDateTimeLocal: tzFormat(eventEnd, 'yyyy-MM-dd hh:mm a z', {
+              timeZone: rest.venueTimeZone ?? 'UTC',
+            }),
+
+            eventEndDateTime,
+          };
+        },
+      );
+
+      return {
+        message: 'Upcoming events fetched successfully',
+        data: parsedResult,
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
+  }
   async createSeries(payload: AddSeriesDto) {
     const { seriesName, events, existingEvents } = payload;
     try {
