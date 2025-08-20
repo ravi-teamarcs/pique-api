@@ -1,17 +1,4 @@
 import {
-  BadRequestException,
-  HttpException,
-  Injectable,
-  InternalServerErrorException,
-  NotFoundException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Series } from './entities/series.entity';
-import { Venue } from '../venue/entities/venue.entity';
-import { Repository } from 'typeorm';
-import { Event } from '../events/entities/event.entity';
-import { AddSeriesDto } from './dto/add-series.dto';
-import {
   format as tzFormat,
   formatInTimeZone,
   utcToZonedTime,
@@ -19,9 +6,23 @@ import {
 } from 'date-fns-tz';
 import { format } from 'date-fns';
 import { nowUtc } from 'src/common/utils/common.utils';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { SeriesDto } from 'src/modules/series/dto/series.dto';
+import { Series } from './entities/series.entity';
+import { Venue } from '../venue/entities/venue.entity';
+import { AddSeriesDto } from './dto/add-series.dto';
+import { Event } from '../events/entities/event.entity';
 
 @Injectable()
-export class SeriesService {
+export class AdminSeriesService {
   constructor(
     @InjectRepository(Event)
     private readonly eventRepository: Repository<Event>,
@@ -161,7 +162,7 @@ export class SeriesService {
     }
   }
 
-  async getSeriesById(id: number, venueId: number) {
+  async getSeriesById(id: number) {
     try {
       const series = await this.seriesRepository.findOne({
         relations: ['events'],
@@ -196,7 +197,7 @@ export class SeriesService {
     }
   }
 
-  async removeSeriesAndEvents(seriesId: number, venueId: number) {
+  async removeSeriesAndEvents(seriesId: number) {
     try {
       const series = await this.seriesRepository.findOne({
         where: { id: seriesId },

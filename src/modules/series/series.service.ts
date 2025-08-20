@@ -302,7 +302,7 @@ export class SeriesService {
       const event = await this.eventRepository.findOne({
         where: { id, series: { id: seriesId } },
       });
-      if (!event) new NotFoundException('Event Not Found');
+      if (!event) throw new NotFoundException('Event not found');
 
       await this.eventRepository.update(
         { id: event.id },

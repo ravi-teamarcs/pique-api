@@ -1,4 +1,4 @@
-import { VenueEvent } from 'src/modules/event/entities/event.entity';
+import { Event } from 'src/modules/admin/events/entities/event.entity';
 import {
   Column,
   CreateDateColumn,
@@ -16,10 +16,10 @@ export class Series {
   @Column({ name: 'series_name' })
   seriesName: string;
 
-  @Column({ name: 'venue_id' })
+  @Column({ name: 'venue_id', nullable: true })
   venueId: number;
 
-  @OneToMany(() => VenueEvent, (event) => event.series)
+  @OneToMany(() => Event, (event) => event.series)
   events: Event[];
 
   @CreateDateColumn({ type: 'timestamp', name: 'created_at' })
