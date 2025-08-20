@@ -46,6 +46,8 @@ export class AdminSeriesService {
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.title AS eventTitle',
+           
+          'venue.id AS venueId',
           'venue.name AS venueName',
           'venue.addressLine1 AS venueAddressLine1',
           'venue.addressLine1 AS venueAddressLine2',
