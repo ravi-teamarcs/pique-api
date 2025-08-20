@@ -29,6 +29,8 @@ import { ReportModule } from './report/report.module';
 import { BookingModule } from './booking/booking.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { SettingsModule } from './settings/settings.module';
+import { SeriesModule } from '../series/series.module';
+import { Series } from '../series/entities/series.entity';
 
 @Module({
   imports: [
@@ -47,6 +49,7 @@ import { SettingsModule } from './settings/settings.module';
       Invoice,
       Event,
       Booking,
+      Series,
     ]),
     AuthModule,
     VenueModule,
@@ -61,6 +64,7 @@ import { SettingsModule } from './settings/settings.module';
     BookingModule,
     DashboardModule,
     SettingsModule,
+    SeriesModule,
   ],
   controllers: [AdminController],
   providers: [AdminService],

@@ -8,6 +8,7 @@ import {
   ManyToOne,
   JoinColumn,
 } from 'typeorm';
+import { Series } from '../../series/entities/series.entity';
 
 @Entity('event')
 export class Event {
@@ -72,6 +73,13 @@ export class Event {
   isAdmin: boolean;
 
   // events.entity.ts
+
+  @ManyToOne(() => Series, (series) => series.events, {
+    nullable: true,
+    onDelete: 'CASCADE',
+  })
+  @JoinColumn({ name: 'series_id' }) // Explicitly name the FK column
+  series: Series;
 
   @Column({ default: false })
   emailSentAfter1Hour: boolean;
