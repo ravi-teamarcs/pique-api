@@ -174,9 +174,26 @@ export class AdminSeriesService {
       });
       if (!series) throw new NotFoundException('Series Not Found');
 
+      const parsedResult = await Promise.all(
+        series?.events?.map(async (event: any) => {
+          const venue = await this.venueRepository.findOne({
+            where: { id: event.venueId },
+            select: ['timezone'],
+          });
+          return {
+            ...event,
+            venueTimeZone: venue.timezone,
+          };
+        }),
+      );
+      const returnPayload = {
+        id: series.id,
+        seriesName: series.seriesName,
+        events: parsedResult,
+      };
       return {
         message: 'series returned Successfully',
-        data: series,
+        data: returnPayload,
         status: true,
       };
     } catch (error) {
