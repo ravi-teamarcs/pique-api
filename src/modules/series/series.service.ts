@@ -351,6 +351,7 @@ export class SeriesService {
           return {
             ...event,
             seriesId: series.id,
+            venueId,
           };
         });
         for (const event of newRecords) {
