@@ -14,7 +14,7 @@ import { SeriesService } from './series.service';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
-import { SeriesDto } from './dto/series.dto';
+import { SeriesDto, UpdateSeriesDto } from './dto/series.dto';
 import { SeriesEventDto } from './dto/add-event.dto';
 import { AddExistingEventToSeriesDto } from './dto/existing-event.dto';
 import { RemoveEventDto } from './dto/remove-event.dto';
@@ -81,6 +81,14 @@ export class SeriesController {
     );
   }
 
+  @Delete('remove-event')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  removeEventfromSeries(@Body() payload: RemoveEventDto) {
+    const { eventId, seriesId } = payload;
+    return this.seriesService.removeEventFromSeries(eventId, seriesId);
+  }
+
   @Delete(':seriesId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
@@ -92,18 +100,10 @@ export class SeriesController {
     return this.seriesService.removeSeriesAndEvents(seriesId, refId);
   }
 
-  @Delete('remove-event')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('findAll')
-  removeEventfromSeries(payload: RemoveEventDto) {
-    const { eventId, seriesId } = payload;
-    return this.seriesService.removeEventFromSeries(eventId, seriesId);
-  }
-
   @Patch()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
-  updateSeries(@Body() payload, @Req() req) {
+  updateSeries(@Body() payload: UpdateSeriesDto, @Req() req) {
     const { refId: venueId } = req.user;
     return this.seriesService.updateSeries(venueId, payload);
   }

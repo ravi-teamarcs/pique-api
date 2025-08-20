@@ -1,6 +1,12 @@
 import { Optional } from '@nestjs/common';
 import { PartialType } from '@nestjs/swagger';
-import { IsArray, IsNumber, IsOptional, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class SeriesDto {
   @IsString()
@@ -12,14 +18,17 @@ export class SeriesDto {
 
   @IsArray()
   @IsOptional()
-
   existingEvents: number[];
-  @IsArray()
-  @IsOptional()
-  updateEvents:[];
 
   @IsOptional()
   venueId: number;
 }
 
-export class UpdateSeriesDto extends PartialType(SeriesDto) {}
+export class UpdateSeriesDto extends PartialType(SeriesDto) {
+  @IsArray()
+  @IsOptional()
+  updatedEvents: [];
+
+  @IsNotEmpty()
+  seriesId: number;
+}
