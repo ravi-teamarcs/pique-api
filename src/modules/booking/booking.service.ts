@@ -922,13 +922,14 @@ export class BookingService {
           });
 
           if (alreadyBooked) {
-            return details.push({
+            details.push({
               entertainerId: entertainer.entertainerId,
               eventId: event.id,
               available: false,
               message:
                 'invitation is already sent to this entertainer for event.',
             });
+            continue;
           }
 
           const availabilityPayload = {

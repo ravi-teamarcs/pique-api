@@ -161,12 +161,14 @@ export class BookingService {
         const availability =
           await this.checkEntertainerAvailability(availabilityPayload);
 
-        if (!availability)
-          return details.push({
+        if (!availability) {
+          details.push({
             entertainerId,
             available: false,
             message: 'Entertainer is unavailable during this time.',
           });
+          continue;
+        }
 
         if (isReinvited) {
           await this.bookingRepository.update(
@@ -830,13 +832,15 @@ export class BookingService {
           });
 
           if (alreadyBooked) {
-            return details.push({
+            details.push({
               entertainerId: entertainer.entertainerId,
               eventId: event.id,
               available: false,
               message:
                 'invitation is already sent to this entertainer for event.',
             });
+
+            continue;
           }
 
           const availabilityPayload = {
