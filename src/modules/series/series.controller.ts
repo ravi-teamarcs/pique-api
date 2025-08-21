@@ -49,6 +49,13 @@ export class SeriesController {
     return this.seriesService.getUpcomingEventForSeries(refId);
   }
 
+  @Get('booked-entertainer/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getBookedEntertainerForSeries(@Param('id') id: number) {
+    return this.seriesService.getBookedEntertainerForSeries(id);
+  }
+
   @Get(':seriesId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')

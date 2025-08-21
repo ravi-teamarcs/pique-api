@@ -21,6 +21,7 @@ import { Series } from './entities/series.entity';
 import { SeriesDto } from './dto/series.dto';
 import { throwError } from 'rxjs';
 import { Status } from 'src/common/enums/event.enum';
+import { Booking } from '../booking/entities/booking.entity';
 
 @Injectable()
 export class SeriesService {
@@ -31,6 +32,8 @@ export class SeriesService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(Series)
     private readonly seriesRepository: Repository<Series>,
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>,
   ) {}
   async getUpcomingEventForSeries(id: number) {
     try {
@@ -474,6 +477,90 @@ export class SeriesService {
         error: error.message,
         status: error.status,
       });
+    }
+  }
+
+  async getBookedEntertainerForSeries(seriesId: number) {
+    try {
+      const events = await this.eventRepository.find({
+        where: { series: { id: seriesId } },
+        select: ['id', 'slug', 'title'],
+        relations: ['series'], // only if you need series loaded
+      });
+
+      const eventIds = events?.map((event) => Number(event.id));
+      if (eventIds.length === 0)
+        return { message: 'No events for series', data: [], status: true };
+
+      const rawBookings = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin('event', 'event', 'event.id =booking.eventId')
+        .leftJoin(
+          'entertainers',
+          'entertainer',
+          'entertainer.id = booking.entId',
+        )
+        .leftJoin('categories', 'category', 'category.id = booking.categoryId')
+        .leftJoin('categories', 'subcat', 'subcat.id = booking.subcategoryId')
+        .select([
+          'event.slug AS eventSlug',
+          'booking.id AS bookingId',
+          'booking.eventId AS eventId',
+          'entertainer.entertainer_name AS entertainerName',
+          'entertainer.contact_person AS contactPerson',
+          'entertainer.contact_number AS contactNumber',
+          'booking.categoryId AS categoryId',
+          'booking.subcategoryId AS subCategoryId',
+          'booking.status AS bookingStatus',
+          'category.name AS categoryName',
+          'subcat.name AS subCategoryName ',
+        ])
+        .where('booking.eventId IN (:...eventIds)', { eventIds })
+        .getRawMany(); // Group by eventId
+      const grouped = rawBookings.reduce((acc, row) => {
+        const existing = acc.find((e) => e.eventId === row.eventId);
+        if (existing) {
+          existing.bookings.push({
+            bookingId: row.bookingId,
+            entertainerName: row.entertainerName,
+            categoryName: row.categoryName,
+            subCategoryName: row.subCategoryName,
+            categoryId: row.categoryId,
+            subcategoryId: row.subCategoryId,
+            bookingStatus: row.bookingStatus,
+            contactPerson: row.contactPerson,
+            contactNumber: row.contactNumber,
+          });
+        } else {
+          acc.push({
+            eventId: row.eventId,
+            eventSlug: row.eventSlug,
+            bookings: [
+              {
+                bookingId: row.bookingId,
+                entertainerName: row.entertainerName,
+                categoryName: row.categoryName,
+                subCategoryName: row.subCategoryName,
+                categoryId: row.categoryId,
+                subcategoryId: row.subcategoryId,
+                bookingStatus: row.bookingStatus,
+                contactPerson: row.contactPerson,
+                contactNumber: row.contactNumber,
+              },
+            ],
+          });
+        }
+        return acc;
+      }, []);
+
+      return {
+        message: 'Entertainer booked for series',
+        data: grouped,
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
     }
   }
 }

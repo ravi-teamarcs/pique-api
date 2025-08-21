@@ -8,6 +8,7 @@ import { Role } from '../auth/entities/role.entity';
 import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Series } from './entities/series.entity';
+import { Booking } from '../booking/entities/booking.entity';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { Series } from './entities/series.entity';
       Access,
       EndPoints,
       Series,
+      Booking
     ]),
   ],
   controllers: [SeriesController],
