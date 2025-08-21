@@ -22,6 +22,7 @@ import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { BookingReqResponse } from './dto/request-booking.dto';
 import { deleteFileFromServer } from 'src/common/middlewares/multer.middleware';
+import { SeriesBookingDto } from './dto/series-booking-dto';
 
 @ApiTags('Booking')
 @ApiBearerAuth()
@@ -57,4 +58,14 @@ export class BookingController {
   // async tetstingRoute(@Body('url') url: string) {
   //   return deleteFileFromServer(url);
   // }
+
+  @Post('series')
+  @Roles('findAll')
+  inviteEntertainerForSeries(@Body() payload: SeriesBookingDto) {
+    const { eventIds, entertainers } = payload;
+    return this.bookingService.inviteEntertainerForSeries(
+      eventIds,
+      entertainers,
+    );
+  }
 }

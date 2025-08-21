@@ -36,6 +36,7 @@ import {
   subMonths,
   subYears,
 } from 'date-fns';
+import { SeriesBookingDto } from './dto/series-booking.dto';
 
 @ApiTags('Booking')
 @ApiBearerAuth()
@@ -132,5 +133,15 @@ export class BookingController {
   @Roles('super-admin')
   closeBoooking(@Body() payload: { eventId: number; sendEmail: boolean }) {
     return this.bookingService.toggleCloseBookings(payload);
+  }
+
+  @Post('series')
+  @Roles('super-admin')
+  inviteEntertainerForSeries(@Body() payload: SeriesBookingDto) {
+    const { eventIds, entertainers } = payload;
+    return this.bookingService.inviteEntertainerForSeries(
+      eventIds,
+      entertainers,
+    );
   }
 }
