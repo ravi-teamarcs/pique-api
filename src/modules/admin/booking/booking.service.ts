@@ -791,4 +791,63 @@ export class BookingService {
     }
     return { message: 'Booking closed sucessfully', status: true };
   }
+
+  // async inviteEntertainerForSeries(eventIds , bookingPayload) {
+  //   try {
+  //     // Suppose you have list of events
+  //     for (const eventId of eventIds) {
+  //       const event = await this.eventRepository.findOne({
+  //         where: { id: eventId },
+  //         select: ['eventStartDateTime', 'eventEndDateTime'],
+  //       });
+  //       if (!event) continue;
+
+  //       const alreadyBooked = await this.bookingRepository.findOne({
+  //         where: { entId: entertainerId, eventId: data.eventId },
+  //       });
+
+  //       if (alreadyBooked) {
+  //         if (
+  //           alreadyBooked.status === 'removed' ||
+  //           alreadyBooked.status === 'closed'
+  //         ) {
+  //           isReinvited = true;
+  //         } else {
+  //           throw new BadRequestException({
+  //             message: `Entertainer has been already invited for event.`,
+  //           });
+  //         }
+  //       }
+
+  //       // Check for Availability.
+
+  //       const availabilityPayload = {
+  //         startTimeUtc: formatInTimeZone(
+  //           new Date(event.eventStartDateTime),
+  //           'UTC',
+  //           "yyyy-MM-dd'T'HH:mm:ss'Z'",
+  //         ),
+  //         endTimeUtc: formatInTimeZone(
+  //           new Date(event.eventEndDateTime),
+  //           'UTC',
+  //           "yyyy-MM-dd'T'HH:mm:ss'Z'",
+  //         ),
+  //         entertainerId,
+  //       };
+
+  //       const availability =
+  //         await this.checkEntertainerAvailability(availabilityPayload);
+
+  //       if (!availability)
+  //         return details.push({
+  //           entertainerId,
+  //           available: false,
+  //           message: 'Entertainer is unavailable during this time.',
+  //         });
+  //     }
+  //   } catch (error) {
+  //     if (error instanceof HttpException) throw error;
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
 }

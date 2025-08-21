@@ -62,6 +62,9 @@ export class SeriesService {
         ])
         .where('event.venueId = :venueId', { venueId: venue.id })
         .andWhere('event.eventStartDateTime >= :time ', { time: nowUtc() })
+        .andWhere('event.status IN (:...statuses)', {
+          statuses: ['unpublished', 'invited', 'rescheduled', 'confirmed'],
+        })
         .andWhere('event.series_id IS NULL')
         .orderBy('event.id', 'DESC')
         .getRawMany();

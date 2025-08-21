@@ -57,6 +57,10 @@ export class AdminSeriesService {
           'hood.name AS neighbourHoodName',
         ])
         .andWhere('event.eventStartDateTime >= :time ', { time: nowUtc() })
+        .andWhere('event.status IN (:...statuses)', {
+          statuses: ['unpublished', 'invited', 'rescheduled', 'confirmed'],
+        })
+
         .andWhere('event.series_id IS NULL')
         .orderBy('event.id', 'DESC')
         .getRawMany();
