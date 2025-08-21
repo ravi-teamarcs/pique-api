@@ -75,4 +75,10 @@ export class AdminSeriesController {
   updateSeries(@Body() payload: UpdateSeriesDto, @Req() req) {
     return this.seriesService.updateSeries(payload);
   }
+  @Get('booked-entertainer/:id')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin')
+  getBookedEntertainerForSeries(@Param('id') id: number) {
+    return this.seriesService.getBookedEntertainerForSeries(id);
+  }
 }
