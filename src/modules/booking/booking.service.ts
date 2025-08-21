@@ -998,7 +998,7 @@ export class BookingService {
               'user.email AS userEmail',
               'user.id AS  userId',
             ])
-            .where('entertainer.id =:id', { id: entertainers.entertainerId })
+            .where('entertainer.id =:id', { id: entertainer.entertainerId })
             .getRawOne();
 
           // Send Email to the Entertainer

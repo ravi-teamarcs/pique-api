@@ -74,3 +74,13 @@ export function formatUtcToTimezoneParts(
     Time: format(zonedDate, 'hh:mm a', { timeZone }),
   };
 }
+export function formatUtcDate(utcDateTime: string | Date, timeZone: string) {
+  const date =
+    typeof utcDateTime === 'string' ? new Date(utcDateTime) : utcDateTime;
+  const zonedDate = utcToZonedTime(date, timeZone);
+
+  return {
+    Date: format(zonedDate, 'yyyy-MM-dd', { timeZone }),
+    Time: format(zonedDate, 'hh:mm a', { timeZone }),
+  };
+}

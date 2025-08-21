@@ -36,6 +36,7 @@ import {
 } from 'date-fns-tz';
 import {
   convertUtcToTimezoneString,
+  formatUtcDate,
   formatUtcToTimezoneParts,
 } from 'src/common/utils/common.utils';
 import { NotificationService } from 'src/modules/notification/notification.service';
@@ -606,15 +607,17 @@ export class EventService {
         ])
         .where('event.id = :eventId', { eventId })
         .getRawOne();
-      
+
       // Rate Card Repo
       const rateCard = await this.rateCardRepo.find();
 
+      const { Date: formattedDate } = formatUtcDate(
+        event.eventStartDateTime,
+        event.venueTimeZone,
+      );
       const specialRateCard = await this.specialRateCardRepo.find({
         where: {
-          date: tzFormat(event.eventStartDateTime, 'yyyy-MM-dd', {
-            timeZone: event.venueTimeZone ?? 'UTC',
-          }),
+          date: formattedDate,
         },
       });
 
