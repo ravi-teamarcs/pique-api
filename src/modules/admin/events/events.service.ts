@@ -606,7 +606,7 @@ export class EventService {
         ])
         .where('event.id = :eventId', { eventId })
         .getRawOne();
-
+      
       // Rate Card Repo
       const rateCard = await this.rateCardRepo.find();
 

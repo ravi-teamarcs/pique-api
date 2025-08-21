@@ -962,7 +962,7 @@ export class BookingService {
             entId: entertainer.entertainerId,
             eventId: event.id,
             categoryId: entertainer.categoryId,
-            subcategoryId: entertainer.subcategoryId,
+            subcategoryId: entertainer.subCategoryId,
             status: 'invited',
             showStartDateTime: formatInTimeZone(
               new Date(event.eventStartDateTime),

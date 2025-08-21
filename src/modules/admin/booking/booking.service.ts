@@ -802,7 +802,7 @@ export class BookingService {
       for (const eventId of eventIds) {
         const event = await this.eventRepository.findOne({
           where: { id: eventId },
-          select: ['eventStartDateTime', 'eventEndDateTime', 'venueId'],
+          select: ['eventStartDateTime', 'eventEndDateTime', 'venueId', 'id'],
         });
         if (!event) continue;
 
@@ -873,7 +873,7 @@ export class BookingService {
             entId: entertainer.entertainerId,
             eventId: event.id,
             categoryId: entertainer.categoryId,
-            subcategoryId: entertainer.subcategoryId,
+            subcategoryId: entertainer.subCategoryId,
             status: 'invited',
             showStartDateTime: formatInTimeZone(
               new Date(event.eventStartDateTime),
