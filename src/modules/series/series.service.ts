@@ -58,6 +58,7 @@ export class SeriesService {
           'event.series_id AS seriesId',
           'series.seriesName AS seriesName',
           'venue.name AS venueName',
+          'event.status AS eventStatus',
           'venue.addressLine1 AS venueAddressLine1',
           'venue.addressLine1 AS venueAddressLine2',
           'hood.id AS neighbourHoodId',
@@ -69,7 +70,7 @@ export class SeriesService {
           statuses: ['unpublished', 'invited', 'rescheduled', 'confirmed'],
         })
         .andWhere('event.series_id IS NULL')
-        .orderBy('event.id', 'DESC')
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC')
         .getRawMany();
 
       const parsedResult = event.map(

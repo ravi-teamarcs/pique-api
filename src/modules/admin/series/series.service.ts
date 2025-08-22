@@ -46,6 +46,7 @@ export class AdminSeriesService {
           'event.description AS description',
           'event.title AS title',
           'event.slug AS slug',
+          'event.status AS eventStatus',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.title AS eventTitle',
@@ -65,7 +66,7 @@ export class AdminSeriesService {
         })
 
         .andWhere('event.series_id IS NULL')
-        .orderBy('event.id', 'DESC')
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC')
         .getRawMany();
 
       const parsedResult = event.map(
