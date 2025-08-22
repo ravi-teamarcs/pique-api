@@ -703,7 +703,7 @@ export class EventService {
           'venue.timezone AS addressLine2',
           'series.seriesName AS seriesName',
         ])
-        .orderBy('DATE(event.eventStartDateTime)', 'ASC')
+        .orderBy('event.id', 'DESC')
         .getRawMany();
 
       return {

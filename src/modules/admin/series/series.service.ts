@@ -21,6 +21,7 @@ import { Venue } from '../venue/entities/venue.entity';
 import { AddSeriesDto } from './dto/add-series.dto';
 import { Event } from '../events/entities/event.entity';
 import { Booking } from '../booking/entities/booking.entity';
+import { BookingService } from '../booking/booking.service';
 
 @Injectable()
 export class AdminSeriesService {
@@ -33,6 +34,7 @@ export class AdminSeriesService {
     private readonly seriesRepository: Repository<Series>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    private readonly bookingService: BookingService,
   ) {}
 
   async getUpcomingEventForSeries() {
@@ -473,12 +475,12 @@ export class AdminSeriesService {
       }
       await this.eventRepository.update({ id: event.id }, updatePayload);
 
-      //   if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
-      //     this.bookingService.handleChangeRequest(Number(event.id), {
-      //       eventStartDateTime: startTime.toISOString(),
-      //       eventEndDateTime: endTime.toISOString(),
-      //     });
-      //   } new
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+        this.bookingService.handleChangeRequest(Number(event.id), {
+          eventStartDateTime: startTime.toISOString(),
+          eventEndDateTime: endTime.toISOString(),
+        });
+      }
       return { message: 'Event updated successfully', status: true };
     } catch (error) {
       throw new InternalServerErrorException({

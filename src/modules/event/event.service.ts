@@ -221,7 +221,7 @@ export class EventService {
         ])
         .limit(take)
         .offset(skip)
-        .orderBy('DATE(event.eventStartDateTime)', 'ASC')
+        .orderBy('event.id', 'DESC')
         .getRawMany(); // ← this returns raw data with aliases
 
       const totalCount = await this.eventRepository

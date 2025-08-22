@@ -9,6 +9,7 @@ import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Series } from './entities/series.entity';
 import { Booking } from '../booking/entities/booking.entity';
+import { BookingModule } from '../booking/booking.module';
 
 @Module({
   imports: [
@@ -19,8 +20,9 @@ import { Booking } from '../booking/entities/booking.entity';
       Access,
       EndPoints,
       Series,
-      Booking
+      Booking,
     ]),
+    BookingModule,
   ],
   controllers: [SeriesController],
   providers: [SeriesService],

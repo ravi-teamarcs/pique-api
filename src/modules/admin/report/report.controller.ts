@@ -11,18 +11,4 @@ import { Response } from 'express';
 @Controller('admin/report')
 export class ReportController {
   constructor(private readonly reportService: ReportService) {}
-
-  @Roles('super-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get('all')
-  async getAllEvents(@Query() query: Report) {
-    // return this.reportService.getAllEventData();
-    return this.reportService.getEventData(query);
-  }
-
-  // @Get('download')
-  // async downloadReport(@Query() dto: DownloadReport, @Res() res: Response) {
-  //   return this.reportService.generateReport(dto, res);
-  // }
 }

@@ -9,6 +9,7 @@ import { Venue } from '../venue/entities/venue.entity';
 import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { Event } from '../events/entities/event.entity';
 import { Booking } from '../booking/entities/booking.entity';
+import { BookingModule } from '../booking/booking.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { Booking } from '../booking/entities/booking.entity';
       Series,
       Booking,
     ]),
+    BookingModule,
   ],
   controllers: [AdminSeriesController],
   providers: [AdminSeriesService],

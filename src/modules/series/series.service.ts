@@ -22,6 +22,7 @@ import { SeriesDto } from './dto/series.dto';
 import { throwError } from 'rxjs';
 import { Status } from 'src/common/enums/event.enum';
 import { Booking } from '../booking/entities/booking.entity';
+import { BookingService } from '../booking/booking.service';
 
 @Injectable()
 export class SeriesService {
@@ -34,6 +35,7 @@ export class SeriesService {
     private readonly seriesRepository: Repository<Series>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    private readonly bookingService: BookingService,
   ) {}
   async getUpcomingEventForSeries(id: number) {
     try {
@@ -147,6 +149,11 @@ export class SeriesService {
       const series = await this.seriesRepository.find({
         where: { venueId },
         relations: ['events'],
+        order: {
+          events: {
+            eventStartDateTime: 'ASC',
+          },
+        },
       });
       return {
         message: 'series returned Successfully',
@@ -163,6 +170,11 @@ export class SeriesService {
       const series = await this.seriesRepository.findOne({
         where: { id, venueId },
         relations: ['events'],
+        order: {
+          events: {
+            eventStartDateTime: 'ASC',
+          },
+        },
       });
       if (!series) throw new NotFoundException('Series Not Found');
 
@@ -465,12 +477,12 @@ export class SeriesService {
       }
       await this.eventRepository.update({ id: event.id }, updatePayload);
 
-      // if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
-      //   this.bookingService.handleChangeRequest(Number(event.id), {
-      //     eventStartDateTime: startTime.toISOString(),
-      //     eventEndDateTime: endTime.toISOString(),
-      //   });
-      // } new
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+        this.bookingService.handleChangeRequest(Number(event.id), {
+          eventStartDateTime: startTime.toISOString(),
+          eventEndDateTime: endTime.toISOString(),
+        });
+      }
       return { message: 'Event updated successfully', status: true };
     } catch (error) {
       throw new InternalServerErrorException({
