@@ -62,7 +62,9 @@ export class AdminSeriesService {
           'hood.id AS neighbourHoodId',
           'hood.name AS neighbourHoodName',
         ])
-        .andWhere('event.eventStartDateTime >= :time ', { time: nowUtc() })
+        .andWhere('event.eventStartDateTime >= :time ', {
+          time: new Date().toISOString(),
+        })
         .andWhere('event.status IN (:...statuses)', {
           statuses: ['unpublished', 'invited', 'rescheduled', 'confirmed'],
         })

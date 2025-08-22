@@ -67,7 +67,9 @@ export class SeriesService {
           'hood.name AS neighbourHoodName',
         ])
         .where('event.venueId = :venueId', { venueId: venue.id })
-        .andWhere('event.eventStartDateTime >= :time ', { time: nowUtc() })
+        .andWhere('event.eventStartDateTime >= :time ', {
+          time: nowUtc().toISOString(),
+        })
         .andWhere('event.status IN (:...statuses)', {
           statuses: ['unpublished', 'invited', 'rescheduled', 'confirmed'],
         })
