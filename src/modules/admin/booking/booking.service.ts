@@ -33,6 +33,7 @@ import { getMonth, getYear } from 'date-fns';
 import { EntertainerAvailability } from '../entertainer/entities/entertainer-availability.entity';
 import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
 import { formatUtcToTimezoneParts } from 'src/common/utils/common.utils';
+import { BADRESP } from 'dns';
 
 @Injectable()
 export class BookingService {
@@ -832,15 +833,16 @@ export class BookingService {
           });
 
           if (alreadyBooked) {
-            details.push({
-              entertainerId: entertainer.entertainerId,
-              eventId: event.id,
-              available: false,
-              message:
-                'invitation is already sent to this entertainer for event.',
-            });
+            // details.push({
+            //   entertainerId: entertainer.entertainerId,
+            //   eventId: event.id,
+            //   available: false,
+            //   message:
+            //     'invitation is already sent to this entertainer for event.',
+            // });
 
-            continue;
+            // continue;
+            throw new BadRequestException('Already invited');
           }
 
           const availabilityPayload = {

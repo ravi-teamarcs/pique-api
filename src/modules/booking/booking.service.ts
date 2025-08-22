@@ -922,14 +922,15 @@ export class BookingService {
           });
 
           if (alreadyBooked) {
-            details.push({
-              entertainerId: entertainer.entertainerId,
-              eventId: event.id,
-              available: false,
-              message:
-                'invitation is already sent to this entertainer for event.',
-            });
-            continue;
+            // details.push({
+            //   entertainerId: entertainer.entertainerId,
+            //   eventId: event.id,
+            //   available: false,
+            //   message:
+            //     'invitation is already sent to this entertainer for event.',
+            // });
+            // continue;
+            throw new BadRequestException('Already invited');
           }
 
           const availabilityPayload = {
