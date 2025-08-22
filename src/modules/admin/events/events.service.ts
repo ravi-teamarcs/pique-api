@@ -756,7 +756,7 @@ export class EventService {
           'venue.timezone AS venueTimeZone',
         ])
         .where('booking.eventId = :eventId', { eventId })
-        .where('booking.status NOT IN (:...statuses)', {
+        .andWhere('booking.status NOT IN (:...statuses)', {
           statuses: ['removed', 'declined', 'completed'],
         })
         .getRawMany();

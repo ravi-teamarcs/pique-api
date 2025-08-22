@@ -448,7 +448,7 @@ export class EventService {
         .where('booking.status NOT IN (:...statuses)', {
           statuses: ['removed', 'declined', 'completed'],
         })
-        .where('booking.eventId = :eventId', { eventId })
+        .andWhere('booking.eventId = :eventId', { eventId })
         .getRawMany();
 
       for (const book of bookings) {
