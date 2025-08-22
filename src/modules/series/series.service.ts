@@ -116,6 +116,15 @@ export class SeriesService {
     const { seriesName, venueId, events, existingEvents } = payload;
     try {
       const seriesPayload = { seriesName, venueId };
+
+      // check for same name series exist throw error
+      const duplicateName = await this.seriesRepository.findOne({
+        where: { seriesName: seriesName.trim() },
+      });
+
+      if (duplicateName)
+        throw new BadRequestException('Series with name already exists');
+
       const series = this.seriesRepository.create(seriesPayload);
       const savedSeries = await this.seriesRepository.save(series);
 
@@ -142,6 +151,7 @@ export class SeriesService {
         data: savedSeries,
       };
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(error.message);
     }
   }
