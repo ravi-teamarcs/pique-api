@@ -52,15 +52,15 @@ export class SeriesController {
   @Get('booked-entertainer/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
-  getBookedEntertainerForSeries(@Param('id') id: number) {
+  getBookedEntertainerForSeries(@Param('id', ParseIntPipe) id: number) {
     return this.seriesService.getBookedEntertainerForSeries(id);
   }
 
   @Get(':seriesId')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('findAll')
-  getSeriesById(@Req() req, @Param('seriesId') seriesId: number) {
-    const { ref: venueId } = req.user;
+  getSeriesById(@Req() req, @Param('seriesId', ParseIntPipe) seriesId: number) {
+    const { refId: venueId } = req.user;
     return this.seriesService.getSeriesById(seriesId, venueId);
   }
 

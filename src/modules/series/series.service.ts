@@ -178,21 +178,39 @@ export class SeriesService {
   }
 
   async getSeriesById(id: number, venueId: number) {
+    let response: any;
     try {
-      const series = await this.seriesRepository.findOne({
-        where: { id, venueId },
-        relations: ['events'],
-        order: {
-          events: {
-            eventStartDateTime: 'ASC',
-          },
-        },
-      });
-      if (!series) throw new NotFoundException('Series Not Found');
+      const series = await this.seriesRepository
+        .createQueryBuilder('series')
+        .leftJoinAndSelect('series.events', 'event', 'event.venueId = :venueId')
+        .where('series.id = :id', { id })
+        .andWhere('series.venueId = :venueId', { venueId })
+        .orderBy('event.eventStartDateTime', 'ASC')
+        .getOne();
+      response = series;
+
+      if (!series) {
+        const adminSeries = await this.seriesRepository
+          .createQueryBuilder('series')
+          .leftJoinAndSelect(
+            'series.events',
+            'event',
+            'event.venueId = :venueId',
+            { venueId },
+          )
+          .where('series.id = :id', { id })
+          .orderBy('event.eventStartDateTime', 'ASC')
+          .getOne();
+
+        if (!(series || adminSeries))
+          throw new BadRequestException('series not found');
+
+        response = adminSeries;
+      }
 
       return {
-        message: 'series returned Successfully',
-        data: series,
+        message: 'series returned successfully',
+        data: response,
         status: true,
       };
     } catch (error) {
