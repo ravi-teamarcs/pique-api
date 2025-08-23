@@ -143,10 +143,6 @@ export class CreateEntertainerDto {
   @IsString()
   @IsNotEmpty()
   contactNumber: string;
-
-  @IsDateString()
-  @IsNotEmpty()
-  dob: string; // Accepts only date in ISO format, e.g. "2025-04-09"
 }
 class Step1Dto {
   @IsNumber()

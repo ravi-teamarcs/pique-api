@@ -768,7 +768,6 @@ export class EntertainerService {
         .select([
           'event.id AS event_id',
           'event.title AS title',
-          'event.location AS location',
           'event.description AS description',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',

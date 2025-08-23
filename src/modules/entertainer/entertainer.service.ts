@@ -1951,7 +1951,6 @@ export class EntertainerService {
         .select([
           'event.id AS event_id',
           'event.title AS title',
-          'event.location AS location',
           'event.slug AS slug',
           'event.description AS description',
 
@@ -2043,7 +2042,6 @@ export class EntertainerService {
         .select([
           'event.id AS event_id',
           'event.title AS title',
-          'event.location AS location',
           'event.description AS description',
 
           //Added to new Fields...

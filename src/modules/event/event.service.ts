@@ -204,7 +204,6 @@ export class EventService {
         .select([
           'event.id AS id',
           'event.title AS title',
-          'event.location AS location',
           'event.venueId AS venueId',
           'event.description AS description',
           // Added two new Fields
@@ -258,7 +257,6 @@ export class EventService {
         .select([
           'event.id',
           'event.title',
-          'event.location',
           'event.venueId',
           'event.description',
           'event.eventStartDateTime',

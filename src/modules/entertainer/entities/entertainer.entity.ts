@@ -78,16 +78,9 @@ export class Entertainer {
   @Column({ type: 'json', nullable: true })
   socialLinks: Record<string, string>;
 
-  // New changes Introduced  (Latest Changes Both )  Can be Changed
-
-  @Column({ type: 'date', nullable: true }) // Only stores YYYY-MM-DD, no time
-  dob: Date;
-
-  @Column({ nullable: true })
-  address: string;
-
   @Column({ nullable: true })
   addressLine1: string;
+
   @Column({ nullable: true })
   addressLine2: string;
 

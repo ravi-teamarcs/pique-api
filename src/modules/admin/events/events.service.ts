@@ -446,7 +446,6 @@ export class EventService {
         .select([
           'event.id AS event_id',
           'event.title AS title',
-          'event.location AS location',
           'event.userId AS userId',
           'event.description AS description',
           'event.recurring AS recurring',

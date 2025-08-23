@@ -1,20 +1,16 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Booking } from '../booking/entities/booking.entity';
-import { LessThanOrEqual, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { NotificationService } from '../notification/notification.service';
 import { VenueEvent } from '../event/entities/event.entity';
-import {
-  addHours,
-  differenceInDays,
-  format,
-  isAfter,
-  subHours,
-} from 'date-fns';
+import { addHours, differenceInDays, isAfter, subHours } from 'date-fns';
 import { EmailService } from '../Email/email.service';
 import { BookingReminder } from './entities/booking-reminder.entity';
 import { BookLater } from './dto/book-later.dto';
 import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
+import { formatUtcDate } from 'src/common/utils/common.utils';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class ReminderService {
@@ -29,6 +25,7 @@ export class ReminderService {
     private readonly adminRepository: Repository<AdminUser>,
     private readonly notifyService: NotificationService,
     private readonly emailService: EmailService,
+    private readonly configService: ConfigService,
   ) {}
   async eventReminder() {
     const today = new Date();
@@ -213,6 +210,10 @@ export class ReminderService {
       .where('event.id =:eventId', { eventId })
       .getRawOne();
     if (venue.email) {
+      const { Date: eventDate, Time } = formatUtcDate(
+        venue.eventStartDateTime,
+        venue.venueTimeZone ?? 'UTC',
+      );
       const emailPayload = {
         to: venue.email,
         subject: `Reminder for Event Status`,
@@ -220,7 +221,7 @@ export class ReminderService {
         replacements: {
           eventName: venue.eventName,
           venueName: venue.venueName,
-          eventDate: format(venue.eventStartDateTime, 'dd MM yyyy'),
+          eventDate: eventDate,
         },
       };
       this.emailService.handleSendEmail(emailPayload);
@@ -247,6 +248,10 @@ export class ReminderService {
 
     for (const book of bookings) {
       if (book.email || book.userEmail) {
+        const { Date: eventDate, Time } = formatUtcDate(
+          venue.eventStartDateTime,
+          venue.venueTimeZone,
+        );
         const emailPayload = {
           to: book.email,
           subject: `Reminder for booking status`,
@@ -255,7 +260,7 @@ export class ReminderService {
             entertainerName: book.entertainerName,
             eventName: book.id,
             venueName: book.venueName,
-            eventDate: format(book.eventStartDateTime, 'dd MM yyyy hh:mm'),
+            eventDate,
           },
         };
         this.emailService.handleSendEmail(emailPayload);
@@ -293,7 +298,7 @@ export class ReminderService {
         replacements: {
           entertainerName: reminder.entertainerName,
           venueName: reminder.venueName,
-          bookingLink: `http://digidemo.in/p`,
+          bookingLink: `${this.configService.get<string>('FRONTEND_URL')}`,
         },
       };
       await this.emailService.handleSendEmail(emailPayload);
@@ -346,7 +351,7 @@ export class ReminderService {
             replacements: {
               entertainerName: reminder.stageName,
               venueName: reminder.venueName,
-              bookingLink: 'http://dummyBooking',
+              bookingLink: `${this.configService.get<string>('FRONTEND_URL')}`,
             },
           };
           await this.emailService.handleSendEmail(emailPayload);

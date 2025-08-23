@@ -1,13 +1,17 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Body, Controller, Get, Query } from '@nestjs/common';
 import { LocationService } from './location.service';
 import { ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { Countries } from './entities/country.entity';
 import { States } from './entities/state.entity';
+import { GeocodingService } from './geocoding.service';
 
 @ApiTags('Location')
 @Controller('location')
 export class LocationController {
-  constructor(private readonly locationService: LocationService) {}
+  constructor(
+    private readonly locationService: LocationService,
+    private readonly geoService: GeocodingService,
+  ) {}
   @ApiOperation({ summary: 'Get the list of all the  countries' })
   @ApiResponse({
     status: 200,
@@ -54,5 +58,10 @@ export class LocationController {
   @Get('/suggestions')
   async searchLocations(@Query('query') query: string) {
     return this.locationService.searchCityAndState(query);
+  }
+
+  @Get('Location-address')
+  async getLocation(@Body('address') address: string) {
+    return this.geoService.geocodeAddress(address);
   }
 }
