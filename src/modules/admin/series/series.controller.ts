@@ -18,6 +18,7 @@ import { RemoveEvent } from './dto/remove-event.dto';
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuardAdmin } from '../auth/roles.guard';
+import { RemoveEntertianerBookingDto } from './dto/remove-entertainer.dto';
 
 @Controller('admin/series')
 export class AdminSeriesController {
@@ -80,5 +81,18 @@ export class AdminSeriesController {
   @Roles('super-admin')
   getBookedEntertainerForSeries(@Param('id') id: number) {
     return this.seriesService.getBookedEntertainerForSeries(id);
+  }
+
+  @Post('remove-entertainer')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin')
+  async removeEntertainerFromSereies(
+    @Body() payload: RemoveEntertianerBookingDto,
+  ) {
+    const { seriesId, entertainerIds } = payload;
+    return this.seriesService.removeEntertainerFromSeries(
+      seriesId,
+      entertainerIds,
+    );
   }
 }

@@ -53,7 +53,6 @@ export class AdminSeriesService {
           'event.eventEndDateTime AS eventEndDateTime',
           'event.title AS eventTitle',
           'event.series_id AS seriesId',
-
           'venue.id AS venueId',
           'venue.name AS venueName',
           'venue.addressLine1 AS venueAddressLine1',
@@ -62,13 +61,10 @@ export class AdminSeriesService {
           'hood.id AS neighbourHoodId',
           'hood.name AS neighbourHoodName',
         ])
-        .andWhere('event.eventStartDateTime >= :time ', {
-          time: new Date().toISOString(),
-        })
+        .where('event.eventStartDateTime >= NOW()')
         .andWhere('event.status IN (:...statuses)', {
           statuses: ['unpublished', 'invited', 'rescheduled', 'confirmed'],
         })
-
         .andWhere('event.series_id IS NULL')
         .orderBy('DATE(event.eventStartDateTime)', 'ASC')
         .getRawMany();
@@ -80,7 +76,7 @@ export class AdminSeriesService {
             rest.venueTimeZone,
           );
           const eventEnd = utcToZonedTime(eventEndDateTime, rest.venueTimeZone);
-
+          console.log('Inside Fn', eventStart, eventEnd);
           return {
             ...rest,
             eventStartDateTimeLocal: tzFormat(
@@ -532,7 +528,7 @@ export class AdminSeriesService {
           'entertainer.contact_number AS contactNumber',
           'booking.categoryId AS categoryId',
           'booking.subcategoryId AS subCategoryId',
-          'booking.status AS bookingStatus',
+          'booking.status AS bookingstatus',
           'category.name AS categoryName',
           'subcat.name AS subCategoryName ',
         ])
@@ -577,6 +573,51 @@ export class AdminSeriesService {
       return {
         message: 'Entertainer booked for series',
         data: grouped,
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async removeEntertainerFromSeries(
+    seriesId: number,
+    entertainerIds: number[],
+  ) {
+    try {
+      const series = await this.seriesRepository.findOne({
+        where: { id: seriesId },
+      });
+
+      if (!series) throw new NotFoundException('series not found');
+      const events = await this.eventRepository.find({
+        where: { series: { id: seriesId } },
+        select: ['id'],
+      });
+      if (events && events.length === 0)
+        return { messsage: 'No events to remove entertainer', status: true };
+
+      const eventIds = events.map((event: Event): number => event?.id);
+      for (const eventId of eventIds) {
+        const bookings = await this.bookingRepository
+          .createQueryBuilder('booking')
+          .select(['booking.id AS bookingId'])
+          .where('booking.entId IN (:...entIds)', { entIds: entertainerIds })
+          .andWhere('booking.eventId = :eventId', { eventId })
+          .getRawMany();
+
+        if (bookings && bookings.length === 0) continue;
+
+        for (const booking of bookings) {
+          await this.bookingRepository.update(
+            { id: booking.bookingId },
+            { status: 'removed' },
+          );
+        }
+      }
+      return {
+        message: 'Entertainers removed from series succcessfully',
         status: true,
       };
     } catch (error) {
