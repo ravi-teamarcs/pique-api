@@ -91,11 +91,13 @@ export class ReminderService {
     const unrespondedBookings = await this.bookingRepo
       .createQueryBuilder('booking')
       .leftJoin('entertainers', 'entertainer', 'entertainer.id = booking.entId')
+      .leftJoin('event', 'event', 'event.id = booking.eventId')
       .select([
         'booking.id AS bookingId',
         'booking.createdAt AS createdAt',
         'entertainer.userId AS entertainerUser',
         'entertainer.name AS stageName',
+        'event.slug AS slugName',
         'entertainer.entertainerName AS entertainerName',
       ])
       .where('booking.status = :status', { status: 'invited' })
@@ -107,9 +109,9 @@ export class ReminderService {
     for (const booking of unrespondedBookings) {
       const daysPassed = differenceInDays(today, new Date(booking.createdAt));
 
-      const message = `Reminder: You have a booking invitation (ID: ${booking.bookingId}) pending for over ${daysPassed} days. Please respond.`;
+      const message = `Reminder: You have a booking invitation (ID: ${booking.bookingId}) for event ${booking.slugName || ''} pending for over ${daysPassed} days. Please respond.`;
 
-      const adminMessage = `Reminder:${booking.stageName} has a booking invitation (ID: ${booking.bookingId}) pending for over ${daysPassed} days. Please review and take necessary action.`;
+      const adminMessage = `Reminder:${booking.stageName} has a booking invitation (ID: ${booking.bookingId}) for event ${booking.slugName || ''} pending for over ${daysPassed} days. Please review and take necessary action.`;
 
       const notificationPayload = {
         title: 'Pending Booking Invitation',

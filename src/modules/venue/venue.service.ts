@@ -856,7 +856,6 @@ export class VenueService {
 
         // Add nearby filter if requested
         if (isNearby) {
-          console.log('Debug - Adding nearby filter with radius:', radius);
           baseQuery
             .andWhere(
               'entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL',
