@@ -544,7 +544,7 @@ export class AdminSeriesService {
             subCategoryName: row.subCategoryName,
             categoryId: row.categoryId,
             subcategoryId: row.subCategoryId,
-            bookingStatus: row.bookingStatus,
+            bookingstatus: row.bookingstatus,
             contactPerson: row.contactPerson,
             contactNumber: row.contactNumber,
           });
@@ -560,7 +560,7 @@ export class AdminSeriesService {
                 subCategoryName: row.subCategoryName,
                 categoryId: row.categoryId,
                 subcategoryId: row.subcategoryId,
-                bookingStatus: row.bookingStatus,
+                bookingstatus: row.bookingstatus,
                 contactPerson: row.contactPerson,
                 contactNumber: row.contactNumber,
               },
