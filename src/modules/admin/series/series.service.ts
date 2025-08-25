@@ -523,6 +523,7 @@ export class AdminSeriesService {
           'event.slug AS eventSlug',
           'booking.id AS bookingId',
           'booking.eventId AS eventId',
+          'entertainer.id AS entertainerId',
           'entertainer.entertainer_name AS entertainerName',
           'entertainer.contact_person AS contactPerson',
           'entertainer.contact_number AS contactNumber',
@@ -540,6 +541,7 @@ export class AdminSeriesService {
           existing.bookings.push({
             bookingId: row.bookingId,
             entertainerName: row.entertainerName,
+            entertainerId: Number(row.entertainerId),
             categoryName: row.categoryName,
             subCategoryName: row.subCategoryName,
             categoryId: row.categoryId,
@@ -558,6 +560,7 @@ export class AdminSeriesService {
                 entertainerName: row.entertainerName,
                 categoryName: row.categoryName,
                 subCategoryName: row.subCategoryName,
+                entertainerId: Number(row.entertainerId),
                 categoryId: row.categoryId,
                 subcategoryId: row.subcategoryId,
                 bookingstatus: row.bookingstatus,

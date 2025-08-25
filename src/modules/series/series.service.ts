@@ -549,6 +549,7 @@ export class SeriesService {
           'event.slug AS eventSlug',
           'booking.id AS bookingId',
           'booking.eventId AS eventId',
+          'entertainer.id AS entertainerId',
           'entertainer.entertainer_name AS entertainerName',
           'entertainer.contact_person AS contactPerson',
           'entertainer.contact_number AS contactNumber',
@@ -565,6 +566,7 @@ export class SeriesService {
         if (existing) {
           existing.bookings.push({
             bookingId: row.bookingId,
+            entertainerId: Number(row.entertainerId),
             entertainerName: row.entertainerName,
             categoryName: row.categoryName,
             subCategoryName: row.subCategoryName,
@@ -582,6 +584,7 @@ export class SeriesService {
               {
                 bookingId: row.bookingId,
                 entertainerName: row.entertainerName,
+                entertainerId: Number(row.entertainerId),
                 categoryName: row.categoryName,
                 subCategoryName: row.subCategoryName,
                 categoryId: row.categoryId,
