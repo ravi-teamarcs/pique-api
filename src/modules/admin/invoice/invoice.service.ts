@@ -560,9 +560,14 @@ export class InvoiceService {
 
       const overdueDays = invoice.overdue || 0;
 
-      const lateFee = Number(overdueDays * 25);
-      // Add late fee to total_with_tax
-      invoice.total_with_tax += lateFee;
+      const today = new Date().toISOString().split('T')[0];
+      // If fee already applied today, skip
+      if (invoice.lastLateFeeApplied === today) return;
+
+      const dailyLateFee = 25;
+      invoice.total_with_tax = Number(invoice.total_with_tax) + dailyLateFee;
+      invoice.lateFeeTotal = Number(invoice.lateFeeTotal) + dailyLateFee;
+      invoice.lastLateFeeApplied = today;
 
       await this.invoiceRepository.save(invoice);
 
@@ -571,7 +576,6 @@ export class InvoiceService {
         data: {
           invoiceId: invoice.id,
           overdueDays,
-          lateFee,
           updatedTotal: invoice.total_with_tax,
         },
         status: true,

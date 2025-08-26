@@ -582,6 +582,8 @@ export class InvoiceService {
         'invoices.status AS status',
         'invoices.payment_method AS payment_method',
         'invoices.payment_date AS payment_date',
+        'invoices.lastLateFeeApplied AS lastLateFeeApplied',
+        'invoices.lateFeeTotal AS lateFeeTotal',
         `(
   SELECT JSON_ARRAYAGG(
     JSON_OBJECT(

@@ -101,6 +101,18 @@ export class Invoice {
   @Column({ default: false, name: 'is_regenerated' })
   isRegenerated: boolean;
 
+  @Column({ type: 'date', nullable: true, name: 'last_late_fee_applied' })
+  lastLateFeeApplied: string | null;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    default: 0,
+    name: 'late_fee_total',
+  })
+  lateFeeTotal: number;
+
   @CreateDateColumn({ type: 'timestamp' })
   created_at: Date;
 

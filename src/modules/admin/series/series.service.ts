@@ -76,7 +76,6 @@ export class AdminSeriesService {
             rest.venueTimeZone,
           );
           const eventEnd = utcToZonedTime(eventEndDateTime, rest.venueTimeZone);
-          console.log('Inside Fn', eventStart, eventEnd);
           return {
             ...rest,
             eventStartDateTimeLocal: tzFormat(

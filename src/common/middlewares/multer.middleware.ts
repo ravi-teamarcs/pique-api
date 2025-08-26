@@ -66,13 +66,13 @@ export async function deleteFileFromServer(fileUrl: string): Promise<void> {
   );
   try {
     await fs.promises.access(fullPath, fs.constants.F_OK); // check if exists
-    await fs.promises.unlink(fullPath); // delete
-    console.log(`✅ File deleted: ${fullPath}`);
+    await fs.promises.unlink(fullPath);
+    console.log(`File deleted: ${fullPath}`);
   } catch (error: any) {
     if (error.code === 'ENOENT') {
-      console.warn(`⚠️ File not found: ${fileUrl}`);
+      console.warn(`File not found: ${fileUrl}`);
     } else {
-      console.error(`❌ Error deleting file: ${fileUrl}`, error.message);
+      console.error(`Error deleting file: ${fileUrl}`, error.message);
     }
   }
 }

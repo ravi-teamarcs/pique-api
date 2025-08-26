@@ -254,7 +254,6 @@ export class AuthService {
   }
 
   detectDevice(userAgent: string): Device {
-    // console.log('In Case of mobile Phoine', userAgent);
     if (/mobile|android|iphone|ipad|ipod/i.test(userAgent)) {
       return 'mobile';
     }

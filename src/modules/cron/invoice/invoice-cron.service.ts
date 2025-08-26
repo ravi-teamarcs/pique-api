@@ -133,7 +133,7 @@ export class InvoiceCronService {
           isOutdated: false,
         },
       });
-      if (invoices.length > 0) {
+      if (invoices && invoices.length > 0) {
         for (const invoice of invoices) {
           await this.invoiceService.applyLateFee(Number(invoice.id));
         }

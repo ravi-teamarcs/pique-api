@@ -88,13 +88,6 @@ export class BookingService {
           select: ['eventStartDateTime', 'eventEndDateTime'],
         });
 
-      console.log(
-        'Event Start Date Time',
-        eventStartDateTime,
-        'eventEndDateTime',
-        eventEndDateTime,
-      );
-
       //  Issues are Here
       const availabilityPayload = {
         startTimeUtc: formatInTimeZone(
@@ -134,8 +127,6 @@ export class BookingService {
 
       // changes must be there
       const savedBooking = await this.bookingRepository.save(newBooking);
-
-      console.log('Saved Booking', savedBooking);
 
       // update status of event to invited
       await this.eventRepository.update(

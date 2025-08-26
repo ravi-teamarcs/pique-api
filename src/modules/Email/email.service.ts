@@ -42,7 +42,7 @@ export class EmailService {
     }
     try {
       const res = await this.transporter.sendMail(mailOptions);
-      console.log(res);
+      // console.log(res);
       return { message: 'Email sent successfully', res, status: true };
     } catch (error) {
       this.logger.error('Error sending email', {

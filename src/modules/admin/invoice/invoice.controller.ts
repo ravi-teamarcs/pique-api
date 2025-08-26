@@ -115,4 +115,9 @@ export class InvoiceController {
   ) {
     return this.invoiceService.sendInvoiceWithPdf(file.buffer, +invoiceId);
   }
+
+  @Post('cron')
+  hittingCron(@Body('invoiceId') id: number) {
+    return this.invoiceService.applyLateFee(id);
+  }
 }
