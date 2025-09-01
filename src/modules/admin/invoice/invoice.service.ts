@@ -992,8 +992,20 @@ export class InvoiceService {
 
       const price = this.calculatingInvoiceAmount(payload);
 
-      eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
       totalAmount += Number(price);
+      // New Code for more than one .
+      if (eventPrice.length === 0) {
+        eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
+      } else {
+        const existing = eventPrice.find(
+          (eventRecord) => eventRecord.id === book.eventId,
+        );
+        if (existing) {
+          existing.eventTotal += Number(price);
+        } else {
+          eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
+        }
+      }
     }
 
     const issueDate = new Date();
@@ -1022,7 +1034,6 @@ export class InvoiceService {
     });
 
     const savedInvoice = await this.invoiceRepository.save(newInvoice);
-
     // No Add the details of invoice (Invoice to EventId Table )
     for (const event of confirmedEvents) {
       const matchedPrice = eventPrice.find((p) => p.id === event.id);
@@ -1031,7 +1042,7 @@ export class InvoiceService {
         invoiceId: savedInvoice.id,
         eventId: event.id,
         eventDate: new Date().toISOString(),
-        eventPrice: Number(matchedPrice?.eventPrice),
+        eventPrice: Number(matchedPrice?.eventTotal),
       });
 
       await this.invEventRepository.save(invoiceEvent);
@@ -1191,7 +1202,18 @@ export class InvoiceService {
         };
         const price = this.calculatingInvoiceAmount(payload);
         // Add to array (Because we need to update mapping)
-        eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
+        if (eventPrice.length === 0) {
+          eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
+        } else {
+          const existing = eventPrice.find(
+            (eventRecord) => eventRecord.id === book.eventId,
+          );
+          if (existing) {
+            existing.eventTotal += Number(price);
+          } else {
+            eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
+          }
+        }
         totalAmount += Number(price);
       }
 
