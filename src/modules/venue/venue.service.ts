@@ -169,6 +169,7 @@ export class VenueService {
 
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
       let timezone = getTimezoneByLatLng(lat, lng);
+      console.log('Lat long', lat, lng, 'TimeZone', timezone);
 
       const newPayload = { ...dto, latitude: lat, longitude: lng, timezone };
       // Assign address fields
