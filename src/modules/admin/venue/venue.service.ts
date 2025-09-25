@@ -158,7 +158,7 @@ export class VenueService {
         'venue.country AS country_code',
         'venue.isPiqueVerified AS isPiqueVerified',
         'venue.contact_person As contactPerson',
-        'venue.contact_person As contactNumber',
+        'venue.contact_number As contactNumber',
         'venue.zipCode AS zipCode',
         'venue.venueType AS venueType',
         'venue.timezone AS timezone',
