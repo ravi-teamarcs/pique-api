@@ -405,7 +405,7 @@ export class AdminSeriesService {
     const {
       title,
       description,
-      eventId,
+      id: eventId,
       venueId,
       neighbourhoodId,
       eventStartDateTime,
