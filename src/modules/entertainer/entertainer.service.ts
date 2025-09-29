@@ -2213,8 +2213,9 @@ export class EntertainerService {
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'venue.name AS venueName',
+          'venue.timezone AS venueTimeZone',
           'venue.addressLine1 AS addressLine1',
-          'venue.addressLine2 AS addressLine',
+          'venue.addressLine2 AS addressLine2',
         ])
         .orderBy('event.eventStartDateTime', 'DESC')
         .getRawMany();
