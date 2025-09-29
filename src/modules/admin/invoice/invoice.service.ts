@@ -427,6 +427,7 @@ export class InvoiceService {
           templateName: 'invoice-email.html',
           replacements: {
             venueName: invoice.venueName,
+            month: format(new Date(), 'MMMM yyyy', { locale: enUS }),
             invoiceNumber: invoice.invoice_number,
             totalAmount: invoice.total_with_tax,
           },
