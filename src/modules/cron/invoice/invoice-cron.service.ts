@@ -262,4 +262,9 @@ export class InvoiceCronService {
       );
     }
   }
+
+  @Cron('30 0 1 * *') // Runs 1st of every month at 00:00
+  async handleMonthlyInvoices() {
+    await this.invoiceService.sendPendingInvoices();
+  }
 }

@@ -40,6 +40,7 @@ import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategor
 import { EntertainerRateCard } from '../../entertainer/entities/entertainer-rate-card.entity';
 import { DateTime } from 'luxon';
 import { utcToZonedTime, format as tzFormat } from 'date-fns-tz';
+import id from 'date-fns/locale/id';
 
 @Injectable()
 export class InvoiceService {
@@ -440,6 +441,10 @@ export class InvoiceService {
           ],
         };
         await this.emailService.handleSendEmail(emailPayload);
+        await this.invoiceRepository.update(
+          { id },
+          { isSent: true, sentDate: new Date() },
+        );
       }
       return { message: 'Invoice sent Successfully ', status: true };
     } catch (error) {
@@ -1423,86 +1428,27 @@ export class InvoiceService {
     return { message: 'Invoice sent successfully', status: true };
   }
 
-  async getPendingInvoices(page: number = 1, pageSize: number = 100) {
-    const skip = pageSize * (page - 1);
-    try {
-      const baseQuery = this.invoiceRepository
-        .createQueryBuilder('invoices')
-        .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
-        .leftJoin('states', 'state', 'state.id = venue.state')
-        .leftJoin('countries', 'country', 'country.id = venue.country')
-        .leftJoin('cities', 'city', 'city.id = venue.city')
-        .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
-        .where('invoices.user_type = :role', { role: 'venue' });
+  async sendPendingInvoices(page: number = 1, pageSize: number = 100) {
+    const now = new Date();
+    const start = startOfMonth(now);
+    const end = endOfMonth(now);
 
-      const totalCount = await baseQuery.getCount();
-      const records = await baseQuery
-        .select([
-          'invoices.*',
-          'venue.name AS venueName',
-          'venue.addressLine1 AS venueAddressLine1',
-          'venue.addressLine2 AS venueAddressLine2',
-          'venue.contactPerson As contactPerson',
-          'venue.contactNumber As contactNumber',
-          'state.name AS stateName',
-          'city.name AS cityName',
-          'code.stateCode AS StateCode',
-          `(
-   SELECT JSON_ARRAYAGG(
-     JSON_OBJECT(
-       'slug', e.slug,
-       'title', e.title,
-       'eventId', e.id,
-       'eventStartDateTime', e.eventStartDateTime,
-       'eventEndDateTime', e.eventEndDateTime
-     )
-   )
-   FROM invoice_events ie
-   JOIN event e ON e.id = ie.event_id
-   WHERE ie.invoice_id = invoices.id
- ) AS events
- `,
-        ])
-        .orderBy('invoices.id', 'DESC')
-        .limit(pageSize)
-        .offset(skip)
-        .getRawMany();
+    const invoices = await this.invoiceRepository.find({
+      where: {
+        created_at: Between(start, end),
+        isSent: false,
+      },
+      select: ['id'],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+    });
 
-      const parsedResults = records.map(({ events, pricePerHour, ...rest }) => {
-        return {
-          ...rest,
-          pricePerHour,
-          events: events
-            ? JSON.parse(events).map(
-                ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
-                  const duration = this.getDurationInHours(
-                    eventStartDateTime,
-                    eventEndDateTime,
-                  );
-                  return {
-                    ...rest,
-                    eventStartDateTime,
-                    eventEndDateTime,
-                    amount: Number(pricePerHour * duration),
-                    duration,
-                  };
-                },
-              )
-            : [], // Parse JSON string to object
-        };
-      });
+    if (invoices.length === 0) {
+      return;
+    }
 
-      return {
-        message: 'Invoices fetched successfully',
-        records: parsedResults,
-        total: totalCount,
-        page,
-        pageSize,
-        totalPages: Math.ceil(totalCount / pageSize),
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
+    for (const invoice of invoices) {
+      await this.sendInvoice(invoice.id);
     }
   }
 

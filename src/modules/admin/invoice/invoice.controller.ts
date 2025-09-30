@@ -95,17 +95,6 @@ export class InvoiceController {
     return this.invoiceService.regenerateInvoice(id);
   }
 
-  // Email related APIs
-
-  // To get List of Invoices (to send over Email)
-  @Get('pending')
-  async getPendingInvoices(
-    @Query('page') page: number,
-    @Query('pageSize') pageSize: number,
-  ) {
-    return this.invoiceService.getPendingInvoices(page, pageSize);
-  }
-
   // API Should be hit in frontend with buffer
   @Post('send')
   @UseInterceptors(FileInterceptor('pdf'))
