@@ -41,6 +41,7 @@ import { EntertainerRateCard } from '../../entertainer/entities/entertainer-rate
 import { DateTime } from 'luxon';
 import { utcToZonedTime, format as tzFormat } from 'date-fns-tz';
 import id from 'date-fns/locale/id';
+import { platform } from 'os';
 
 @Injectable()
 export class InvoiceService {
@@ -359,7 +360,8 @@ export class InvoiceService {
       'title', e.title,
       'eventId', e.id,
       'eventStartDateTime', e.eventStartDateTime,
-      'eventEndDateTime', e.eventEndDateTime
+      'eventEndDateTime', e.eventEndDateTime,
+      'eventPrice', ie.event_price
     )
   )
   FROM invoice_events ie
@@ -396,12 +398,12 @@ export class InvoiceService {
         invoiceDetails.push({
           eventId: item.eventId,
           eventName: item.slug,
-          pricePerEvent: 100,
+          eventPrice: item.eventPrice,
           durationInHours: this.getDurationInHours(
             item.eventStartDateTime,
             item.eventEndDateTime,
           ),
-          totalAmount: invoice.total_with_tax,
+          totalAmount: item.eventPrice,
         });
       });
 
@@ -417,6 +419,7 @@ export class InvoiceService {
         items: invoiceDetails,
         zipCode: invoice.zipCode,
         totalWithTax: invoice.total_with_tax,
+        platformFee: invoice.tax_rate || 0,
       });
 
       const buffer = await this.generatePDF(htmlContent);
