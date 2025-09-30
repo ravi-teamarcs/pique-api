@@ -309,7 +309,7 @@ export class InvoiceService {
         invoiceId: savedInvoice.id,
         eventId: eventId,
         eventDate: new Date().toISOString(),
-        eventPrice: totalAmount,
+        eventPrice: Number(totalAmount) - Number(platformFee),
       });
       await this.invEventRepository.save(invoiceMetaData);
 
@@ -1229,7 +1229,7 @@ export class InvoiceService {
       dueDate.setDate(dueDate.getDate() + 60);
 
       const updatePayload = {
-        total_with_tax: totalAmount,
+        total_with_tax: totalAmount + Number(invoice.tax_rate || 0),
         total_amount: totalAmount,
         isOutdated: false,
         isRegenerated: true,
