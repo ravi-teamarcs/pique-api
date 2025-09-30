@@ -423,7 +423,7 @@ export class InvoiceService {
       if (invoice.email || invoice.user_email) {
         const emailPayload = {
           to: invoice.user_email || invoice.email,
-          subject: 'Monthly Invoice For Events.',
+          subject: 'Event Invoice',
           templateName: 'invoice-email.html',
           replacements: {
             venueName: invoice.venueName,
@@ -433,7 +433,7 @@ export class InvoiceService {
           },
           attachments: [
             {
-              filename: `${invoice.venueName}_monthly_invoice.pdf`,
+              filename: `${invoice.venueName}_invoice.pdf`,
               content: buffer, // a Buffer from Puppeteer
               contentType: 'application/pdf',
             },
@@ -1406,7 +1406,7 @@ export class InvoiceService {
       attachments: [
         {
           filename: `invoice_${month}_${date.getFullYear()}.pdf`,
-          content: pdfBuffer, // a Buffer from Puppeteer
+          content: pdfBuffer,
           contentType: 'application/pdf',
         },
       ],
@@ -1415,7 +1415,6 @@ export class InvoiceService {
     await this.emailService.handleSendEmail(emailPayload);
 
     // Updating invoice entity
-
     await this.invoiceRepository.update(
       { id: invoiceId },
       { isSent: true, sentDate: new Date() },
