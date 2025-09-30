@@ -1437,6 +1437,7 @@ export class InvoiceService {
       where: {
         created_at: Between(start, end),
         isSent: false,
+        isOutdated: false,
       },
       select: ['id'],
       skip: (page - 1) * pageSize,
