@@ -263,8 +263,27 @@ export class InvoiceCronService {
     }
   }
 
-  @Cron('30 0 1 * *') // Runs 1st of every month at 00:00
+  @Cron('30 0 1 * *')
   async handleMonthlyInvoices() {
-    await this.invoiceService.sendPendingInvoices();
+    let savedLog;
+    try {
+      const log = this.cronJobLogRepository.create({
+        jobName: 'sendPendingInvoices',
+        startedAt: new Date(),
+        runBy: 'system',
+      });
+
+      savedLog = await this.cronJobLogRepository.save(log);
+      await this.invoiceService.sendPendingInvoices();
+    } catch (error) {
+      await this.cronJobLogRepository.update(
+        { id: savedLog.id },
+        {
+          status: 'failure',
+          error: error?.stack || error?.message || 'Unknown error',
+          endedAt: new Date(),
+        },
+      );
+    }
   }
 }
