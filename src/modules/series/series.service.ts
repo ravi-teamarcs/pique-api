@@ -433,7 +433,7 @@ export class SeriesService {
     const {
       title,
       description,
-      eventId,
+      id: eventId,
       neighbourhoodId,
       eventStartDateTime,
       eventEndDateTime,

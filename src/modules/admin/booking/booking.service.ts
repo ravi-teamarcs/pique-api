@@ -460,6 +460,8 @@ export class BookingService {
       .where('booking.eventId = :id', { id })
       .getRawMany();
 
+    if (!bookings || bookings.length === 0) return;
+
     try {
       for (const booking of bookings) {
         const IGNORED_STATUSES = [
