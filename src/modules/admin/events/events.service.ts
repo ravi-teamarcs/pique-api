@@ -18,7 +18,14 @@ import { Media } from '../media/entities/media.entity';
 import { MediaService } from '../media/media.service';
 import { EventsQueryDto } from './dto/query.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
-import { endOfMonth, format, parse, startOfMonth } from 'date-fns';
+import {
+  addDays,
+  endOfMonth,
+  format,
+  parse,
+  startOfMonth,
+  subDays,
+} from 'date-fns';
 import { Venue } from '../venue/entities/venue.entity';
 import { BookingService } from '../booking/booking.service';
 import { FilterEventDto } from './dto/filter-event.dto';
@@ -676,15 +683,60 @@ export class EventService {
     }
   }
 
+  // async filterEventsByMonthAndYear(query: FilterEventDto) {
+  //   const { month, year } = query;
+
+  //   try {
+  //     const start = format(
+  //       startOfMonth(new Date(year, month - 1)),
+  //       'yyyy-MM-dd',
+  //     );
+  //     const end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
+
+  //     const events = await this.eventRepository
+  //       .createQueryBuilder('event')
+  //       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+  //       .leftJoin('series', 'series', 'series.id = event.series_id')
+  //       .where('DATE(event.eventStartDateTime) BETWEEN :start AND :end', {
+  //         start,
+  //         end,
+  //       })
+  //       .select([
+  //         'event.*',
+  //         'venue.name AS venueName',
+  //         'venue.timezone AS venueTimeZone',
+  //         'venue.addressLine1 AS addressLine1',
+  //         'venue.timezone AS addressLine2',
+  //         'series.seriesName AS seriesName',
+  //       ])
+  //       .orderBy('event.id', 'DESC')
+  //       .getRawMany();
+
+  //     return {
+  //       message: 'Filtered events returned successfully',
+  //       data: events,
+  //       count: events.length,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
   async filterEventsByMonthAndYear(query: FilterEventDto) {
     const { month, year } = query;
 
     try {
-      const start = format(
-        startOfMonth(new Date(year, month - 1)),
-        'yyyy-MM-dd',
-      );
-      const end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
+      // Base start/end for given month
+      const baseStart = startOfMonth(new Date(year, month - 1));
+      const baseEnd = endOfMonth(new Date(year, month - 1));
+
+      // Extend by ±1 day to include timezone-shifted events
+      const start = format(subDays(baseStart, 1), 'yyyy-MM-dd');
+      const end = format(addDays(baseEnd, 1), 'yyyy-MM-dd');
 
       const events = await this.eventRepository
         .createQueryBuilder('event')
@@ -718,6 +770,7 @@ export class EventService {
       });
     }
   }
+
   private async addMarkupToEntertainer(basePrice: number) {
     const res = await this.settingRepo.findOne({ where: { isActive: true } });
     if (!res) return basePrice;
