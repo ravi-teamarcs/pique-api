@@ -913,7 +913,6 @@ export class EntertainerService {
         .leftJoin('countries', 'country', 'country.id = entertainer.country')
         .leftJoin('states', 'state', 'state.id = entertainer.state')
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
-        .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
         .leftJoin(
           'entertainer_category_subcategories',
           'ent_cat_subcat',
@@ -921,11 +920,6 @@ export class EntertainerService {
           { categoryId: event.categoryId },
         )
 
-        .leftJoin(
-          'categories',
-          'subcat',
-          'subcat.id = entertainer.specific_category',
-        )
         .where('entertainer.status IN (:...statuses)', {
           statuses: ['active'],
         })
@@ -1062,13 +1056,17 @@ export class EntertainerService {
             upcomingBookingDate,
             ...rest
           }) => {
-            const categories = await this.getFormattedCategories(Number(id));
+            const categories = await this.getFormattedCategoriesforAdmin(
+              Number(id),
+              event.categoryId,
+              event.subCategoryId,
+            );
 
             return {
               id: Number(id),
               services: services ? services.split(',') : [],
               socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
-              priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
+
               pricePerEvent,
               categories,
               previousBookingDate: convertUtcToTimezoneString(
@@ -1238,6 +1236,91 @@ export class EntertainerService {
         data: entertainerRateCard,
         status: true,
       };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getFormattedCategoriesforAdmin(
+    entertainerId: number,
+    categoryId?: number,
+    subCategoryId?: number,
+  ) {
+    try {
+      // Base query
+      const query = this.entCatRepository
+        .createQueryBuilder('ecs')
+        .leftJoin('categories', 'cat', 'cat.id = ecs.category_id')
+        .where('ecs.entertainerId = :entertainerId', { entertainerId })
+        .select([
+          'cat.id AS categoryId',
+          'cat.name AS categoryName',
+          'ecs.subcategoryIds AS subcategoryIds',
+        ]);
+
+      // Optional category filter
+      if (categoryId) {
+        query.andWhere('ecs.category_id = :categoryId', { categoryId });
+      }
+
+      const rawCategories = await query.getRawMany();
+
+      if (!rawCategories.length) return [];
+
+      const subcategoryIds = rawCategories.flatMap((row) =>
+        typeof row.subcategoryIds === 'string'
+          ? row.subcategoryIds.split(',').map(Number)
+          : [],
+      );
+
+      // Optional subcategory filter
+      let filteredSubcategoryIds = [...new Set(subcategoryIds)];
+      if (subCategoryId) {
+        filteredSubcategoryIds = filteredSubcategoryIds.filter(
+          (id) => id === subCategoryId,
+        );
+      }
+
+      const subcategories = await this.CategoryRepository.find({
+        where: { id: In(filteredSubcategoryIds) },
+        select: ['id', 'name', 'catslug', 'parentId'],
+      });
+
+      const formatted = rawCategories.map((row) => {
+        const subcatIds =
+          typeof row.subcategoryIds === 'string'
+            ? row.subcategoryIds.split(',').map(Number)
+            : [];
+
+        const specific_category = subcategories
+          .filter((sub) =>
+            subCategoryId
+              ? sub.id === subCategoryId
+              : subcatIds.includes(sub.id),
+          )
+          .map((sub) => ({
+            id: sub.id,
+            specificCategoryName: sub.name,
+          }));
+
+        return {
+          id: row.categoryId,
+          categoryName: row.categoryName,
+          specific_category,
+        };
+      });
+
+      // If filtering by category/subcategory, only return relevant one
+      if (categoryId || subCategoryId) {
+        return formatted.filter(
+          (f) =>
+            (!categoryId || f.id === categoryId) &&
+            (!subCategoryId ||
+              f.specific_category.some((sc) => sc.id === subCategoryId)),
+        );
+      }
+
+      return formatted;
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }
