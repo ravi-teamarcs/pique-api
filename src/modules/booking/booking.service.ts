@@ -103,7 +103,9 @@ export class BookingService {
         categoryId !== Number(bookingData.categoryId) ||
         subCategoryId !== Number(bookingData.subcategoryId)
       ) {
-        throw new BadRequestException(`Entertainer can't be booked for event.`);
+        throw new BadRequestException(
+          `Entertainer cannot be booked for this event category or subcategory.`,
+        );
       }
 
       //  Issues are Here

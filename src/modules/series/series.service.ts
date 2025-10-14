@@ -49,6 +49,8 @@ export class SeriesService {
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
         .leftJoin('series', 'series', 'series.id = event.series_id')
         .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+        .leftJoin('categories', 'cat', 'cat.id = event.category_id')
+        .leftJoin('categories', 'subcat', 'subcat.id = event.subcategory_id')
         .select([
           'event.id AS id',
           'event.description AS description',
@@ -57,6 +59,10 @@ export class SeriesService {
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.title AS eventTitle',
+          'event.category_id AS categoryId',
+          'event.subcategory_id AS subCategoryId',
+          'cat.name AS categoryName',
+          'subcat.name AS subCategoryName',
           'event.series_id AS seriesId',
           'series.seriesName AS seriesName',
           'venue.name AS venueName',
@@ -76,6 +82,8 @@ export class SeriesService {
         .andWhere('event.series_id IS NULL')
         .orderBy('DATE(event.eventStartDateTime)', 'ASC')
         .getRawMany();
+
+        console.log("Events" , event)
 
       const parsedResult = event.map(
         ({ eventStartDateTime, eventEndDateTime, ...rest }) => {

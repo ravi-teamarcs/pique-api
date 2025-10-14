@@ -6,6 +6,7 @@ import {
   IsBoolean,
   IsEnum,
   IsOptional,
+  IsInt,
 } from 'class-validator';
 
 export class SeriesEventDto {
@@ -47,4 +48,12 @@ export class SeriesEventDto {
   @IsNumber()
   @IsNotEmpty()
   seriesId: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  categoryId: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  subCategoryId: number;
 }

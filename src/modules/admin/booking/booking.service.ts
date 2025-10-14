@@ -138,9 +138,17 @@ export class BookingService {
             isReinvited = true;
           } else {
             throw new BadRequestException({
-              message: `Entertainer has been already invited for event.`,
+              message: `Entertainer cannot be booked for this event category or subcategory.`,
             });
           }
+        }
+        if (
+          event.categoryId !== Number(data.categoryId) ||
+          event.subCategoryId !== Number(data.subcategoryId)
+        ) {
+          throw new BadRequestException(
+            `Entertainer can't be booked for event.`,
+          );
         }
 
         // Check for Availability.

@@ -43,6 +43,8 @@ export class AdminSeriesService {
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
         .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+        .leftJoin('categories', 'cat', 'cat.id = event.category_id')
+        .leftJoin('categories', 'subcat', 'subcat.id = event.subcategory_id')
         .select([
           'event.id AS id',
           'event.description AS description',
@@ -51,6 +53,10 @@ export class AdminSeriesService {
           'event.status AS eventStatus',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
+          'event.category_id AS categoryId',
+          'event.subcategory_id AS subCategoryId',
+          'cat.name AS categoryName',
+          'subcat.name AS subCategoryName',
           'event.title AS eventTitle',
           'event.series_id AS seriesId',
           'venue.id AS venueId',
