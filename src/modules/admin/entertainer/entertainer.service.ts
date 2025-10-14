@@ -45,6 +45,7 @@ import { EntertainerRateCard } from 'src/modules/entertainer/entities/entertaine
 import { EntertainerRateCardDto } from 'src/modules/entertainer/dto/rate-card.dto';
 import { utcToZonedTime } from 'date-fns-tz';
 import { convertUtcToTimezoneString } from 'src/common/utils/common.utils';
+import { Event } from '../events/entities/event.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -68,6 +69,8 @@ export class EntertainerService {
 
     @InjectRepository(EntertainerRateCard)
     private readonly entRateRepository: Repository<EntertainerRateCard>,
+    @InjectRepository(Event)
+    private readonly eventRepository: Repository<Event>,
 
     @InjectRepository(Cities)
     private readonly cityRepository: Repository<Cities>,
@@ -898,12 +901,26 @@ export class EntertainerService {
       const { page = 1, pageSize = 10, search = '', vaccinated } = query;
       const skip = (page - 1) * pageSize;
 
+      const event = await this.eventRepository.findOne({
+        where: { id: eventId },
+        select: ['categoryId', 'subCategoryId'],
+      });
+      console.log('Event', event);
+      if (!event) return;
+
       const baseQuery = this.entertainerRepository
         .createQueryBuilder('entertainer')
         .leftJoin('countries', 'country', 'country.id = entertainer.country')
         .leftJoin('states', 'state', 'state.id = entertainer.state')
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
         .leftJoin('categories', 'cat', 'cat.id = entertainer.category')
+        .leftJoin(
+          'entertainer_category_subcategories',
+          'ent_cat_subcat',
+          'ent_cat_subcat.entertainer_id = entertainer.id AND ent_cat_subcat.category_id = :categoryId',
+          { categoryId: event.categoryId },
+        )
+
         .leftJoin(
           'categories',
           'subcat',
@@ -912,6 +929,12 @@ export class EntertainerService {
         .where('entertainer.status IN (:...statuses)', {
           statuses: ['active'],
         })
+        .andWhere(
+          'FIND_IN_SET(:subCategoryId, ent_cat_subcat.subcategory_ids)',
+          {
+            subCategoryId: event.subCategoryId,
+          },
+        )
         .andWhere((qb) => {
           const subQuery = qb
             .subQuery()

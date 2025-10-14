@@ -230,6 +230,8 @@ export class EventService {
       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
       .leftJoin('invoice_events', 'invEvent', 'invEvent.event_id = event.id')
       .leftJoin('invoices', 'inv', 'inv.id = invEvent.invoice_id')
+      .leftJoin('categories', 'cat', 'cat.id = event.category_id')
+      .leftJoin('categories', 'subcat', 'subcat.id = event.subcategory_id')
 
       .select([
         // Event Details
@@ -242,6 +244,8 @@ export class EventService {
         'event.slug  AS slug',
         'event.category_id  AS categoryId',
         'event.subcategory_id  AS subCategoryId',
+        'cat.name As categoryName',
+        'subcat.name As subCategoryName',
         'event.venueId AS venueId',
         '(event.isCloseToggleActive = 1) AS isCloseToggleActive',
         'hood.name AS neighbourhood_name',
