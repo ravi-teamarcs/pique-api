@@ -206,6 +206,7 @@ export class EventService {
       const events = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
         .leftJoin('event.series', 'series')
         .leftJoin('categories', 'cat', 'cat.id = event.category_id')
         .leftJoin('categories', 'subcat', 'subcat.id = event.subcategory_id')
@@ -221,6 +222,7 @@ export class EventService {
           'event.eventEndDateTime AS eventEndDateTime',
           'event.recurring AS recurring',
           'event.category_id AS categoryId',
+          'venue.timezone AS venueTimeZone',
           'event.subcategory_id AS subCategoryId',
           'cat.name AS categoryName',
           'subcat.name AS subCategoryName',
