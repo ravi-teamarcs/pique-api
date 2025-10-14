@@ -28,6 +28,12 @@ export class Event {
   @Column({ type: 'timestamp' })
   eventEndDateTime: Date;
 
+  @Column({ name: 'category_id' })
+  categoryId: number;
+
+  @Column({ name: 'subcategory_id' })
+  subCategoryId: number;
+
   @Column()
   venueId: number;
 

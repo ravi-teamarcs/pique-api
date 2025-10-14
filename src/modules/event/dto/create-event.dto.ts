@@ -6,6 +6,7 @@ import {
   IsBoolean,
   IsEnum,
   IsOptional,
+  IsInt,
 } from 'class-validator';
 
 export class CreateEventDto {
@@ -43,4 +44,12 @@ export class CreateEventDto {
   @IsOptional()
   @IsNumber()
   neighbourhoodId: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  categoryId: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  subCategoryId: number;
 }

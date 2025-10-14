@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsBoolean,
   IsEnum,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -30,7 +31,14 @@ export class UpdateEventDto {
   description: string;
 
   @IsOptional()
-  @IsOptional()
   @IsNumber()
   neighbourhoodId: number;
+
+  @IsOptional()
+  @IsInt()
+  categoryId: number;
+
+  @IsOptional()
+  @IsInt()
+  subCategoryId: number;
 }

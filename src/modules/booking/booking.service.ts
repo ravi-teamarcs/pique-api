@@ -82,11 +82,29 @@ export class BookingService {
 
       // Check for availability Here
 
-      const { eventStartDateTime, eventEndDateTime } =
-        await this.eventRepository.findOne({
-          where: { id: dto.eventId },
-          select: ['eventStartDateTime', 'eventEndDateTime'],
-        });
+      const record = await this.eventRepository.findOne({
+        where: { id: dto.eventId },
+        select: [
+          'eventStartDateTime',
+          'eventEndDateTime',
+          'categoryId',
+          'subCategoryId',
+        ],
+      });
+      if (!record) throw new NotFoundException('Event not Found');
+      const {
+        eventStartDateTime,
+        eventEndDateTime,
+        categoryId,
+        subCategoryId,
+      } = record;
+      // Check
+      if (
+        categoryId !== Number(bookingData.categoryId) ||
+        subCategoryId !== Number(bookingData.subcategoryId)
+      ) {
+        throw new BadRequestException(`Entertainer can't be booked for event.`);
+      }
 
       //  Issues are Here
       const availabilityPayload = {

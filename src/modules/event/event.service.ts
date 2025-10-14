@@ -47,6 +47,8 @@ export class EventService {
         eventStartDateTime,
         eventEndDateTime,
         neighbourhoodId,
+        categoryId,
+        subCategoryId,
       } = dto;
 
       const venue = await this.venueRepository.findOne({
@@ -86,6 +88,8 @@ export class EventService {
       const event = this.eventRepository.create({
         sub_venue_id: neighbourhoodId,
         slug,
+        categoryId,
+        subCategoryId,
         ...savePayload,
       });
 
@@ -104,6 +108,8 @@ export class EventService {
       neighbourhoodId,
       eventStartDateTime,
       eventEndDateTime,
+      categoryId,
+      subCategoryId,
     } = dto;
 
     const event = await this.eventRepository.findOne({
@@ -147,6 +153,8 @@ export class EventService {
         eventStartDateTime: startTime.toISOString(),
         eventEndDateTime: endTime.toISOString(),
         venueId,
+        categoryId,
+        subCategoryId,
         slug,
         sub_venue_id: neighbourhoodId,
       };
@@ -210,6 +218,8 @@ export class EventService {
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.recurring AS recurring',
+          'event.category_id AS categoryId',
+          'event.subcategory_id AS subCategoryId',
           'event.status AS status',
           'event.slug AS slug',
           'event.createdAt AS createdAt',
@@ -263,6 +273,8 @@ export class EventService {
           'event.eventEndDateTime',
           'event.status',
           'event.slug',
+          'event.categoryId',
+          'event.subCategoryId',
         ])
         .getManyAndCount();
 
@@ -397,6 +409,9 @@ export class EventService {
         'event.eventEndDateTime AS eventEndDateTime',
         'event.slug AS slug',
         'event.status AS status',
+        'event.category_id AS categoryId',
+        'event.subcategory_id AS subCategoryId',
+
         'venue.name AS name',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',

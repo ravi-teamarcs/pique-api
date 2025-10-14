@@ -76,6 +76,12 @@ export class VenueEvent {
   @Column({ default: false })
   emailSentAfter24Hour: boolean;
 
+  @Column({ name: 'category_id' })
+  categoryId: number;
+
+  @Column({ name: 'subcategory_id' })
+  subCategoryId: number;
+
   @Column({ default: false })
   isCloseToggleActive: boolean; // true = toggle enabled, false = disabled
 

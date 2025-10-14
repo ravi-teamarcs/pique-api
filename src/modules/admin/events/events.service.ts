@@ -81,6 +81,8 @@ export class EventService {
       eventEndDateTime,
       description,
       neighbourhoodId,
+      categoryId,
+      subCategoryId,
     } = dto;
 
     const venue = await this.venueRepository.findOne({
@@ -114,6 +116,8 @@ export class EventService {
       eventEndDateTime: endTime.toISOString(),
       venueId,
       title,
+      categoryId,
+      subCategoryId,
       description: description,
     };
 
@@ -179,6 +183,9 @@ export class EventService {
         'event.eventStartDateTime AS eventStartDateTime',
         'event.eventEndDateTime AS eventEndDateTime',
         'event.description  AS description',
+        'event.category_id  AS categoryId',
+        'event.subcategory_id  AS subCategoryId',
+        'event.description  AS description',
         'event.slug  AS slug',
         'event.venueId AS venueId',
         'hood.name AS neighbourhood_name',
@@ -233,6 +240,8 @@ export class EventService {
         'event.status AS status',
         'event.description  AS description',
         'event.slug  AS slug',
+        'event.category_id  AS categoryId',
+        'event.subcategory_id  AS subCategoryId',
         'event.venueId AS venueId',
         '(event.isCloseToggleActive = 1) AS isCloseToggleActive',
         'hood.name AS neighbourhood_name',
@@ -273,6 +282,8 @@ export class EventService {
       description,
       venueId,
       status,
+      categoryId,
+      subCategoryId,
     } = dto;
 
     const event = await this.eventRepository.findOne({ where: { id } });
@@ -307,6 +318,8 @@ export class EventService {
         venueId,
         title,
         description,
+        categoryId,
+        subCategoryId,
       };
       if (neighbourhoodId) payload['sub_venue_id'] = neighbourhoodId;
 
@@ -398,6 +411,8 @@ export class EventService {
           'event.description AS description',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.eventStartDateTime AS eventStartDateTime',
+          'event.category_id  AS categoryId',
+          'event.subcategory_id  AS subCategoryId',
           'event.status AS status',
           'venue.id AS venue_id',
           'venue.name AS venue_name',

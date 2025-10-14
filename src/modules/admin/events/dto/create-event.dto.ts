@@ -8,6 +8,7 @@ import {
   IsEnum,
   IsDate,
   IsOptional,
+  IsInt,
 } from 'class-validator';
 
 export class CreateEventDto {
@@ -45,4 +46,12 @@ export class CreateEventDto {
   @IsOptional()
   @Transform(({ value }) => Number(value))
   neighbourhoodId: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  categoryId: number;
+
+  @IsNotEmpty()
+  @IsInt()
+  subCategoryId: number;
 }
