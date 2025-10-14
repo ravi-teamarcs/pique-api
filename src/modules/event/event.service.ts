@@ -207,6 +207,8 @@ export class EventService {
         .createQueryBuilder('event')
         .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
         .leftJoin('event.series', 'series')
+        .leftJoin('categories', 'cat', 'cat.id = event.category_id')
+        .leftJoin('categories', 'subcat', 'subcat.id = event.subcategory_id')
         .where('event.venueId = :id', { id })
         .orderBy('event.createdAt', 'DESC')
         .select([
@@ -220,6 +222,8 @@ export class EventService {
           'event.recurring AS recurring',
           'event.category_id AS categoryId',
           'event.subcategory_id AS subCategoryId',
+          'cat.name AS categoryName',
+          'subcat.name AS subCategoryName',
           'event.status AS status',
           'event.slug AS slug',
           'event.createdAt AS createdAt',
@@ -396,6 +400,8 @@ export class EventService {
       .createQueryBuilder('event')
       .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+      .leftJoin('categories', 'cat', 'cat.id = event.category_id')
+      .leftJoin('categories', 'subcat', 'subcat.id = event.subcategory_id')
       .where('event.id = :eventId AND event.venueId = :venueId', {
         eventId: id,
         venueId,
@@ -411,7 +417,8 @@ export class EventService {
         'event.status AS status',
         'event.category_id AS categoryId',
         'event.subcategory_id AS subCategoryId',
-
+        'cat.name AS categoryName',
+        'subcat.name AS subCategoryName',
         'venue.name AS name',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
