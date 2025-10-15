@@ -212,9 +212,13 @@ export class SeriesService {
 
         if (!(series || adminSeries))
           throw new BadRequestException('series not found');
-
         response = adminSeries;
       }
+      const venueTimeZone = await this.venueRepository.findOne({
+        where: { id: venueId },
+        select: ['timezone'],
+      });
+      response['venueTimeZone'] = venueTimeZone.timezone;
 
       return {
         message: 'series returned successfully',

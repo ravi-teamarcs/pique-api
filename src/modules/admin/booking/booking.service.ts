@@ -813,7 +813,14 @@ export class BookingService {
       for (const eventId of eventIds) {
         const event = await this.eventRepository.findOne({
           where: { id: eventId },
-          select: ['eventStartDateTime', 'eventEndDateTime', 'venueId', 'id'],
+          select: [
+            'eventStartDateTime',
+            'eventEndDateTime',
+            'venueId',
+            'id',
+            'categoryId',
+            'subCategoryId',
+          ],
         });
         if (!event) continue;
 
@@ -843,17 +850,23 @@ export class BookingService {
           });
 
           if (alreadyBooked) {
-            // details.push({
-            //   entertainerId: entertainer.entertainerId,
-            //   eventId: event.id,
-            //   available: false,
-            //   message:
-            //     'invitation is already sent to this entertainer for event.',
-            // });
+            details.push({
+              entertainerId: entertainer.entertainerId,
+              eventId: event.id,
+              available: false,
+              message:
+                'invitation is already sent to this entertainer for event.',
+            });
 
-            // continue;
-            throw new BadRequestException('Already invited');
+            continue;
+            // throw new BadRequestException('Already invited');
           }
+
+          if (
+            entertainer.categoryId !== event.categoryId ||
+            entertainer.subCategoryId !== event.subCategoryId
+          )
+            continue;
 
           const availabilityPayload = {
             startTimeUtc: formatInTimeZone(
@@ -980,4 +993,186 @@ export class BookingService {
       throw new InternalServerErrorException(error.message);
     }
   }
+  // async inviteEntertainerForSeries(eventIds: number[], entertainers) {
+  //   try {
+  //     // Suppose you have list of events
+
+  //     const details = [];
+  //     for (const eventId of eventIds) {
+  //       const event = await this.eventRepository.findOne({
+  //         where: { id: eventId },
+  //         select: [
+  //           'eventStartDateTime',
+  //           'eventEndDateTime',
+  //           'venueId',
+  //           'id',
+  //           'categoryId',
+  //           'subCategoryId',
+  //         ],
+  //       });
+  //       if (!event) continue;
+
+  //       const venue = await this.venueRepository
+  //         .createQueryBuilder('venue')
+  //         .leftJoin('venue.user', 'user')
+  //         .leftJoin('cities', 'city', 'city.id = venue.city')
+  //         .leftJoin('states', 'state', 'state.id = venue.state')
+  //         .select([
+  //           'venue.name AS name',
+  //           'user.email AS email',
+  //           'user.phoneNumber AS phoneNumber',
+  //           'venue.contactNumber AS contactNumber',
+  //           'venue.addressLine1 AS addressLine1',
+  //           'venue.addressLine2 AS addressLine2',
+  //           'city.name AS cityName',
+  //           'state.name AS stateName',
+  //           'venue.zipCode AS zipCode',
+  //           'venue.timezone AS venueTimeZone',
+  //         ])
+  //         .where('venue.id =:id', { id: event.venueId })
+  //         .getRawOne();
+
+  //       for (const entertainer of entertainers) {
+  //         const alreadyBooked = await this.bookingRepository.findOne({
+  //           where: { entId: entertainer.entertainerId, eventId: event.id },
+  //         });
+
+  //         if (alreadyBooked) {
+  //           // details.push({
+  //           //   entertainerId: entertainer.entertainerId,
+  //           //   eventId: event.id,
+  //           //   available: false,
+  //           //   message:
+  //           //     'invitation is already sent to this entertainer for event.',
+  //           // });
+
+  //           // continue;
+  //           throw new BadRequestException('Already invited');
+  //         }
+
+  //         const availabilityPayload = {
+  //           startTimeUtc: formatInTimeZone(
+  //             new Date(event.eventStartDateTime),
+  //             'UTC',
+  //             "yyyy-MM-dd'T'HH:mm:ss'Z'",
+  //           ),
+  //           endTimeUtc: formatInTimeZone(
+  //             new Date(event.eventEndDateTime),
+  //             'UTC',
+  //             "yyyy-MM-dd'T'HH:mm:ss'Z'",
+  //           ),
+  //           entertainerId: entertainer.entertainerId,
+  //         };
+
+  //         const availability =
+  //           await this.checkEntertainerAvailability(availabilityPayload);
+
+  //         if (!availability)
+  //           return details.push({
+  //             entertainerId: entertainer.entertainerId,
+  //             eventId: event.id,
+  //             available: false,
+  //             message: 'Entertainer is unavailable during this time.',
+  //           });
+
+  //         const newBooking = this.bookingRepository.create({
+  //           venueId: event.venueId,
+  //           entId: entertainer.entertainerId,
+  //           eventId: event.id,
+  //           categoryId: entertainer.categoryId,
+  //           subcategoryId: entertainer.subCategoryId,
+  //           status: 'invited',
+  //           showStartDateTime: formatInTimeZone(
+  //             new Date(event.eventStartDateTime),
+  //             'UTC',
+  //             "yyyy-MM-dd'T'HH:mm:ss'Z'",
+  //           ),
+  //         });
+  //         const savedBooking = await this.bookingRepository.save(newBooking);
+
+  //         details.push({
+  //           entertainerId: entertainer.entertainerId,
+  //           eventId: event.id,
+  //           available: true,
+  //           message: 'Booking created successfully.',
+  //           bookingId: savedBooking.id,
+  //         });
+
+  //         const logPayload = this.logRepository.create({
+  //           bookingId: savedBooking.id,
+  //           performedBy: 'admin',
+  //           status: 'invited',
+  //           user: null,
+  //         });
+
+  //         await this.logRepository.save(logPayload);
+
+  //         const Entertainer = await this.entertainerRepository
+  //           .createQueryBuilder('entertainer')
+  //           .leftJoin('entertainer.user', 'user')
+  //           .select([
+  //             'entertainer.name AS name',
+  //             'entertainer.email AS email',
+  //             'user.email AS userEmail',
+  //             'user.id AS  userId',
+  //           ])
+  //           .where('entertainer.id =:id', { id: entertainer.entertainerId })
+  //           .getRawOne();
+
+  //         // Send Email to the Entertainer
+  //         if (Entertainer?.email || Entertainer?.userEmail) {
+  //           const { Date: eventDate, Time: startTime } =
+  //             formatUtcToTimezoneParts(
+  //               event.eventStartDateTime,
+  //               venue.venueTimeZone,
+  //             );
+  //           const { Time: endTime } = formatUtcToTimezoneParts(
+  //             event.eventEndDateTime,
+  //             venue.venueTimeZone,
+  //           );
+  //           const emailPayload = {
+  //             to: Entertainer.email || Entertainer.userEmail,
+  //             subject: 'New Booking Request',
+  //             templateName: 'booking-request.html',
+  //             replacements: {
+  //               venueName: venue.name,
+  //               eventName: event?.slug || '',
+  //               entertainerName: Entertainer.name,
+  //               bookingDate: eventDate,
+  //               bookingTime: `${startTime} to ${endTime}`,
+  //               vname: venue.name,
+  //               vemail: venue.email,
+  //               vphone: venue.contactNumber,
+  //               Address: `${venue.addressLine1},${venue.addressLine2} ,${venue.cityName}, ${venue.stateName}, ${venue.zipCode}`,
+  //             },
+  //           };
+
+  //           this.emailService.handleSendEmail(emailPayload);
+  //           this.notifyService.sendPush(
+  //             {
+  //               title: 'Booking Request',
+  //               body: `You have new invitation from ${venue.name}`,
+  //               type: 'booking_req',
+  //             },
+  //             Entertainer.userId,
+  //           );
+  //         }
+  //       }
+
+  //       // Update the status After Sending invite to All.
+  //       await this.eventRepository.update(
+  //         { id: event.id },
+  //         { status: 'invited' },
+  //       );
+  //     }
+  //     return {
+  //       message: 'Entertainer invited for series successfully',
+  //       status: true,
+  //       data: details,
+  //     };
+  //   } catch (error) {
+  //     if (error instanceof HttpException) throw error;
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
 }

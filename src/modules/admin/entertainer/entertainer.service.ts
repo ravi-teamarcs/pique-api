@@ -1168,7 +1168,65 @@ export class EntertainerService {
           'city.name AS city',
           'country.name AS country',
           'state.name AS state',
-        ]);
+        ])
+        .addSelect(
+          `(
+    SELECT b1.showStartDateTime
+    FROM booking b1
+    JOIN venue v1 ON v1.id = b1.venueId
+    WHERE b1.entId = entertainer.id
+      AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
+      AND DATE(b1.showStartDateTime) < '${todayString}'
+    ORDER BY b1.showStartDateTime DESC
+    LIMIT 1
+  )`,
+          'previousBookingDate',
+        )
+
+        // Previous booking timezone
+        .addSelect(
+          `(
+    SELECT v1.timezone
+    FROM booking b1
+    JOIN venue v1 ON v1.id = b1.venueId
+    WHERE b1.entId = entertainer.id
+      AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
+      AND DATE(b1.showStartDateTime) < '${todayString}'
+    ORDER BY b1.showStartDateTime DESC
+    LIMIT 1
+  )`,
+          'previousBookingTimezone',
+        )
+
+        // Upcoming booking full timestamp
+        .addSelect(
+          `(
+    SELECT b2.showStartDateTime
+    FROM booking b2
+    JOIN venue v2 ON v2.id = b2.venueId
+    WHERE b2.entId = entertainer.id
+      AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
+      AND DATE(b2.showStartDateTime) > '${todayString}'
+    ORDER BY b2.showStartDateTime ASC
+    LIMIT 1
+  )`,
+          'upcomingBookingDate',
+        )
+
+        // Upcoming booking timezone
+        .addSelect(
+          `(
+    SELECT v2.timezone
+    FROM booking b2
+    JOIN venue v2 ON v2.id = b2.venueId
+    WHERE b2.entId = entertainer.id
+      AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
+      AND DATE(b2.showStartDateTime) > '${todayString}'
+    ORDER BY b2.showStartDateTime ASC
+    LIMIT 1
+  )`,
+          'upcomingBookingTimezone',
+        );
 
       if (search)
         baseQuery.andWhere('entertainer.name LIKE :search', {
@@ -1203,6 +1261,14 @@ export class EntertainerService {
             ...r,
             id: Number(r.id),
             socialLinks: r.socialLinks ? JSON.parse(r.socialLinks) : null,
+            previousBookingDate: convertUtcToTimezoneString(
+              r.previousBookingDate,
+              r.previousBookingTimezone,
+            ),
+            upcomingBookingDate: convertUtcToTimezoneString(
+              r.upcomingBookingDate,
+              r.upcomingBookingTimezone,
+            ),
             categories,
           };
         }),
