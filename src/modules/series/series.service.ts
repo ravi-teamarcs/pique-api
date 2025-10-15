@@ -83,7 +83,7 @@ export class SeriesService {
         .orderBy('DATE(event.eventStartDateTime)', 'ASC')
         .getRawMany();
 
-        console.log("Events" , event)
+      console.log('Events', event);
 
       const parsedResult = event.map(
         ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
@@ -236,6 +236,8 @@ export class SeriesService {
         eventStartDateTime,
         eventEndDateTime,
         neighbourhoodId,
+        categoryId,
+        subCategoryId,
       } = dto;
 
       const venue = await this.venueRepository.findOne({
@@ -262,6 +264,8 @@ export class SeriesService {
         title,
         description: description,
         series: { id: seriesId },
+        categoryId,
+        subCategoryId,
       };
 
       const payload = {
@@ -445,6 +449,8 @@ export class SeriesService {
       neighbourhoodId,
       eventStartDateTime,
       eventEndDateTime,
+      categoryId,
+      subCategoryId,
     } = dto;
 
     const event = await this.eventRepository.findOne({
@@ -479,6 +485,8 @@ export class SeriesService {
         venueId,
         eventStartDateTime: startTime,
         eventEndDateTime: endTime,
+        categoryId,
+        subCategoryId,
       };
       const slug = await this.generateSlug(slugPayload);
 

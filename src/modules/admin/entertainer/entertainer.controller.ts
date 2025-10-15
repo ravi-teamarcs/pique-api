@@ -70,6 +70,18 @@ export class EntertainerController {
   ) {
     return this.EntertainerService.getAllEntertainerList(eventId, query);
   }
+  @Get('series/:seriesId')
+  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+  @Roles('super-admin', 'entertainer-admin')
+  getEntertainerListForSeries(
+    @Param('seriesId', ParseIntPipe) seriesId: number,
+    @Query() query: GetEntertainerDto,
+  ) {
+    return this.EntertainerService.getAllEntertainerListForSeries(
+      seriesId,
+      query,
+    );
+  }
 
   // New Flow for Creating Entertainer
 

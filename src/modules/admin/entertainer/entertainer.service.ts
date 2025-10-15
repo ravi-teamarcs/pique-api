@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Entertainer } from './entities/entertainer.entity';
-import { DataSource, In, Like, Not, Repository } from 'typeorm';
+import { Brackets, DataSource, In, Like, Not, Repository } from 'typeorm';
 import { Categories } from './entities/Category.entity';
 import { CreateCategoryDto } from './Dto/create-category.dto';
 import { UpdateCategoryDto } from './Dto/update-category.dto';
@@ -1098,6 +1098,130 @@ export class EntertainerService {
       });
     }
   }
+  async getAllEntertainerListForSeries(seriesId: number, query: any) {
+    try {
+      const today = new Date();
+      const todayString = today.toISOString().split('T')[0];
+      const { page = 1, pageSize = 10, search = '', vaccinated } = query;
+      const skip = (page - 1) * pageSize;
+
+      const events = await this.eventRepository.find({
+        where: { series: { id: seriesId } },
+        select: ['categoryId', 'subCategoryId', 'id'],
+      });
+
+      if (!events.length)
+        return { message: 'No events found', records: [], total: 0 };
+
+      const categoryIds = [...new Set(events.map((e) => e.categoryId))];
+      const subCategoryIds = [...new Set(events.map((e) => e.subCategoryId))];
+      const eventIds = events.map((e) => e.id);
+
+      const baseQuery = this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin(
+          'entertainer_category_subcategories',
+          'ent_cat_subcat',
+          `ent_cat_subcat.entertainer_id = entertainer.id AND ent_cat_subcat.category_id IN (:...categoryIds)`,
+          { categoryIds },
+        )
+        .where("entertainer.status = 'active'")
+        .andWhere(
+          new Brackets((qb) => {
+            subCategoryIds.forEach((subId, i) => {
+              qb.orWhere(
+                `FIND_IN_SET(:subId${i}, ent_cat_subcat.subcategory_ids)`,
+                { [`subId${i}`]: subId },
+              );
+            });
+          }),
+        )
+        .andWhere((qb) => {
+          const subQuery = qb
+            .subQuery()
+            .select('1')
+            .from('booking', 'book')
+            .where('book.entId = entertainer.id')
+            .andWhere('book.eventId IN (:...eventIds)')
+            .andWhere("book.status IN ('invited', 'applied')")
+            .getQuery();
+          return `NOT EXISTS ${subQuery}`;
+        })
+        .setParameter('eventIds', eventIds)
+        .distinct(true) // ✅ Ensure unique entertainers
+        .select([
+          'entertainer.id AS id',
+          'entertainer.name AS name',
+          'entertainer.entertainer_name AS entertainer_name',
+          'entertainer.bio AS bio',
+          'entertainer.email AS email',
+          'entertainer.socialLinks AS socialLinks',
+          'entertainer.zipCode AS ZipCode',
+          'entertainer.contact_person AS contactPerson',
+          'entertainer.contact_number AS ContactNumber',
+          'entertainer.status AS status',
+          'entertainer.pricePerEvent AS pricePerEvent',
+          'entertainer.vaccinated AS vaccinated',
+          'city.name AS city',
+          'country.name AS country',
+          'state.name AS state',
+        ]);
+
+      if (search)
+        baseQuery.andWhere('entertainer.name LIKE :search', {
+          search: `%${search}%`,
+        });
+
+      if (vaccinated)
+        baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+          vaccinated,
+        });
+
+      const total = await baseQuery.getCount();
+
+      const records = await baseQuery
+        .orderBy('entertainer.name', 'ASC')
+        .skip(skip)
+        .take(pageSize)
+        .getRawMany();
+
+      const parsedRecords = await Promise.all(
+        records.map(async (r) => {
+          // Get categories for this entertainer
+          const categories = await this.getFormattedCategoriesforAdminMultiple(
+            Number(r.id),
+            events.map((e) => ({
+              categoryId: e.categoryId,
+              subCategoryId: e.subCategoryId,
+            })),
+          );
+
+          return {
+            ...r,
+            id: Number(r.id),
+            socialLinks: r.socialLinks ? JSON.parse(r.socialLinks) : null,
+            categories,
+          };
+        }),
+      );
+
+      return {
+        message: 'Entertainers fetched successfully.',
+        records: parsedRecords,
+        total,
+        pageSize,
+        currentPage: page,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
 
   private async addMarkupToEntertainer(basePrice: number) {
     const res = await this.settingRepo.findOne({ where: { isActive: true } });
@@ -1319,6 +1443,90 @@ export class EntertainerService {
               f.specific_category.some((sc) => sc.id === subCategoryId)),
         );
       }
+
+      return formatted;
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getFormattedCategoriesforAdminMultiple(
+    entertainerId,
+    categorySubcatPairs = [],
+  ) {
+    try {
+      // Example of categorySubcatPairs:
+      // [{ categoryId: 2, subCategoryId: 5 }, { categoryId: 3, subCategoryId: 8 }]
+
+      if (!categorySubcatPairs.length) return [];
+
+      const query = this.entCatRepository
+        .createQueryBuilder('ecs')
+        .leftJoin('categories', 'cat', 'cat.id = ecs.category_id')
+        .where('ecs.entertainerId = :entertainerId', { entertainerId })
+        .select([
+          'cat.id AS categoryId',
+          'cat.name AS categoryName',
+          'ecs.subcategoryIds AS subcategoryIds',
+        ]);
+
+      const rawCategories = await query.getRawMany();
+      if (!rawCategories.length) return [];
+
+      // Extract all subcategory IDs entertainer has
+      const allSubcategoryIds = rawCategories.flatMap((row) =>
+        typeof row.subcategoryIds === 'string'
+          ? row.subcategoryIds.split(',').map(Number)
+          : [],
+      );
+
+      // Collect all subCategoryIds used in series events
+      const filterSubcategoryIds = categorySubcatPairs.map(
+        (p) => p.subCategoryId,
+      );
+      const filteredSubcategoryIds = allSubcategoryIds.filter((id) =>
+        filterSubcategoryIds.includes(id),
+      );
+
+      if (!filteredSubcategoryIds.length) return [];
+
+      // Get all matching subcategories
+      const subcategories = await this.CategoryRepository.find({
+        where: { id: In(filteredSubcategoryIds) },
+        select: ['id', 'name', 'catslug', 'parentId'],
+      });
+
+      // Map formatted data
+      const formatted = rawCategories
+        .map((row) => {
+          const subcatIds =
+            typeof row.subcategoryIds === 'string'
+              ? row.subcategoryIds.split(',').map(Number)
+              : [];
+
+          const specific_category = subcategories
+            .filter((sub) => subcatIds.includes(sub.id))
+            .filter((sub) =>
+              categorySubcatPairs.some(
+                (pair) =>
+                  pair.categoryId === row.categoryId &&
+                  pair.subCategoryId === sub.id,
+              ),
+            )
+            .map((sub) => ({
+              id: sub.id,
+              specificCategoryName: sub.name,
+            }));
+
+          if (!specific_category.length) return null;
+
+          return {
+            id: row.categoryId,
+            categoryName: row.categoryName,
+            specific_category,
+          };
+        })
+        .filter(Boolean);
 
       return formatted;
     } catch (error) {
