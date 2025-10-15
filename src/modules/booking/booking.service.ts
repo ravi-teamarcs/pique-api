@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { Booking } from './entities/booking.entity';
 import { Venue } from '../venue/entities/venue.entity';
 import { BookingRequest } from './entities/changeBooking.entity';
@@ -895,15 +895,27 @@ export class BookingService {
     };
   }
 
-  async inviteEntertainerForSeries(eventIds: number[], entertainers) {
+  async inviteEntertainerForSeries(eventIds: number[], entertainers: any[]) {
     try {
-      // Suppose you have list of events
+      if (!entertainers.length) {
+        throw new BadRequestException('No entertainer provided.');
+      }
 
       const details = [];
+      const alreadyBookedEvents: { eventId: number; entertainerId: number }[] =
+        [];
+
       for (const eventId of eventIds) {
         const event = await this.eventRepository.findOne({
           where: { id: eventId },
-          select: ['eventStartDateTime', 'eventEndDateTime', 'venueId', 'id'],
+          select: [
+            'eventStartDateTime',
+            'eventEndDateTime',
+            'venueId',
+            'id',
+            'categoryId',
+            'subCategoryId',
+          ],
         });
         if (!event) continue;
 
@@ -924,26 +936,35 @@ export class BookingService {
             'venue.zipCode AS zipCode',
             'venue.timezone AS venueTimeZone',
           ])
-          .where('venue.id =:id', { id: event.venueId })
+          .where('venue.id = :id', { id: event.venueId })
           .getRawOne();
 
         for (const entertainer of entertainers) {
+          // Check if already booked
           const alreadyBooked = await this.bookingRepository.findOne({
             where: { entId: entertainer.entertainerId, eventId: event.id },
           });
 
           if (alreadyBooked) {
-            // details.push({
-            //   entertainerId: entertainer.entertainerId,
-            //   eventId: event.id,
-            //   available: false,
-            //   message:
-            //     'invitation is already sent to this entertainer for event.',
-            // });
-            // continue;
-            throw new BadRequestException('Already invited');
+            alreadyBookedEvents.push({
+              eventId: event.id,
+              entertainerId: entertainer.entertainerId,
+            });
+            continue;
           }
 
+          // Check if entertainer has matching category & subcategory
+          const matchedCategory = entertainer.categories.find(
+            (c) => c.id === event.categoryId,
+          );
+          if (!matchedCategory) continue;
+
+          const matchedSubcategory = matchedCategory.specific_category.find(
+            (sc) => sc.id === event.subCategoryId,
+          );
+          if (!matchedSubcategory) continue;
+
+          // Check availability
           const availabilityPayload = {
             startTimeUtc: formatInTimeZone(
               new Date(event.eventStartDateTime),
@@ -958,23 +979,25 @@ export class BookingService {
             entertainerId: entertainer.entertainerId,
           };
 
-          const availability =
+          const available =
             await this.checkEntertainerAvailability(availabilityPayload);
-
-          if (!availability)
-            return details.push({
+          if (!available) {
+            details.push({
               entertainerId: entertainer.entertainerId,
               eventId: event.id,
               available: false,
               message: 'Entertainer is unavailable during this time.',
             });
+            continue;
+          }
 
+          // Create booking
           const newBooking = this.bookingRepository.create({
             venueId: event.venueId,
             entId: entertainer.entertainerId,
             eventId: event.id,
-            categoryId: entertainer.categoryId,
-            subcategoryId: entertainer.subCategoryId,
+            categoryId: event.categoryId,
+            subcategoryId: event.subCategoryId,
             status: 'invited',
             showStartDateTime: formatInTimeZone(
               new Date(event.eventStartDateTime),
@@ -984,6 +1007,15 @@ export class BookingService {
           });
           const savedBooking = await this.bookingRepository.save(newBooking);
 
+          // Log booking
+          const logPayload = this.logRepository.create({
+            bookingId: savedBooking.id,
+            performedBy: 'admin',
+            status: 'invited',
+            user: null,
+          });
+          await this.logRepository.save(logPayload);
+
           details.push({
             entertainerId: entertainer.entertainerId,
             eventId: event.id,
@@ -992,15 +1024,7 @@ export class BookingService {
             bookingId: savedBooking.id,
           });
 
-          const logPayload = this.logRepository.create({
-            bookingId: savedBooking.id,
-            performedBy: 'admin',
-            status: 'invited',
-            user: null,
-          });
-
-          await this.logRepository.save(logPayload);
-
+          // Send email & push notification
           const Entertainer = await this.entRepository
             .createQueryBuilder('entertainer')
             .leftJoin('entertainer.user', 'user')
@@ -1008,12 +1032,11 @@ export class BookingService {
               'entertainer.name AS name',
               'entertainer.email AS email',
               'user.email AS userEmail',
-              'user.id AS  userId',
+              'user.id AS userId',
             ])
-            .where('entertainer.id =:id', { id: entertainer.entertainerId })
+            .where('entertainer.id = :id', { id: entertainer.entertainerId })
             .getRawOne();
 
-          // Send Email to the Entertainer
           if (Entertainer?.email || Entertainer?.userEmail) {
             const { Date: eventDate, Time: startTime } =
               formatUtcToTimezoneParts(
@@ -1024,6 +1047,7 @@ export class BookingService {
               event.eventEndDateTime,
               venue.venueTimeZone,
             );
+
             const emailPayload = {
               to: Entertainer.email || Entertainer.userEmail,
               subject: 'New Booking Request',
@@ -1037,7 +1061,7 @@ export class BookingService {
                 vname: venue.name,
                 vemail: venue.email,
                 vphone: venue.contactNumber,
-                Address: `${venue.addressLine1},${venue.addressLine2} ,${venue.cityName}, ${venue.stateName}, ${venue.zipCode}`,
+                Address: `${venue.addressLine1},${venue.addressLine2}, ${venue.cityName}, ${venue.stateName}, ${venue.zipCode}`,
               },
             };
 
@@ -1045,7 +1069,7 @@ export class BookingService {
             this.notifyService.sendPush(
               {
                 title: 'Booking Request',
-                body: `You have new invitation from ${venue.name}`,
+                body: `You have a new invitation from ${venue.name}`,
                 type: 'booking_req',
               },
               Entertainer.userId,
@@ -1053,12 +1077,21 @@ export class BookingService {
           }
         }
 
-        // Update the status After Sending invite to All.
+        // Update event status after all invitations
         await this.eventRepository.update(
           { id: event.id },
           { status: 'invited' },
         );
       }
+
+      // Throw error if entertainer was already booked for any event
+      if (alreadyBookedEvents.length > 0) {
+        const bookedEventIds = alreadyBookedEvents.map((b) => b.eventId);
+        throw new BadRequestException(
+          `Entertainer is already booked for event(s): ${bookedEventIds.join(', ')}`,
+        );
+      }
+
       return {
         message: 'Entertainer invited for series successfully',
         status: true,
