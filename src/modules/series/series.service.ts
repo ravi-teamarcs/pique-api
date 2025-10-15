@@ -489,8 +489,6 @@ export class SeriesService {
         venueId,
         eventStartDateTime: startTime,
         eventEndDateTime: endTime,
-        categoryId,
-        subCategoryId,
       };
       const slug = await this.generateSlug(slugPayload);
 
@@ -502,6 +500,8 @@ export class SeriesService {
         venueId,
         slug,
         sub_venue_id: neighbourhoodId,
+        categoryId,
+        subCategoryId,
       };
 
       const hasStartDateTimeChanged =
