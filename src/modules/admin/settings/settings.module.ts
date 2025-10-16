@@ -8,6 +8,9 @@ import { Capability } from '../adminuser/entities/capability.entity';
 import { Setting } from './entities/setting.entity';
 import { SpecialSubcategoryPrice } from './entities/special-subcategory-prices.entity';
 import { SubcategoryRate } from './entities/subcategory-rates.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { EntertainerCategorySubcategory } from 'src/modules/entertainer/entities/entertainer-category-subcategory.entity';
+import { Categories } from '../entertainer/entities/Category.entity';
 
 @Module({
   imports: [
@@ -19,6 +22,9 @@ import { SubcategoryRate } from './entities/subcategory-rates.entity';
       Setting,
       SpecialSubcategoryPrice,
       SubcategoryRate,
+      Entertainer,
+      Categories,
+      EntertainerCategorySubcategory
     ]),
   ],
   controllers: [SettingsController],

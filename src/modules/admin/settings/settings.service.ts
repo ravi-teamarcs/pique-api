@@ -10,6 +10,9 @@ import { Repository } from 'typeorm';
 import { RateCardDto } from './dto/rate-card.dto';
 import { SubcategoryRate } from './entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from './entities/special-subcategory-prices.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { EntertainerCategorySubcategory } from 'src/modules/entertainer/entities/entertainer-category-subcategory.entity';
+import { Categories } from '../entertainer/entities/Category.entity';
 
 @Injectable()
 export class SettingsService {
@@ -18,8 +21,14 @@ export class SettingsService {
     private readonly settingRepo: Repository<Setting>,
     @InjectRepository(SubcategoryRate)
     private readonly subcatRateRepo: Repository<SubcategoryRate>,
+    @InjectRepository(Entertainer)
+    private readonly entertainerRepo: Repository<Entertainer>,
+    @InjectRepository(Categories)
+    private readonly categoryRepo: Repository<Categories>,
     @InjectRepository(SpecialSubcategoryPrice)
     private readonly specialSubcatRateRepo: Repository<SpecialSubcategoryPrice>,
+    @InjectRepository(EntertainerCategorySubcategory)
+    private readonly entCatSubcatRepo: Repository<EntertainerCategorySubcategory>,
   ) {}
 
   async getActiveSetting() {
@@ -160,6 +169,94 @@ export class SettingsService {
       };
     } catch (error) {
       throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getEntertainerCategoriesWithRates(entertainerId: number) {
+    try {
+      // 1️⃣ Fetch entertainer categories (category_id and subcategory_ids)
+      const ecsRaw = await this.entCatSubcatRepo
+        .createQueryBuilder('ecs')
+        .leftJoin('categories', 'cat', 'cat.id = ecs.category_id')
+        .select([
+          'ecs.category_id AS categoryId',
+          'ecs.subcategory_ids AS subCategoryIds',
+          'cat.name AS categoryName',
+        ])
+        .where('ecs.entertainer_id = :entertainerId', { entertainerId })
+        .getRawMany();
+
+      if (!ecsRaw.length) return [];
+
+      // 2️⃣ Collect all subcategory IDs across all categories
+      const allSubcategoryIds = ecsRaw.flatMap((ecs) =>
+        ecs.subCategoryIds
+          ? ecs.subCategoryIds.split(',').map((id: string) => Number(id))
+          : [],
+      );
+
+      if (!allSubcategoryIds.length) return [];
+
+      // 3️⃣ Fetch subcategory names
+      const subcategories = await this.categoryRepo
+        .createQueryBuilder('sub')
+        .select(['sub.id', 'sub.name'])
+        .where('sub.id IN (:...subIds)', { subIds: allSubcategoryIds })
+        .getRawMany();
+
+      // 4️⃣ Fetch subcategory rates
+      const subcategoryRates = await this.subcatRateRepo
+        .createQueryBuilder('sr')
+        .where('sr.subcategoryId IN (:...subIds)', {
+          subIds: allSubcategoryIds,
+        })
+        .getMany();
+
+      // 5️⃣ Fetch special prices
+      const specialPrices = await this.specialSubcatRateRepo
+        .createQueryBuilder('ssp')
+        .where('ssp.subcategoryId IN (:...subIds)', {
+          subIds: allSubcategoryIds,
+        })
+        .getMany();
+
+      // 6️⃣ Build nested result
+      const result = ecsRaw.map((ecs) => {
+        const subIds = ecs.subCategoryIds
+          ? ecs.subCategoryIds.split(',').map((id: string) => Number(id))
+          : [];
+
+        const specific_category = subIds.map((subId) => {
+          const sub = subcategories.find((s) => s.sub_id === subId); // getRawMany returns alias with table_column
+          const rate = subcategoryRates.find((r) => r.subcategoryId === subId);
+          const specials = specialPrices
+            .filter((sp) => sp.subcategoryId === subId)
+            .map((sp) => ({
+              date: sp.date,
+              price: sp.specialPrice,
+              pricePerExtra30Min: sp.pricePerExtra30Min,
+            }));
+
+          return {
+            id: subId,
+            name: sub?.sub_name || `Subcategory ${subId}`,
+            basePrice: rate?.basePrice || 0,
+            pricePerExtra30Min: rate?.pricePerExtra30Min || 0,
+            specialPrices: specials,
+          };
+        });
+
+        return {
+          id: ecs.categoryId,
+          categoryName: ecs.categoryName,
+          specific_category,
+        };
+      });
+
+      return result;
+    } catch (err) {
+      console.error('Error fetching entertainer category data:', err);
+      throw err;
     }
   }
 }
