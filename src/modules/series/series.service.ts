@@ -68,7 +68,7 @@ export class SeriesService {
           'venue.name AS venueName',
           'event.status AS eventStatus',
           'venue.addressLine1 AS venueAddressLine1',
-          'venue.addressLine1 AS venueAddressLine2',
+          'venue.addressLine2 AS venueAddressLine2',
           'hood.id AS neighbourHoodId',
           'hood.name AS neighbourHoodName',
         ])
