@@ -22,6 +22,8 @@ import { AddSeriesDto } from './dto/add-series.dto';
 import { Event } from '../events/entities/event.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { BookingService } from '../booking/booking.service';
+import { Categories } from '../entertainer/entities/Category.entity';
+import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
 
 @Injectable()
 export class AdminSeriesService {
@@ -32,6 +34,10 @@ export class AdminSeriesService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(Series)
     private readonly seriesRepository: Repository<Series>,
+    @InjectRepository(Categories)
+    private readonly categoryRepository: Repository<Categories>,
+    @InjectRepository(Neighbourhood)
+    private readonly neighbourhoodRepository: Repository<Neighbourhood>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
     private readonly bookingService: BookingService,
@@ -201,8 +207,23 @@ export class AdminSeriesService {
             where: { id: event.venueId },
             select: ['timezone'],
           });
+          const category = await this.categoryRepository.findOne({
+            where: { id: event.categoryId },
+            select: ['name'],
+          });
+          const subCategory = await this.categoryRepository.findOne({
+            where: { id: event.subCategoryId },
+            select: ['name'],
+          });
+          const neighbourhood = await this.neighbourhoodRepository.findOne({
+            where: { id: event.sub_venue_id },
+            select: ['name'],
+          });
           return {
             ...event,
+            categoryName: category.name,
+            subCategoryName: subCategory.name,
+            neighbourhoodName: neighbourhood.name,
             venueTimeZone: venue.timezone,
           };
         }),

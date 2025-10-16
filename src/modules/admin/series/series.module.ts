@@ -10,6 +10,8 @@ import { RoleCapability } from '../auth/entities/role-capabilities.entity';
 import { Event } from '../events/entities/event.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { BookingModule } from '../booking/booking.module';
+import { Categories } from '../entertainer/entities/Category.entity';
+import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
 
 @Module({
   imports: [
@@ -21,6 +23,8 @@ import { BookingModule } from '../booking/booking.module';
       Capability,
       Series,
       Booking,
+      Categories,
+      Neighbourhood
     ]),
     BookingModule,
   ],
