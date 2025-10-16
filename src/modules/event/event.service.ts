@@ -334,6 +334,8 @@ export class EventService {
         .andWhere('event.subCategoryId IN (:...subCategoryIds)', {
           subCategoryIds,
         })
+        .andWhere('event.series_id IS NULL')
+
         .orderBy('event.createdAt', 'DESC')
         .select([
           'event.id',

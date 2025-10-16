@@ -54,7 +54,7 @@ export class AdminSeriesService {
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.categoryId AS categoryId',
-          'event.subcategoryId AS subCategoryId',
+          'event.subCategoryId AS subCategoryId',
           'cat.name AS categoryName',
           'subcat.name AS subCategoryName',
           'event.title AS eventTitle',
