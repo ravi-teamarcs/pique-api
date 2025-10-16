@@ -152,6 +152,17 @@ export class BookingService {
         }
 
         // Check for Availability.
+        const entertainer = await this.entertainerRepository
+          .createQueryBuilder('entertainer')
+          .leftJoin('entertainer.user', 'user')
+          .select([
+            'entertainer.name AS name',
+            'entertainer.email AS email',
+            'user.email AS userEmail',
+            'user.id AS  userId',
+          ])
+          .where('entertainer.id =:id', { id: entertainerId })
+          .getRawOne();
 
         const availabilityPayload = {
           startTimeUtc: formatInTimeZone(
@@ -173,6 +184,8 @@ export class BookingService {
         if (!availability) {
           details.push({
             entertainerId,
+            eventSlug: event?.slug ?? '',
+            entertainerName: entertainer.name || '',
             available: false,
             message: 'Entertainer is unavailable during this time.',
           });
@@ -200,6 +213,8 @@ export class BookingService {
           details.push({
             entertainerId,
             available: true,
+            eventSlug: event?.slug ?? '',
+            entertainerName: entertainer.name || '',
             message: 'Booking created successfully.',
             bookingId: savedBooking.id,
           });
@@ -214,17 +229,6 @@ export class BookingService {
         await this.logRepository.save(logPayload);
 
         // fetch entertainer details  every time
-        const entertainer = await this.entertainerRepository
-          .createQueryBuilder('entertainer')
-          .leftJoin('entertainer.user', 'user')
-          .select([
-            'entertainer.name AS name',
-            'entertainer.email AS email',
-            'user.email AS userEmail',
-            'user.id AS  userId',
-          ])
-          .where('entertainer.id =:id', { id: entertainerId })
-          .getRawOne();
 
         // Send Email to the Entertainer
         if (entertainer?.email || entertainer?.userEmail) {
@@ -1043,11 +1047,25 @@ export class BookingService {
                 status: Not('canceled'),
               },
             });
+            // ✅ Fetch entertainer details
+            const Entertainer = await this.entertainerRepository
+              .createQueryBuilder('entertainer')
+              .leftJoin('entertainer.user', 'user')
+              .select([
+                'entertainer.name AS name',
+                'entertainer.email AS email',
+                'user.email AS userEmail',
+                'user.id AS userId',
+              ])
+              .where('entertainer.id = :id', { id: entertainer.entertainerId })
+              .getRawOne();
 
             if (alreadyBooked) {
               details.push({
                 entertainerId: entertainer.entertainerId,
+                entertainerName: Entertainer.name,
                 eventId: event.id,
+                eventSlug: event.slug,
                 available: false,
                 message: 'Invitation already sent for this event.',
               });
@@ -1065,7 +1083,9 @@ export class BookingService {
             if (!matchedCategory || !matchedSubcategory) {
               details.push({
                 entertainerId: entertainer.entertainerId,
+                entertainerName: Entertainer.name,
                 eventId: event.id,
+                eventSlug: event.slug,
                 available: false,
                 message:
                   'Entertainer does not match event category/subcategory.',
@@ -1101,7 +1121,9 @@ export class BookingService {
             if (!availability) {
               details.push({
                 entertainerId: entertainer.entertainerId,
+                entertainerName: Entertainer.name,
                 eventId: event.id,
+                eventSlug: event.slug,
                 available: false,
                 message: 'Entertainer unavailable for this schedule.',
               });
@@ -1126,6 +1148,8 @@ export class BookingService {
 
             details.push({
               entertainerId: entertainer.entertainerId,
+              entertainerName: Entertainer.name,
+              eventSlug: event.slug,
               eventId: event.id,
               available: true,
               message: 'Booking created successfully.',
@@ -1140,19 +1164,6 @@ export class BookingService {
               user: null,
             });
             await this.logRepository.save(logPayload);
-
-            // ✅ Fetch entertainer details
-            const Entertainer = await this.entertainerRepository
-              .createQueryBuilder('entertainer')
-              .leftJoin('entertainer.user', 'user')
-              .select([
-                'entertainer.name AS name',
-                'entertainer.email AS email',
-                'user.email AS userEmail',
-                'user.id AS userId',
-              ])
-              .where('entertainer.id = :id', { id: entertainer.entertainerId })
-              .getRawOne();
 
             // ✅ Send email & push notification
             if (Entertainer?.email || Entertainer?.userEmail) {

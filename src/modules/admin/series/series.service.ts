@@ -265,6 +265,8 @@ export class AdminSeriesService {
         eventStartDateTime,
         eventEndDateTime,
         neighbourhoodId,
+        categoryId,
+        subCategoryId,
       } = dto;
 
       const venue = await this.venueRepository.findOne({
@@ -291,6 +293,8 @@ export class AdminSeriesService {
         title,
         description: description,
         series: { id: seriesId },
+        categoryId,
+        subCategoryId,
       };
 
       const payload = {
@@ -416,6 +420,8 @@ export class AdminSeriesService {
       neighbourhoodId,
       eventStartDateTime,
       eventEndDateTime,
+      categoryId,
+      subCategoryId,
     } = dto;
 
     const event = await this.eventRepository.findOne({
@@ -461,6 +467,8 @@ export class AdminSeriesService {
         venueId,
         slug,
         sub_venue_id: neighbourhoodId,
+        categoryId,
+        subCategoryId,
       };
 
       const hasStartDateTimeChanged =
