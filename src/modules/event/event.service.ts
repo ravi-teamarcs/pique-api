@@ -258,16 +258,81 @@ export class EventService {
   }
 
   // Api Working
-  async getEventListDropdown(id: number) {
+  // async getEventListDropdown(id: number) {
+  //   try {
+  //     const today = startOfDay(new Date());
+
+  //     const [events, totalCount] = await this.eventRepository
+  //       .createQueryBuilder('event')
+  //       .where('event.venueId = :id', { id })
+  //       .andWhere('event.eventStartDateTime >= :today', { today })
+  //       .andWhere('event.status IN (:...status)', {
+  //         status: ['confirmed', 'rescheduled', 'invited', 'unpublished'],
+  //       })
+  //       .orderBy('event.createdAt', 'DESC')
+  //       .select([
+  //         'event.id',
+  //         'event.title',
+  //         'event.venueId',
+  //         'event.description',
+  //         'event.eventStartDateTime',
+  //         'event.eventEndDateTime',
+  //         'event.status',
+  //         'event.slug',
+  //         'event.categoryId',
+  //         'event.subCategoryId',
+  //       ])
+  //       .getManyAndCount();
+
+  //     return {
+  //       message: 'Events dropdown list fetched successfully',
+  //       count: totalCount,
+  //       data: events,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(error.message); // fixed typo
+  //   }
+  // }
+  async getEventListDropdown(id: number, entertainerCategories: any[]) {
     try {
       const today = startOfDay(new Date());
 
+      // 🧩 Flatten the entertainer’s categories into category-subcategory pairs
+      const categorySubcategoryPairs = entertainerCategories.flatMap((cat) =>
+        cat.specific_category.map((sub) => ({
+          categoryId: cat.id,
+          subCategoryId: sub.id,
+        })),
+      );
+
+      if (!categorySubcategoryPairs.length) {
+        return {
+          message: 'No matching categories found for entertainer',
+          count: 0,
+          data: [],
+          status: true,
+        };
+      }
+
+      const categoryIds = [
+        ...new Set(categorySubcategoryPairs.map((p) => p.categoryId)),
+      ];
+      const subCategoryIds = [
+        ...new Set(categorySubcategoryPairs.map((p) => p.subCategoryId)),
+      ];
+
+      // 🎯 Fetch events that match either category or subcategory
       const [events, totalCount] = await this.eventRepository
         .createQueryBuilder('event')
         .where('event.venueId = :id', { id })
         .andWhere('event.eventStartDateTime >= :today', { today })
         .andWhere('event.status IN (:...status)', {
           status: ['confirmed', 'rescheduled', 'invited', 'unpublished'],
+        })
+        .andWhere('event.categoryId IN (:...categoryIds)', { categoryIds })
+        .andWhere('event.subCategoryId IN (:...subCategoryIds)', {
+          subCategoryIds,
         })
         .orderBy('event.createdAt', 'DESC')
         .select([
@@ -284,14 +349,28 @@ export class EventService {
         ])
         .getManyAndCount();
 
+      // ✅ Strict pair match — ensure categoryId & subCategoryId both align
+      const validPairs = new Set(
+        categorySubcategoryPairs.map(
+          (p) => `${p.categoryId}-${p.subCategoryId}`,
+        ),
+      );
+
+      const filteredEvents = events.filter((e) =>
+        validPairs.has(`${e.categoryId}-${e.subCategoryId}`),
+      );
+
       return {
-        message: 'Events dropdown list fetched successfully',
-        count: totalCount,
-        data: events,
+        message:
+          filteredEvents.length > 0
+            ? 'Events dropdown list fetched successfully'
+            : 'No events matched entertainer categories',
+        count: filteredEvents.length,
+        data: filteredEvents,
         status: true,
       };
     } catch (error) {
-      throw new InternalServerErrorException(error.message); // fixed typo
+      throw new InternalServerErrorException(error.message);
     }
   }
 
