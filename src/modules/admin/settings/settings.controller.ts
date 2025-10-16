@@ -46,6 +46,7 @@ export class SettingsController {
   async getCategoryPric2(@Param('id') id: number) {
     return this.settingsService.getEntertainerCategoriesWithRates(Number(id));
   }
+  //Comment
 
   @Delete('category/base-price/:id')
   async deleteBasePrice(@Param() id: number) {
