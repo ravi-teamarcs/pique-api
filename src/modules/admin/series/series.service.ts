@@ -294,6 +294,7 @@ export class AdminSeriesService {
         description: description,
         series: { id: seriesId },
         categoryId,
+        sub_venue_id: neighbourhoodId,
         subCategoryId,
       };
 
