@@ -18,7 +18,7 @@ export class SeriesDto {
 
   @IsArray()
   @IsOptional()
-  existingEvents: number[];
+  existingEvents: Record<string, any>[]; // or your actual DTO type
 
   @IsOptional()
   venueId: number;

@@ -149,8 +149,10 @@ export class SeriesService {
       }
 
       if (existingEvents && existingEvents.length > 0) {
-        for (const eventId of existingEvents) {
-          await this.addExistingEventToSeries(eventId, savedSeries.id, venueId);
+        for (const event of existingEvents) {
+          const existingPayload = { series: { id: savedSeries.id }, ...event };
+          await this.handleUpdateEvent(existingPayload, venueId);
+          // await this.addExistingEventToSeries(eventId, savedSeries.id);
         }
       }
       return {
@@ -429,8 +431,10 @@ export class SeriesService {
       }
 
       if (existingEvents && existingEvents.length > 0) {
-        for (const eventId of existingEvents) {
-          await this.addExistingEventToSeries(eventId, series.id, venueId);
+        for (const event of existingEvents) {
+          const existingPayload = { series: { id: seriesId }, ...event };
+          await this.handleUpdateEvent(existingPayload, venueId);
+          // await this.addExistingEventToSeries(eventId, savedSeries.id);
         }
       }
 

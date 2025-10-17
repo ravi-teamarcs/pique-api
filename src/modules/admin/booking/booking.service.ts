@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Not, Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import { Booking } from './entities/booking.entity';
 import { AdminBookingDto } from './dto/admin-booking.dto';
 import { BookingQueryDto } from './dto/booking-query.dto';
@@ -997,25 +997,32 @@ export class BookingService {
   //     throw new InternalServerErrorException(error.message);
   //   }
   // }
-  async inviteEntertainerForSeries(eventIds: number[], entertainers) {
+  async inviteEntertainerForSeries(eventIds: number[], entertainers: any[]) {
     try {
-      const details = [];
+      const details: any[] = [];
 
-      for (const eventId of eventIds) {
-        const event = await this.eventRepository.findOne({
-          where: { id: eventId },
-          select: [
-            'eventStartDateTime',
-            'eventEndDateTime',
-            'venueId',
-            'id',
-            'categoryId',
-            'subCategoryId',
-            'slug',
-          ],
-        });
+      // Fetch all events at once (only required fields) to reduce DB round trips
+      const events = await this.eventRepository.find({
+        where: { id: In(eventIds) },
+        select: [
+          'id',
+          'eventStartDateTime',
+          'eventEndDateTime',
+          'venueId',
+          'categoryId',
+          'subCategoryId',
+          'slug',
+        ],
+      });
+      // iterate event-by-event
+      for (const event of events) {
         if (!event) continue;
 
+        // Ensure numeric ids for safe comparisons
+        const eventCategoryId = Number(event.categoryId);
+        const eventSubCategoryId = Number(event.subCategoryId);
+
+        // Get venue once per event
         const venue = await this.venueRepository
           .createQueryBuilder('venue')
           .leftJoin('venue.user', 'user')
@@ -1036,18 +1043,24 @@ export class BookingService {
           .where('venue.id = :id', { id: event.venueId })
           .getRawOne();
 
-        // 🔹 Iterate through entertainers
+        // Track if at least one entertainer invited for this event
+        let anyInvitedForThisEvent = false;
+
+        // Loop through all entertainers and try to invite only matching ones
         for (const entertainer of entertainers) {
           try {
-            // ✅ Prevent re-inviting already booked entertainers
+            const entId = Number(entertainer.entertainerId);
+
+            // Prevent re-inviting already booked entertainers for this event
             const alreadyBooked = await this.bookingRepository.findOne({
               where: {
-                entId: entertainer.entertainerId,
+                entId,
                 eventId: event.id,
                 status: Not('canceled'),
               },
             });
-            // ✅ Fetch entertainer details
+
+            // fetch entertainer details (name/email/userId)
             const Entertainer = await this.entertainerRepository
               .createQueryBuilder('entertainer')
               .leftJoin('entertainer.user', 'user')
@@ -1057,13 +1070,13 @@ export class BookingService {
                 'user.email AS userEmail',
                 'user.id AS userId',
               ])
-              .where('entertainer.id = :id', { id: entertainer.entertainerId })
+              .where('entertainer.id = :id', { id: entId })
               .getRawOne();
 
             if (alreadyBooked) {
               details.push({
-                entertainerId: entertainer.entertainerId,
-                entertainerName: Entertainer.name,
+                entertainerId: entId,
+                entertainerName: Entertainer?.name ?? null,
                 eventId: event.id,
                 eventSlug: event.slug,
                 available: false,
@@ -1072,18 +1085,26 @@ export class BookingService {
               continue;
             }
 
-            // ✅ Match event category/subcategory
-            const matchedCategory = entertainer.categories?.find(
-              (c) => c.id === event.categoryId,
-            );
+            // ==== CATEGORY MATCHING (defensive) ====
+            // Normalize entertainer categories structure and coerce to numbers
+            const categories = Array.isArray(entertainer.categories)
+              ? entertainer.categories
+              : [];
+
+            // find matching category by numeric comparison
+            const matchedCategory = categories.find((c) => {
+              return Number(c.id) === eventCategoryId;
+            });
+
             const matchedSubcategory = matchedCategory?.specific_category?.find(
-              (sc) => sc.id === event.subCategoryId,
+              (sc) => Number(sc.id) === eventSubCategoryId,
             );
 
             if (!matchedCategory || !matchedSubcategory) {
+              // Not a match for this event — skip
               details.push({
-                entertainerId: entertainer.entertainerId,
-                entertainerName: Entertainer.name,
+                entertainerId: entId,
+                entertainerName: Entertainer?.name ?? null,
                 eventId: event.id,
                 eventSlug: event.slug,
                 available: false,
@@ -1093,8 +1114,8 @@ export class BookingService {
               continue;
             }
 
-            // ✅ Check entertainer availability safely
-            let availability = false;
+            // ==== AVAILABILITY CHECK ====
+            let isAvailable = false;
             try {
               const availabilityPayload = {
                 startTimeUtc: formatInTimeZone(
@@ -1107,21 +1128,23 @@ export class BookingService {
                   'UTC',
                   "yyyy-MM-dd'T'HH:mm:ss'Z'",
                 ),
-                entertainerId: entertainer.entertainerId,
+                entertainerId: entId,
               };
-              availability =
+              isAvailable =
                 await this.checkEntertainerAvailability(availabilityPayload);
             } catch (err) {
+              // If availability check fails, log and treat as unavailable (or decide differently)
               console.warn(
-                `⚠️ Error checking availability for entertainer ${entertainer.entertainerId}:`,
-                err.message,
+                `Error checking availability for entertainer ${entId} on event ${event.id}:`,
+                err?.message ?? err,
               );
+              isAvailable = false;
             }
 
-            if (!availability) {
+            if (!isAvailable) {
               details.push({
-                entertainerId: entertainer.entertainerId,
-                entertainerName: Entertainer.name,
+                entertainerId: entId,
+                entertainerName: Entertainer?.name ?? null,
                 eventId: event.id,
                 eventSlug: event.slug,
                 available: false,
@@ -1130,13 +1153,13 @@ export class BookingService {
               continue;
             }
 
-            // ✅ Create new booking
+            // ==== CREATE BOOKING ====
             const newBooking = this.bookingRepository.create({
               venueId: event.venueId,
-              entId: entertainer.entertainerId,
+              entId,
               eventId: event.id,
-              categoryId: event.categoryId,
-              subcategoryId: event.subCategoryId,
+              categoryId: eventCategoryId,
+              subcategoryId: eventSubCategoryId,
               status: 'invited',
               showStartDateTime: formatInTimeZone(
                 new Date(event.eventStartDateTime),
@@ -1144,19 +1167,10 @@ export class BookingService {
                 "yyyy-MM-dd'T'HH:mm:ss'Z'",
               ),
             });
+
             const savedBooking = await this.bookingRepository.save(newBooking);
 
-            details.push({
-              entertainerId: entertainer.entertainerId,
-              entertainerName: Entertainer.name,
-              eventSlug: event.slug,
-              eventId: event.id,
-              available: true,
-              message: 'Booking created successfully.',
-              bookingId: savedBooking.id,
-            });
-
-            // ✅ Log activity
+            // log activity
             const logPayload = this.logRepository.create({
               bookingId: savedBooking.id,
               performedBy: 'admin',
@@ -1165,7 +1179,7 @@ export class BookingService {
             });
             await this.logRepository.save(logPayload);
 
-            // ✅ Send email & push notification
+            // send emails / push if available
             if (Entertainer?.email || Entertainer?.userEmail) {
               const { Date: eventDate, Time: startTime } =
                 formatUtcToTimezoneParts(
@@ -1204,29 +1218,39 @@ export class BookingService {
                 Entertainer.userId,
               );
             }
+
+            // success detail
+            details.push({
+              entertainerId: entId,
+              entertainerName: Entertainer?.name ?? null,
+              eventSlug: event.slug,
+              eventId: event.id,
+              available: true,
+              message: 'Booking created successfully.',
+              bookingId: savedBooking.id,
+            });
+
+            anyInvitedForThisEvent = true;
           } catch (innerErr) {
             console.error('Error processing entertainer:', innerErr);
             details.push({
-              entertainerId: entertainer.entertainerId,
+              entertainerId: entertainer?.entertainerId ?? null,
               eventId: event.id,
               available: false,
-              message: `Error processing entertainer: ${innerErr.message}`,
+              message: `Error processing entertainer: ${innerErr?.message ?? innerErr}`,
             });
             continue;
           }
-        }
+        } // end entertainers loop
 
-        // ✅ Update event status only if at least one entertainer successfully invited
-        const anyInvited = details.some(
-          (d) => d.eventId === event.id && d.available === true,
-        );
-        if (anyInvited) {
+        // update event status only for this event when at least one invite happened
+        if (anyInvitedForThisEvent) {
           await this.eventRepository.update(
             { id: event.id },
             { status: 'invited' },
           );
         }
-      }
+      } // end events loop
 
       return {
         message: 'Entertainers invited for series successfully.',

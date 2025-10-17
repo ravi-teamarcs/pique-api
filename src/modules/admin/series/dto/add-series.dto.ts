@@ -17,7 +17,7 @@ export class AddSeriesDto {
 
   @IsArray()
   @IsOptional()
-  existingEvents: number[];
+  existingEvents: Record<string, any>[]; // or your actual DTO type
 }
 
 export class UpdateSeriesDto extends PartialType(AddSeriesDto) {

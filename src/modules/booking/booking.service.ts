@@ -897,28 +897,30 @@ export class BookingService {
 
   async inviteEntertainerForSeries(eventIds: number[], entertainers: any[]) {
     try {
-      if (!entertainers.length) {
-        throw new BadRequestException('No entertainer provided.');
-      }
+      const details: any[] = [];
 
-      const details = [];
-      const alreadyBookedEvents: { eventId: number; entertainerId: number }[] =
-        [];
-
-      for (const eventId of eventIds) {
-        const event = await this.eventRepository.findOne({
-          where: { id: eventId },
-          select: [
-            'eventStartDateTime',
-            'eventEndDateTime',
-            'venueId',
-            'id',
-            'categoryId',
-            'subCategoryId',
-          ],
-        });
+      // Fetch all events at once (only required fields) to reduce DB round trips
+      const events = await this.eventRepository.find({
+        where: { id: In(eventIds) },
+        select: [
+          'id',
+          'eventStartDateTime',
+          'eventEndDateTime',
+          'venueId',
+          'categoryId',
+          'subCategoryId',
+          'slug',
+        ],
+      });
+      // iterate event-by-event
+      for (const event of events) {
         if (!event) continue;
 
+        // Ensure numeric ids for safe comparisons
+        const eventCategoryId = Number(event.categoryId);
+        const eventSubCategoryId = Number(event.subCategoryId);
+
+        // Get venue once per event
         const venue = await this.venueRepository
           .createQueryBuilder('venue')
           .leftJoin('venue.user', 'user')
@@ -939,165 +941,222 @@ export class BookingService {
           .where('venue.id = :id', { id: event.venueId })
           .getRawOne();
 
+        // Track if at least one entertainer invited for this event
+        let anyInvitedForThisEvent = false;
+
+        // Loop through all entertainers and try to invite only matching ones
         for (const entertainer of entertainers) {
-          // Check if already booked
-          const alreadyBooked = await this.bookingRepository.findOne({
-            where: { entId: entertainer.entertainerId, eventId: event.id },
-          });
+          try {
+            const entId = Number(entertainer.entertainerId);
 
-          if (alreadyBooked) {
-            alreadyBookedEvents.push({
-              eventId: event.id,
-              entertainerId: entertainer.entertainerId,
+            // Prevent re-inviting already booked entertainers for this event
+            const alreadyBooked = await this.bookingRepository.findOne({
+              where: {
+                entId,
+                eventId: event.id,
+                status: Not('canceled'),
+              },
             });
-            continue;
-          }
 
-          // Check if entertainer has matching category & subcategory
-          const matchedCategory = entertainer.categories.find(
-            (c) => c.id === event.categoryId,
-          );
-          if (!matchedCategory) continue;
+            // fetch entertainer details (name/email/userId)
+            const Entertainer = await this.entRepository
+              .createQueryBuilder('entertainer')
+              .leftJoin('entertainer.user', 'user')
+              .select([
+                'entertainer.name AS name',
+                'entertainer.email AS email',
+                'user.email AS userEmail',
+                'user.id AS userId',
+              ])
+              .where('entertainer.id = :id', { id: entId })
+              .getRawOne();
 
-          const matchedSubcategory = matchedCategory.specific_category.find(
-            (sc) => sc.id === event.subCategoryId,
-          );
-          if (!matchedSubcategory) continue;
+            if (alreadyBooked) {
+              details.push({
+                entertainerId: entId,
+                entertainerName: Entertainer?.name ?? null,
+                eventId: event.id,
+                eventSlug: event.slug,
+                available: false,
+                message: 'Invitation already sent for this event.',
+              });
+              continue;
+            }
 
-          // Check availability
-          const availabilityPayload = {
-            startTimeUtc: formatInTimeZone(
-              new Date(event.eventStartDateTime),
-              'UTC',
-              "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            ),
-            endTimeUtc: formatInTimeZone(
-              new Date(event.eventEndDateTime),
-              'UTC',
-              "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            ),
-            entertainerId: entertainer.entertainerId,
-          };
+            // ==== CATEGORY MATCHING (defensive) ====
+            // Normalize entertainer categories structure and coerce to numbers
+            const categories = Array.isArray(entertainer.categories)
+              ? entertainer.categories
+              : [];
 
-          const available =
-            await this.checkEntertainerAvailability(availabilityPayload);
-          if (!available) {
-            details.push({
-              entertainerId: entertainer.entertainerId,
-              eventId: event.id,
-              available: false,
-              message: 'Entertainer is unavailable during this time.',
+            // find matching category by numeric comparison
+            const matchedCategory = categories.find((c) => {
+              return Number(c.id) === eventCategoryId;
             });
-            continue;
-          }
 
-          // Create booking
-          const newBooking = this.bookingRepository.create({
-            venueId: event.venueId,
-            entId: entertainer.entertainerId,
-            eventId: event.id,
-            categoryId: event.categoryId,
-            subcategoryId: event.subCategoryId,
-            status: 'invited',
-            showStartDateTime: formatInTimeZone(
-              new Date(event.eventStartDateTime),
-              'UTC',
-              "yyyy-MM-dd'T'HH:mm:ss'Z'",
-            ),
-          });
-          const savedBooking = await this.bookingRepository.save(newBooking);
+            const matchedSubcategory = matchedCategory?.specific_category?.find(
+              (sc) => Number(sc.id) === eventSubCategoryId,
+            );
 
-          // Log booking
-          const logPayload = this.logRepository.create({
-            bookingId: savedBooking.id,
-            performedBy: 'admin',
-            status: 'invited',
-            user: null,
-          });
-          await this.logRepository.save(logPayload);
+            if (!matchedCategory || !matchedSubcategory) {
+              // Not a match for this event — skip
+              details.push({
+                entertainerId: entId,
+                entertainerName: Entertainer?.name ?? null,
+                eventId: event.id,
+                eventSlug: event.slug,
+                available: false,
+                message:
+                  'Entertainer does not match event category/subcategory.',
+              });
+              continue;
+            }
 
-          details.push({
-            entertainerId: entertainer.entertainerId,
-            eventId: event.id,
-            available: true,
-            message: 'Booking created successfully.',
-            bookingId: savedBooking.id,
-          });
+            // ==== AVAILABILITY CHECK ====
+            let isAvailable = false;
+            try {
+              const availabilityPayload = {
+                startTimeUtc: formatInTimeZone(
+                  new Date(event.eventStartDateTime),
+                  'UTC',
+                  "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                ),
+                endTimeUtc: formatInTimeZone(
+                  new Date(event.eventEndDateTime),
+                  'UTC',
+                  "yyyy-MM-dd'T'HH:mm:ss'Z'",
+                ),
+                entertainerId: entId,
+              };
+              isAvailable =
+                await this.checkEntertainerAvailability(availabilityPayload);
+            } catch (err) {
+              // If availability check fails, log and treat as unavailable (or decide differently)
+              console.warn(
+                `Error checking availability for entertainer ${entId} on event ${event.id}:`,
+                err?.message ?? err,
+              );
+              isAvailable = false;
+            }
 
-          // Send email & push notification
-          const Entertainer = await this.entRepository
-            .createQueryBuilder('entertainer')
-            .leftJoin('entertainer.user', 'user')
-            .select([
-              'entertainer.name AS name',
-              'entertainer.email AS email',
-              'user.email AS userEmail',
-              'user.id AS userId',
-            ])
-            .where('entertainer.id = :id', { id: entertainer.entertainerId })
-            .getRawOne();
+            if (!isAvailable) {
+              details.push({
+                entertainerId: entId,
+                entertainerName: Entertainer?.name ?? null,
+                eventId: event.id,
+                eventSlug: event.slug,
+                available: false,
+                message: 'Entertainer unavailable for this schedule.',
+              });
+              continue;
+            }
 
-          if (Entertainer?.email || Entertainer?.userEmail) {
-            const { Date: eventDate, Time: startTime } =
-              formatUtcToTimezoneParts(
-                event.eventStartDateTime,
+            // ==== CREATE BOOKING ====
+            const newBooking = this.bookingRepository.create({
+              venueId: event.venueId,
+              entId,
+              eventId: event.id,
+              categoryId: eventCategoryId,
+              subcategoryId: eventSubCategoryId,
+              status: 'invited',
+              showStartDateTime: formatInTimeZone(
+                new Date(event.eventStartDateTime),
+                'UTC',
+                "yyyy-MM-dd'T'HH:mm:ss'Z'",
+              ),
+            });
+
+            const savedBooking = await this.bookingRepository.save(newBooking);
+
+            // log activity
+            const logPayload = this.logRepository.create({
+              bookingId: savedBooking.id,
+              performedBy: 'admin',
+              status: 'invited',
+              user: null,
+            });
+            await this.logRepository.save(logPayload);
+
+            // send emails / push if available
+            if (Entertainer?.email || Entertainer?.userEmail) {
+              const { Date: eventDate, Time: startTime } =
+                formatUtcToTimezoneParts(
+                  event.eventStartDateTime,
+                  venue.venueTimeZone,
+                );
+              const { Time: endTime } = formatUtcToTimezoneParts(
+                event.eventEndDateTime,
                 venue.venueTimeZone,
               );
-            const { Time: endTime } = formatUtcToTimezoneParts(
-              event.eventEndDateTime,
-              venue.venueTimeZone,
-            );
 
-            const emailPayload = {
-              to: Entertainer.email || Entertainer.userEmail,
-              subject: 'New Booking Request',
-              templateName: 'booking-request.html',
-              replacements: {
-                venueName: venue.name,
-                eventName: event?.slug || '',
-                entertainerName: Entertainer.name,
-                bookingDate: eventDate,
-                bookingTime: `${startTime} to ${endTime}`,
-                vname: venue.name,
-                vemail: venue.email,
-                vphone: venue.contactNumber,
-                Address: `${venue.addressLine1},${venue.addressLine2}, ${venue.cityName}, ${venue.stateName}, ${venue.zipCode}`,
-              },
-            };
+              const emailPayload = {
+                to: Entertainer.email || Entertainer.userEmail,
+                subject: 'New Booking Request',
+                templateName: 'booking-request.html',
+                replacements: {
+                  venueName: venue.name,
+                  eventName: event?.slug || '',
+                  entertainerName: Entertainer.name,
+                  bookingDate: eventDate,
+                  bookingTime: `${startTime} to ${endTime}`,
+                  vname: venue.name,
+                  vemail: venue.email,
+                  vphone: venue.contactNumber,
+                  Address: `${venue.addressLine1}, ${venue.addressLine2}, ${venue.cityName}, ${venue.stateName}, ${venue.zipCode}`,
+                },
+              };
 
-            this.emailService.handleSendEmail(emailPayload);
-            this.notifyService.sendPush(
-              {
-                title: 'Booking Request',
-                body: `You have a new invitation from ${venue.name}`,
-                type: 'booking_req',
-              },
-              Entertainer.userId,
-            );
+              this.emailService.handleSendEmail(emailPayload);
+              this.notifyService.sendPush(
+                {
+                  title: 'Booking Request',
+                  body: `You have a new invitation from ${venue.name}`,
+                  type: 'booking_req',
+                },
+                Entertainer.userId,
+              );
+            }
+
+            // success detail
+            details.push({
+              entertainerId: entId,
+              entertainerName: Entertainer?.name ?? null,
+              eventSlug: event.slug,
+              eventId: event.id,
+              available: true,
+              message: 'Booking created successfully.',
+              bookingId: savedBooking.id,
+            });
+
+            anyInvitedForThisEvent = true;
+          } catch (innerErr) {
+            console.error('Error processing entertainer:', innerErr);
+            details.push({
+              entertainerId: entertainer?.entertainerId ?? null,
+              eventId: event.id,
+              available: false,
+              message: `Error processing entertainer: ${innerErr?.message ?? innerErr}`,
+            });
+            continue;
           }
+        } // end entertainers loop
+
+        // update event status only for this event when at least one invite happened
+        if (anyInvitedForThisEvent) {
+          await this.eventRepository.update(
+            { id: event.id },
+            { status: 'invited' },
+          );
         }
-
-        // Update event status after all invitations
-        await this.eventRepository.update(
-          { id: event.id },
-          { status: 'invited' },
-        );
-      }
-
-      // Throw error if entertainer was already booked for any event
-      if (alreadyBookedEvents.length > 0) {
-        const bookedEventIds = alreadyBookedEvents.map((b) => b.eventId);
-        throw new BadRequestException(
-          `Entertainer is already booked for event(s): ${bookedEventIds.join(', ')}`,
-        );
-      }
+      } // end events loop
 
       return {
-        message: 'Entertainer invited for series successfully',
+        message: 'Entertainers invited for series successfully.',
         status: true,
         data: details,
       };
     } catch (error) {
+      console.error('inviteEntertainerForSeries Error:', error);
       if (error instanceof HttpException) throw error;
       throw new InternalServerErrorException(error.message);
     }
