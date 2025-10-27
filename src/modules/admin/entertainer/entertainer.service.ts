@@ -905,7 +905,6 @@ export class EntertainerService {
         where: { id: eventId },
         select: ['categoryId', 'subCategoryId'],
       });
-      console.log('Event', event);
       if (!event) return;
 
       const baseQuery = this.entertainerRepository

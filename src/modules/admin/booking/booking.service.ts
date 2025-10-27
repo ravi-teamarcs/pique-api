@@ -531,14 +531,16 @@ export class BookingService {
           await this.emailService.handleSendEmail(emailPayload);
 
           // Send Notification to Entertainer
-          this.notifyService.sendPush(
-            {
-              title: 'Event Date and Time Change',
-              body: `Your booking for event ${booking.eventSlug || booking.event_title} has been rescheduled to ${eventDate} at ${startTime}`,
-              type: 'booking_date_time_change',
-            },
-            booking.entertainer_user_id,
-          );
+          if (booking.entertainer_user_id) {
+            this.notifyService.sendPush(
+              {
+                title: 'Event Date and Time Change',
+                body: `Your booking for event ${booking.eventSlug || booking.event_title} has been rescheduled to ${eventDate} at ${startTime}`,
+                type: 'booking_date_time_change',
+              },
+              booking.entertainer_user_id,
+            );
+          }
         }
       }
 

@@ -83,8 +83,6 @@ export class SeriesService {
         .orderBy('DATE(event.eventStartDateTime)', 'ASC')
         .getRawMany();
 
-      console.log('Events', event);
-
       const parsedResult = event.map(
         ({ eventStartDateTime, eventEndDateTime, ...rest }) => {
           const eventStart = utcToZonedTime(eventStartDateTime, venue.timezone);
@@ -151,7 +149,7 @@ export class SeriesService {
       if (existingEvents && existingEvents.length > 0) {
         for (const event of existingEvents) {
           const existingPayload = { series: { id: savedSeries.id }, ...event };
-          await this.handleUpdateEvent(existingPayload, venueId);
+          await this.handleUpdateEventExisting(existingPayload, venueId);
           // await this.addExistingEventToSeries(eventId, savedSeries.id);
         }
       }
@@ -433,7 +431,7 @@ export class SeriesService {
       if (existingEvents && existingEvents.length > 0) {
         for (const event of existingEvents) {
           const existingPayload = { series: { id: seriesId }, ...event };
-          await this.handleUpdateEvent(existingPayload, venueId);
+          await this.handleUpdateEventExisting(existingPayload, venueId);
           // await this.addExistingEventToSeries(eventId, savedSeries.id);
         }
       }
@@ -506,6 +504,105 @@ export class SeriesService {
         sub_venue_id: neighbourhoodId,
         categoryId,
         subCategoryId,
+      };
+
+      const hasStartDateTimeChanged =
+        startTime &&
+        formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
+          formatInTimeZone(
+            new Date(event.eventStartDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
+
+      const hasEndDateTimeChanged =
+        endTime &&
+        formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
+          formatInTimeZone(
+            new Date(event.eventStartDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
+
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+        updatePayload['status'] = 'rescheduled';
+      }
+      await this.eventRepository.update({ id: event.id }, updatePayload);
+
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+        this.bookingService.handleChangeRequest(Number(event.id), {
+          eventStartDateTime: startTime.toISOString(),
+          eventEndDateTime: endTime.toISOString(),
+        });
+      }
+      return { message: 'Event updated successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error updating event',
+        error: error.message,
+        status: error.status,
+      });
+    }
+  }
+  async handleUpdateEventExisting(dto: any, venueId: number) {
+    const {
+      title,
+      description,
+      id: eventId,
+      neighbourhoodId,
+      eventStartDateTime,
+      eventEndDateTime,
+      categoryId,
+      subCategoryId,
+      series,
+    } = dto;
+
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId, venueId },
+    });
+
+    if (!event) {
+      throw new BadRequestException('Event not found');
+    }
+
+    try {
+      const venue = await this.venueRepository.findOne({
+        where: { id: venueId },
+        select: ['timezone'],
+      });
+
+      if (!venue.timezone) {
+        console.warn(
+          `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+        );
+      }
+
+      const startTime = zonedTimeToUtc(
+        eventStartDateTime,
+        venue.timezone ?? 'UTC',
+      );
+      const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
+
+      const slugPayload = {
+        title,
+        neighbourhoodId,
+        venueId,
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
+      };
+      const slug = await this.generateSlug(slugPayload);
+
+      const updatePayload = {
+        title,
+        description,
+        eventStartDateTime: startTime.toISOString(),
+        eventEndDateTime: endTime.toISOString(),
+        venueId,
+        slug,
+        sub_venue_id: neighbourhoodId,
+        categoryId,
+        subCategoryId,
+        series,
       };
 
       const hasStartDateTimeChanged =

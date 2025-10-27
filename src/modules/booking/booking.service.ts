@@ -504,14 +504,16 @@ export class BookingService {
           await this.emailService.handleSendEmail(emailPayload);
 
           // Send Notification to Entertainer
-          this.notifyService.sendPush(
-            {
-              title: 'Event Rescheduled',
-              body: `Your booking for event ${booking.event_title ?? booking.eventSlug} with venue ${booking?.venueName ?? ''} has been rescheduled to ${eventDate} at ${Time}`,
-              type: 'booking_date_time_change',
-            },
-            booking.entertainer_user_id,
-          );
+          if (booking.entertainer_user_id) {
+            this.notifyService.sendPush(
+              {
+                title: 'Event Rescheduled',
+                body: `Your booking for event ${booking.event_title ?? booking.eventSlug} with venue ${booking?.venueName ?? ''} has been rescheduled to ${eventDate} at ${Time}`,
+                type: 'booking_date_time_change',
+              },
+              booking.entertainer_user_id,
+            );
+          }
         }
       }
       return {

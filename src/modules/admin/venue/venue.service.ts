@@ -332,7 +332,6 @@ export class VenueService {
       // To get latitude and Longitude
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
       let timezone = getTimezoneByLatLng(lat, lng);
-      console.log('Lat Long', lat, lng, 'TimezoneInfo', timezone);
 
       let newVenuePayload = {
         ...venue,
