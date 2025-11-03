@@ -223,10 +223,10 @@ export class AdminSeriesService {
           });
           return {
             ...event,
-            categoryName: category.name,
-            subCategoryName: subCategory.name,
-            neighbourhoodName: neighbourhood.name,
-            venueTimeZone: venue.timezone,
+            categoryName: category?.name,
+            subCategoryName: subCategory?.name,
+            neighbourhoodName: neighbourhood?.name,
+            venueTimeZone: venue.timezone || 'UTC',
           };
         }),
       );
