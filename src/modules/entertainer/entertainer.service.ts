@@ -72,6 +72,7 @@ import { EntertainerCategorySubcategory } from './entities/entertainer-category-
 import { EntertainerRateCard } from './entities/entertainer-rate-card.entity';
 import { EntertainerRateCardDto } from './dto/rate-card.dto';
 import { EntertainerInvoice } from '../invoice/entities/entertainer-invoice.entity';
+import { EventCategorySubcategory } from '../event/entities/event-category-subcategory.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -102,6 +103,8 @@ export class EntertainerService {
     private readonly adminRepository: Repository<AdminUser>,
     @InjectRepository(EntertainerCategorySubcategory)
     private readonly entCatRepository: Repository<EntertainerCategorySubcategory>,
+    @InjectRepository(EventCategorySubcategory)
+    private readonly eventCategoriesRepository: Repository<EventCategorySubcategory>,
     @InjectRepository(EntertainerRateCard)
     private readonly entRateRepository: Repository<EntertainerRateCard>,
     private readonly config: ConfigService,

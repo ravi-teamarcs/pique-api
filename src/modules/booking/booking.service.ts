@@ -40,6 +40,7 @@ import {
   formatUtcToTimezone,
   formatUtcToTimezoneParts,
 } from 'src/common/utils/common.utils';
+import { EventCategorySubcategory } from '../event/entities/event-category-subcategory.entity';
 @Injectable()
 export class BookingService {
   constructor(
@@ -61,6 +62,7 @@ export class BookingService {
     private readonly invoiceRepository: Repository<Invoice>,
     @InjectRepository(InvoiceEvent)
     private readonly invoiceEventRepository: Repository<InvoiceEvent>,
+
     private readonly emailService: EmailService,
     private readonly notifyService: NotificationService,
     private readonly googleCalService: GoogleCalendarServices,

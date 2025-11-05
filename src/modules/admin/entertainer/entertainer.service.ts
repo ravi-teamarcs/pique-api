@@ -46,6 +46,7 @@ import { EntertainerRateCardDto } from 'src/modules/entertainer/dto/rate-card.dt
 import { utcToZonedTime } from 'date-fns-tz';
 import { convertUtcToTimezoneString } from 'src/common/utils/common.utils';
 import { Event } from '../events/entities/event.entity';
+import { EventCategorySubcategory } from '../events/entities/event-category-subcategory.entity';
 
 @Injectable()
 export class EntertainerService {
@@ -66,6 +67,8 @@ export class EntertainerService {
     private readonly settingRepo: Repository<Setting>,
     @InjectRepository(EntertainerCategorySubcategory)
     private readonly entCatRepository: Repository<EntertainerCategorySubcategory>,
+    @InjectRepository(EventCategorySubcategory)
+    private readonly eventCategoriesRepository: Repository<EventCategorySubcategory>,
 
     @InjectRepository(EntertainerRateCard)
     private readonly entRateRepository: Repository<EntertainerRateCard>,
@@ -82,7 +85,7 @@ export class EntertainerService {
     private readonly mediaService: MediaService,
     private readonly emailService: EmailService,
     private readonly geoService: GeocodingService,
-  ) { }
+  ) {}
 
   async getAllEntertainers(query: GetEntertainerDto) {
     const { page = 1, pageSize = 10, search = '', vaccinated, date } = query;
@@ -606,30 +609,34 @@ export class EntertainerService {
     //   where: { parentId: 0 },
     // });
 
-
-    const categories = await this.CategoryRepository.createQueryBuilder('category')
+    const categories = await this.CategoryRepository.createQueryBuilder(
+      'category',
+    )
       .select([
         'category.id AS id',
         'category.name AS name',
         'category.iconUrl AS iconUrl',
         'category.parentId AS parentId',
-        'category.catslug AS catslug'
+        'category.catslug AS catslug',
       ])
       .where('category.parentId = :parentId', { parentId: 0 })
       .getRawMany();
 
-
     for (const category of categories) {
-      const subCategories = await this.CategoryRepository.createQueryBuilder('subcategory')
-        .select(['subcategory.id AS id', 'subcategory.name AS name', 'subcategory.parentId AS parentId', 'subcategory.catslug AS catslug'])
+      const subCategories = await this.CategoryRepository.createQueryBuilder(
+        'subcategory',
+      )
+        .select([
+          'subcategory.id AS id',
+          'subcategory.name AS name',
+          'subcategory.parentId AS parentId',
+          'subcategory.catslug AS catslug',
+        ])
         .where('subcategory.parentId = :parentId', { parentId: category.id })
         .getRawMany();
 
       category.subCategories = subCategories;
     }
-
-
-
 
     return categories;
   }
@@ -926,11 +933,26 @@ export class EntertainerService {
       const { page = 1, pageSize = 10, search = '', vaccinated } = query;
       const skip = (page - 1) * pageSize;
 
-      const event = await this.eventRepository.findOne({
-        where: { id: eventId },
+      const eventCategories = await this.eventCategoriesRepository.find({
+        where: { event: { id: eventId } },
         select: ['categoryId', 'subCategoryId'],
       });
-      if (!event) return;
+
+      if (!eventCategories || eventCategories.length === 0) {
+        throw new NotFoundException(`No categories linked to event ${eventId}`);
+      }
+
+      // STEP 2: Build dynamic WHERE clause for all category–subcategory pairs
+      const conditions: string[] = [];
+      const params: Record<string, any> = {};
+
+      eventCategories.forEach((ecs, i) => {
+        conditions.push(
+          `(ent_cat_subcat.category_id = :cat${i} AND FIND_IN_SET(:sub${i}, ent_cat_subcat.subcategory_ids))`,
+        );
+        params[`cat${i}`] = ecs.categoryId;
+        params[`sub${i}`] = ecs.subCategoryId;
+      });
 
       const baseQuery = this.entertainerRepository
         .createQueryBuilder('entertainer')
@@ -940,19 +962,14 @@ export class EntertainerService {
         .leftJoin(
           'entertainer_category_subcategories',
           'ent_cat_subcat',
-          'ent_cat_subcat.entertainer_id = entertainer.id AND ent_cat_subcat.category_id = :categoryId',
-          { categoryId: event.categoryId },
+          `ent_cat_subcat.entertainer_id = entertainer.id AND (${conditions.join(' OR ')})`,
+          params,
         )
 
         .where('entertainer.status IN (:...statuses)', {
           statuses: ['active'],
         })
-        .andWhere(
-          'FIND_IN_SET(:subCategoryId, ent_cat_subcat.subcategory_ids)',
-          {
-            subCategoryId: event.subCategoryId,
-          },
-        )
+
         .andWhere((qb) => {
           const subQuery = qb
             .subQuery()
@@ -1068,7 +1085,6 @@ export class EntertainerService {
         .skip(skip)
         .take(pageSize)
         .getRawMany();
-
       const parsedRecords = await Promise.all(
         records.map(
           async ({
@@ -1080,17 +1096,15 @@ export class EntertainerService {
             upcomingBookingDate,
             ...rest
           }) => {
-            const categories = await this.getFormattedCategoriesforAdmin(
+            const [categoryData] = await this.getFormattedCategoriesforAdmin([
               Number(id),
-              event.categoryId,
-              event.subCategoryId,
-            );
+            ]);
+            const categories = categoryData?.categories || [];
 
             return {
               id: Number(id),
               services: services ? services.split(',') : [],
               socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
-
               pricePerEvent,
               categories,
               previousBookingDate: convertUtcToTimezoneString(
@@ -1101,7 +1115,6 @@ export class EntertainerService {
                 upcomingBookingDate,
                 rest.upcomingBookingTimezone,
               ),
-
               ...rest,
             };
           },
@@ -1455,86 +1468,76 @@ export class EntertainerService {
     }
   }
 
-  async getFormattedCategoriesforAdmin(
-    entertainerId: number,
-    categoryId?: number,
-    subCategoryId?: number,
-  ) {
+  async getFormattedCategoriesforAdmin(entertainerIds: number[]) {
     try {
-      // Base query
-      const query = this.entCatRepository
+      if (!entertainerIds?.length) return [];
+
+      // Fetch all category and subcategory mappings for the given entertainer(s)
+      const rawRecords = await this.entCatRepository
         .createQueryBuilder('ecs')
         .leftJoin('categories', 'cat', 'cat.id = ecs.category_id')
-        .where('ecs.entertainerId = :entertainerId', { entertainerId })
+        .where('ecs.entertainerId IN (:...entertainerIds)', { entertainerIds })
         .select([
+          'ecs.entertainerId AS entertainerId',
           'cat.id AS categoryId',
           'cat.name AS categoryName',
           'ecs.subcategoryIds AS subcategoryIds',
-        ]);
+        ])
+        .getRawMany();
 
-      // Optional category filter
-      if (categoryId) {
-        query.andWhere('ecs.category_id = :categoryId', { categoryId });
-      }
+      if (!rawRecords.length) return [];
 
-      const rawCategories = await query.getRawMany();
+      // Collect unique subcategory IDs
+      const allSubcategoryIds = [
+        ...new Set(
+          rawRecords.flatMap((r) =>
+            typeof r.subcategoryIds === 'string'
+              ? r.subcategoryIds.split(',').map(Number)
+              : [],
+          ),
+        ),
+      ];
 
-      if (!rawCategories.length) return [];
-
-      const subcategoryIds = rawCategories.flatMap((row) =>
-        typeof row.subcategoryIds === 'string'
-          ? row.subcategoryIds.split(',').map(Number)
-          : [],
-      );
-
-      // Optional subcategory filter
-      let filteredSubcategoryIds = [...new Set(subcategoryIds)];
-      if (subCategoryId) {
-        filteredSubcategoryIds = filteredSubcategoryIds.filter(
-          (id) => id === subCategoryId,
-        );
-      }
-
+      // Fetch subcategory details
       const subcategories = await this.CategoryRepository.find({
-        where: { id: In(filteredSubcategoryIds) },
+        where: { id: In(allSubcategoryIds) },
         select: ['id', 'name', 'catslug', 'parentId'],
       });
 
-      const formatted = rawCategories.map((row) => {
+      // Group by entertainer
+      const resultMap = new Map<number, any[]>();
+
+      for (const record of rawRecords) {
         const subcatIds =
-          typeof row.subcategoryIds === 'string'
-            ? row.subcategoryIds.split(',').map(Number)
+          typeof record.subcategoryIds === 'string'
+            ? record.subcategoryIds.split(',').map(Number)
             : [];
 
-        const specific_category = subcategories
-          .filter((sub) =>
-            subCategoryId
-              ? sub.id === subCategoryId
-              : subcatIds.includes(sub.id),
-          )
+        const specificCategories = subcategories
+          .filter((sub) => subcatIds.includes(sub.id))
           .map((sub) => ({
             id: sub.id,
             specificCategoryName: sub.name,
           }));
 
-        return {
-          id: row.categoryId,
-          categoryName: row.categoryName,
-          specific_category,
+        const formattedCategory = {
+          id: record.categoryId,
+          categoryName: record.categoryName,
+          specific_category: specificCategories,
         };
-      });
 
-      // If filtering by category/subcategory, only return relevant one
-      if (categoryId || subCategoryId) {
-        return formatted.filter(
-          (f) =>
-            (!categoryId || f.id === categoryId) &&
-            (!subCategoryId ||
-              f.specific_category.some((sc) => sc.id === subCategoryId)),
-        );
+        if (!resultMap.has(record.entertainerId)) {
+          resultMap.set(record.entertainerId, []);
+        }
+
+        resultMap.get(record.entertainerId).push(formattedCategory);
       }
 
-      return formatted;
+      // Convert map → array response
+      return entertainerIds.map((entertainerId) => ({
+        entertainerId,
+        categories: resultMap.get(entertainerId) || [],
+      }));
     } catch (error) {
       throw new InternalServerErrorException(error.message);
     }

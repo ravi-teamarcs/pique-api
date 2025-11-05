@@ -268,31 +268,36 @@ export class EventService {
         ])
         .addSelect(
           `
-    (
-      SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'categoryId', cat.id,
-          'categoryName', cat.name,
-          'subCategories',
-            (
-              SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                  'subCategoryId', subcat.id,
-                  'subCategoryName', subcat.name
-                )
+  (
+    SELECT JSON_ARRAYAGG(
+      JSON_OBJECT(
+        'categoryId', cat.id,
+        'categoryName', cat.name,
+        'subCategories',
+          (
+            SELECT JSON_ARRAYAGG(
+              JSON_OBJECT(
+                'subCategoryId', subcat.id,
+                'subCategoryName', subcat.name
               )
-              FROM event_category_subcategory ecs2
-              JOIN categories subcat ON subcat.id = ecs2.subcategory_id
-              WHERE ecs2.event_id = event.id AND ecs2.category_id = cat.id
             )
-        )
+            FROM event_category_subcategory ecs2
+            JOIN categories subcat ON subcat.id = ecs2.subcategory_id
+            WHERE ecs2.event_id = event.id
+              AND ecs2.category_id = cat.id
+          )
       )
+    )
+    FROM (
+      SELECT DISTINCT ecs.category_id
       FROM event_category_subcategory ecs
-      JOIN categories cat ON cat.id = ecs.category_id
       WHERE ecs.event_id = event.id
-    ) AS categories
+    ) uniq
+    JOIN categories cat ON cat.id = uniq.category_id
+  ) AS categories
   `,
         )
+
         .limit(take)
         .offset(skip)
         .orderBy('event.id', 'DESC')
@@ -599,31 +604,36 @@ export class EventService {
       ])
       .addSelect(
         `
-    (
-      SELECT JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'categoryId', cat.id,
-          'categoryName', cat.name,
-          'subCategories',
-            (
-              SELECT JSON_ARRAYAGG(
-                JSON_OBJECT(
-                  'subCategoryId', subcat.id,
-                  'subCategoryName', subcat.name
-                )
+  (
+    SELECT JSON_ARRAYAGG(
+      JSON_OBJECT(
+        'categoryId', cat.id,
+        'categoryName', cat.name,
+        'subCategories',
+          (
+            SELECT JSON_ARRAYAGG(
+              JSON_OBJECT(
+                'subCategoryId', subcat.id,
+                'subCategoryName', subcat.name
               )
-              FROM event_category_subcategory ecs2
-              JOIN categories subcat ON subcat.id = ecs2.subcategory_id
-              WHERE ecs2.event_id = event.id AND ecs2.category_id = cat.id
             )
-        )
+            FROM event_category_subcategory ecs2
+            JOIN categories subcat ON subcat.id = ecs2.subcategory_id
+            WHERE ecs2.event_id = event.id
+              AND ecs2.category_id = cat.id
+          )
       )
+    )
+    FROM (
+      SELECT DISTINCT ecs.category_id
       FROM event_category_subcategory ecs
-      JOIN categories cat ON cat.id = ecs.category_id
       WHERE ecs.event_id = event.id
-    ) AS categories
+    ) uniq
+    JOIN categories cat ON cat.id = uniq.category_id
+  ) AS categories
   `,
       )
+
       .getRawOne();
 
     if (!event) {
