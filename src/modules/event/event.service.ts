@@ -240,27 +240,23 @@ export class EventService {
       const take = Number(pageSize);
 
       const events = await this.eventRepository
-        .createQueryBuilder('event')
-        .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
-        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
-        .leftJoin('event.series', 'series')
-        .leftJoin('categories', 'cat', 'cat.id = event.category_id')
-        .leftJoin('categories', 'subcat', 'subcat.id = event.subcategory_id')
-        .where('event.venueId = :id', { id })
-        .orderBy('event.createdAt', 'DESC')
+        .createQueryBuilder('event_table') // 👈 use this alias here
+        .leftJoin('neighbourhood', 'hood', 'hood.id = event_table.sub_venue_id')
+        .leftJoin('venue', 'venue', 'venue.id = event_table.venueId')
+        .leftJoin('event_table.series', 'series')
+        .where('event_table.venueId = :id', { id })
         .select([
-          'event.id AS id',
-          'event.title AS title',
-          'event.venueId AS venueId',
-          'event.description AS description',
-          // Added two new Fields
-          'event.eventStartDateTime AS eventStartDateTime',
-          'event.eventEndDateTime AS eventEndDateTime',
-          'event.recurring AS recurring',
+          'event_table.id AS id',
+          'event_table.title AS title',
+          'event_table.venueId AS venueId',
+          'event_table.description AS description',
+          'event_table.eventStartDateTime AS eventStartDateTime',
+          'event_table.eventEndDateTime AS eventEndDateTime',
+          'event_table.recurring AS recurring',
           'venue.timezone AS venueTimeZone',
-          'event.status AS status',
-          'event.slug AS slug',
-          'event.createdAt AS createdAt',
+          'event_table.status AS status',
+          'event_table.slug AS slug',
+          'event_table.createdAt AS createdAt',
           'hood.id AS neighbourhoodId',
           'hood.name AS neighbourhoodName',
           'series.id AS seriesId',
@@ -271,37 +267,37 @@ export class EventService {
   (
     SELECT JSON_ARRAYAGG(
       JSON_OBJECT(
-        'categoryId', cat.id,
-        'categoryName', cat.name,
-        'subCategories',
-          (
-            SELECT JSON_ARRAYAGG(
-              JSON_OBJECT(
-                'subCategoryId', subcat.id,
-                'subCategoryName', subcat.name
-              )
+        'categoryId', c.id,
+        'categoryName', c.name,
+        'subCategories', (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'subCategoryId', sc.id,
+              'subCategoryName', sc.name
             )
-            FROM event_category_subcategory ecs2
-            JOIN categories subcat ON subcat.id = ecs2.subcategory_id
-            WHERE ecs2.event_id = event.id
-              AND ecs2.category_id = cat.id
           )
+          FROM event_category_subcategory ecs2
+          JOIN categories sc ON sc.id = ecs2.subcategory_id
+          WHERE ecs2.event_id = event_table.id
+            AND ecs2.category_id = c.id
+        )
       )
     )
     FROM (
-      SELECT DISTINCT ecs.category_id
+      SELECT DISTINCT ecs.category_id, ecs.event_id
       FROM event_category_subcategory ecs
-      WHERE ecs.event_id = event.id
     ) uniq
-    JOIN categories cat ON cat.id = uniq.category_id
+    JOIN categories c ON c.id = uniq.category_id
+    WHERE uniq.event_id = event_table.id
   ) AS categories
-  `,
+`,
         )
 
+        .orderBy('event_table.createdAt', 'DESC')
         .limit(take)
         .offset(skip)
-        .orderBy('event.id', 'DESC')
-        .getRawMany(); // ← this returns raw data with aliases
+        .getRawMany();
+      // ← this returns raw data with aliases
       const totalCount = await this.eventRepository
         .createQueryBuilder('event')
         .where('event.venueId = :id', { id })
@@ -547,109 +543,79 @@ export class EventService {
   }
 
   async getEventById(id: number, venueId: number) {
-    // const event = await this.eventRepository
-    //   .createQueryBuilder('event')
-    //   .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
-    //   .leftJoin('venue', 'venue', 'venue.id = event.venueId')
-    //   .leftJoin('categories', 'cat', 'cat.id = event.category_id')
-    //   .leftJoin('categories', 'subcat', 'subcat.id = event.subcategory_id')
-    //   .leftJoinAndSelect('event.series', 'series')
-    //   .where('event.id = :eventId AND event.venueId = :venueId', {
-    //     eventId: id,
-    //     venueId,
-    //   })
-    //   .select([
-    //     'event.id AS id',
-    //     'event.title AS title',
-    //     'event.description AS description',
-    //     'event.venueId AS venueId',
-    //     'event.eventStartDateTime AS eventStartDateTime',
-    //     'event.eventEndDateTime AS eventEndDateTime',
-    //     'event.slug AS slug',
-    //     'event.status AS status',
-    //     'event.category_id AS categoryId',
-    //     'event.subcategory_id AS subCategoryId',
-    //     'cat.name AS categoryName',
-    //     'subcat.name AS subCategoryName',
-    //     'venue.name AS name',
-    //     'venue.addressLine1 AS addressLine1',
-    //     'venue.addressLine2 AS addressLine2',
-    //     'venue.timezone AS venueTimeZone',
-    //     'hood.id AS neighbourhoodId',
-    //     'hood.name AS neighbourhoodName',
-    //     'hood.contactPerson AS contactPerson',
-    //     'hood.contactNumber AS contactName',
-    //   ])
-    //   .getRawOne();
-    const event = await this.eventRepository
-      .createQueryBuilder('event')
-      .leftJoin('venue', 'venue', 'venue.id = event.venueId')
-      .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
-      .leftJoinAndSelect('event.series', 'series')
-      .where('event.id = :eventId AND event.venueId = :venueId', {
-        eventId: id,
-        venueId,
-      })
-      .select([
-        'event.id AS id',
-        'event.title AS title',
-        'event.description AS description',
-        'event.venueId AS venueId',
-        'event.eventStartDateTime AS eventStartDateTime',
-        'event.eventEndDateTime AS eventEndDateTime',
-        'event.slug AS slug',
-        'event.status AS status',
-        'venue.name AS venueName',
-        'hood.name AS neighbourhoodName',
-      ])
-      .addSelect(
-        `
-  (
-    SELECT JSON_ARRAYAGG(
-      JSON_OBJECT(
-        'categoryId', cat.id,
-        'categoryName', cat.name,
-        'subCategories',
-          (
-            SELECT JSON_ARRAYAGG(
-              JSON_OBJECT(
-                'subCategoryId', subcat.id,
-                'subCategoryName', subcat.name
+    try {
+      const event = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+        .leftJoinAndSelect('event.series', 'series')
+        .where('event.id = :eventId AND event.venueId = :venueId', {
+          eventId: id,
+          venueId,
+        })
+        .select([
+          'event.id AS id',
+          'event.title AS title',
+          'event.description AS description',
+          'event.venueId AS venueId',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.slug AS slug',
+          'event.status AS status',
+          'venue.name AS venueName',
+          'hood.name AS neighbourhoodName',
+        ])
+        .addSelect(
+          `
+    (
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'categoryId', cat.id,
+          'categoryName', cat.name,
+          'subCategories',
+            (
+              SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                  'subCategoryId', subcat.id,
+                  'subCategoryName', subcat.name
+                )
               )
+              FROM event_category_subcategory ecs2
+              JOIN categories subcat ON subcat.id = ecs2.subcategory_id
+              WHERE ecs2.event_id = :eventId
+                AND ecs2.category_id = cat.id
             )
-            FROM event_category_subcategory ecs2
-            JOIN categories subcat ON subcat.id = ecs2.subcategory_id
-            WHERE ecs2.event_id = event.id
-              AND ecs2.category_id = cat.id
-          )
+        )
       )
-    )
-    FROM (
-      SELECT DISTINCT ecs.category_id
-      FROM event_category_subcategory ecs
-      WHERE ecs.event_id = event.id
-    ) uniq
-    JOIN categories cat ON cat.id = uniq.category_id
-  ) AS categories
+      FROM (
+        SELECT DISTINCT ecs.category_id
+        FROM event_category_subcategory ecs
+        WHERE ecs.event_id = :eventId
+      ) uniq
+      JOIN categories cat ON cat.id = uniq.category_id
+    ) AS categories
   `,
-      )
+        )
+        .setParameters({ eventId: id }) // ✅ proper parameter binding
+        .getRawOne();
 
-      .getRawOne();
+      if (!event) {
+        throw new BadRequestException('Event not found');
+      }
 
-    if (!event) {
-      throw new BadRequestException('Event not found');
+      const parsedResult = {
+        ...event,
+        categories: event.categories ? JSON.parse(event.categories) : [],
+      };
+
+      return {
+        message: 'Event returned successfully',
+        status: true,
+        data: parsedResult,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
     }
-
-    const parsedResult = {
-      ...event,
-      categories: event.categories ? JSON.parse(event.categories) : [],
-    };
-
-    return {
-      message: 'Event returned successfully',
-      status: true,
-      data: parsedResult,
-    };
   }
 
   private async checkStatusAndSendEmail(status, eventId: number) {
