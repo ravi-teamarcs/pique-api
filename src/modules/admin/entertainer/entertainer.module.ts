@@ -20,6 +20,7 @@ import { LocationModule } from '../../location/location.module';
 import { EntertainerCategorySubcategory } from 'src/modules/entertainer/entities/entertainer-category-subcategory.entity';
 import { EntertainerRateCard } from 'src/modules/entertainer/entities/entertainer-rate-card.entity';
 import { Event } from '../events/entities/event.entity';
+import { EventCategorySubcategory } from '../events/entities/event-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -38,7 +39,8 @@ import { Event } from '../events/entities/event.entity';
       States,
       EntertainerCategorySubcategory,
       EntertainerRateCard,
-      Event
+      Event,
+      EventCategorySubcategory
     ]),
     MediaModule,
     EmailModule,

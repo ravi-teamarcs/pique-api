@@ -27,6 +27,7 @@ import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
 import { EntertainerCategorySubcategory } from './entities/entertainer-category-subcategory.entity';
 import { EntertainerRateCard } from './entities/entertainer-rate-card.entity';
 import { EntertainerInvoice } from '../invoice/entities/entertainer-invoice.entity';
+import { EventCategorySubcategory } from '../event/entities/event-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { EntertainerInvoice } from '../invoice/entities/entertainer-invoice.enti
       AdminUser,
       EntertainerRateCard,
       EntertainerInvoice,
+      EventCategorySubcategory
     ]),
     BookingModule,
     MediaModule,
