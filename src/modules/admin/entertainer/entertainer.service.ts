@@ -82,7 +82,7 @@ export class EntertainerService {
     private readonly mediaService: MediaService,
     private readonly emailService: EmailService,
     private readonly geoService: GeocodingService,
-  ) {}
+  ) { }
 
   async getAllEntertainers(query: GetEntertainerDto) {
     const { page = 1, pageSize = 10, search = '', vaccinated, date } = query;
@@ -602,9 +602,34 @@ export class EntertainerService {
   }
 
   async getMainCategory() {
-    const categories = this.CategoryRepository.find({
-      where: { parentId: 0 },
-    });
+    // const categories = this.CategoryRepository.find({
+    //   where: { parentId: 0 },
+    // });
+
+
+    const categories = await this.CategoryRepository.createQueryBuilder('category')
+      .select([
+        'category.id AS id',
+        'category.name AS name',
+        'category.iconUrl AS iconUrl',
+        'category.parentId AS parentId',
+        'category.catslug AS catslug'
+      ])
+      .where('category.parentId = :parentId', { parentId: 0 })
+      .getRawMany();
+
+
+    for (const category of categories) {
+      const subCategories = await this.CategoryRepository.createQueryBuilder('subcategory')
+        .select(['subcategory.id AS id', 'subcategory.name AS name', 'subcategory.parentId AS parentId', 'subcategory.catslug AS catslug'])
+        .where('subcategory.parentId = :parentId', { parentId: category.id })
+        .getRawMany();
+
+      category.subCategories = subCategories;
+    }
+
+
+
 
     return categories;
   }
@@ -672,9 +697,9 @@ export class EntertainerService {
       });
     }
   }
-  async getSubCategory(parentId: number) {
+  async getSubCategory(parentId: number[]) {
     const res = await this.CategoryRepository.find({
-      where: { parentId },
+      where: { parentId: In(parentId) },
     });
 
     return res;

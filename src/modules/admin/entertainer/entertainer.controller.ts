@@ -1,21 +1,21 @@
 import {
-  BadRequestException,
-  Body,
-  Controller,
-  Delete,
-  Get,
-  InternalServerErrorException,
-  Param,
-  ParseIntPipe,
-  Patch,
-  Post,
-  Put,
-  Query,
-  Req,
-  Request,
-  UploadedFiles,
-  UseGuards,
-  UseInterceptors,
+    BadRequestException,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    InternalServerErrorException,
+    Param,
+    ParseIntPipe,
+    Patch,
+    Post,
+    Put,
+    Query,
+    Req,
+    Request,
+    UploadedFiles,
+    UseGuards,
+    UseInterceptors,
 } from '@nestjs/common';
 import { EntertainerService } from './entertainer.service';
 
@@ -25,8 +25,8 @@ import { UpdateCategoryDto } from './Dto/update-category.dto';
 import { CreateEntertainerDto } from './Dto/create-entertainer.dto';
 import { UpdateStatusDto } from './Dto/update-status.dto';
 import {
-  UpdateAddressDto,
-  UpdateEntertainerDto,
+    UpdateAddressDto,
+    UpdateEntertainerDto,
 } from './Dto/update-entertainer.dto';
 import { Roles } from '../auth/roles.decorator';
 import { JwtAuthGuard } from '../auth/jwt.guard';
@@ -49,287 +49,291 @@ import { EntertainerRateCardDto } from 'src/modules/entertainer/dto/rate-card.dt
 @ApiTags('admin')
 @Controller('admin/entertainer')
 export class EntertainerController {
-  constructor(private readonly EntertainerService: EntertainerService) {}
+    constructor(private readonly EntertainerService: EntertainerService) { }
 
-  @Roles('super-admin', 'entertainer-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get('all')
-  async getEntertainer(@Req() req, @Query() query: GetEntertainerDto) {
-    return await this.EntertainerService.getAllEntertainers(query);
-  }
+    @Roles('super-admin', 'entertainer-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Get('all')
+    async getEntertainer(@Req() req, @Query() query: GetEntertainerDto) {
+        return await this.EntertainerService.getAllEntertainers(query);
+    }
 
-  // Get List  of the  Entertainer  which  are not booked for the  event
+    // Get List  of the  Entertainer  which  are not booked for the  event
 
-  @Get(':eventId')
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Roles('super-admin', 'entertainer-admin')
-  getEntertainerList(
-    @Param('eventId', ParseIntPipe) eventId: number,
-    @Query() query: GetEntertainerDto,
-  ) {
-    return this.EntertainerService.getAllEntertainerList(eventId, query);
-  }
-  @Get('series/:seriesId')
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Roles('super-admin', 'entertainer-admin')
-  getEntertainerListForSeries(
-    @Param('seriesId', ParseIntPipe) seriesId: number,
-    @Query() query: GetEntertainerDto,
-  ) {
-    return this.EntertainerService.getAllEntertainerListForSeries(
-      seriesId,
-      query,
-    );
-  }
+    @Get(':eventId')
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Roles('super-admin', 'entertainer-admin')
+    getEntertainerList(
+        @Param('eventId', ParseIntPipe) eventId: number,
+        @Query() query: GetEntertainerDto,
+    ) {
+        return this.EntertainerService.getAllEntertainerList(eventId, query);
+    }
+    @Get('series/:seriesId')
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Roles('super-admin', 'entertainer-admin')
+    getEntertainerListForSeries(
+        @Param('seriesId', ParseIntPipe) seriesId: number,
+        @Query() query: GetEntertainerDto,
+    ) {
+        return this.EntertainerService.getAllEntertainerListForSeries(
+            seriesId,
+            query,
+        );
+    }
 
-  // New Flow for Creating Entertainer
+    // New Flow for Creating Entertainer
 
-  @Post('createent')
-  @UseInterceptors(AnyFilesInterceptor())
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Roles('super-admin', 'entertainer-admin')
-  async create(
-    @Body() dto: CreateEntertainerDto,
-    @UploadedFiles() files: Array<Express.Multer.File>,
-  ) {
-    let uploadedFiles: UploadedFile[] = [];
+    @Post('createent')
+    @UseInterceptors(AnyFilesInterceptor())
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Roles('super-admin', 'entertainer-admin')
+    async create(
+        @Body() dto: CreateEntertainerDto,
+        @UploadedFiles() files: Array<Express.Multer.File>,
+    ) {
+        let uploadedFiles: UploadedFile[] = [];
 
-    if (files?.length && files.length > 0) {
-      uploadedFiles = await Promise.all(
-        files.map(async (file) => {
-          const filePath = await uploadFile(file); // Wait for the upload
-          return {
-            url: filePath,
-            name: file.originalname,
-            type: typeMap[file.fieldname],
-          };
+        if (files?.length && files.length > 0) {
+            uploadedFiles = await Promise.all(
+                files.map(async (file) => {
+                    const filePath = await uploadFile(file); // Wait for the upload
+                    return {
+                        url: filePath,
+                        name: file.originalname,
+                        type: typeMap[file.fieldname],
+                    };
+                }),
+            );
+        }
+        return this.EntertainerService.createEntertainer(dto, uploadedFiles);
+    }
+
+    @Post('media/:id')
+    @UseInterceptors(AnyFilesInterceptor())
+    @UseGuards(JwtAuthGuard)
+    async addMedia(
+        @UploadedFiles() files: Array<Express.Multer.File>,
+        @Param('id', ParseIntPipe) id: number,
+        @Body('mediaLink') mediaLink?: string[],
+    ) {
+        let uploadedFiles: UploadedFile[] = [];
+
+        if (files?.length > 0) {
+            uploadedFiles = await Promise.all(
+                files.map(async (file) => {
+                    const filePath = await uploadFile(file); // Wait for the upload
+                    return {
+                        url: filePath,
+                        name: file.originalname,
+                        type: getFileType(file.mimetype),
+                    };
+                }),
+            );
+        }
+        return this.EntertainerService.uploadMedia(id, uploadedFiles, mediaLink);
+    }
+
+    @Patch('address/:id')
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Roles('super-admin', 'entertainer-admin')
+    async updateAddress(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: UpdateAddressDto,
+    ) {
+        return this.EntertainerService.updateAddress(id, dto);
+    }
+    @Patch('socialLinks/:id')
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Roles('super-admin', 'entertainer-admin')
+    async updateSocialLinks(
+        @Param('id', ParseIntPipe) id: number,
+        @Body('socialLinks') socialLinks: Record<string, string>,
+    ) {
+        return this.EntertainerService.updateSocialLinks(id, socialLinks);
+    }
+
+    // This need to be  changed
+    @Patch(':entertainerId')
+    @UseInterceptors(AnyFilesInterceptor())
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Roles('super-admin', 'entertainer-admin')
+    async updateEntertainer(
+        @Body() dto: UpdateEntertainerDto,
+        @Param('entertainerId', ParseIntPipe) entertainerId: number,
+        @UploadedFiles() files: Array<Express.Multer.File>,
+    ) {
+        let uploadedFiles: UploadedFile[] = [];
+
+        if (files?.length && files.length > 0) {
+            uploadedFiles = await Promise.all(
+                files.map(async (file) => {
+                    const filePath = await uploadFile(file); // Wait for the upload
+                    return {
+                        url: filePath,
+                        name: file.originalname,
+                        type: typeMap[file.fieldname],
+                    };
+                }),
+            );
+        }
+        return this.EntertainerService.update(dto, entertainerId, uploadedFiles);
+    }
+
+    @Patch('/approval/response')
+    async updateEntertainerStatus(@Body() dto: ApproveEntertainer) {
+        return this.EntertainerService.approveEntertainer(dto);
+    }
+
+    @Roles('super-admin', 'entertainer-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Get('entertainerbyId/:id')
+    async getEntertainerByUserId(@Param('id', ParseIntPipe) id: number) {
+        return this.EntertainerService.getEntertainerByentertainerId(id);
+    }
+
+    @Get('categorybyId')
+    async categorybyId(@Query('id') id: number) {
+        return this.EntertainerService.categorybyId(id);
+    }
+
+    @Get('maincategory/all')
+    async getMainCategory(@Req() req) {
+        return await this.EntertainerService.getMainCategory();
+    }
+
+    @Get('subcategory/all')
+async getSubCategory(@Query('categoryId') categoryId: string | string[]) {
+  const ids = Array.isArray(categoryId) ? categoryId : [categoryId];
+  const parsedIds = ids.map(id => parseInt(id, 10));  
+  
+  return await this.EntertainerService.getSubCategory(parsedIds);
+}
+
+
+    @Post('createcat')
+    @UseInterceptors(
+        AnyFilesInterceptor({
+            storage: diskStorage({
+                destination: (req, file, cb) => {
+                    const dir = './uploads/assets/cat_icons';
+                    if (!fs.existsSync(dir)) {
+                        fs.mkdirSync(dir, { recursive: true });
+                    }
+                    cb(null, dir);
+                },
+                filename: (req, file, cb) => {
+                    const name =
+                        req.body.name?.toLowerCase().replace(/\s+/g, '_') || 'category';
+                    const suffix = file.fieldname === 'inactiveIcon' ? '_grey' : '';
+                    const ext = path.extname(file.originalname);
+                    cb(null, `${name}${suffix}${ext}`);
+                },
+            }),
+            limits: { fileSize: 5 * 1024 * 1024 }, // optional limit
         }),
-      );
-    }
-    return this.EntertainerService.createEntertainer(dto, uploadedFiles);
-  }
+    )
+    async createMainCategory(
+        @Body() body: CreateCategoryDto,
+        @UploadedFiles() files: Array<Express.Multer.File>,
+    ) {
+        let active;
 
-  @Post('media/:id')
-  @UseInterceptors(AnyFilesInterceptor())
-  @UseGuards(JwtAuthGuard)
-  async addMedia(
-    @UploadedFiles() files: Array<Express.Multer.File>,
-    @Param('id', ParseIntPipe) id: number,
-    @Body('mediaLink') mediaLink?: string[],
-  ) {
-    let uploadedFiles: UploadedFile[] = [];
+        if (files && files.length > 0) {
+            active = files.find((f) => f.fieldname === 'activeIcon');
+        }
 
-    if (files?.length > 0) {
-      uploadedFiles = await Promise.all(
-        files.map(async (file) => {
-          const filePath = await uploadFile(file); // Wait for the upload
-          return {
-            url: filePath,
-            name: file.originalname,
-            type: getFileType(file.mimetype),
-          };
-        }),
-      );
-    }
-    return this.EntertainerService.uploadMedia(id, uploadedFiles, mediaLink);
-  }
+        const iconUrl = active
+            ? `uploads/assets/cat_icons/${active.filename}`
+            : `uploads/assets/cat_icons/defaulticon.png`;
 
-  @Patch('address/:id')
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Roles('super-admin', 'entertainer-admin')
-  async updateAddress(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateAddressDto,
-  ) {
-    return this.EntertainerService.updateAddress(id, dto);
-  }
-  @Patch('socialLinks/:id')
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Roles('super-admin', 'entertainer-admin')
-  async updateSocialLinks(
-    @Param('id', ParseIntPipe) id: number,
-    @Body('socialLinks') socialLinks: Record<string, string>,
-  ) {
-    return this.EntertainerService.updateSocialLinks(id, socialLinks);
-  }
-
-  // This need to be  changed
-  @Patch(':entertainerId')
-  @UseInterceptors(AnyFilesInterceptor())
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Roles('super-admin', 'entertainer-admin')
-  async updateEntertainer(
-    @Body() dto: UpdateEntertainerDto,
-    @Param('entertainerId', ParseIntPipe) entertainerId: number,
-    @UploadedFiles() files: Array<Express.Multer.File>,
-  ) {
-    let uploadedFiles: UploadedFile[] = [];
-
-    if (files?.length && files.length > 0) {
-      uploadedFiles = await Promise.all(
-        files.map(async (file) => {
-          const filePath = await uploadFile(file); // Wait for the upload
-          return {
-            url: filePath,
-            name: file.originalname,
-            type: typeMap[file.fieldname],
-          };
-        }),
-      );
-    }
-    return this.EntertainerService.update(dto, entertainerId, uploadedFiles);
-  }
-
-  @Patch('/approval/response')
-  async updateEntertainerStatus(@Body() dto: ApproveEntertainer) {
-    return this.EntertainerService.approveEntertainer(dto);
-  }
-
-  @Roles('super-admin', 'entertainer-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Get('entertainerbyId/:id')
-  async getEntertainerByUserId(@Param('id', ParseIntPipe) id: number) {
-    return this.EntertainerService.getEntertainerByentertainerId(id);
-  }
-
-  @Get('categorybyId')
-  async categorybyId(@Query('id') id: number) {
-    return this.EntertainerService.categorybyId(id);
-  }
-
-  @Get('maincategory/all')
-  async getMainCategory(@Req() req) {
-    return await this.EntertainerService.getMainCategory();
-  }
-
-  @Get('subcategory/all')
-  async getSubCategory(@Query('categoryId') categoryId: number) {
-    return await this.EntertainerService.getSubCategory(Number(categoryId)); // Pass parentId to the service
-  }
-
-  @Post('createcat')
-  @UseInterceptors(
-    AnyFilesInterceptor({
-      storage: diskStorage({
-        destination: (req, file, cb) => {
-          const dir = './uploads/assets/cat_icons';
-          if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-          }
-          cb(null, dir);
-        },
-        filename: (req, file, cb) => {
-          const name =
-            req.body.name?.toLowerCase().replace(/\s+/g, '_') || 'category';
-          const suffix = file.fieldname === 'inactiveIcon' ? '_grey' : '';
-          const ext = path.extname(file.originalname);
-          cb(null, `${name}${suffix}${ext}`);
-        },
-      }),
-      limits: { fileSize: 5 * 1024 * 1024 }, // optional limit
-    }),
-  )
-  async createMainCategory(
-    @Body() body: CreateCategoryDto,
-    @UploadedFiles() files: Array<Express.Multer.File>,
-  ) {
-    let active;
-
-    if (files && files.length > 0) {
-      active = files.find((f) => f.fieldname === 'activeIcon');
+        return this.EntertainerService.createCategory({
+            ...body,
+            iconUrl,
+        });
     }
 
-    const iconUrl = active
-      ? `uploads/assets/cat_icons/${active.filename}`
-      : `uploads/assets/cat_icons/defaulticon.png`;
+    @Roles('super-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Post('updatecat')
+    async updateCategory(
+        @Body() updateCategoryDto: UpdateCategoryDto,
+    ): Promise<any> {
+        return this.EntertainerService.updateCategory(updateCategoryDto);
+    }
 
-    return this.EntertainerService.createCategory({
-      ...body,
-      iconUrl,
-    });
-  }
+    @Roles('super-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Post('deletecat')
+    remove(@Body() id: number) {
+        return this.EntertainerService.removeCategory(id);
+    }
 
-  @Roles('super-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Post('updatecat')
-  async updateCategory(
-    @Body() updateCategoryDto: UpdateCategoryDto,
-  ): Promise<any> {
-    return this.EntertainerService.updateCategory(updateCategoryDto);
-  }
+    @Roles('super-admin', 'entertainer-admin')
+    @ApiBearerAuth()
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Delete(':id')
+    async deleteEntertainer(@Param('id') id: string) {
+        return this.EntertainerService.deleteEntertainer(Number(id));
+    }
 
-  @Roles('super-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Post('deletecat')
-  remove(@Body() id: number) {
-    return this.EntertainerService.removeCategory(id);
-  }
+    // Availability APIs
 
-  @Roles('super-admin', 'entertainer-admin')
-  @ApiBearerAuth()
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Delete(':id')
-  async deleteEntertainer(@Param('id') id: string) {
-    return this.EntertainerService.deleteEntertainer(Number(id));
-  }
+    @Post('availability/:id')
+    async createAvailability(
+        @Body() dto: EntertainerAvailabilityDto,
+        @Param('id', ParseIntPipe) id: number,
+    ) {
+        dto['entertainer_id'] = id;
+        // return this.EntertainerService.saveEntertainerAvailability(dto);
+    }
 
-  // Availability APIs
+    @Get('availability/:id')
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Roles('super-admin', 'entertainer-admin')
+    async getEntertainerAvailability(
+        @Param('id', ParseIntPipe) id: number,
+        @Query('year', ParseIntPipe) year: number,
+        @Query('month', ParseIntPipe) month: number,
+    ) {
+        return this.EntertainerService.getEntertainerAvailability(id, year, month);
+    }
 
-  @Post('availability/:id')
-  async createAvailability(
-    @Body() dto: EntertainerAvailabilityDto,
-    @Param('id', ParseIntPipe) id: number,
-  ) {
-    dto['entertainer_id'] = id;
-    // return this.EntertainerService.saveEntertainerAvailability(dto);
-  }
+    @Put('availability/:id')
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Roles('super-admin', 'entertainer-admin')
+    async updateEntertainerAvailability(
+        @Param('id', ParseIntPipe) id: number,
+        @Body() dto: UpdateAvailabilityDto,
+    ) {
+        return this.EntertainerService.updateEntertainerAvailability(id, dto);
+    }
+    // Api for
 
-  @Get('availability/:id')
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Roles('super-admin', 'entertainer-admin')
-  async getEntertainerAvailability(
-    @Param('id', ParseIntPipe) id: number,
-    @Query('year', ParseIntPipe) year: number,
-    @Query('month', ParseIntPipe) month: number,
-  ) {
-    return this.EntertainerService.getEntertainerAvailability(id, year, month);
-  }
+    @Patch('toggle-verification/:entertainerId')
+    async toggleVerification(
+        @Param('entertainerId', ParseIntPipe) entertainerId: number,
+    ) {
+        return this.EntertainerService.toggleVerificationFlag(entertainerId);
+    }
 
-  @Put('availability/:id')
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Roles('super-admin', 'entertainer-admin')
-  async updateEntertainerAvailability(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateAvailabilityDto,
-  ) {
-    return this.EntertainerService.updateEntertainerAvailability(id, dto);
-  }
-  // Api for
-
-  @Patch('toggle-verification/:entertainerId')
-  async toggleVerification(
-    @Param('entertainerId', ParseIntPipe) entertainerId: number,
-  ) {
-    return this.EntertainerService.toggleVerificationFlag(entertainerId);
-  }
-
-  // Entertainer Rate Card API (GET , PATCH)
-  @Patch('rate-card')
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Roles('super-admin', 'entertainer-admin')
-  async setEntertainerRateCard(@Body() dto: EntertainerRateCardDto) {
-    return this.EntertainerService.setEntertainerRateCard(dto);
-  }
-  @Get('rate-card/:entertainerId')
-  @UseGuards(JwtAuthGuard, RolesGuardAdmin)
-  @Roles('super-admin', 'entertainer-admin')
-  async getEntertainerRateCard(
-    @Param('entertainerId', ParseIntPipe) entertainerId: number,
-  ) {
-    return this.EntertainerService.getEntertainerRateCard(entertainerId);
-  }
+    // Entertainer Rate Card API (GET , PATCH)
+    @Patch('rate-card')
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Roles('super-admin', 'entertainer-admin')
+    async setEntertainerRateCard(@Body() dto: EntertainerRateCardDto) {
+        return this.EntertainerService.setEntertainerRateCard(dto);
+    }
+    @Get('rate-card/:entertainerId')
+    @UseGuards(JwtAuthGuard, RolesGuardAdmin)
+    @Roles('super-admin', 'entertainer-admin')
+    async getEntertainerRateCard(
+        @Param('entertainerId', ParseIntPipe) entertainerId: number,
+    ) {
+        return this.EntertainerService.getEntertainerRateCard(entertainerId);
+    }
 }
