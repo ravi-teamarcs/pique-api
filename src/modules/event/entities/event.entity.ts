@@ -7,7 +7,9 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
+import { EventCategorySubcategory } from './event-category-subcategory.entity';
 
 @Entity('event')
 export class VenueEvent {
@@ -76,10 +78,10 @@ export class VenueEvent {
   @Column({ default: false })
   emailSentAfter24Hour: boolean;
 
-  @Column({ name: 'category_id' })
+  @Column({ name: 'category_id', nullable: true })
   categoryId: number;
 
-  @Column({ name: 'subcategory_id' })
+  @Column({ name: 'subcategory_id', nullable: true })
   subCategoryId: number;
 
   @Column({ default: false })
@@ -91,6 +93,11 @@ export class VenueEvent {
   })
   @JoinColumn({ name: 'series_id' }) // Explicitly name the FK column
   series: Series;
+
+  @OneToMany(() => EventCategorySubcategory, (ecs) => ecs.event, {
+    cascade: true,
+  })
+  eventCategories: EventCategorySubcategory[];
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

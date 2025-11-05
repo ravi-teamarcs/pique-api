@@ -7,8 +7,23 @@ import {
   IsEnum,
   IsOptional,
   IsInt,
+  IsArray,
+  ArrayNotEmpty,
 } from 'class-validator';
+export class CategorySubcategoryDto {
+  @ApiProperty({ example: 1, description: 'Category ID' })
+  @IsInt()
+  categoryId: number;
 
+  @ApiProperty({
+    example: [2, 3],
+    description: 'Subcategory IDs under this category',
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsInt({ each: true })
+  subCategoryIds: number[];
+}
 export class CreateEventDto {
   @ApiProperty({ example: 1, description: 'Venue for  which event is created' })
   @IsNotEmpty()
@@ -45,11 +60,7 @@ export class CreateEventDto {
   @IsNumber()
   neighbourhoodId: number;
 
-  @IsNotEmpty()
-  @IsInt()
-  categoryId: number;
-
-  @IsNotEmpty()
-  @IsInt()
-  subCategoryId: number;
+  @IsArray()
+  @ArrayNotEmpty()
+  categories: CategorySubcategoryDto[];
 }

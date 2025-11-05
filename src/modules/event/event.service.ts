@@ -23,6 +23,7 @@ import { EmailService } from '../Email/email.service';
 import { BookingService } from '../booking/booking.service';
 import { NotificationService } from '../notification/notification.service';
 import { formatUtcToTimezoneParts } from 'src/common/utils/common.utils';
+import { EventCategorySubcategory } from './entities/event-category-subcategory.entity';
 
 @Injectable()
 export class EventService {
@@ -33,6 +34,8 @@ export class EventService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(EventCategorySubcategory)
+    private readonly eventCategoriesRepository: Repository<EventCategorySubcategory>,
     private readonly emailService: EmailService,
     private readonly bookingService: BookingService,
     private readonly notificationService: NotificationService,
@@ -47,8 +50,7 @@ export class EventService {
         eventStartDateTime,
         eventEndDateTime,
         neighbourhoodId,
-        categoryId,
-        subCategoryId,
+        categories,
       } = dto;
 
       const venue = await this.venueRepository.findOne({
@@ -59,6 +61,11 @@ export class EventService {
       if (!venue.timezone) {
         console.warn(
           `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+        );
+      }
+      if (categories.length === 0) {
+        throw new BadRequestException(
+          'At least one category-subcategory pair is required',
         );
       }
 
@@ -88,12 +95,27 @@ export class EventService {
       const event = this.eventRepository.create({
         sub_venue_id: neighbourhoodId,
         slug,
-        categoryId,
-        subCategoryId,
         ...savePayload,
       });
 
       const savedEvent = await this.eventRepository.save(event);
+
+      const eventCategoryRecords = [];
+      for (const cat of categories) {
+        for (const subCatId of cat.subCategoryIds) {
+          console.log(
+            'Creating EventCategorySubcategory record for:',
+            subCatId,
+          );
+          eventCategoryRecords.push({
+            event: { id: savedEvent.id },
+            categoryId: cat.categoryId,
+            subCategoryId: subCatId,
+          });
+        }
+      }
+
+      await this.eventCategoriesRepository.save(eventCategoryRecords);
       return { message: 'Event created Successfully', event, status: true };
     } catch (error) {
       throw new InternalServerErrorException(error.message);
@@ -108,8 +130,7 @@ export class EventService {
       neighbourhoodId,
       eventStartDateTime,
       eventEndDateTime,
-      categoryId,
-      subCategoryId,
+      categories,
     } = dto;
 
     const event = await this.eventRepository.findOne({
@@ -153,8 +174,6 @@ export class EventService {
         eventStartDateTime: startTime.toISOString(),
         eventEndDateTime: endTime.toISOString(),
         venueId,
-        categoryId,
-        subCategoryId,
         slug,
         sub_venue_id: neighbourhoodId,
       };
@@ -181,6 +200,23 @@ export class EventService {
         updatePayload['status'] = 'rescheduled';
       }
       await this.eventRepository.update({ id: event.id }, updatePayload);
+      if (categories.length > 0) {
+        await this.eventCategoriesRepository.delete({
+          event: { id: event.id },
+        });
+        const eventCategoryRecords = [];
+        for (const cat of categories) {
+          for (const subCatId of cat.subCategoryIds) {
+            eventCategoryRecords.push({
+              event: { id: event.id },
+              categoryId: cat.categoryId,
+              subCategoryId: subCatId,
+            });
+          }
+        }
+
+        await this.eventCategoriesRepository.save(eventCategoryRecords);
+      }
 
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         this.bookingService.handleChangeRequest(Number(event.id), {
@@ -221,11 +257,7 @@ export class EventService {
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'event.recurring AS recurring',
-          'event.category_id AS categoryId',
           'venue.timezone AS venueTimeZone',
-          'event.subcategory_id AS subCategoryId',
-          'cat.name AS categoryName',
-          'subcat.name AS subCategoryName',
           'event.status AS status',
           'event.slug AS slug',
           'event.createdAt AS createdAt',
@@ -234,22 +266,53 @@ export class EventService {
           'series.id AS seriesId',
           'series.seriesName AS seriesName',
         ])
+        .addSelect(
+          `
+    (
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'categoryId', cat.id,
+          'categoryName', cat.name,
+          'subCategories',
+            (
+              SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                  'subCategoryId', subcat.id,
+                  'subCategoryName', subcat.name
+                )
+              )
+              FROM event_category_subcategory ecs2
+              JOIN categories subcat ON subcat.id = ecs2.subcategory_id
+              WHERE ecs2.event_id = event.id AND ecs2.category_id = cat.id
+            )
+        )
+      )
+      FROM event_category_subcategory ecs
+      JOIN categories cat ON cat.id = ecs.category_id
+      WHERE ecs.event_id = event.id
+    ) AS categories
+  `,
+        )
         .limit(take)
         .offset(skip)
         .orderBy('event.id', 'DESC')
         .getRawMany(); // ← this returns raw data with aliases
-
       const totalCount = await this.eventRepository
         .createQueryBuilder('event')
         .where('event.venueId = :id', { id })
         .getCount();
+
+      const parsedEvents = events.map((event) => ({
+        ...event,
+        categories: event.categories ? JSON.parse(event.categories) : [],
+      }));
       return {
         message: 'Events fetched successfully',
         count: totalCount,
         page,
         pageSize,
         totalPages: Math.ceil(totalCount / Number(pageSize)),
-        data: events,
+        data: parsedEvents,
         status: true,
       };
     } catch (error) {
@@ -479,12 +542,45 @@ export class EventService {
   }
 
   async getEventById(id: number, venueId: number) {
+    // const event = await this.eventRepository
+    //   .createQueryBuilder('event')
+    //   .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+    //   .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+    //   .leftJoin('categories', 'cat', 'cat.id = event.category_id')
+    //   .leftJoin('categories', 'subcat', 'subcat.id = event.subcategory_id')
+    //   .leftJoinAndSelect('event.series', 'series')
+    //   .where('event.id = :eventId AND event.venueId = :venueId', {
+    //     eventId: id,
+    //     venueId,
+    //   })
+    //   .select([
+    //     'event.id AS id',
+    //     'event.title AS title',
+    //     'event.description AS description',
+    //     'event.venueId AS venueId',
+    //     'event.eventStartDateTime AS eventStartDateTime',
+    //     'event.eventEndDateTime AS eventEndDateTime',
+    //     'event.slug AS slug',
+    //     'event.status AS status',
+    //     'event.category_id AS categoryId',
+    //     'event.subcategory_id AS subCategoryId',
+    //     'cat.name AS categoryName',
+    //     'subcat.name AS subCategoryName',
+    //     'venue.name AS name',
+    //     'venue.addressLine1 AS addressLine1',
+    //     'venue.addressLine2 AS addressLine2',
+    //     'venue.timezone AS venueTimeZone',
+    //     'hood.id AS neighbourhoodId',
+    //     'hood.name AS neighbourhoodName',
+    //     'hood.contactPerson AS contactPerson',
+    //     'hood.contactNumber AS contactName',
+    //   ])
+    //   .getRawOne();
     const event = await this.eventRepository
       .createQueryBuilder('event')
-      .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
-      .leftJoin('categories', 'cat', 'cat.id = event.category_id')
-      .leftJoin('categories', 'subcat', 'subcat.id = event.subcategory_id')
+      .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+      .leftJoinAndSelect('event.series', 'series')
       .where('event.id = :eventId AND event.venueId = :venueId', {
         eventId: id,
         venueId,
@@ -498,29 +594,51 @@ export class EventService {
         'event.eventEndDateTime AS eventEndDateTime',
         'event.slug AS slug',
         'event.status AS status',
-        'event.category_id AS categoryId',
-        'event.subcategory_id AS subCategoryId',
-        'cat.name AS categoryName',
-        'subcat.name AS subCategoryName',
-        'venue.name AS name',
-        'venue.addressLine1 AS addressLine1',
-        'venue.addressLine2 AS addressLine2',
-        'venue.timezone AS venueTimeZone',
-        'hood.id AS neighbourhoodId',
+        'venue.name AS venueName',
         'hood.name AS neighbourhoodName',
-        'hood.contactPerson AS contactPerson',
-        'hood.contactNumber AS contactName',
       ])
+      .addSelect(
+        `
+    (
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'categoryId', cat.id,
+          'categoryName', cat.name,
+          'subCategories',
+            (
+              SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                  'subCategoryId', subcat.id,
+                  'subCategoryName', subcat.name
+                )
+              )
+              FROM event_category_subcategory ecs2
+              JOIN categories subcat ON subcat.id = ecs2.subcategory_id
+              WHERE ecs2.event_id = event.id AND ecs2.category_id = cat.id
+            )
+        )
+      )
+      FROM event_category_subcategory ecs
+      JOIN categories cat ON cat.id = ecs.category_id
+      WHERE ecs.event_id = event.id
+    ) AS categories
+  `,
+      )
       .getRawOne();
 
     if (!event) {
       throw new BadRequestException('Event not found');
     }
 
+    const parsedResult = {
+      ...event,
+      categories: event.categories ? JSON.parse(event.categories) : [],
+    };
+
     return {
       message: 'Event returned successfully',
       status: true,
-      data: event,
+      data: parsedResult,
     };
   }
 

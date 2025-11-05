@@ -15,6 +15,7 @@ import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
 import { EmailModule } from 'src/modules/Email/email.module';
 import { NotificationModule } from 'src/modules/notification/notification.module';
+import { EventCategorySubcategory } from './entities/event-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -28,6 +29,7 @@ import { NotificationModule } from 'src/modules/notification/notification.module
       Setting,
       SubcategoryRate,
       SpecialSubcategoryPrice,
+      EventCategorySubcategory,
     ]),
     MediaModule,
     BookingModule,
