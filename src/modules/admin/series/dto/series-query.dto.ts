@@ -5,9 +5,11 @@ class SeriesQueryDto {
   @IsOptional()
   page: number;
   @IsNumber()
+  @IsOptional()
   pageSize: number;
   @IsString()
+  @IsOptional()
   search: string;
 }
 
-export {SeriesQueryDto}
+export { SeriesQueryDto };
