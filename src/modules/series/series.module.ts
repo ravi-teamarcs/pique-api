@@ -10,6 +10,7 @@ import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Series } from './entities/series.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { BookingModule } from '../booking/booking.module';
+import { EventCategorySubcategory } from '../event/entities/event-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { BookingModule } from '../booking/booking.module';
       EndPoints,
       Series,
       Booking,
+      EventCategorySubcategory,
     ]),
     BookingModule,
   ],

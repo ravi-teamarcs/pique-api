@@ -41,6 +41,7 @@ import {
   formatUtcToTimezoneParts,
 } from 'src/common/utils/common.utils';
 import { EventCategorySubcategory } from '../event/entities/event-category-subcategory.entity';
+import { BookingCategorySubcategory } from './entities/booking-category.entity';
 @Injectable()
 export class BookingService {
   constructor(
@@ -62,6 +63,8 @@ export class BookingService {
     private readonly invoiceRepository: Repository<Invoice>,
     @InjectRepository(InvoiceEvent)
     private readonly invoiceEventRepository: Repository<InvoiceEvent>,
+    @InjectRepository(BookingCategorySubcategory)
+    private readonly bookingCategoryRepository: Repository<BookingCategorySubcategory>,
 
     private readonly emailService: EmailService,
     private readonly notifyService: NotificationService,
@@ -70,7 +73,8 @@ export class BookingService {
   ) {}
 
   async createBooking(dto: CreateBookingDto, venueId: number) {
-    const { entertainerId, showStartDateTime, ...bookingData } = dto;
+    const { entertainerId, showStartDateTime, categories, ...bookingData } =
+      dto;
 
     try {
       const booking = await this.bookingRepository.findOne({
@@ -86,29 +90,11 @@ export class BookingService {
 
       const record = await this.eventRepository.findOne({
         where: { id: dto.eventId },
-        select: [
-          'eventStartDateTime',
-          'eventEndDateTime',
-          'categoryId',
-          'subCategoryId',
-        ],
+        select: ['eventStartDateTime', 'eventEndDateTime'],
       });
       if (!record) throw new NotFoundException('Event not Found');
-      const {
-        eventStartDateTime,
-        eventEndDateTime,
-        categoryId,
-        subCategoryId,
-      } = record;
+      const { eventStartDateTime, eventEndDateTime } = record;
       // Check
-      if (
-        categoryId !== Number(bookingData.categoryId) ||
-        subCategoryId !== Number(bookingData.subcategoryId)
-      ) {
-        throw new BadRequestException(
-          `Entertainer cannot be booked for this event category or subcategory.`,
-        );
-      }
 
       //  Issues are Here
       const availabilityPayload = {
@@ -149,6 +135,27 @@ export class BookingService {
 
       // changes must be there
       const savedBooking = await this.bookingRepository.save(newBooking);
+
+      // New Logic Here (For Mapping Creation)
+      const bookingCategoryMappings = [];
+
+      for (const category of dto.categories) {
+        const { categoryId, subCategoryIds } = category;
+
+        for (const subCategoryId of subCategoryIds) {
+          const mapping = this.bookingCategoryRepository.create({
+            eventId: dto.eventId,
+            bookingId: savedBooking.id,
+            categoryId,
+            subCategoryId,
+          });
+
+          bookingCategoryMappings.push(mapping);
+        }
+      }
+
+      // then save all at once
+      await this.bookingCategoryRepository.save(bookingCategoryMappings);
 
       // update status of event to invited
       await this.eventRepository.update(

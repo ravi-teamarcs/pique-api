@@ -1096,9 +1096,11 @@ export class EntertainerService {
             upcomingBookingDate,
             ...rest
           }) => {
-            const [categoryData] = await this.getFormattedCategoriesforAdmin([
-              Number(id),
-            ]);
+            const [categoryData] = await this.getFormattedCategoriesforAdmin(
+              [Number(id)],
+              eventCategories, // pass event's allowed categories
+            );
+
             const categories = categoryData?.categories || [];
 
             return {
@@ -1468,11 +1470,14 @@ export class EntertainerService {
     }
   }
 
-  async getFormattedCategoriesforAdmin(entertainerIds: number[]) {
+  async getFormattedCategoriesforAdmin(
+    entertainerIds: number[],
+    eventCategories?: { categoryId: number; subCategoryId: number }[],
+  ) {
     try {
       if (!entertainerIds?.length) return [];
 
-      // Fetch all category and subcategory mappings for the given entertainer(s)
+      // STEP 1: Fetch all categories/subcategories linked to entertainer(s)
       const rawRecords = await this.entCatRepository
         .createQueryBuilder('ecs')
         .leftJoin('categories', 'cat', 'cat.id = ecs.category_id')
@@ -1487,7 +1492,7 @@ export class EntertainerService {
 
       if (!rawRecords.length) return [];
 
-      // Collect unique subcategory IDs
+      // STEP 2: Collect all subcategory IDs used by entertainers
       const allSubcategoryIds = [
         ...new Set(
           rawRecords.flatMap((r) =>
@@ -1498,13 +1503,23 @@ export class EntertainerService {
         ),
       ];
 
-      // Fetch subcategory details
       const subcategories = await this.CategoryRepository.find({
         where: { id: In(allSubcategoryIds) },
         select: ['id', 'name', 'catslug', 'parentId'],
       });
 
-      // Group by entertainer
+      // Convert eventCategories into a lookup map for easy filtering
+      const eventCategoryMap = new Map<number, number[]>();
+      if (eventCategories?.length) {
+        for (const { categoryId, subCategoryId } of eventCategories) {
+          if (!eventCategoryMap.has(categoryId)) {
+            eventCategoryMap.set(categoryId, []);
+          }
+          eventCategoryMap.get(categoryId).push(subCategoryId);
+        }
+      }
+
+      // STEP 3: Group entertainer categories
       const resultMap = new Map<number, any[]>();
 
       for (const record of rawRecords) {
@@ -1513,8 +1528,16 @@ export class EntertainerService {
             ? record.subcategoryIds.split(',').map(Number)
             : [];
 
+        // filter by event category/subcategory if eventCategories provided
+        const allowedSubIds = eventCategoryMap.get(record.categoryId) || [];
+        const filteredSubIds = eventCategories
+          ? subcatIds.filter((id) => allowedSubIds.includes(id))
+          : subcatIds;
+
+        if (!filteredSubIds.length && eventCategories) continue; // skip non-matching
+
         const specificCategories = subcategories
-          .filter((sub) => subcatIds.includes(sub.id))
+          .filter((sub) => filteredSubIds.includes(sub.id))
           .map((sub) => ({
             id: sub.id,
             specificCategoryName: sub.name,
@@ -1533,7 +1556,6 @@ export class EntertainerService {
         resultMap.get(record.entertainerId).push(formattedCategory);
       }
 
-      // Convert map → array response
       return entertainerIds.map((entertainerId) => ({
         entertainerId,
         categories: resultMap.get(entertainerId) || [],

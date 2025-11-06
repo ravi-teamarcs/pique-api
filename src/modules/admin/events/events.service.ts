@@ -319,29 +319,32 @@ export class EventService {
 
     const rawResult = await this.eventCategoriesRepository.query(
       `
-    SELECT JSON_ARRAYAGG(
-      JSON_OBJECT(
-        'categoryId', cat.id,
-        'categoryName', cat.name,
-        'subCategories',
-          (
-            SELECT JSON_ARRAYAGG(
-              JSON_OBJECT(
-                'subCategoryId', subcat.id,
-                'subCategoryName', subcat.name
-              )
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'categoryId', cat.id,
+      'categoryName', cat.name,
+      'subCategories',
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'subCategoryId', subcat.id,
+              'subCategoryName', subcat.name
             )
-            FROM event_category_subcategory ecs2
-            JOIN categories subcat ON subcat.id = ecs2.subcategory_id
-            WHERE ecs2.event_id = ecs.event_id AND ecs2.category_id = ecs.category_id
           )
-      )
-    ) AS categories
+          FROM event_category_subcategory ecs2
+          JOIN categories subcat ON subcat.id = ecs2.subcategory_id
+          WHERE ecs2.event_id = ? AND ecs2.category_id = cat.id
+        )
+    )
+  ) AS categories
+  FROM (
+    SELECT DISTINCT ecs.category_id
     FROM event_category_subcategory ecs
-    JOIN categories cat ON cat.id = ecs.category_id
     WHERE ecs.event_id = ?
-    `,
-      [id],
+  ) uniq
+  JOIN categories cat ON cat.id = uniq.category_id
+  `,
+      [id, id],
     );
 
     // MariaDB returns an array with a single row object, e.g. [ { categories: '[...]' } ]

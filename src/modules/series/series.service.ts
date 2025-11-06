@@ -23,6 +23,7 @@ import { throwError } from 'rxjs';
 import { Status } from 'src/common/enums/event.enum';
 import { Booking } from '../booking/entities/booking.entity';
 import { BookingService } from '../booking/booking.service';
+import { EventCategorySubcategory } from '../event/entities/event-category-subcategory.entity';
 
 @Injectable()
 export class SeriesService {
@@ -35,6 +36,8 @@ export class SeriesService {
     private readonly seriesRepository: Repository<Series>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(EventCategorySubcategory)
+    private readonly eventCategoriesRepository: Repository<EventCategorySubcategory>,
     private readonly bookingService: BookingService,
   ) {}
   async getUpcomingEventForSeries(id: number) {
@@ -72,10 +75,41 @@ export class SeriesService {
           'hood.id AS neighbourHoodId',
           'hood.name AS neighbourHoodName',
         ])
+        .addSelect(
+          `
+  (
+    SELECT JSON_ARRAYAGG(
+      JSON_OBJECT(
+        'categoryId', c.id,
+        'categoryName', c.name,
+        'subCategories', (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'subCategoryId', sc.id,
+              'subCategoryName', sc.name
+            )
+          )
+          FROM event_category_subcategory ecs2
+          JOIN categories sc ON sc.id = ecs2.subcategory_id
+          WHERE ecs2.event_id = event.id
+            AND ecs2.category_id = c.id
+        )
+      )
+    )
+    FROM (
+      SELECT DISTINCT ecs.category_id, ecs.event_id
+      FROM event_category_subcategory ecs
+    ) uniq
+    JOIN categories c ON c.id = uniq.category_id
+    WHERE uniq.event_id = event.id
+  ) AS categories
+`,
+        )
         .where('event.venueId = :venueId', { venueId: venue.id })
         .andWhere('event.eventStartDateTime >= :time ', {
           time: nowUtc().toISOString(),
         })
+
         .andWhere('event.status IN (:...statuses)', {
           statuses: ['unpublished', 'invited', 'rescheduled', 'confirmed'],
         })
@@ -90,6 +124,7 @@ export class SeriesService {
 
           return {
             ...rest,
+            categories: rest.categories ? JSON.parse(rest.categories) : [],
             eventStartDateTimeLocal: format(
               eventStart,
               'yyyy-MM-dd hh:mm a z',
@@ -185,16 +220,69 @@ export class SeriesService {
     }
   }
 
+  // async getSeriesById(id: number, venueId: number) {
+  //   let response: any;
+  //   try {
+  //     const series = await this.seriesRepository
+  //       .createQueryBuilder('series')
+  //       .leftJoinAndSelect('series.events', 'event', 'event.venueId = :venueId')
+  //       .where('series.id = :id', { id })
+  //       .andWhere('series.venueId = :venueId', { venueId })
+  //       .orderBy('event.eventStartDateTime', 'ASC')
+  //       .getOne();
+  //     response = series;
+
+  //     if (!series) {
+  //       const adminSeries = await this.seriesRepository
+  //         .createQueryBuilder('series')
+  //         .leftJoinAndSelect(
+  //           'series.events',
+  //           'event',
+  //           'event.venueId = :venueId',
+  //           { venueId },
+  //         )
+  //         .where('series.id = :id', { id })
+  //         .orderBy('event.eventStartDateTime', 'ASC')
+  //         .getOne();
+
+  //       if (!(series || adminSeries))
+  //         throw new BadRequestException('series not found');
+  //       response = adminSeries;
+  //     }
+  //     const venueTimeZone = await this.venueRepository.findOne({
+  //       where: { id: venueId },
+  //       select: ['timezone'],
+  //     });
+  //     response['venueTimeZone'] = venueTimeZone.timezone;
+
+  //     return {
+  //       message: 'series returned successfully',
+  //       data: response,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
   async getSeriesById(id: number, venueId: number) {
     let response: any;
     try {
+      // --- Step 1: Get Series (either user or admin side)
       const series = await this.seriesRepository
         .createQueryBuilder('series')
-        .leftJoinAndSelect('series.events', 'event', 'event.venueId = :venueId')
+        .leftJoinAndSelect(
+          'series.events',
+          'event',
+          'event.venueId = :venueId',
+          {
+            venueId,
+          },
+        )
         .where('series.id = :id', { id })
         .andWhere('series.venueId = :venueId', { venueId })
         .orderBy('event.eventStartDateTime', 'ASC')
         .getOne();
+
       response = series;
 
       if (!series) {
@@ -211,17 +299,84 @@ export class SeriesService {
           .getOne();
 
         if (!(series || adminSeries))
-          throw new BadRequestException('series not found');
+          throw new BadRequestException('Series not found');
+
         response = adminSeries;
       }
+
+      // --- Step 2: Add Venue Timezone
       const venueTimeZone = await this.venueRepository.findOne({
         where: { id: venueId },
         select: ['timezone'],
       });
-      response['venueTimeZone'] = venueTimeZone.timezone;
+      response['venueTimeZone'] = venueTimeZone?.timezone || null;
 
+      // --- Step 3: Collect all event IDs
+      const eventIds = (response?.events || []).map((e) => e.id);
+      if (eventIds.length === 0) {
+        return {
+          message: 'Series returned successfully (no events found)',
+          data: response,
+          status: true,
+        };
+      }
+
+      // --- Step 4: Fetch categories for all events (distinct + subcategories)
+      const eventCategories = await this.eventCategoriesRepository.query(
+        `
+      SELECT 
+        ecs.event_id AS eventId,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'categoryId', cat.id,
+            'categoryName', cat.name,
+            'subCategories', cat_data.subCategories
+          )
+        ) AS categories
+      FROM (
+        SELECT DISTINCT event_id, category_id
+        FROM event_category_subcategory
+        WHERE event_id IN (?)
+      ) ecs
+      JOIN categories cat ON cat.id = ecs.category_id
+      JOIN (
+        SELECT 
+          ecs_inner.event_id,
+          ecs_inner.category_id,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'subCategoryId', subcat.id,
+              'subCategoryName', subcat.name
+            )
+          ) AS subCategories
+        FROM event_category_subcategory ecs_inner
+        JOIN categories subcat ON subcat.id = ecs_inner.subcategory_id
+        GROUP BY ecs_inner.event_id, ecs_inner.category_id
+      ) AS cat_data
+        ON cat_data.event_id = ecs.event_id AND cat_data.category_id = ecs.category_id
+      GROUP BY ecs.event_id
+      `,
+        [eventIds],
+      );
+
+      // --- Step 5: Map categories to each event
+      const catMap = new Map<number, any[]>();
+      for (const row of eventCategories) {
+        try {
+          catMap.set(Number(row.eventId), JSON.parse(row.categories || '[]'));
+        } catch {
+          catMap.set(Number(row.eventId), []);
+        }
+      }
+
+      response.events = response.events.map((event) => ({
+        ...event,
+        categories: catMap.get(event.id) || [],
+      }));
+
+      // --- Step 6: Return formatted response
       return {
-        message: 'series returned successfully',
+        message: 'Series returned successfully',
         data: response,
         status: true,
       };
@@ -240,8 +395,7 @@ export class SeriesService {
         eventStartDateTime,
         eventEndDateTime,
         neighbourhoodId,
-        categoryId,
-        subCategoryId,
+        categories,
       } = dto;
 
       const venue = await this.venueRepository.findOne({
@@ -268,8 +422,6 @@ export class SeriesService {
         title,
         description: description,
         series: { id: seriesId },
-        categoryId,
-        subCategoryId,
       };
 
       const payload = {
@@ -288,6 +440,18 @@ export class SeriesService {
       });
 
       const savedEvent = await this.eventRepository.save(event);
+      const eventCategoryRecords = [];
+      for (const cat of categories) {
+        for (const subCatId of cat.subCategoryIds) {
+          eventCategoryRecords.push({
+            event: { id: savedEvent.id },
+            categoryId: cat.categoryId,
+            subCategoryId: subCatId,
+          });
+        }
+      }
+
+      await this.eventCategoriesRepository.save(eventCategoryRecords);
       return { message: 'Event created Successfully', event, status: true };
     } catch (error) {
       if (error instanceof HttpException) throw error;
@@ -455,8 +619,7 @@ export class SeriesService {
       neighbourhoodId,
       eventStartDateTime,
       eventEndDateTime,
-      categoryId,
-      subCategoryId,
+      categories,
     } = dto;
 
     const event = await this.eventRepository.findOne({
@@ -502,8 +665,6 @@ export class SeriesService {
         venueId,
         slug,
         sub_venue_id: neighbourhoodId,
-        categoryId,
-        subCategoryId,
       };
 
       const hasStartDateTimeChanged =
@@ -528,6 +689,18 @@ export class SeriesService {
         updatePayload['status'] = 'rescheduled';
       }
       await this.eventRepository.update({ id: event.id }, updatePayload);
+      const eventCategoryRecords = [];
+      for (const cat of categories) {
+        for (const subCatId of cat.subCategoryIds) {
+          eventCategoryRecords.push({
+            event: { id: event.id },
+            categoryId: cat.categoryId,
+            subCategoryId: subCatId,
+          });
+        }
+      }
+
+      await this.eventCategoriesRepository.save(eventCategoryRecords);
 
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         this.bookingService.handleChangeRequest(Number(event.id), {
@@ -552,8 +725,7 @@ export class SeriesService {
       neighbourhoodId,
       eventStartDateTime,
       eventEndDateTime,
-      categoryId,
-      subCategoryId,
+      categories,
       series,
     } = dto;
 
@@ -600,8 +772,6 @@ export class SeriesService {
         venueId,
         slug,
         sub_venue_id: neighbourhoodId,
-        categoryId,
-        subCategoryId,
         series,
       };
 
@@ -627,6 +797,18 @@ export class SeriesService {
         updatePayload['status'] = 'rescheduled';
       }
       await this.eventRepository.update({ id: event.id }, updatePayload);
+      const eventCategoryRecords = [];
+      for (const cat of categories) {
+        for (const subCatId of cat.subCategoryIds) {
+          eventCategoryRecords.push({
+            event: { id: event.id },
+            categoryId: cat.categoryId,
+            subCategoryId: subCatId,
+          });
+        }
+      }
+
+      await this.eventCategoriesRepository.save(eventCategoryRecords);
 
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         this.bookingService.handleChangeRequest(Number(event.id), {

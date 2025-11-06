@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsEnum, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsArray,
+} from 'class-validator';
 
 export class CreateBookingDto {
   @IsString()
@@ -26,11 +32,16 @@ export class CreateBookingDto {
   @IsNotEmpty()
   eventId: number;
 
-  @IsNumber()
-  @IsNotEmpty()
-  categoryId: number;
+  // @IsNumber()
+  // @IsNotEmpty()
+  // categoryId: number;
 
-  @IsNumber()
-  @IsNotEmpty()
-  subcategoryId: number;
+  // @IsNumber()
+  // @IsNotEmpty()
+  // subcategoryId: number;
+  @IsArray()
+  categories: {
+    categoryId: number;
+    subCategoryIds: number[];
+  }[];
 }
