@@ -910,7 +910,7 @@ export class BookingService {
     try {
       const details: any[] = [];
 
-      // Fetch all events at once (only required fields) to reduce DB round trips
+      // Fetch events (basic fields)
       const events = await this.eventRepository.find({
         where: { id: In(eventIds) },
         select: [
@@ -918,18 +918,34 @@ export class BookingService {
           'eventStartDateTime',
           'eventEndDateTime',
           'venueId',
-          'categoryId',
-          'subCategoryId',
           'slug',
         ],
       });
+
+      // 🔹 Fetch all event-category-subcategory mappings at once
+      const eventCategoryMappings = await this.bookingCategoryRepository.find({
+        where: { eventId: In(eventIds) },
+        select: ['eventId', 'categoryId', 'subCategoryId'],
+      });
+
+      // Group mappings per event for easy lookup
+      const eventCategoryMap = eventCategoryMappings.reduce(
+        (acc, cur) => {
+          if (!acc[cur.eventId]) acc[cur.eventId] = [];
+          acc[cur.eventId].push({
+            categoryId: Number(cur.categoryId),
+            subCategoryId: Number(cur.subCategoryId),
+          });
+          return acc;
+        },
+        {} as Record<number, { categoryId: number; subCategoryId: number }[]>,
+      );
+
       // iterate event-by-event
       for (const event of events) {
         if (!event) continue;
 
-        // Ensure numeric ids for safe comparisons
-        const eventCategoryId = Number(event.categoryId);
-        const eventSubCategoryId = Number(event.subCategoryId);
+        const eventCategories = eventCategoryMap[event.id] || [];
 
         // Get venue once per event
         const venue = await this.venueRepository
@@ -952,15 +968,13 @@ export class BookingService {
           .where('venue.id = :id', { id: event.venueId })
           .getRawOne();
 
-        // Track if at least one entertainer invited for this event
         let anyInvitedForThisEvent = false;
 
-        // Loop through all entertainers and try to invite only matching ones
+        // loop entertainers
         for (const entertainer of entertainers) {
           try {
             const entId = Number(entertainer.entertainerId);
 
-            // Prevent re-inviting already booked entertainers for this event
             const alreadyBooked = await this.bookingRepository.findOne({
               where: {
                 entId,
@@ -969,7 +983,6 @@ export class BookingService {
               },
             });
 
-            // fetch entertainer details (name/email/userId)
             const Entertainer = await this.entRepository
               .createQueryBuilder('entertainer')
               .leftJoin('entertainer.user', 'user')
@@ -994,23 +1007,31 @@ export class BookingService {
               continue;
             }
 
-            // ==== CATEGORY MATCHING (defensive) ====
-            // Normalize entertainer categories structure and coerce to numbers
+            // 🔹 find if entertainer matches ANY of the event’s categories
             const categories = Array.isArray(entertainer.categories)
               ? entertainer.categories
               : [];
 
-            // find matching category by numeric comparison
-            const matchedCategory = categories.find((c) => {
-              return Number(c.id) === eventCategoryId;
-            });
+            let matchedCategory: any = null;
+            let matchedSubcategory: any = null;
 
-            const matchedSubcategory = matchedCategory?.specific_category?.find(
-              (sc) => Number(sc.id) === eventSubCategoryId,
-            );
+            for (const eventCat of eventCategories) {
+              const foundCategory = categories.find(
+                (c) => Number(c.id) === eventCat.categoryId,
+              );
+
+              const foundSub = foundCategory?.specific_category?.find(
+                (sc) => Number(sc.id) === eventCat.subCategoryId,
+              );
+
+              if (foundCategory && foundSub) {
+                matchedCategory = eventCat;
+                matchedSubcategory = foundSub;
+                break; // ✅ matched for at least one category
+              }
+            }
 
             if (!matchedCategory || !matchedSubcategory) {
-              // Not a match for this event — skip
               details.push({
                 entertainerId: entId,
                 entertainerName: Entertainer?.name ?? null,
@@ -1018,7 +1039,7 @@ export class BookingService {
                 eventSlug: event.slug,
                 available: false,
                 message:
-                  'Entertainer does not match event category/subcategory.',
+                  'Entertainer does not match any event category/subcategory.',
               });
               continue;
             }
@@ -1042,7 +1063,6 @@ export class BookingService {
               isAvailable =
                 await this.checkEntertainerAvailability(availabilityPayload);
             } catch (err) {
-              // If availability check fails, log and treat as unavailable (or decide differently)
               console.warn(
                 `Error checking availability for entertainer ${entId} on event ${event.id}:`,
                 err?.message ?? err,
@@ -1067,8 +1087,8 @@ export class BookingService {
               venueId: event.venueId,
               entId,
               eventId: event.id,
-              categoryId: eventCategoryId,
-              subcategoryId: eventSubCategoryId,
+              categoryId: matchedCategory.categoryId,
+              subcategoryId: matchedCategory.subCategoryId,
               status: 'invited',
               showStartDateTime: formatInTimeZone(
                 new Date(event.eventStartDateTime),
@@ -1079,7 +1099,6 @@ export class BookingService {
 
             const savedBooking = await this.bookingRepository.save(newBooking);
 
-            // log activity
             const logPayload = this.logRepository.create({
               bookingId: savedBooking.id,
               performedBy: 'admin',
@@ -1088,7 +1107,7 @@ export class BookingService {
             });
             await this.logRepository.save(logPayload);
 
-            // send emails / push if available
+            // send email/push
             if (Entertainer?.email || Entertainer?.userEmail) {
               const { Date: eventDate, Time: startTime } =
                 formatUtcToTimezoneParts(
@@ -1128,7 +1147,6 @@ export class BookingService {
               );
             }
 
-            // success detail
             details.push({
               entertainerId: entId,
               entertainerName: Entertainer?.name ?? null,
@@ -1150,16 +1168,15 @@ export class BookingService {
             });
             continue;
           }
-        } // end entertainers loop
+        }
 
-        // update event status only for this event when at least one invite happened
         if (anyInvitedForThisEvent) {
           await this.eventRepository.update(
             { id: event.id },
             { status: 'invited' },
           );
         }
-      } // end events loop
+      }
 
       return {
         message: 'Entertainers invited for series successfully.',

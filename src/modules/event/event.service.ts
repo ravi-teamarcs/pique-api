@@ -362,11 +362,11 @@ export class EventService {
     try {
       const today = startOfDay(new Date());
 
-      // 🧩 Flatten the entertainer’s categories into category-subcategory pairs
+      // 🧩 Flatten entertainer categories → pairs
       const categorySubcategoryPairs = entertainerCategories.flatMap((cat) =>
         cat.specific_category.map((sub) => ({
-          categoryId: cat.id,
-          subCategoryId: sub.id,
+          categoryId: Number(cat.id),
+          subCategoryId: Number(sub.id),
         })),
       );
 
@@ -386,44 +386,81 @@ export class EventService {
         ...new Set(categorySubcategoryPairs.map((p) => p.subCategoryId)),
       ];
 
-      // 🎯 Fetch events that match either category or subcategory
-      const [events, totalCount] = await this.eventRepository
+      // 🎯 Step 1: Fetch events that belong to the venue and date filters
+      const baseEvents = await this.eventRepository
         .createQueryBuilder('event')
         .where('event.venueId = :id', { id })
         .andWhere('event.eventStartDateTime >= :today', { today })
         .andWhere('event.status IN (:...status)', {
           status: ['confirmed', 'rescheduled', 'invited', 'unpublished'],
         })
-        .andWhere('event.categoryId IN (:...categoryIds)', { categoryIds })
-        .andWhere('event.subCategoryId IN (:...subCategoryIds)', {
+        .andWhere('event.series_id IS NULL')
+        .select([
+          'event.id AS id',
+          'event.title AS title',
+          'event.venueId AS venueId',
+          'event.description AS description',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.status AS status',
+          'event.slug AS slug',
+        ])
+        .orderBy('event.createdAt', 'DESC')
+        .getRawMany();
+
+      if (!baseEvents.length) {
+        return {
+          message: 'No events found for this venue',
+          count: 0,
+          data: [],
+          status: true,
+        };
+      }
+
+      const eventIds = baseEvents.map((e) => e.id);
+
+      // 🎯 Step 2: Fetch category-subcategory mappings for those events
+      const eventCategoryLinks = await this.eventCategoriesRepository
+        .createQueryBuilder('ecs')
+        .select([
+          'ecs.event_id AS eventId',
+          'ecs.category_id AS categoryId',
+          'ecs.subcategory_id AS subCategoryId',
+        ])
+        .where('ecs.event_id IN (:...eventIds)', { eventIds })
+        .andWhere('ecs.category_id IN (:...categoryIds)', { categoryIds })
+        .andWhere('ecs.subcategory_id IN (:...subCategoryIds)', {
           subCategoryIds,
         })
-        .andWhere('event.series_id IS NULL')
+        .getRawMany();
 
-        .orderBy('event.createdAt', 'DESC')
-        .select([
-          'event.id',
-          'event.title',
-          'event.venueId',
-          'event.description',
-          'event.eventStartDateTime',
-          'event.eventEndDateTime',
-          'event.status',
-          'event.slug',
-          'event.categoryId',
-          'event.subCategoryId',
-        ])
-        .getManyAndCount();
+      if (!eventCategoryLinks.length) {
+        return {
+          message: 'No matching events found for entertainer categories',
+          count: 0,
+          data: [],
+          status: true,
+        };
+      }
 
-      // ✅ Strict pair match — ensure categoryId & subCategoryId both align
+      // ✅ Strict match — category + subcategory pair
       const validPairs = new Set(
         categorySubcategoryPairs.map(
           (p) => `${p.categoryId}-${p.subCategoryId}`,
         ),
       );
 
-      const filteredEvents = events.filter((e) =>
-        validPairs.has(`${e.categoryId}-${e.subCategoryId}`),
+      // 🧠 Step 3: Filter events having any valid (cat-subcat) pair
+      const matchedEventIds = new Set(
+        eventCategoryLinks
+          .filter((link) =>
+            validPairs.has(`${link.categoryId}-${link.subCategoryId}`),
+          )
+          .map((link) => link.eventId),
+      );
+
+      const filteredEvents = baseEvents.filter((e) =>
+        matchedEventIds.has(e.id),
       );
 
       return {
@@ -436,6 +473,7 @@ export class EventService {
         status: true,
       };
     } catch (error) {
+      console.error('getEventListDropdown error:', error);
       throw new InternalServerErrorException(error.message);
     }
   }

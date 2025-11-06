@@ -733,13 +733,151 @@ export class EventService {
     return slug;
   }
 
+  // async findBookings(eventId: number) {
+  //   try {
+  //     const events = this.bookingRepository
+  //       .createQueryBuilder('booking')
+  //       .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+  //       .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+  //       .leftJoin('categories', 'subcat', 'subcat.id = booking.subcategoryId')
+  //       .leftJoin(
+  //         (subQuery) =>
+  //           subQuery
+  //             .select('bl.*')
+  //             .from(
+  //               (qb) =>
+  //                 qb
+  //                   .subQuery()
+  //                   .select('MAX(bl.id)', 'maxId')
+  //                   .addSelect('bl.bookingId', 'bookingId')
+  //                   .from('booking_log', 'bl')
+  //                   .where('bl.status IN (:...statuses)', {
+  //                     statuses: ['confirmed', 'completed'],
+  //                   })
+
+  //                   .andWhere('bl.performedBy IN (:...performedBy)', {
+  //                     performedBy: ['admin', 'venue'],
+  //                   })
+  //                   .groupBy('bl.bookingId'),
+  //               'latestLogs',
+  //             )
+  //             .innerJoin('booking_log', 'bl', 'bl.id = latestLogs.maxId'),
+  //         'log',
+  //         'log.bookingId = booking.id',
+  //       )
+  //       .select([
+  //         'booking.id AS bookingId',
+  //         'booking.status AS bookingStatus',
+  //         'booking.categoryId AS categoryId',
+  //         'booking.subcategoryId AS subcategoryId',
+  //         'subcat.name AS subCategoryName',
+  //         'ent.name AS entertainerName',
+  //         'ent.contact_person AS contactPerson',
+  //         'ent.contact_number AS contactNumber',
+  //         'ent.pricePerEvent AS pricePerHour',
+  //         'log.createdAt AS confirmationDate',
+  //         'log.performedBy AS performedBy',
+  //         'venue.timezone AS venueTimeZone',
+  //       ])
+  //       .where('booking.eventId = :eventId', { eventId })
+  //       .orderBy('booking.id', 'DESC');
+
+  //     const totalCount = await events.getCount();
+  //     const results = await events.getRawMany();
+
+  //     const parsedResult = results.map(
+  //       ({ confirmationDate, venueTimeZone, ...item }) => ({
+  //         venueLocalConfirmationDate: convertUtcToTimezoneString(
+  //           confirmationDate,
+  //           venueTimeZone,
+  //         ),
+  //         timezone: venueTimeZone,
+  //         confirmationDate,
+  //         ...item,
+  //       }),
+  //     );
+  //     const event = await this.eventRepository
+  //       .createQueryBuilder('event')
+  //       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+  //       .select([
+  //         'event.eventStartDateTime AS eventStartDateTime',
+  //         'event.eventEndDateTime AS eventEndDateTime',
+  //         'venue.timezone AS venueTimeZone',
+  //       ])
+  //       .where('event.id = :eventId', { eventId })
+  //       .getRawOne();
+
+  //     // Rate Card Repo
+  //     const rateCard = await this.rateCardRepo.find();
+
+  //     const { Date: formattedDate } = formatUtcDate(
+  //       event.eventStartDateTime,
+  //       event.venueTimeZone,
+  //     );
+  //     const specialRateCard = await this.specialRateCardRepo.find({
+  //       where: {
+  //         date: formattedDate,
+  //       },
+  //     });
+
+  //     // Now map the results to include the price with markup
+  //     if (!results || results.length === 0) return;
+
+  //     const updatedResults = await Promise.all(
+  //       parsedResult.map(async (result) => {
+  //         let price: number;
+  //         let pricePerExtra30Min: number;
+
+  //         if (specialRateCard.length > 0) {
+  //           let res = specialRateCard.find(
+  //             (item) => item.subcategoryId === result.subcategoryId,
+  //           );
+
+  //           price = res.specialPrice;
+  //           pricePerExtra30Min = res.pricePerExtra30Min;
+  //         } else {
+  //           let res = rateCard.find(
+  //             (item) => item.subcategoryId === result.subcategoryId,
+  //           );
+  //           price = res.basePrice;
+  //           pricePerExtra30Min = res.pricePerExtra30Min;
+  //         }
+
+  //         return {
+  //           ...result,
+  //           pricePerHour: price,
+  //           pricePerExtra30Min,
+  //         };
+  //       }),
+  //     );
+
+  //     return {
+  //       message: `Bookings for Event Id ${eventId} fetched successfully`,
+  //       data: updatedResults,
+  //       totalCount,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
   async findBookings(eventId: number) {
     try {
       const events = this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
         .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
-        .leftJoin('categories', 'subcat', 'subcat.id = booking.subcategoryId')
+        // 🔹 join with booking_category_subcategory to handle multiple subcategories
+        .leftJoin(
+          'booking_category_subcategory',
+          'bcs',
+          'bcs.booking_id = booking.id',
+        )
+        .leftJoin('categories', 'subcat', 'subcat.id = bcs.subcategory_id')
         .leftJoin(
           (subQuery) =>
             subQuery
@@ -754,7 +892,6 @@ export class EventService {
                     .where('bl.status IN (:...statuses)', {
                       statuses: ['confirmed', 'completed'],
                     })
-
                     .andWhere('bl.performedBy IN (:...performedBy)', {
                       performedBy: ['admin', 'venue'],
                     })
@@ -769,8 +906,6 @@ export class EventService {
           'booking.id AS bookingId',
           'booking.status AS bookingStatus',
           'booking.categoryId AS categoryId',
-          'booking.subcategoryId AS subcategoryId',
-          'subcat.name AS subCategoryName',
           'ent.name AS entertainerName',
           'ent.contact_person AS contactPerson',
           'ent.contact_number AS contactNumber',
@@ -778,24 +913,34 @@ export class EventService {
           'log.createdAt AS confirmationDate',
           'log.performedBy AS performedBy',
           'venue.timezone AS venueTimeZone',
+          // 🔹 aggregate all subcategories for each booking
+          `JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'subCategoryId', bcs.subcategory_id,
+            'subCategoryName', subcat.name
+          )
+        ) AS subCategories`,
         ])
         .where('booking.eventId = :eventId', { eventId })
+        .groupBy('booking.id')
         .orderBy('booking.id', 'DESC');
 
       const totalCount = await events.getCount();
       const results = await events.getRawMany();
 
       const parsedResult = results.map(
-        ({ confirmationDate, venueTimeZone, ...item }) => ({
+        ({ confirmationDate, venueTimeZone, subCategories, ...item }) => ({
           venueLocalConfirmationDate: convertUtcToTimezoneString(
             confirmationDate,
             venueTimeZone,
           ),
           timezone: venueTimeZone,
           confirmationDate,
+          subCategories: JSON.parse(subCategories || '[]'),
           ...item,
         }),
       );
+
       const event = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
@@ -807,46 +952,49 @@ export class EventService {
         .where('event.id = :eventId', { eventId })
         .getRawOne();
 
-      // Rate Card Repo
       const rateCard = await this.rateCardRepo.find();
 
       const { Date: formattedDate } = formatUtcDate(
         event.eventStartDateTime,
         event.venueTimeZone,
       );
+
       const specialRateCard = await this.specialRateCardRepo.find({
         where: {
           date: formattedDate,
         },
       });
 
-      // Now map the results to include the price with markup
       if (!results || results.length === 0) return;
 
+      // 🔹 Updated logic: subcategory-wise pricing, not combined
       const updatedResults = await Promise.all(
         parsedResult.map(async (result) => {
-          let price: number;
-          let pricePerExtra30Min: number;
+          const updatedSubCategories = result.subCategories.map((sub) => {
+            let res: any;
 
-          if (specialRateCard.length > 0) {
-            let res = specialRateCard.find(
-              (item) => item.subcategoryId === result.subcategoryId,
-            );
+            if (specialRateCard.length > 0) {
+              res = specialRateCard.find(
+                (item) => item.subcategoryId === sub.subCategoryId,
+              );
+            }
 
-            price = res.specialPrice;
-            pricePerExtra30Min = res.pricePerExtra30Min;
-          } else {
-            let res = rateCard.find(
-              (item) => item.subcategoryId === result.subcategoryId,
-            );
-            price = res.basePrice;
-            pricePerExtra30Min = res.pricePerExtra30Min;
-          }
+            if (!res) {
+              res = rateCard.find(
+                (item) => item.subcategoryId === sub.subCategoryId,
+              );
+            }
+
+            return {
+              ...sub,
+              pricePerHour: Number(res?.specialPrice || res?.basePrice || 0),
+              pricePerExtra30Min: Number(res?.pricePerExtra30Min || 0),
+            };
+          });
 
           return {
             ...result,
-            pricePerHour: price,
-            pricePerExtra30Min,
+            subCategories: updatedSubCategories, // now each has its own pricing
           };
         }),
       );

@@ -48,13 +48,10 @@ class AdminBookingDto {
   @IsNotEmpty()
   eventId: number;
 
-  @IsNumber()
-  @IsNotEmpty()
-  categoryId: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  subcategoryId: number;
+  @IsArray()
+  categories: {
+    categoryId: number;
+    subCategoryIds: number[];
+  }[];
 }
-
 export { AdminBookingDto };

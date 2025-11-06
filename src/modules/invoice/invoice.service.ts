@@ -22,6 +22,7 @@ import { EntertainerRateCard } from '../entertainer/entities/entertainer-rate-ca
 import { SpecialSubcategoryPrice } from '../admin/settings/entities/special-subcategory-prices.entity';
 import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.entity';
 import { RateCardDto } from '../admin/settings/dto/rate-card.dto';
+import { BookingCategorySubcategory } from '../booking/entities/booking-category.entity';
 
 @Injectable()
 export class InvoiceService {
@@ -38,96 +39,263 @@ export class InvoiceService {
     private readonly entertainerRateCardRepo: Repository<EntertainerRateCard>,
     @InjectRepository(SubcategoryRate)
     private readonly adminRateCardRepo: Repository<SubcategoryRate>,
+    @InjectRepository(BookingCategorySubcategory)
+    private readonly bookingCategoryRepository: Repository<BookingCategorySubcategory>,
     private readonly emailService: EmailService,
   ) {}
 
   // Invoice generation Logic for Entertainer
+  // async generateInvoice(userId: number, eventIds: number[], monthStr: string) {
+  //   try {
+  //     let total = 0;
+
+  //     const invoiceDetails = [];
+
+  //     const rateCard = await this.getEntertainerRateCard(Number(userId));
+  //     const adminRateCard = await this.adminRateCardRepo.find({});
+  //     let totalAmount = 0;
+
+  //     for (const eventid of eventIds) {
+  //       const {
+  //         eventStartDateTime,
+  //         eventEndDateTime,
+  //         bookingId,
+  //         eventId,
+  //         subcategoryId,
+  //         pricePerEvent,
+  //       } = await this.bookingRepository
+  //         .createQueryBuilder('booking')
+  //         .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+  //         .leftJoin('event', 'event', 'event.id = booking.eventId')
+  //         .where('booking.entId = :userId AND  booking.eventId=:eventid', {
+  //           userId,
+  //           eventid,
+  //         })
+
+  //         .select([
+  //           'booking.id AS bookingId',
+  //           'booking.eventId AS eventId',
+  //           'booking.subcategoryId AS subcategoryId',
+  //           'event.title AS eventName',
+  //           'event.description AS eventDescription',
+  //           'event.eventStartDateTime AS eventStartDateTime',
+  //           'event.eventEndDateTime AS eventEndDateTime',
+  //         ])
+  //         .getRawOne();
+
+  //       let rateCardObj: any;
+
+  //       // Get entertainer rate Card If he set it  otherwise apply admin/rates
+  //       rateCardObj =
+  //         rateCard?.filter((item) => item.subcategoryId == subcategoryId) || [];
+
+  //       if (
+  //         rateCardObj.length === 0 ||
+  //         rateCardObj[0].basePrice === 0 ||
+  //         rateCardObj[0].basePrice === '0.00' ||
+  //         rateCardObj[0].pricePerExtra30Min === '0.00' ||
+  //         rateCardObj[0].pricePerExtra30Min === '0' ||
+  //         rateCardObj[0].pricePerExtra30Min === 0 ||
+  //         rateCardObj[0].basePrice == null
+  //       ) {
+  //         rateCardObj =
+  //           adminRateCard?.filter(
+  //             (item) => item.subcategoryId == subcategoryId,
+  //           ) || [];
+  //       }
+
+  //       if (rateCardObj.length === 0) {
+  //         throw new BadRequestException(
+  //           'Invoice cannot be generated: no rate found',
+  //         );
+  //       }
+
+  //       const pricePerHour = Number(rateCardObj[0].basePrice);
+  //       const pricePerExtra30Min = Number(rateCardObj[0].pricePerExtra30Min);
+
+  //       const durationInHours = this.getDurationInHours(
+  //         eventStartDateTime,
+  //         eventEndDateTime,
+  //       );
+
+  //       // New Logic Introduction
+  //       total = pricePerHour;
+  //       const extraHours = durationInHours - 1;
+
+  //       if (extraHours > 0) {
+  //         // Convert extra hours to number of 30-minute blocks (rounded up)
+  //         const extra30MinBlocks = Math.ceil(extraHours * 2);
+  //         total += extra30MinBlocks * pricePerExtra30Min;
+  //       }
+  //       total = this.roundToTwo(total);
+  //       invoiceDetails.push({ bookingId, eventId, eventPrice: Number(total) });
+
+  //       totalAmount += Number(total);
+  //     }
+
+  //     const lastInvoice = await this.entertainerInvoiceRepository
+  //       .createQueryBuilder('invoices')
+  //       .orderBy('invoices.id', 'DESC')
+  //       .limit(1)
+  //       .getOne();
+
+  //     // checks last invoice number and  increment it by one.
+  //     const lastInvoiceNumber = lastInvoice
+  //       ? parseInt(lastInvoice.invoice_number.split('-')[2])
+  //       : 1000;
+
+  //     const issueDate = new Date();
+  //     const formattedDate = this.formatDateForInvoice(issueDate);
+  //     const newInvoiceNumber = `${formattedDate}-${userId}-${lastInvoiceNumber + 1}`;
+
+  //     const newInvoice = this.entertainerInvoiceRepository.create({
+  //       invoice_number: newInvoiceNumber,
+  //       user_id: userId,
+  //       event_id: null,
+  //       issue_date: issueDate.toISOString().split('T')[0],
+  //       due_date: null,
+  //       total_amount: parseFloat(totalAmount.toFixed(2)),
+  //       tax_rate: 0,
+  //       tax_amount: 0,
+  //       total_with_tax: parseFloat(totalAmount.toFixed(2)),
+  //       status: InvoiceStatus.UNPAID,
+  //       payment_method: '',
+  //       payment_date: null,
+  //       overdue: null,
+  //       booking_id: null,
+  //     });
+
+  //     const savedInvoice =
+  //       await this.entertainerInvoiceRepository.save(newInvoice);
+
+  //     const updatedInvoiceDetails = invoiceDetails.map((item) => ({
+  //       ...item,
+  //       invoiceId: savedInvoice.id,
+  //     }));
+
+  //     for (const item of updatedInvoiceDetails) {
+  //       const mapping = this.invoiceBookingRepo.create({
+  //         invoiceId: item.invoiceId,
+  //         eventId: item.eventId,
+  //         eventPrice: Number(item.eventPrice),
+  //         bookingId: item.bookingId,
+  //       });
+  //       await this.invoiceBookingRepo.save(mapping);
+  //     }
+
+  //     return {
+  //       message: 'Invoice generated successfully',
+  //       data: newInvoice,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({ message: error.message });
+  //   }
+  // }
   async generateInvoice(userId: number, eventIds: number[], monthStr: string) {
     try {
       let total = 0;
-
       const invoiceDetails = [];
 
       const rateCard = await this.getEntertainerRateCard(Number(userId));
       const adminRateCard = await this.adminRateCardRepo.find({});
       let totalAmount = 0;
+      console.log('Rate Card', rateCard);
 
       for (const eventid of eventIds) {
-        const {
-          eventStartDateTime,
-          eventEndDateTime,
-          bookingId,
-          eventId,
-          subcategoryId,
-          pricePerEvent,
-        } = await this.bookingRepository
-          .createQueryBuilder('booking')
-          .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
-          .leftJoin('event', 'event', 'event.id = booking.eventId')
-          .where('booking.entId = :userId AND  booking.eventId=:eventid', {
-            userId,
-            eventid,
-          })
+        const { eventStartDateTime, eventEndDateTime, bookingId, eventId } =
+          await this.bookingRepository
+            .createQueryBuilder('booking')
+            .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+            .leftJoin('event', 'event', 'event.id = booking.eventId')
+            .where('booking.entId = :userId AND booking.eventId = :eventid', {
+              userId,
+              eventid,
+            })
+            .select([
+              'booking.id AS bookingId',
+              'booking.eventId AS eventId',
+              'event.title AS eventName',
+              'event.description AS eventDescription',
+              'event.eventStartDateTime AS eventStartDateTime',
+              'event.eventEndDateTime AS eventEndDateTime',
+            ])
+            .getRawOne();
 
-          .select([
-            'booking.id AS bookingId',
-            'booking.eventId AS eventId',
-            'booking.subcategoryId AS subcategoryId',
-            'event.title AS eventName',
-            'event.description AS eventDescription',
-            'event.eventStartDateTime AS eventStartDateTime',
-            'event.eventEndDateTime AS eventEndDateTime',
-          ])
-          .getRawOne();
+        // 🔹 Get all subcategories linked to this booking (from new mapping table)
+        const subcategoryMappings = await this.bookingCategoryRepository
+          .createQueryBuilder('bcs')
+          .where('bcs.booking_id = :bookingId', { bookingId })
+          .select(['bcs.subcategory_id AS subCategoryId'])
+          .getRawMany();
 
-        let rateCardObj: any;
-
-        // Get entertainer rate Card If he set it  otherwise apply admin/rates
-        rateCardObj =
-          rateCard?.filter((item) => item.subcategoryId == subcategoryId) || [];
-
-        if (
-          rateCardObj.length === 0 ||
-          rateCardObj[0].basePrice === 0 ||
-          rateCardObj[0].basePrice === '0.00' ||
-          rateCardObj[0].pricePerExtra30Min === '0.00' ||
-          rateCardObj[0].pricePerExtra30Min === '0' ||
-          rateCardObj[0].pricePerExtra30Min === 0 ||
-          rateCardObj[0].basePrice == null
-        ) {
-          rateCardObj =
-            adminRateCard?.filter(
-              (item) => item.subcategoryId == subcategoryId,
-            ) || [];
-        }
-
-        if (rateCardObj.length === 0) {
+        if (!subcategoryMappings.length) {
           throw new BadRequestException(
-            'Invoice cannot be generated: no rate found',
+            'No subcategory mapping found for booking',
           );
         }
 
-        const pricePerHour = Number(rateCardObj[0].basePrice);
-        const pricePerExtra30Min = Number(rateCardObj[0].pricePerExtra30Min);
+        let eventTotal = 0;
 
-        const durationInHours = this.getDurationInHours(
-          eventStartDateTime,
-          eventEndDateTime,
-        );
+        for (const subMap of subcategoryMappings) {
+          const { subCategoryId } = subMap;
 
-        // New Logic Introduction
-        total = pricePerHour;
-        const extraHours = durationInHours - 1;
+          let rateCardObj: any;
 
-        if (extraHours > 0) {
-          // Convert extra hours to number of 30-minute blocks (rounded up)
-          const extra30MinBlocks = Math.ceil(extraHours * 2);
-          total += extra30MinBlocks * pricePerExtra30Min;
+          // 🔹 Use entertainer rate card if available
+          rateCardObj =
+            rateCard?.filter((item) => item.subcategoryId == subCategoryId) ||
+            [];
+
+          // 🔹 Fallback to admin rate card if entertainer rate not set
+          if (
+            rateCardObj.length === 0 ||
+            rateCardObj[0].basePrice === 0 ||
+            rateCardObj[0].basePrice === '0.00' ||
+            rateCardObj[0].pricePerExtra30Min === '0.00' ||
+            rateCardObj[0].pricePerExtra30Min === '0' ||
+            rateCardObj[0].pricePerExtra30Min === 0 ||
+            rateCardObj[0].basePrice == null
+          ) {
+            rateCardObj =
+              adminRateCard?.filter(
+                (item) => item.subcategoryId == subCategoryId,
+              ) || [];
+          }
+
+          if (rateCardObj.length === 0) {
+            throw new BadRequestException(
+              'Invoice cannot be generated: no rate found for subcategory',
+            );
+          }
+
+          const pricePerHour = Number(rateCardObj[0].basePrice);
+          const pricePerExtra30Min = Number(rateCardObj[0].pricePerExtra30Min);
+
+          const durationInHours = this.getDurationInHours(
+            eventStartDateTime,
+            eventEndDateTime,
+          );
+
+          total = pricePerHour;
+          const extraHours = durationInHours - 1;
+
+          if (extraHours > 0) {
+            const extra30MinBlocks = Math.ceil(extraHours * 2);
+            total += extra30MinBlocks * pricePerExtra30Min;
+          }
+
+          total = this.roundToTwo(total);
+          eventTotal += Number(total);
         }
-        total = this.roundToTwo(total);
-        invoiceDetails.push({ bookingId, eventId, eventPrice: Number(total) });
 
-        totalAmount += Number(total);
+        invoiceDetails.push({
+          bookingId,
+          eventId,
+          eventPrice: Number(eventTotal),
+        });
+
+        totalAmount += Number(eventTotal);
       }
 
       const lastInvoice = await this.entertainerInvoiceRepository
@@ -136,7 +304,6 @@ export class InvoiceService {
         .limit(1)
         .getOne();
 
-      // checks last invoice number and  increment it by one.
       const lastInvoiceNumber = lastInvoice
         ? parseInt(lastInvoice.invoice_number.split('-')[2])
         : 1000;

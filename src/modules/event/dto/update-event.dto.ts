@@ -1,5 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayNotEmpty,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsInt,
@@ -8,6 +10,7 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
+import { CategorySubcategoryDto } from './create-event.dto';
 
 export class UpdateEventDto {
   @IsNotEmpty()
@@ -34,11 +37,7 @@ export class UpdateEventDto {
   @IsNumber()
   neighbourhoodId: number;
 
-  @IsOptional()
-  @IsInt()
-  categoryId: number;
-
-  @IsOptional()
-  @IsInt()
-  subCategoryId: number;
+  @IsArray()
+  @ArrayNotEmpty()
+  categories: CategorySubcategoryDto[];
 }

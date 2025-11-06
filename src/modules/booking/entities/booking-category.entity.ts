@@ -13,21 +13,21 @@ export class BookingCategorySubcategory {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @JoinColumn({ name: 'category_id' })
+  @Column({ name: 'category_id', type: 'int', nullable: false })
   categoryId: number;
 
-  @JoinColumn({ name: 'subCategory_id' })
+  @Column({ name: 'subcategory_id', type: 'int', nullable: false })
   subCategoryId: number;
 
-  @JoinColumn({ name: 'event_id' })
+  @Column({ name: 'event_id', type: 'int', nullable: false })
   eventId: number;
 
-  @JoinColumn({ name: 'booking_id' })
+  @Column({ name: 'booking_id', type: 'int', nullable: false })
   bookingId: number;
 
-  @CreateDateColumn({ type: 'timestamp' })
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp' })
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp' })
   updatedAt: Date;
 }

@@ -130,6 +130,203 @@ export class InvoiceService {
   }
 
   // Latest Code of Generate Invoive (@Bhawani Thakur)
+  // async generateInvoice(dto: CreateInvoiceDto) {
+  //   let {
+  //     eventId,
+  //     pricePerHour,
+  //     platformFee = 0,
+  //     isFixed = true,
+  //     discountInPercent = 0,
+  //   } = dto;
+
+  //   const alreadyExists = await this.invEventRepository.findOne({
+  //     where: { eventId: eventId },
+  //   });
+
+  //   if (alreadyExists) {
+  //     throw new BadRequestException({
+  //       message: 'Invoice has been already generated for the event. ',
+  //     });
+  //   }
+
+  //   try {
+  //     const eventData = await this.eventRepository
+  //       .createQueryBuilder('event')
+  //       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+  //       .select([
+  //         'event.id AS eventId',
+  //         'event.slug AS eventName',
+  //         'event.eventStartDateTime AS eventStartDateTime',
+  //         'event.eventEndDateTime AS eventEndDateTime',
+  //         'event.venueId AS venueId',
+  //         'venue.timezone AS timezone',
+  //         `
+  //   JSON_ARRAYAGG(
+  //     JSON_OBJECT(
+  //       'bookingId', booking.id,
+  //       'entertainerId', booking.entId,
+  //       'status', booking.status,
+  //       'subcategoryId', booking.subcategoryId,
+  //       'stageName', entertainer.name
+
+  //     )
+  //   ) AS bookings
+  //   `,
+  //       ])
+  //       .leftJoin(
+  //         'booking',
+  //         'booking',
+  //         'booking.eventId = event.id AND booking.status IN (:...statuses)',
+  //         { statuses: ['confirmed', 'completed'] },
+  //       )
+
+  //       .leftJoin(
+  //         'entertainers',
+  //         'entertainer',
+  //         'entertainer.id = booking.entId',
+  //       )
+  //       .where('event.id = :eventId', { eventId })
+  //       .groupBy('event.id')
+  //       .getRawOne();
+
+  //     const { bookings, ...restData } = eventData;
+  //     const parsedRecord = {
+  //       ...restData,
+  //       bookings: bookings ? JSON.parse(bookings) : [],
+  //     };
+
+  //     const lastInvoice = await this.invoiceRepository
+  //       .createQueryBuilder('invoices')
+  //       .orderBy('invoices.id', 'DESC')
+  //       .limit(1)
+  //       .getOne();
+
+  //     const lastInvoiceNumber = lastInvoice
+  //       ? parseInt(lastInvoice.invoice_number.split('-')[2])
+  //       : 1000;
+
+  //     // Invoicing
+  //     const invFormattedDate = this.formatDateForInvoice(
+  //       parsedRecord.eventStartDateTime,
+  //     );
+
+  //     const newInvoiceNumber = `${invFormattedDate}-${parsedRecord.venueId}-${lastInvoiceNumber + 1} `;
+
+  //     //// New logic Inrodutction
+  //     const adminRateCard = await this.adminRateCardRepository.find();
+
+  //     const zonedDate = utcToZonedTime(
+  //       parsedRecord.eventStartDateTime,
+  //       parsedRecord.timeZone,
+  //     );
+  //     const specialRateCard = await this.specialRateCardRepository.find({
+  //       where: {
+  //         date: tzFormat(zonedDate, 'yyyy-MM-dd', {
+  //           timeZone: parsedRecord.timeZone,
+  //         }),
+  //       },
+  //     });
+
+  //     const parsedBookings = await Promise.all(
+  //       parsedRecord?.bookings.map(async (book) => {
+  //         let newPricePerHour: number;
+  //         let pricePerExtra30Min: number;
+
+  //         // If special rate card is available then use it otherwise use admin rate card.
+
+  //         if (specialRateCard?.length > 0) {
+  //           const rateCard = specialRateCard.find(
+  //             (rate) => rate.subcategoryId === book.subcategoryId,
+  //           );
+
+  //           if (rateCard) {
+  //             newPricePerHour = rateCard.specialPrice;
+  //             pricePerExtra30Min = rateCard.pricePerExtra30Min;
+  //           }
+  //         } else if (adminRateCard?.length > 0) {
+  //           const rateCard = adminRateCard.find(
+  //             (rate) => rate.subcategoryId === book.subcategoryId,
+  //           );
+  //           if (rateCard) {
+  //             newPricePerHour = rateCard.basePrice;
+  //             pricePerExtra30Min = rateCard.pricePerExtra30Min;
+  //           }
+  //         }
+
+  //         if (!(newPricePerHour || pricePerExtra30Min)) return;
+
+  //         return {
+  //           ...book,
+  //           pricePerHour: newPricePerHour,
+  //           pricePerExtra30Min,
+  //         };
+  //       }),
+  //     );
+
+  //     let totalAmount = 0;
+
+  //     for (const book of parsedBookings) {
+  //       // Provided Payload for calculation
+  //       const payload = {
+  //         eventStartDateTime: parsedRecord.eventStartDateTime,
+  //         eventEndDateTime: parsedRecord.eventEndDateTime,
+  //         pricePerHour: Number(book.pricePerHour),
+  //         pricePerExtra30Min: Number(book.pricePerExtra30Min),
+  //         discountInPercent,
+  //         isFixed,
+  //         platformFee: platformFee,
+  //       };
+
+  //       const totalWithPlatformFee = this.calculatingInvoiceAmount(payload);
+  //       totalAmount += Number(totalWithPlatformFee);
+  //     }
+
+  //     // Invoice Generated On and Due Date
+  //     const issueDate = new Date();
+  //     const dueDate = new Date(issueDate);
+  //     dueDate.setDate(dueDate.getDate() + 60);
+
+  //     const newInvoice = this.invoiceRepository.create({
+  //       invoice_number: newInvoiceNumber,
+  //       user_id: Number(parsedRecord.venueId),
+  //       user_type: UserType.VENUE,
+  //       event_id: null,
+  //       issue_date: issueDate.toISOString().split('T')[0],
+  //       due_date: new Date(dueDate).toISOString().split('T')[0],
+  //       total_amount: totalAmount,
+  //       tax_rate: platformFee ?? 0,
+  //       tax_amount: 0,
+  //       total_with_tax: parseFloat(totalAmount.toFixed(2)),
+  //       status: InvoiceStatus.AWAITING_PAYMENT,
+  //       payment_method: '',
+  //       payment_date: null,
+  //       booking_id: null,
+  //     });
+
+  //     const savedInvoice = await this.invoiceRepository.save(newInvoice);
+
+  //     // Save the record to (Invoice Event Mapping)
+  //     const invoiceMetaData = this.invEventRepository.create({
+  //       invoiceId: savedInvoice.id,
+  //       eventId: eventId,
+  //       eventDate: new Date().toISOString(),
+  //       eventPrice: Number(totalAmount) - Number(platformFee),
+  //     });
+  //     await this.invEventRepository.save(invoiceMetaData);
+
+  //     return {
+  //       message: 'Invoice generated successfully',
+  //       data: savedInvoice,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
   async generateInvoice(dto: CreateInvoiceDto) {
     let {
       eventId,
@@ -139,20 +336,44 @@ export class InvoiceService {
       discountInPercent = 0,
     } = dto;
 
+    // Check if invoice already exists
     const alreadyExists = await this.invEventRepository.findOne({
-      where: { eventId: eventId },
+      where: { eventId },
     });
 
     if (alreadyExists) {
       throw new BadRequestException({
-        message: 'Invoice has been already generated for the event. ',
+        message: 'Invoice has been already generated for the event.',
       });
     }
 
     try {
+      // Fetch event and all related bookings with categories/subcategories
       const eventData = await this.eventRepository
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin(
+          'booking',
+          'booking',
+          'booking.eventId = event.id AND booking.status IN (:...statuses)',
+          { statuses: ['confirmed', 'completed'] },
+        )
+        .leftJoin(
+          'entertainers',
+          'entertainer',
+          'entertainer.id = booking.entId',
+        )
+        .leftJoin(
+          'booking_category_subcategory',
+          'bcs',
+          'bcs.booking_id = booking.id',
+        )
+        .leftJoin('categories', 'category', 'category.id = bcs.category_id')
+        .leftJoin(
+          'categories',
+          'subcategory',
+          'subcategory.id = bcs.subcategory_id',
+        )
         .select([
           'event.id AS eventId',
           'event.slug AS eventName',
@@ -161,40 +382,114 @@ export class InvoiceService {
           'event.venueId AS venueId',
           'venue.timezone AS timezone',
           `
-    JSON_ARRAYAGG(
-      JSON_OBJECT(
-        'bookingId', booking.id,
-        'entertainerId', booking.entId,
-        'status', booking.status,
-        'subcategoryId', booking.subcategoryId,
-        'stageName', entertainer.name
-        
-      )
-    ) AS bookings
-    `,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'bookingId', booking.id,
+            'entertainerId', booking.entId,
+            'status', booking.status,
+            'stageName', entertainer.name,
+            'categoryId', category.id,
+            'categoryName', category.name,
+            'subCategoryId', subcategory.id,
+            'subCategoryName', subcategory.name
+          )
+        ) AS bookings
+        `,
         ])
-        .leftJoin(
-          'booking',
-          'booking',
-          'booking.eventId = event.id AND booking.status IN (:...statuses)',
-          { statuses: ['confirmed', 'completed'] },
-        )
-
-        .leftJoin(
-          'entertainers',
-          'entertainer',
-          'entertainer.id = booking.entId',
-        )
         .where('event.id = :eventId', { eventId })
         .groupBy('event.id')
         .getRawOne();
 
+      if (!eventData) {
+        throw new NotFoundException({
+          message: 'Event not found or has no confirmed bookings.',
+        });
+      }
+
+      // Parse bookings JSON
       const { bookings, ...restData } = eventData;
       const parsedRecord = {
         ...restData,
         bookings: bookings ? JSON.parse(bookings) : [],
       };
 
+      // Fetch rate cards
+      const adminRateCard = await this.adminRateCardRepository.find();
+
+      const zonedDate = utcToZonedTime(
+        parsedRecord.eventStartDateTime,
+        parsedRecord.timezone,
+      );
+
+      const specialRateCard = await this.specialRateCardRepository.find({
+        where: {
+          date: tzFormat(zonedDate, 'yyyy-MM-dd', {
+            timeZone: parsedRecord.timezone,
+          }),
+        },
+      });
+
+      // Enrich each booking+subcategory with rate card details
+      const parsedBookings = await Promise.all(
+        parsedRecord.bookings.map(async (book) => {
+          let newPricePerHour: number | undefined;
+          let pricePerExtra30Min: number | undefined;
+
+          // Prefer special rate card if found
+          if (specialRateCard?.length > 0) {
+            const rateCard = specialRateCard.find(
+              (rate) => rate.subcategoryId === book.subCategoryId,
+            );
+            if (rateCard) {
+              newPricePerHour = rateCard.specialPrice;
+              pricePerExtra30Min = rateCard.pricePerExtra30Min;
+            }
+          }
+
+          // Otherwise fallback to admin rate card
+          if (
+            !(newPricePerHour || pricePerExtra30Min) &&
+            adminRateCard?.length > 0
+          ) {
+            const rateCard = adminRateCard.find(
+              (rate) => rate.subcategoryId === book.subCategoryId,
+            );
+            if (rateCard) {
+              newPricePerHour = rateCard.basePrice;
+              pricePerExtra30Min = rateCard.pricePerExtra30Min;
+            }
+          }
+
+          if (!(newPricePerHour || pricePerExtra30Min)) return null;
+
+          return {
+            ...book,
+            pricePerHour: newPricePerHour,
+            pricePerExtra30Min,
+          };
+        }),
+      );
+
+      // Filter nulls and start total calculation
+      const validBookings = parsedBookings.filter(Boolean);
+      let totalAmount = 0;
+
+      for (const book of validBookings) {
+        const payload = {
+          eventStartDateTime: parsedRecord.eventStartDateTime,
+          eventEndDateTime: parsedRecord.eventEndDateTime,
+          pricePerHour: Number(book.pricePerHour),
+          pricePerExtra30Min: Number(book.pricePerExtra30Min),
+          discountInPercent,
+          isFixed,
+          platformFee,
+        };
+
+        const totalWithPlatformFee = this.calculatingInvoiceAmount(payload);
+        totalAmount += Number(totalWithPlatformFee);
+      }
+
+      // Generate invoice number
       const lastInvoice = await this.invoiceRepository
         .createQueryBuilder('invoices')
         .orderBy('invoices.id', 'DESC')
@@ -205,92 +500,23 @@ export class InvoiceService {
         ? parseInt(lastInvoice.invoice_number.split('-')[2])
         : 1000;
 
-      // Invoicing
       const invFormattedDate = this.formatDateForInvoice(
         parsedRecord.eventStartDateTime,
       );
 
-      const newInvoiceNumber = `${invFormattedDate}-${parsedRecord.venueId}-${lastInvoiceNumber + 1} `;
+      const newInvoiceNumber = `${invFormattedDate}-${parsedRecord.venueId}-${lastInvoiceNumber + 1}`;
 
-      //// New logic Inrodutction
-      const adminRateCard = await this.adminRateCardRepository.find();
-
-      const zonedDate = utcToZonedTime(
-        parsedRecord.eventStartDateTime,
-        parsedRecord.timeZone,
-      );
-      const specialRateCard = await this.specialRateCardRepository.find({
-        where: {
-          date: tzFormat(zonedDate, 'yyyy-MM-dd', {
-            timeZone: parsedRecord.timeZone,
-          }),
-        },
-      });
-
-      const parsedBookings = await Promise.all(
-        parsedRecord?.bookings.map(async (book) => {
-          let newPricePerHour: number;
-          let pricePerExtra30Min: number;
-
-          // If special rate card is available then use it otherwise use admin rate card.
-
-          if (specialRateCard?.length > 0) {
-            const rateCard = specialRateCard.find(
-              (rate) => rate.subcategoryId === book.subcategoryId,
-            );
-
-            if (rateCard) {
-              newPricePerHour = rateCard.specialPrice;
-              pricePerExtra30Min = rateCard.pricePerExtra30Min;
-            }
-          } else if (adminRateCard?.length > 0) {
-            const rateCard = adminRateCard.find(
-              (rate) => rate.subcategoryId === book.subcategoryId,
-            );
-            if (rateCard) {
-              newPricePerHour = rateCard.basePrice;
-              pricePerExtra30Min = rateCard.pricePerExtra30Min;
-            }
-          }
-
-          if (!(newPricePerHour || pricePerExtra30Min)) return;
-
-          return {
-            ...book,
-            pricePerHour: newPricePerHour,
-            pricePerExtra30Min,
-          };
-        }),
-      );
-
-      let totalAmount = 0;
-
-      for (const book of parsedBookings) {
-        // Provided Payload for calculation
-        const payload = {
-          eventStartDateTime: parsedRecord.eventStartDateTime,
-          eventEndDateTime: parsedRecord.eventEndDateTime,
-          pricePerHour: Number(book.pricePerHour),
-          pricePerExtra30Min: Number(book.pricePerExtra30Min),
-          discountInPercent,
-          isFixed,
-          platformFee: platformFee,
-        };
-
-        const totalWithPlatformFee = this.calculatingInvoiceAmount(payload);
-        totalAmount += Number(totalWithPlatformFee);
-      }
-
-      // Invoice Generated On and Due Date
+      // Invoice dates
       const issueDate = new Date();
       const dueDate = new Date(issueDate);
       dueDate.setDate(dueDate.getDate() + 60);
 
+      // Create and save invoice
       const newInvoice = this.invoiceRepository.create({
         invoice_number: newInvoiceNumber,
         user_id: Number(parsedRecord.venueId),
         user_type: UserType.VENUE,
-        event_id: null,
+        event_id: Number(parsedRecord.eventId),
         issue_date: issueDate.toISOString().split('T')[0],
         due_date: new Date(dueDate).toISOString().split('T')[0],
         total_amount: totalAmount,
@@ -305,13 +531,14 @@ export class InvoiceService {
 
       const savedInvoice = await this.invoiceRepository.save(newInvoice);
 
-      // Save the record to (Invoice Event Mapping)
+      // Save invoice–event mapping
       const invoiceMetaData = this.invEventRepository.create({
         invoiceId: savedInvoice.id,
         eventId: eventId,
         eventDate: new Date().toISOString(),
         eventPrice: Number(totalAmount) - Number(platformFee),
       });
+
       await this.invEventRepository.save(invoiceMetaData);
 
       return {
@@ -1088,70 +1315,261 @@ export class InvoiceService {
   }
 
   // Regeneration Logic or Invoice By Id
+  // async regenerateInvoice(id: number) {
+  //   try {
+  //     const eventPrice = [];
+
+  //     const invoice = await this.invoiceRepository.findOne({
+  //       where: { id, isOutdated: true },
+  //     });
+
+  //     if (!invoice) throw new BadRequestException('Invoice Not Found');
+
+  //     // Check for invoice Event Mapping Repo
+  //     const invoiceMetaData = await this.invEventRepository.find({
+  //       where: { invoiceId: invoice.id },
+  //       select: ['eventId'],
+  //     });
+
+  //     // Now map over it and get array of the  eventIds.
+  //     const eventIds = invoiceMetaData.map((item) => Number(item.eventId));
+
+  //     const events = await this.eventRepository.find({
+  //       where: { id: In(eventIds), status: 'canceled' },
+  //       select: ['id'],
+  //     });
+
+  //     if (events.length > 0) {
+  //       for (const event of events) {
+  //         await this.invEventRepository.delete({ eventId: event.id });
+  //         const index = eventIds.indexOf(Number(event.id));
+  //         if (index !== -1) {
+  //           eventIds.splice(index, 1);
+  //         }
+  //       }
+  //     }
+
+  //     const bookings = await this.bookingRepository
+  //       .createQueryBuilder('booking')
+  //       .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+  //       .leftJoin('event', 'event', 'event.id = booking.eventId')
+  //       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+
+  //       .select([
+  //         'booking.id AS id',
+  //         'booking.venueId AS venueId',
+  //         'booking.subcategoryId AS subcategoryId',
+  //         'ent.id AS entertainerId',
+  //         'ent.pricePerEvent AS pricePerHour',
+  //         'event.id AS eventId',
+  //         'event.eventStartDateTime AS eventStartDateTime',
+  //         'event.eventEndDateTime AS eventEndDateTime',
+  //         'venue.timezone AS timezone',
+  //       ])
+  //       .where('booking.eventId IN (:...eventIds)', { eventIds })
+
+  //       .andWhere('booking.status = :status', { status: 'confirmed' })
+  //       .getRawMany();
+
+  //     // Get Rate from Api
+
+  //     const bookingWithMarkup = await Promise.all(
+  //       bookings.map(async (book) => {
+  //         let newPricePerHour: number;
+  //         let pricePerExtra30Min: number;
+
+  //         const adminRateCard = await this.adminRateCardRepository.find();
+
+  //         const zonedDate = utcToZonedTime(
+  //           book.eventStartDateTime,
+  //           book.timezone ?? 'UTC',
+  //         );
+
+  //         const specialRateCard = await this.specialRateCardRepository.find({
+  //           where: {
+  //             date: tzFormat(zonedDate, 'yyyy-MM-dd', {
+  //               timeZone: book.timeZone ?? 'UTC',
+  //             }),
+  //           },
+  //         });
+
+  //         // If special rate card is available then use it otherwise use admin rate card.
+
+  //         if (specialRateCard?.length > 0) {
+  //           const rateCard = specialRateCard.find(
+  //             (rate) => rate.subcategoryId === book.subcategoryId,
+  //           );
+
+  //           if (rateCard) {
+  //             newPricePerHour = rateCard.specialPrice;
+  //             pricePerExtra30Min = rateCard.pricePerExtra30Min;
+  //           }
+  //         } else if (adminRateCard?.length > 0) {
+  //           const rateCard = adminRateCard.find(
+  //             (rate) => rate.subcategoryId === book.subcategoryId,
+  //           );
+  //           if (rateCard) {
+  //             newPricePerHour = rateCard.basePrice;
+  //             pricePerExtra30Min = rateCard.pricePerExtra30Min;
+  //           }
+  //         }
+
+  //         if (!(newPricePerHour || pricePerExtra30Min)) return;
+
+  //         return {
+  //           ...book,
+  //           pricePerHour: newPricePerHour,
+  //           pricePerExtra30Min,
+  //         };
+  //       }),
+  //     );
+  //     let totalAmount = 0;
+
+  //     for (const book of bookingWithMarkup) {
+  //       // Provided Payload for calculation
+  //       const payload = {
+  //         eventStartDateTime: book.eventStartDateTime,
+  //         eventEndDateTime: book.eventEndDateTime,
+  //         pricePerHour: Number(book.pricePerHour),
+  //         pricePerExtra30Min: Number(book.pricePerExtra30Min),
+  //         discountInPercent: 0,
+  //         isFixed: true,
+  //         platformFee: 0,
+  //       };
+  //       const price = this.calculatingInvoiceAmount(payload);
+  //       // Add to array (Because we need to update mapping)
+  //       if (eventPrice.length === 0) {
+  //         eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
+  //       } else {
+  //         const existing = eventPrice.find(
+  //           (eventRecord) => eventRecord.id === book.eventId,
+  //         );
+  //         if (existing) {
+  //           existing.eventTotal += Number(price);
+  //         } else {
+  //           eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
+  //         }
+  //       }
+  //       totalAmount += Number(price);
+  //     }
+
+  //     // Issue Date and Due Date
+  //     const issueDate = new Date();
+  //     const dueDate = new Date(issueDate);
+  //     dueDate.setDate(dueDate.getDate() + 60);
+
+  //     const updatePayload = {
+  //       total_with_tax: totalAmount + Number(invoice.tax_rate || 0),
+  //       total_amount: totalAmount,
+  //       isOutdated: false,
+  //       isRegenerated: true,
+  //       issue_date: issueDate.toISOString().split('T')[0],
+  //       due_date: new Date(dueDate).toISOString().split('T')[0],
+  //     };
+
+  //     await this.invoiceRepository.update({ id: invoice.id }, updatePayload);
+
+  //     // Also update the mapping table (Nothing stale)
+
+  //     for (const event of eventIds) {
+  //       const matchedPrice = eventPrice.find((p) => p.id === event);
+  //       const invoiceEvent = await this.invEventRepository.update(
+  //         { eventId: event },
+  //         { eventPrice: Number(matchedPrice?.eventTotal) },
+  //       );
+  //     }
+
+  //     return { message: 'Invoice regenerated successfully', status: true };
+  //   } catch (error) {
+  //     if (error instanceof HttpException) throw error;
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
   async regenerateInvoice(id: number) {
     try {
-      const eventPrice = [];
+      const eventPrice: { id: number; eventTotal: number }[] = [];
 
+      // Step 1: Find outdated invoice
       const invoice = await this.invoiceRepository.findOne({
         where: { id, isOutdated: true },
       });
 
       if (!invoice) throw new BadRequestException('Invoice Not Found');
 
-      // Check for invoice Event Mapping Repo
+      // Step 2: Get all events linked to that invoice
       const invoiceMetaData = await this.invEventRepository.find({
         where: { invoiceId: invoice.id },
         select: ['eventId'],
       });
 
-      // Now map over it and get array of the  eventIds.
       const eventIds = invoiceMetaData.map((item) => Number(item.eventId));
 
-      const events = await this.eventRepository.find({
+      // Step 3: Remove canceled events (if any)
+      const canceledEvents = await this.eventRepository.find({
         where: { id: In(eventIds), status: 'canceled' },
         select: ['id'],
       });
 
-      if (events.length > 0) {
-        for (const event of events) {
+      if (canceledEvents.length > 0) {
+        for (const event of canceledEvents) {
           await this.invEventRepository.delete({ eventId: event.id });
-          const index = eventIds.indexOf(Number(event.id));
-          if (index !== -1) {
-            eventIds.splice(index, 1);
-          }
+          const index = eventIds.indexOf(event.id);
+          if (index !== -1) eventIds.splice(index, 1);
         }
       }
 
+      if (eventIds.length === 0)
+        throw new BadRequestException(
+          'No active events found for this invoice.',
+        );
+
+      // Step 4: Fetch all bookings + category/subcategory mappings
       const bookings = await this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
         .leftJoin('event', 'event', 'event.id = booking.eventId')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
-
+        .leftJoin(
+          'booking_category_subcategory',
+          'bcs',
+          'bcs.booking_id = booking.id',
+        )
+        .leftJoin('categories', 'category', 'category.id = bcs.category_id')
+        .leftJoin(
+          'categories',
+          'subcategory',
+          'subcategory.id = bcs.subcategory_id',
+        )
         .select([
           'booking.id AS id',
           'booking.venueId AS venueId',
-          'booking.subcategoryId AS subcategoryId',
-          'ent.id AS entertainerId',
-          'ent.pricePerEvent AS pricePerHour',
           'event.id AS eventId',
           'event.eventStartDateTime AS eventStartDateTime',
           'event.eventEndDateTime AS eventEndDateTime',
           'venue.timezone AS timezone',
+          'ent.id AS entertainerId',
+          'ent.pricePerEvent AS pricePerHour',
+          'category.id AS categoryId',
+          'subcategory.id AS subCategoryId',
         ])
         .where('booking.eventId IN (:...eventIds)', { eventIds })
-
-        .andWhere('booking.status = :status', { status: 'confirmed' })
+        .andWhere('booking.status IN (:...statuses)', {
+          statuses: ['confirmed', 'completed'],
+        })
         .getRawMany();
 
-      // Get Rate from Api
+      if (!bookings.length)
+        throw new BadRequestException(
+          'No confirmed bookings found for invoice.',
+        );
+
+      // Step 5: Apply rate cards per (booking × subcategory)
+      const adminRateCard = await this.adminRateCardRepository.find();
 
       const bookingWithMarkup = await Promise.all(
         bookings.map(async (book) => {
           let newPricePerHour: number;
           let pricePerExtra30Min: number;
-
-          const adminRateCard = await this.adminRateCardRepository.find();
 
           const zonedDate = utcToZonedTime(
             book.eventStartDateTime,
@@ -1161,25 +1579,29 @@ export class InvoiceService {
           const specialRateCard = await this.specialRateCardRepository.find({
             where: {
               date: tzFormat(zonedDate, 'yyyy-MM-dd', {
-                timeZone: book.timeZone ?? 'UTC',
+                timeZone: book.timezone ?? 'UTC',
               }),
             },
           });
 
-          // If special rate card is available then use it otherwise use admin rate card.
-
+          // Prefer special rate if available
           if (specialRateCard?.length > 0) {
             const rateCard = specialRateCard.find(
-              (rate) => rate.subcategoryId === book.subcategoryId,
+              (rate) => rate.subcategoryId === book.subCategoryId,
             );
-
             if (rateCard) {
               newPricePerHour = rateCard.specialPrice;
               pricePerExtra30Min = rateCard.pricePerExtra30Min;
             }
-          } else if (adminRateCard?.length > 0) {
+          }
+
+          // Fallback to admin rate card
+          if (
+            !(newPricePerHour || pricePerExtra30Min) &&
+            adminRateCard?.length > 0
+          ) {
             const rateCard = adminRateCard.find(
-              (rate) => rate.subcategoryId === book.subcategoryId,
+              (rate) => rate.subcategoryId === book.subCategoryId,
             );
             if (rateCard) {
               newPricePerHour = rateCard.basePrice;
@@ -1187,7 +1609,7 @@ export class InvoiceService {
             }
           }
 
-          if (!(newPricePerHour || pricePerExtra30Min)) return;
+          if (!(newPricePerHour || pricePerExtra30Min)) return null;
 
           return {
             ...book,
@@ -1196,10 +1618,11 @@ export class InvoiceService {
           };
         }),
       );
+
+      // Step 6: Calculate total invoice amount
       let totalAmount = 0;
 
-      for (const book of bookingWithMarkup) {
-        // Provided Payload for calculation
+      for (const book of bookingWithMarkup.filter(Boolean)) {
         const payload = {
           eventStartDateTime: book.eventStartDateTime,
           eventEndDateTime: book.eventEndDateTime,
@@ -1209,24 +1632,21 @@ export class InvoiceService {
           isFixed: true,
           platformFee: 0,
         };
+
         const price = this.calculatingInvoiceAmount(payload);
-        // Add to array (Because we need to update mapping)
-        if (eventPrice.length === 0) {
-          eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
+
+        // Aggregate per event
+        const existing = eventPrice.find((e) => e.id === book.eventId);
+        if (existing) {
+          existing.eventTotal += Number(price);
         } else {
-          const existing = eventPrice.find(
-            (eventRecord) => eventRecord.id === book.eventId,
-          );
-          if (existing) {
-            existing.eventTotal += Number(price);
-          } else {
-            eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
-          }
+          eventPrice.push({ id: book.eventId, eventTotal: Number(price) });
         }
+
         totalAmount += Number(price);
       }
 
-      // Issue Date and Due Date
+      // Step 7: Update invoice totals
       const issueDate = new Date();
       const dueDate = new Date(issueDate);
       dueDate.setDate(dueDate.getDate() + 60);
@@ -1237,18 +1657,17 @@ export class InvoiceService {
         isOutdated: false,
         isRegenerated: true,
         issue_date: issueDate.toISOString().split('T')[0],
-        due_date: new Date(dueDate).toISOString().split('T')[0],
+        due_date: dueDate.toISOString().split('T')[0],
       };
 
       await this.invoiceRepository.update({ id: invoice.id }, updatePayload);
 
-      // Also update the mapping table (Nothing stale)
-
+      // Step 8: Update event-invoice mapping amounts
       for (const event of eventIds) {
         const matchedPrice = eventPrice.find((p) => p.id === event);
-        const invoiceEvent = await this.invEventRepository.update(
+        await this.invEventRepository.update(
           { eventId: event },
-          { eventPrice: Number(matchedPrice?.eventTotal) },
+          { eventPrice: Number(matchedPrice?.eventTotal ?? 0) },
         );
       }
 

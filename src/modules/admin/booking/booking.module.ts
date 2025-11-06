@@ -16,6 +16,7 @@ import { Venue } from '../venue/entities/venue.entity';
 import { Invoice } from '../invoice/entities/invoices.entity';
 import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
 import { EntertainerAvailability } from '../entertainer/entities/entertainer-availability.entity';
+import { BookingCategorySubcategory } from 'src/modules/booking/entities/booking-category.entity';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { EntertainerAvailability } from '../entertainer/entities/entertainer-ava
       Invoice,
       InvoiceEvent,
       EntertainerAvailability,
+      BookingCategorySubcategory,
     ]),
     NotificationModule,
     EmailModule,

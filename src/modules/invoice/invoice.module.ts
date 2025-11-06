@@ -15,6 +15,7 @@ import { EmailModule } from '../Email/email.module';
 import { EntertainerInvoice } from './entities/entertainer-invoice.entity';
 import { EntertainerRateCard } from '../entertainer/entities/entertainer-rate-card.entity';
 import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.entity';
+import { BookingCategorySubcategory } from '../booking/entities/booking-category.entity';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.en
       EntertainerInvoice,
       EntertainerRateCard,
       SubcategoryRate,
+      BookingCategorySubcategory,
     ]),
     EmailModule,
   ],

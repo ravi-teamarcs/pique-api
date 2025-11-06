@@ -25,6 +25,7 @@ import { BookingService } from '../booking/booking.service';
 import { Categories } from '../entertainer/entities/Category.entity';
 import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
 import { EventCategorySubcategory } from '../events/entities/event-category-subcategory.entity';
+import { AnyARecord } from 'dns';
 
 @Injectable()
 export class AdminSeriesService {
@@ -195,15 +196,25 @@ export class AdminSeriesService {
     }
   }
 
-  async getAllSeries(query) {
+  async getAllSeries(query:any) {
     try {
-      const { page, pageSize, search } = query;
+      const { page = 1, pageSize = 100, search } = query;
+
+      const skip = (page - 1) * pageSize;
+
       const [series, totalCount] = await this.seriesRepository.findAndCount({
         relations: ['events'],
+        skip,
+        take: pageSize,
+        order: { id: 'DESC' }, // optional, but recommended for stable pagination
       });
+
       return {
-        message: 'series returned Successfully',
+        message: 'Series returned successfully',
         data: series,
+        totalCount,
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / pageSize),
         status: true,
       };
     } catch (error) {
