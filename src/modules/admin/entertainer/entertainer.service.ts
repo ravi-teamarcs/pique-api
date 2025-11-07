@@ -1266,7 +1266,7 @@ export class EntertainerService {
 
       const eventIds = events.map((e) => e.id);
 
-      // 2️⃣ Get event categories from mapping table
+      // 2️⃣ Get all event category-subcategory pairs
       const eventCategories = await this.eventCategoriesRepository.find({
         where: { event: { id: In(eventIds) } },
         select: ['categoryId', 'subCategoryId'],
@@ -1282,13 +1282,13 @@ export class EntertainerService {
         ...new Set(eventCategories.map((ec) => ec.subCategoryId)),
       ];
 
-      // 3️⃣ Build entertainer base query
+      // 3️⃣ Base query: find entertainers that match at least one category/subcategory
       const baseQuery = this.entertainerRepository
         .createQueryBuilder('entertainer')
         .leftJoin('countries', 'country', 'country.id = entertainer.country')
         .leftJoin('states', 'state', 'state.id = entertainer.state')
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
-        .leftJoin(
+        .innerJoin(
           'entertainer_category_subcategories',
           'ent_cat_subcat',
           `ent_cat_subcat.entertainer_id = entertainer.id 
@@ -1308,7 +1308,7 @@ export class EntertainerService {
             });
           }),
         )
-        // Exclude already booked entertainers for those events
+        // 4️⃣ Exclude entertainers already booked for any of these events
         .andWhere((qb) => {
           const subQuery = qb
             .subQuery()
@@ -1321,7 +1321,7 @@ export class EntertainerService {
           return `NOT EXISTS ${subQuery}`;
         })
         .setParameter('eventIds', eventIds)
-        .distinct(true)
+        .distinct(true) // remove duplicate entertainers
         .select([
           'entertainer.id AS id',
           'entertainer.name AS name',
@@ -1339,7 +1339,7 @@ export class EntertainerService {
           'country.name AS country',
           'state.name AS state',
         ])
-        // last booking (past)
+        // Previous booking (past)
         .addSelect(
           `(
           SELECT b1.showStartDateTime
@@ -1366,7 +1366,7 @@ export class EntertainerService {
         )`,
           'previousBookingTimezone',
         )
-        // next booking (future)
+        // Upcoming booking (future)
         .addSelect(
           `(
           SELECT b2.showStartDateTime
@@ -1404,15 +1404,17 @@ export class EntertainerService {
           vaccinated,
         });
 
-      const total = await baseQuery.getCount();
+      // 5️⃣ Handle distinct count manually
+      const allRecords = await baseQuery.getRawMany();
+      const total = allRecords.length;
 
+      // 6️⃣ Paginate and format
       const records = await baseQuery
         .orderBy('entertainer.name', 'ASC')
         .skip(skip)
         .take(pageSize)
         .getRawMany();
 
-      // format each entertainer
       const parsedRecords = await Promise.all(
         records.map(async (r) => {
           const categories = await this.getFormattedCategoriesforAdminMultiple(
