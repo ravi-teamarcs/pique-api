@@ -1684,6 +1684,7 @@ export class InvoiceService {
       const baseQuery = this.invoiceRepository
         .createQueryBuilder('invoices')
         .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
+        .leftJoin('users', 'user', 'user.id = venue.userId')
         .leftJoin('states', 'state', 'state.id = venue.state')
         .leftJoin('countries', 'country', 'country.id = venue.country')
         .leftJoin('cities', 'city', 'city.id = venue.city')
@@ -1712,6 +1713,8 @@ export class InvoiceService {
           'venue.addressLine2 AS venueAddressLine2',
           'venue.contactPerson As contactPerson',
           'venue.contactNumber As contactNumber',
+          'venue.email AS venueEmail',
+          'user.email AS userEmail',
           'state.name AS stateName',
           'city.name AS cityName',
           'code.stateCode AS StateCode',

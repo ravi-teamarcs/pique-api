@@ -938,6 +938,8 @@ export class EntertainerService {
         select: ['categoryId', 'subCategoryId'],
       });
 
+      console.log('Event Categories:', eventCategories);
+
       if (!eventCategories || eventCategories.length === 0) {
         throw new NotFoundException(`No categories linked to event ${eventId}`);
       }
@@ -959,7 +961,7 @@ export class EntertainerService {
         .leftJoin('countries', 'country', 'country.id = entertainer.country')
         .leftJoin('states', 'state', 'state.id = entertainer.state')
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
-        .leftJoin(
+        .innerJoin(
           'entertainer_category_subcategories',
           'ent_cat_subcat',
           `ent_cat_subcat.entertainer_id = entertainer.id AND (${conditions.join(' OR ')})`,
