@@ -929,25 +929,22 @@ export class EntertainerService {
     try {
       const today = new Date();
       const todayString = today.toISOString().split('T')[0];
-
       const { page = 1, pageSize = 10, search = '', vaccinated } = query;
       const skip = (page - 1) * pageSize;
 
+      // STEP 1: Get event's category-subcategory pairs
       const eventCategories = await this.eventCategoriesRepository.find({
         where: { event: { id: eventId } },
         select: ['categoryId', 'subCategoryId'],
       });
 
-      console.log('Event Categories:', eventCategories);
-
-      if (!eventCategories || eventCategories.length === 0) {
+      if (!eventCategories?.length) {
         throw new NotFoundException(`No categories linked to event ${eventId}`);
       }
 
-      // STEP 2: Build dynamic WHERE clause for all category–subcategory pairs
+      // STEP 2: Dynamic OR conditions for all pairs
       const conditions: string[] = [];
       const params: Record<string, any> = {};
-
       eventCategories.forEach((ecs, i) => {
         conditions.push(
           `(ent_cat_subcat.category_id = :cat${i} AND FIND_IN_SET(:sub${i}, ent_cat_subcat.subcategory_ids))`,
@@ -956,6 +953,7 @@ export class EntertainerService {
         params[`sub${i}`] = ecs.subCategoryId;
       });
 
+      // STEP 3: Base query
       const baseQuery = this.entertainerRepository
         .createQueryBuilder('entertainer')
         .leftJoin('countries', 'country', 'country.id = entertainer.country')
@@ -964,33 +962,27 @@ export class EntertainerService {
         .innerJoin(
           'entertainer_category_subcategories',
           'ent_cat_subcat',
-          `ent_cat_subcat.entertainer_id = entertainer.id AND (${conditions.join(' OR ')})`,
+          `ent_cat_subcat.entertainer_id = entertainer.id AND (${conditions.join(
+            ' OR ',
+          )})`,
           params,
         )
-
-        .where('entertainer.status IN (:...statuses)', {
-          statuses: ['active'],
-        })
-
+        .where('entertainer.status IN (:...statuses)', { statuses: ['active'] })
         .andWhere((qb) => {
           const subQuery = qb
             .subQuery()
             .select('1')
             .from('booking', 'book')
-            .where('book.entId = entertainer.id') // booking belongs to entertainer
-            .andWhere('book.eventId = :eventId') // booking is for this event
+            .where('book.entId = entertainer.id')
+            .andWhere('book.eventId = :eventId')
             .andWhere('book.status IN (:...bookStats)', {
-              bookStats: ['invited', 'applied'], // only these statuses matter
+              bookStats: ['invited', 'applied'],
             })
             .getQuery();
-
           return `NOT EXISTS ${subQuery}`;
         })
-
         .setParameter('eventId', eventId)
         .setParameter('todayString', todayString)
-
-        // Use select() for main fields with proper aliases
         .select([
           'entertainer.id AS id',
           'entertainer.name AS name',
@@ -1008,117 +1000,42 @@ export class EntertainerService {
           'country.name AS country',
           'state.name AS state',
         ])
-
-        // Previous booking full timestamp
-        .addSelect(
-          `(
-    SELECT b1.showStartDateTime
-    FROM booking b1
-    JOIN venue v1 ON v1.id = b1.venueId
-    WHERE b1.entId = entertainer.id
-      AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
-      AND DATE(b1.showStartDateTime) < '${todayString}'
-    ORDER BY b1.showStartDateTime DESC
-    LIMIT 1
-  )`,
-          'previousBookingDate',
-        )
-
-        // Previous booking timezone
-        .addSelect(
-          `(
-    SELECT v1.timezone
-    FROM booking b1
-    JOIN venue v1 ON v1.id = b1.venueId
-    WHERE b1.entId = entertainer.id
-      AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
-      AND DATE(b1.showStartDateTime) < '${todayString}'
-    ORDER BY b1.showStartDateTime DESC
-    LIMIT 1
-  )`,
-          'previousBookingTimezone',
-        )
-
-        // Upcoming booking full timestamp
-        .addSelect(
-          `(
-    SELECT b2.showStartDateTime
-    FROM booking b2
-    JOIN venue v2 ON v2.id = b2.venueId
-    WHERE b2.entId = entertainer.id
-      AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
-      AND DATE(b2.showStartDateTime) > '${todayString}'
-    ORDER BY b2.showStartDateTime ASC
-    LIMIT 1
-  )`,
-          'upcomingBookingDate',
-        )
-
-        // Upcoming booking timezone
-        .addSelect(
-          `(
-    SELECT v2.timezone
-    FROM booking b2
-    JOIN venue v2 ON v2.id = b2.venueId
-    WHERE b2.entId = entertainer.id
-      AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
-      AND DATE(b2.showStartDateTime) > '${todayString}'
-    ORDER BY b2.showStartDateTime ASC
-    LIMIT 1
-  )`,
-          'upcomingBookingTimezone',
-        );
+        // ensure one row per entertainer
+        .distinct(true)
+        .orderBy('entertainer.name', 'DESC');
 
       if (search) {
         baseQuery.andWhere('entertainer.name LIKE :search', {
           search: `%${search}%`,
         });
       }
+
       if (vaccinated) {
         baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
           vaccinated,
         });
       }
 
-      const total = await baseQuery.getCount();
+      // Count query (since .distinct disables .getCount())
+      const total = await baseQuery.getRawMany().then((rows) => rows.length);
 
-      const records = await baseQuery
-        .orderBy('entertainer.name', 'DESC')
-        .skip(skip)
-        .take(pageSize)
-        .getRawMany();
+      // Pagination + final fields
+      const records = await baseQuery.skip(skip).take(pageSize).getRawMany();
+
       const parsedRecords = await Promise.all(
         records.map(
-          async ({
-            services,
-            id,
-            pricePerEvent,
-            socialLinks,
-            previousBookingDate,
-            upcomingBookingDate,
-            ...rest
-          }) => {
+          async ({ services, id, pricePerEvent, socialLinks, ...rest }) => {
             const [categoryData] = await this.getFormattedCategoriesforAdmin(
               [Number(id)],
-              eventCategories, // pass event's allowed categories
+              eventCategories,
             );
-
             const categories = categoryData?.categories || [];
-
             return {
               id: Number(id),
               services: services ? services.split(',') : [],
               socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
               pricePerEvent,
               categories,
-              previousBookingDate: convertUtcToTimezoneString(
-                previousBookingDate,
-                rest.previousBookingTimezone,
-              ),
-              upcomingBookingDate: convertUtcToTimezoneString(
-                upcomingBookingDate,
-                rest.upcomingBookingTimezone,
-              ),
               ...rest,
             };
           },
@@ -1126,7 +1043,7 @@ export class EntertainerService {
       );
 
       return {
-        message: 'Entertainers fetched Successfully.',
+        message: 'Entertainers fetched successfully.',
         records: parsedRecords,
         total,
         pageSize,
@@ -1139,6 +1056,7 @@ export class EntertainerService {
       });
     }
   }
+
   // async getAllEntertainerListForSeries(seriesId: number, query: any) {
   //   try {
   //     const today = new Date();

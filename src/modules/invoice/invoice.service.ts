@@ -726,6 +726,7 @@ export class InvoiceService {
     const invoices = await this.invoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('venue', 'venue', 'venue.id = invoices.user_id')
+      .leftJoin('users', 'user', 'user.id = venue.userId')
       .leftJoin('states', 'state', 'state.id = venue.state')
       .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
       .leftJoin('cities', 'city', 'city.id = venue.city')
@@ -773,8 +774,10 @@ export class InvoiceService {
         'venue.name AS venueName',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
+        'venue.email AS venueEmail',
         'venue.city AS cityCode',
         'venue.state AS stateCode',
+        'user.email AS userEmail',
       ])
       .offset(offset)
       .limit(pageSize)
