@@ -1139,6 +1139,197 @@ export class EntertainerService {
       });
     }
   }
+  // async getAllEntertainerListForSeries(seriesId: number, query: any) {
+  //   try {
+  //     const today = new Date();
+  //     const todayString = today.toISOString().split('T')[0];
+  //     const { page = 1, pageSize = 10, search = '', vaccinated } = query;
+  //     const skip = (page - 1) * pageSize;
+
+  //     const events = await this.eventRepository.find({
+  //       where: { series: { id: seriesId } },
+  //       select: ['categoryId', 'subCategoryId', 'id'],
+  //     });
+
+  //     if (!events.length)
+  //       return { message: 'No events found', records: [], total: 0 };
+
+  //     const categoryIds = [...new Set(events.map((e) => e.categoryId))];
+  //     const subCategoryIds = [...new Set(events.map((e) => e.subCategoryId))];
+  //     const eventIds = events.map((e) => e.id);
+
+  //     const baseQuery = this.entertainerRepository
+  //       .createQueryBuilder('entertainer')
+  //       .leftJoin('countries', 'country', 'country.id = entertainer.country')
+  //       .leftJoin('states', 'state', 'state.id = entertainer.state')
+  //       .leftJoin('cities', 'city', 'city.id = entertainer.city')
+  //       .leftJoin(
+  //         'entertainer_category_subcategories',
+  //         'ent_cat_subcat',
+  //         `ent_cat_subcat.entertainer_id = entertainer.id AND ent_cat_subcat.category_id IN (:...categoryIds)`,
+  //         { categoryIds },
+  //       )
+  //       .where("entertainer.status = 'active'")
+  //       .andWhere(
+  //         new Brackets((qb) => {
+  //           subCategoryIds.forEach((subId, i) => {
+  //             qb.orWhere(
+  //               `FIND_IN_SET(:subId${i}, ent_cat_subcat.subcategory_ids)`,
+  //               { [`subId${i}`]: subId },
+  //             );
+  //           });
+  //         }),
+  //       )
+  //       .andWhere((qb) => {
+  //         const subQuery = qb
+  //           .subQuery()
+  //           .select('1')
+  //           .from('booking', 'book')
+  //           .where('book.entId = entertainer.id')
+  //           .andWhere('book.eventId IN (:...eventIds)')
+  //           .andWhere("book.status IN ('invited', 'applied')")
+  //           .getQuery();
+  //         return `NOT EXISTS ${subQuery}`;
+  //       })
+  //       .setParameter('eventIds', eventIds)
+  //       .distinct(true) // ✅ Ensure unique entertainers
+  //       .select([
+  //         'entertainer.id AS id',
+  //         'entertainer.name AS name',
+  //         'entertainer.entertainer_name AS entertainer_name',
+  //         'entertainer.bio AS bio',
+  //         'entertainer.email AS email',
+  //         'entertainer.socialLinks AS socialLinks',
+  //         'entertainer.zipCode AS ZipCode',
+  //         'entertainer.contact_person AS contactPerson',
+  //         'entertainer.contact_number AS ContactNumber',
+  //         'entertainer.status AS status',
+  //         'entertainer.pricePerEvent AS pricePerEvent',
+  //         'entertainer.vaccinated AS vaccinated',
+  //         'city.name AS city',
+  //         'country.name AS country',
+  //         'state.name AS state',
+  //       ])
+  //       .addSelect(
+  //         `(
+  //   SELECT b1.showStartDateTime
+  //   FROM booking b1
+  //   JOIN venue v1 ON v1.id = b1.venueId
+  //   WHERE b1.entId = entertainer.id
+  //     AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
+  //     AND DATE(b1.showStartDateTime) < '${todayString}'
+  //   ORDER BY b1.showStartDateTime DESC
+  //   LIMIT 1
+  // )`,
+  //         'previousBookingDate',
+  //       )
+
+  //       // Previous booking timezone
+  //       .addSelect(
+  //         `(
+  //   SELECT v1.timezone
+  //   FROM booking b1
+  //   JOIN venue v1 ON v1.id = b1.venueId
+  //   WHERE b1.entId = entertainer.id
+  //     AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
+  //     AND DATE(b1.showStartDateTime) < '${todayString}'
+  //   ORDER BY b1.showStartDateTime DESC
+  //   LIMIT 1
+  // )`,
+  //         'previousBookingTimezone',
+  //       )
+
+  //       // Upcoming booking full timestamp
+  //       .addSelect(
+  //         `(
+  //   SELECT b2.showStartDateTime
+  //   FROM booking b2
+  //   JOIN venue v2 ON v2.id = b2.venueId
+  //   WHERE b2.entId = entertainer.id
+  //     AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
+  //     AND DATE(b2.showStartDateTime) > '${todayString}'
+  //   ORDER BY b2.showStartDateTime ASC
+  //   LIMIT 1
+  // )`,
+  //         'upcomingBookingDate',
+  //       )
+
+  //       // Upcoming booking timezone
+  //       .addSelect(
+  //         `(
+  //   SELECT v2.timezone
+  //   FROM booking b2
+  //   JOIN venue v2 ON v2.id = b2.venueId
+  //   WHERE b2.entId = entertainer.id
+  //     AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
+  //     AND DATE(b2.showStartDateTime) > '${todayString}'
+  //   ORDER BY b2.showStartDateTime ASC
+  //   LIMIT 1
+  // )`,
+  //         'upcomingBookingTimezone',
+  //       );
+
+  //     if (search)
+  //       baseQuery.andWhere('entertainer.name LIKE :search', {
+  //         search: `%${search}%`,
+  //       });
+
+  //     if (vaccinated)
+  //       baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+  //         vaccinated,
+  //       });
+
+  //     const total = await baseQuery.getCount();
+
+  //     const records = await baseQuery
+  //       .orderBy('entertainer.name', 'ASC')
+  //       .skip(skip)
+  //       .take(pageSize)
+  //       .getRawMany();
+
+  //     const parsedRecords = await Promise.all(
+  //       records.map(async (r) => {
+  //         // Get categories for this entertainer
+  //         const categories = await this.getFormattedCategoriesforAdminMultiple(
+  //           Number(r.id),
+  //           events.map((e) => ({
+  //             categoryId: e.categoryId,
+  //             subCategoryId: e.subCategoryId,
+  //           })),
+  //         );
+
+  //         return {
+  //           ...r,
+  //           id: Number(r.id),
+  //           socialLinks: r.socialLinks ? JSON.parse(r.socialLinks) : null,
+  //           previousBookingDate: convertUtcToTimezoneString(
+  //             r.previousBookingDate,
+  //             r.previousBookingTimezone,
+  //           ),
+  //           upcomingBookingDate: convertUtcToTimezoneString(
+  //             r.upcomingBookingDate,
+  //             r.upcomingBookingTimezone,
+  //           ),
+  //           categories,
+  //         };
+  //       }),
+  //     );
+
+  //     return {
+  //       message: 'Entertainers fetched successfully.',
+  //       records: parsedRecords,
+  //       total,
+  //       pageSize,
+  //       currentPage: page,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
   async getAllEntertainerListForSeries(seriesId: number, query: any) {
     try {
       const today = new Date();
@@ -1146,18 +1337,34 @@ export class EntertainerService {
       const { page = 1, pageSize = 10, search = '', vaccinated } = query;
       const skip = (page - 1) * pageSize;
 
+      // 1️⃣ Get all events in this series
       const events = await this.eventRepository.find({
         where: { series: { id: seriesId } },
-        select: ['categoryId', 'subCategoryId', 'id'],
+        select: ['id'],
       });
 
       if (!events.length)
         return { message: 'No events found', records: [], total: 0 };
 
-      const categoryIds = [...new Set(events.map((e) => e.categoryId))];
-      const subCategoryIds = [...new Set(events.map((e) => e.subCategoryId))];
       const eventIds = events.map((e) => e.id);
 
+      // 2️⃣ Get event categories from mapping table
+      const eventCategories = await this.eventCategoriesRepository.find({
+        where: { event: { id: In(eventIds) } },
+        select: ['categoryId', 'subCategoryId'],
+      });
+
+      if (!eventCategories.length)
+        return { message: 'No event categories found', records: [], total: 0 };
+
+      const categoryIds = [
+        ...new Set(eventCategories.map((ec) => ec.categoryId)),
+      ];
+      const subCategoryIds = [
+        ...new Set(eventCategories.map((ec) => ec.subCategoryId)),
+      ];
+
+      // 3️⃣ Build entertainer base query
       const baseQuery = this.entertainerRepository
         .createQueryBuilder('entertainer')
         .leftJoin('countries', 'country', 'country.id = entertainer.country')
@@ -1166,7 +1373,8 @@ export class EntertainerService {
         .leftJoin(
           'entertainer_category_subcategories',
           'ent_cat_subcat',
-          `ent_cat_subcat.entertainer_id = entertainer.id AND ent_cat_subcat.category_id IN (:...categoryIds)`,
+          `ent_cat_subcat.entertainer_id = entertainer.id 
+         AND ent_cat_subcat.category_id IN (:...categoryIds)`,
           { categoryIds },
         )
         .where("entertainer.status = 'active'")
@@ -1175,24 +1383,27 @@ export class EntertainerService {
             subCategoryIds.forEach((subId, i) => {
               qb.orWhere(
                 `FIND_IN_SET(:subId${i}, ent_cat_subcat.subcategory_ids)`,
-                { [`subId${i}`]: subId },
+                {
+                  [`subId${i}`]: subId,
+                },
               );
             });
           }),
         )
+        // Exclude already booked entertainers for those events
         .andWhere((qb) => {
           const subQuery = qb
             .subQuery()
             .select('1')
-            .from('booking', 'book')
-            .where('book.entId = entertainer.id')
-            .andWhere('book.eventId IN (:...eventIds)')
-            .andWhere("book.status IN ('invited', 'applied')")
+            .from('booking', 'b')
+            .where('b.entId = entertainer.id')
+            .andWhere('b.eventId IN (:...eventIds)')
+            .andWhere("b.status IN ('invited', 'applied')")
             .getQuery();
           return `NOT EXISTS ${subQuery}`;
         })
         .setParameter('eventIds', eventIds)
-        .distinct(true) // ✅ Ensure unique entertainers
+        .distinct(true)
         .select([
           'entertainer.id AS id',
           'entertainer.name AS name',
@@ -1210,62 +1421,58 @@ export class EntertainerService {
           'country.name AS country',
           'state.name AS state',
         ])
+        // last booking (past)
         .addSelect(
           `(
-    SELECT b1.showStartDateTime
-    FROM booking b1
-    JOIN venue v1 ON v1.id = b1.venueId
-    WHERE b1.entId = entertainer.id
-      AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
-      AND DATE(b1.showStartDateTime) < '${todayString}'
-    ORDER BY b1.showStartDateTime DESC
-    LIMIT 1
-  )`,
+          SELECT b1.showStartDateTime
+          FROM booking b1
+          JOIN venue v1 ON v1.id = b1.venueId
+          WHERE b1.entId = entertainer.id
+            AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
+            AND DATE(b1.showStartDateTime) < '${todayString}'
+          ORDER BY b1.showStartDateTime DESC
+          LIMIT 1
+        )`,
           'previousBookingDate',
         )
-
-        // Previous booking timezone
         .addSelect(
           `(
-    SELECT v1.timezone
-    FROM booking b1
-    JOIN venue v1 ON v1.id = b1.venueId
-    WHERE b1.entId = entertainer.id
-      AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
-      AND DATE(b1.showStartDateTime) < '${todayString}'
-    ORDER BY b1.showStartDateTime DESC
-    LIMIT 1
-  )`,
+          SELECT v1.timezone
+          FROM booking b1
+          JOIN venue v1 ON v1.id = b1.venueId
+          WHERE b1.entId = entertainer.id
+            AND b1.status IN ('invited', 'completed', 'applied', 'confirmed')
+            AND DATE(b1.showStartDateTime) < '${todayString}'
+          ORDER BY b1.showStartDateTime DESC
+          LIMIT 1
+        )`,
           'previousBookingTimezone',
         )
-
-        // Upcoming booking full timestamp
+        // next booking (future)
         .addSelect(
           `(
-    SELECT b2.showStartDateTime
-    FROM booking b2
-    JOIN venue v2 ON v2.id = b2.venueId
-    WHERE b2.entId = entertainer.id
-      AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
-      AND DATE(b2.showStartDateTime) > '${todayString}'
-    ORDER BY b2.showStartDateTime ASC
-    LIMIT 1
-  )`,
+          SELECT b2.showStartDateTime
+          FROM booking b2
+          JOIN venue v2 ON v2.id = b2.venueId
+          WHERE b2.entId = entertainer.id
+            AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
+            AND DATE(b2.showStartDateTime) > '${todayString}'
+          ORDER BY b2.showStartDateTime ASC
+          LIMIT 1
+        )`,
           'upcomingBookingDate',
         )
-
-        // Upcoming booking timezone
         .addSelect(
           `(
-    SELECT v2.timezone
-    FROM booking b2
-    JOIN venue v2 ON v2.id = b2.venueId
-    WHERE b2.entId = entertainer.id
-      AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
-      AND DATE(b2.showStartDateTime) > '${todayString}'
-    ORDER BY b2.showStartDateTime ASC
-    LIMIT 1
-  )`,
+          SELECT v2.timezone
+          FROM booking b2
+          JOIN venue v2 ON v2.id = b2.venueId
+          WHERE b2.entId = entertainer.id
+            AND b2.status IN ('invited', 'completed', 'applied', 'confirmed')
+            AND DATE(b2.showStartDateTime) > '${todayString}'
+          ORDER BY b2.showStartDateTime ASC
+          LIMIT 1
+        )`,
           'upcomingBookingTimezone',
         );
 
@@ -1287,14 +1494,14 @@ export class EntertainerService {
         .take(pageSize)
         .getRawMany();
 
+      // format each entertainer
       const parsedRecords = await Promise.all(
         records.map(async (r) => {
-          // Get categories for this entertainer
           const categories = await this.getFormattedCategoriesforAdminMultiple(
             Number(r.id),
-            events.map((e) => ({
-              categoryId: e.categoryId,
-              subCategoryId: e.subCategoryId,
+            eventCategories.map((ec) => ({
+              categoryId: ec.categoryId,
+              subCategoryId: ec.subCategoryId,
             })),
           );
 

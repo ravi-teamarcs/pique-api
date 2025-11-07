@@ -362,31 +362,32 @@ export class EventService {
     try {
       const today = startOfDay(new Date());
 
-      // 🧩 Flatten entertainer categories → pairs
+      // 🧩 Build a flattened list of all valid category-subcategory pairs
       const categorySubcategoryPairs = entertainerCategories.flatMap((cat) =>
         cat.specific_category.map((sub) => ({
           categoryId: Number(cat.id),
+          categoryName: cat.categoryName,
           subCategoryId: Number(sub.id),
+          subCategoryName: sub.specificCategoryName,
         })),
       );
 
       if (!categorySubcategoryPairs.length) {
         return {
-          message: 'No matching categories found for entertainer',
+          message: 'No entertainer categories provided',
           count: 0,
           data: [],
           status: true,
         };
       }
 
-      const categoryIds = [
-        ...new Set(categorySubcategoryPairs.map((p) => p.categoryId)),
-      ];
-      const subCategoryIds = [
-        ...new Set(categorySubcategoryPairs.map((p) => p.subCategoryId)),
-      ];
+      const validPairs = new Set(
+        categorySubcategoryPairs.map(
+          (p) => `${p.categoryId}-${p.subCategoryId}`,
+        ),
+      );
 
-      // 🎯 Step 1: Fetch events that belong to the venue and date filters
+      // 🎯 Step 1: Fetch events for this venue
       const baseEvents = await this.eventRepository
         .createQueryBuilder('event')
         .where('event.venueId = :id', { id })
@@ -419,38 +420,36 @@ export class EventService {
 
       const eventIds = baseEvents.map((e) => e.id);
 
-      // 🎯 Step 2: Fetch category-subcategory mappings for those events
+      // 🎯 Step 2: Get each event’s categories/subcategories
       const eventCategoryLinks = await this.eventCategoriesRepository
         .createQueryBuilder('ecs')
+        .leftJoin('categories', 'category', 'category.id = ecs.category_id')
+        .leftJoin(
+          'categories',
+          'subcategory',
+          'subcategory.id = ecs.subcategory_id',
+        )
         .select([
+          'ecs.id AS id',
           'ecs.event_id AS eventId',
           'ecs.category_id AS categoryId',
           'ecs.subcategory_id AS subCategoryId',
+          'category.name AS categoryName',
+          'subcategory.name AS subCategoryName',
         ])
         .where('ecs.event_id IN (:...eventIds)', { eventIds })
-        .andWhere('ecs.category_id IN (:...categoryIds)', { categoryIds })
-        .andWhere('ecs.subcategory_id IN (:...subCategoryIds)', {
-          subCategoryIds,
-        })
         .getRawMany();
 
       if (!eventCategoryLinks.length) {
         return {
-          message: 'No matching events found for entertainer categories',
+          message: 'No category-subcategory data found for events',
           count: 0,
           data: [],
           status: true,
         };
       }
 
-      // ✅ Strict match — category + subcategory pair
-      const validPairs = new Set(
-        categorySubcategoryPairs.map(
-          (p) => `${p.categoryId}-${p.subCategoryId}`,
-        ),
-      );
-
-      // 🧠 Step 3: Filter events having any valid (cat-subcat) pair
+      // 🧠 Step 3: Match only valid pairs from entertainer’s list
       const matchedEventIds = new Set(
         eventCategoryLinks
           .filter((link) =>
@@ -459,15 +458,50 @@ export class EventService {
           .map((link) => link.eventId),
       );
 
-      const filteredEvents = baseEvents.filter((e) =>
-        matchedEventIds.has(e.id),
-      );
+      // 🧩 Step 4: Build event data with grouped category info
+      const filteredEvents = baseEvents
+        .filter((e) => matchedEventIds.has(e.id))
+        .map((event) => {
+          const linksForEvent = eventCategoryLinks.filter(
+            (l) => l.eventId === event.id,
+          );
+
+          // Group by categoryId → add subcategories inside
+          const groupedCategories = Object.values(
+            linksForEvent.reduce((acc, l) => {
+              if (!acc[l.categoryId]) {
+                acc[l.categoryId] = {
+                  categoryId: l.categoryId,
+                  categoryName: l.categoryName,
+                  subCategories: [],
+                };
+              }
+              // add unique subcategories
+              if (
+                !acc[l.categoryId].subCategories.some(
+                  (sc) => sc.id === l.subCategoryId,
+                )
+              ) {
+                acc[l.categoryId].subCategories.push({
+                  id: l.subCategoryId,
+                  name: l.subCategoryName,
+                });
+              }
+              return acc;
+            }, {}),
+          );
+
+          return {
+            ...event,
+            categories: groupedCategories,
+          };
+        });
 
       return {
         message:
           filteredEvents.length > 0
-            ? 'Events dropdown list fetched successfully'
-            : 'No events matched entertainer categories',
+            ? 'Events matched successfully'
+            : 'No events match entertainer categories',
         count: filteredEvents.length,
         data: filteredEvents,
         status: true,

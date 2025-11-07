@@ -8,7 +8,37 @@ import {
   IsArray,
   ArrayNotEmpty,
   IsOptional,
+  IsInt,
+  ValidateNested,
 } from 'class-validator';
+
+export class EntertainerCategoryDto {
+  @ApiProperty({ example: 1, description: 'Category ID' })
+  @IsInt()
+  categoryId: number;
+
+  @ApiProperty({
+    example: [1, 2],
+    description: 'List of Subcategory IDs under this category',
+  })
+  @IsArray()
+  subCategoryIds: number[];
+}
+
+export class EntertainerCategoriesDto {
+  @ApiProperty({ example: 10, description: 'Entertainer ID' })
+  @IsInt()
+  entertainerId: number;
+
+  @ApiProperty({
+    type: [EntertainerCategoryDto],
+    description: 'Categories and subcategories assigned to this entertainer',
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EntertainerCategoryDto)
+  categories: EntertainerCategoryDto[];
+}
 class AdminBookingDto {
   @IsString()
   @IsNotEmpty()
@@ -35,10 +65,9 @@ class AdminBookingDto {
   @ApiProperty({ example: 1, description: 'Reference to the Entertainers' })
   @IsNotEmpty()
   @IsArray()
-  @ArrayNotEmpty()
-  @IsNumber({}, { each: true })
-  @Type(() => Number)
-  entertainerIds: number[];
+  @ValidateNested({ each: true })
+  @Type(() => EntertainerCategoriesDto)
+  entertainers: EntertainerCategoriesDto[];
 
   @ApiProperty({
     example: 1,
@@ -47,11 +76,5 @@ class AdminBookingDto {
   @IsNumber()
   @IsNotEmpty()
   eventId: number;
-
-  @IsArray()
-  categories: {
-    categoryId: number;
-    subCategoryIds: number[];
-  }[];
 }
 export { AdminBookingDto };

@@ -96,17 +96,20 @@ export class BookingService {
   }
 
   async createBooking(payload: AdminBookingDto) {
-    const { venueId, entertainerIds, showStartDateTime, ...data } = payload;
+    const { venueId, entertainers, showStartDateTime, eventId, ...data } =
+      payload;
     const details = [];
 
-    let isReinvited = false;
-
     const event = await this.eventRepository.findOne({
-      where: { id: payload.eventId },
+      where: { id: eventId },
     });
 
+    if (!event) {
+      throw new NotFoundException(`Event with id ${eventId} not found`);
+    }
+
     try {
-      // Fetch venue Details Only Once
+      // Fetch venue details once
       const venue = await this.venueRepository
         .createQueryBuilder('venue')
         .leftJoin('venue.user', 'user')
@@ -127,10 +130,14 @@ export class BookingService {
         .where('venue.id =:id', { id: venueId })
         .getRawOne();
 
-      for (const entertainerId of entertainerIds) {
+      for (const entData of entertainers) {
+        const { entertainerId, categories } = entData;
         let savedBooking;
+        let isReinvited = false;
+
+        // Check if entertainer already booked
         const alreadyBooked = await this.bookingRepository.findOne({
-          where: { entId: entertainerId, eventId: data.eventId },
+          where: { entId: entertainerId, eventId },
         });
 
         if (alreadyBooked) {
@@ -141,12 +148,12 @@ export class BookingService {
             isReinvited = true;
           } else {
             throw new BadRequestException({
-              message: `Entertainer cannot be booked for this event category or subcategory.`,
+              message: `Entertainer (ID: ${entertainerId}) already booked for this event.`,
             });
           }
         }
 
-        // Check for Availability.
+        // Fetch entertainer info
         const entertainer = await this.entertainerRepository
           .createQueryBuilder('entertainer')
           .leftJoin('entertainer.user', 'user')
@@ -154,11 +161,12 @@ export class BookingService {
             'entertainer.name AS name',
             'entertainer.email AS email',
             'user.email AS userEmail',
-            'user.id AS  userId',
+            'user.id AS userId',
           ])
           .where('entertainer.id =:id', { id: entertainerId })
           .getRawOne();
 
+        // Check availability
         const availabilityPayload = {
           startTimeUtc: formatInTimeZone(
             new Date(event.eventStartDateTime),
@@ -187,6 +195,7 @@ export class BookingService {
           continue;
         }
 
+        // Create or reinvite booking
         if (isReinvited) {
           await this.bookingRepository.update(
             { id: alreadyBooked.id },
@@ -195,33 +204,32 @@ export class BookingService {
         } else {
           const newBooking = this.bookingRepository.create({
             ...data,
-            venueId: venueId,
+            venueId,
             entId: entertainerId,
+            eventId,
             showStartDateTime: zonedTimeToUtc(
               showStartDateTime,
               venue.venueTimeZone ?? 'UTC',
             ),
             status: 'invited',
           });
+
           savedBooking = await this.bookingRepository.save(newBooking);
+
+          // Save category–subcategory mappings
           const bookingCategoryMappings = [];
-
-          for (const category of data.categories) {
+          for (const category of categories) {
             const { categoryId, subCategoryIds } = category;
-
             for (const subCategoryId of subCategoryIds) {
               const mapping = this.bookingCategoryRepository.create({
-                eventId: Number(event.id),
+                eventId,
                 bookingId: savedBooking.id,
                 categoryId,
                 subCategoryId,
               });
-
               bookingCategoryMappings.push(mapping);
             }
           }
-
-          // then save all at once
           await this.bookingCategoryRepository.save(bookingCategoryMappings);
 
           details.push({
@@ -234,17 +242,16 @@ export class BookingService {
           });
         }
 
+        // Log the booking
         const logPayload = this.logRepository.create({
-          bookingId: isReinvited === true ? alreadyBooked.id : savedBooking.id,
+          bookingId: isReinvited ? alreadyBooked.id : savedBooking.id,
           performedBy: 'admin',
           status: 'invited',
           user: null,
         });
         await this.logRepository.save(logPayload);
 
-        // fetch entertainer details  every time
-
-        // Send Email to the Entertainer
+        // Send email & notification
         if (entertainer?.email || entertainer?.userEmail) {
           const { Date: eventDate, Time: startTime } = formatUtcToTimezoneParts(
             event.eventStartDateTime,
@@ -254,6 +261,7 @@ export class BookingService {
             event.eventEndDateTime,
             venue.venueTimeZone,
           );
+
           const emailPayload = {
             to: entertainer.email || entertainer.userEmail,
             subject: 'New Booking Request',
@@ -267,7 +275,7 @@ export class BookingService {
               vname: venue.name,
               vemail: venue.email,
               vphone: venue.contactNumber,
-              Address: `${venue.addressLine1},${venue.addressLine2} ,${venue.cityName}, ${venue.stateName}, ${venue.zipCode}`,
+              Address: `${venue.addressLine1}, ${venue.addressLine2}, ${venue.cityName}, ${venue.stateName}, ${venue.zipCode}`,
             },
           };
 
@@ -275,7 +283,7 @@ export class BookingService {
           this.notifyService.sendPush(
             {
               title: 'Booking Request',
-              body: `You have new booking request from ${venue.name}`,
+              body: `You have a new booking request from ${venue.name}`,
               type: 'booking_req',
             },
             entertainer.userId,
@@ -283,14 +291,14 @@ export class BookingService {
         }
       }
 
-      // As soon as the booking is created, we update the event status to 'invited'.(Event status Updated.)
+      // Update event status
       await this.eventRepository.update(
         { id: event.id },
         { status: 'invited' },
       );
 
       return {
-        message: 'Invitaion for event sent successfully',
+        message: 'Invitation for event sent successfully',
         data: details,
         status: true,
       };
