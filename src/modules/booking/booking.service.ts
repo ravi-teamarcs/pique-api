@@ -696,16 +696,22 @@ export class BookingService {
           'cat.name',
           'state.name',
           'city.name',
+          'booking.entertainers AS entertainers',
         ])
         .where('booking.eventId = :eventId AND booking.venueId = :venueId', {
           eventId,
           venueId: refId,
         })
         .getRawMany();
+
+        const parsedResults = bookingDetails.map(booking => ({
+      ...booking,
+      entertainers: booking.entertainers ? JSON.parse(booking.entertainers) : null
+    }));
       return {
         message: 'Details returned successfully',
         status: true,
-        data: bookingDetails,
+        data: parsedResults,
       };
     } catch (error) {
       if (error instanceof HttpException) throw error;

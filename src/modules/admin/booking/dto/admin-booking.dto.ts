@@ -76,5 +76,9 @@ class AdminBookingDto {
   @IsNumber()
   @IsNotEmpty()
   eventId: number;
+
+
+ 
+
 }
 export { AdminBookingDto };

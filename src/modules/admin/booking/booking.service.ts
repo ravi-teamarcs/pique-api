@@ -98,6 +98,8 @@ export class BookingService {
   async createBooking(payload: AdminBookingDto) {
     const { venueId, entertainers, showStartDateTime, eventId, ...data } =
       payload;
+
+      console.log(" check entertainers", JSON.stringify(entertainers));
     const details = [];
 
     const event = await this.eventRepository.findOne({
@@ -212,6 +214,7 @@ export class BookingService {
               venue.venueTimeZone ?? 'UTC',
             ),
             status: 'invited',
+            entertainers: entertainers,
           });
 
           savedBooking = await this.bookingRepository.save(newBooking);
