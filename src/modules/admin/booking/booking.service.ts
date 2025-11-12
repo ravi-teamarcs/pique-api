@@ -1232,27 +1232,31 @@ export class BookingService {
 
             const savedBooking = await this.bookingRepository.save(newBooking);
 
+            // const bookingCategoryMappings = [];
+
             const bookingCategoryMappings = [];
 
-            for (const category of categories) {
-              const { id: categoryId, specific_category } = category;
+            // eventCategories = all categories/subcategories of this event
+            for (const eventCat of eventCategories) {
+              const { categoryId, subCategoryId } = eventCat;
 
-              for (const sub of specific_category || []) {
-                // Check if event category and subcategory match this entertainer's category/subcategory
-                const isMatching =
-                  event.categoryId === categoryId &&
-                  event.subCategoryId === sub.id;
+              // Find if entertainer performs in this category/subcategory
+              const foundCategory = categories.find(
+                (cat) => Number(cat.id) === Number(categoryId),
+              );
 
-                if (isMatching) {
-                  const mapping = this.bookingCategoryRepository.create({
-                    bookingId: savedBooking.id,
-                    eventId: event.id,
-                    categoryId,
-                    subCategoryId: sub.id,
-                  });
+              const foundSub = foundCategory?.specific_category?.find(
+                (sub) => Number(sub.id) === Number(subCategoryId),
+              );
 
-                  bookingCategoryMappings.push(mapping);
-                }
+              if (foundCategory && foundSub) {
+                const mapping = this.bookingCategoryRepository.create({
+                  bookingId: savedBooking.id,
+                  eventId: event.id,
+                  categoryId,
+                  subCategoryId,
+                });
+                bookingCategoryMappings.push(mapping);
               }
             }
 
