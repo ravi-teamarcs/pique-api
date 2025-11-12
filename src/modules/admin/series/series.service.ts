@@ -196,7 +196,7 @@ export class AdminSeriesService {
     }
   }
 
-  async getAllSeries(query:any) {
+  async getAllSeries(query: any) {
     try {
       const { page = 1, pageSize = 100, search } = query;
 
@@ -292,72 +292,122 @@ export class AdminSeriesService {
 
   async getSeriesById(seriesId: number) {
     try {
-      // Step 1: Load series and its events
+      // Step 1: Get base series info
       const series = await this.seriesRepository.findOne({
         where: { id: seriesId },
-        relations: ['events'],
+        select: ['id', 'seriesName'],
       });
 
       if (!series) {
         throw new NotFoundException(`Series ${seriesId} not found`);
       }
 
-      // Step 2: Get all event IDs from that series
-      const eventIds = series.events.map((e: any) => e.id);
-      if (!eventIds.length) {
+      // Step 2: Fetch all events in this series (with venue timezone)
+      const events = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId') // manual join
+        .select([
+          'event.id AS id',
+          'event.title AS title',
+          'event.slug AS slug',
+          'event.location AS location',
+          'event.venueId AS venueId',
+          'event.sub_venue_id AS sub_venue_id',
+          'event.description AS description',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.recurring AS recurring',
+          'event.status AS status',
+          'event.isAdmin AS isAdmin',
+          'event.emailSentAfter1Hour AS emailSentAfter1Hour',
+          'event.emailSentAfter24Hour AS emailSentAfter24Hour',
+          'event.categoryId AS categoryId',
+          'event.subCategoryId AS subCategoryId',
+          'event.isCloseToggleActive AS isCloseToggleActive',
+          'event.createdAt AS createdAt',
+          'event.updatedAt AS updatedAt',
+          'venue.timezone AS venueTimeZone', // ✅ new column
+        ])
+        .where('event.series_id = :seriesId', { seriesId })
+        .getRawMany();
+
+      if (!events.length) {
         return { ...series, events: [] };
       }
 
-      // Step 3: Load categories + subcategories per event
+      // Step 3: Collect event IDs for category mapping
+      const eventIds = events.map((e) => e.id);
+
+      // Step 4: Fetch categories + subcategories for all events
       const categoryData = await this.eventCategoriesRepository.query(
         `
-  SELECT 
-    ecs.event_id AS eventId,
-    JSON_ARRAYAGG(
-      JSON_OBJECT(
-        'categoryId', cat.id,
-        'categoryName', cat.name,
-        'subCategories', cat_data.subCategories
-      )
-    ) AS categories
-  FROM (
-    SELECT DISTINCT event_id, category_id
-    FROM event_category_subcategory
-    WHERE event_id IN (?)
-  ) ecs
-  JOIN categories cat ON cat.id = ecs.category_id
-  JOIN (
-    SELECT 
-      ecs_inner.event_id,
-      ecs_inner.category_id,
-      JSON_ARRAYAGG(
-        JSON_OBJECT(
-          'subCategoryId', subcat.id,
-          'subCategoryName', subcat.name
-        )
-      ) AS subCategories
-    FROM event_category_subcategory ecs_inner
-    JOIN categories subcat ON subcat.id = ecs_inner.subcategory_id
-    GROUP BY ecs_inner.event_id, ecs_inner.category_id
-  ) AS cat_data
-    ON cat_data.event_id = ecs.event_id AND cat_data.category_id = ecs.category_id
-  GROUP BY ecs.event_id
-  `,
+      SELECT 
+        ecs.event_id AS eventId,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'categoryId', cat.id,
+            'categoryName', cat.name,
+            'subCategories', cat_data.subCategories
+          )
+        ) AS categories
+      FROM (
+        SELECT DISTINCT event_id, category_id
+        FROM event_category_subcategory
+        WHERE event_id IN (?)
+      ) ecs
+      JOIN categories cat ON cat.id = ecs.category_id
+      JOIN (
+        SELECT 
+          ecs_inner.event_id,
+          ecs_inner.category_id,
+          JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'subCategoryId', subcat.id,
+              'subCategoryName', subcat.name
+            )
+          ) AS subCategories
+        FROM event_category_subcategory ecs_inner
+        JOIN categories subcat ON subcat.id = ecs_inner.subcategory_id
+        GROUP BY ecs_inner.event_id, ecs_inner.category_id
+      ) AS cat_data
+        ON cat_data.event_id = ecs.event_id AND cat_data.category_id = ecs.category_id
+      GROUP BY ecs.event_id
+      `,
         [eventIds],
       );
 
-      // Step 4: Convert result → map for quick lookup
+      // Step 5: Convert query results into a map for easy lookup
       const categoryMap = new Map<number, any>();
       for (const row of categoryData) {
         categoryMap.set(row.eventId, JSON.parse(row.categories));
       }
 
-      // Step 5: Attach categories to each event
-      const enrichedEvents = series.events.map((event: any) => ({
-        ...event,
+      // Step 6: Merge category info + timezone into events
+      const enrichedEvents = events.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        slug: event.slug,
+        location: event.location,
+        venueId: event.venueId,
+        sub_venue_id: event.sub_venue_id,
+        description: event.description,
+        eventStartDateTime: event.eventStartDateTime,
+        eventEndDateTime: event.eventEndDateTime,
+        recurring: event.recurring,
+        status: event.status,
+        isAdmin: event.isAdmin,
+        emailSentAfter1Hour: event.emailSentAfter1Hour,
+        emailSentAfter24Hour: event.emailSentAfter24Hour,
+        categoryId: event.categoryId,
+        subCategoryId: event.subCategoryId,
+        isCloseToggleActive: event.isCloseToggleActive,
+        createdAt: event.createdAt,
+        updatedAt: event.updatedAt,
+        venueTimeZone: event.venueTimeZone || 'UTC', // ✅ added new field
         categories: categoryMap.get(event.id) || [],
       }));
 
+      // Step 7: Final structured response
       return {
         id: series.id,
         seriesName: series.seriesName,
