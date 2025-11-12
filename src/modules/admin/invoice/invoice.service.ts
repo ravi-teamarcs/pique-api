@@ -625,6 +625,7 @@ export class InvoiceService {
         invoiceDetails.push({
           eventId: item.eventId,
           eventName: item.slug,
+          contactEmail: invoice?.user_email || invoice?.email,
           eventPrice: item.eventPrice,
           durationInHours: this.getDurationInHours(
             item.eventStartDateTime,
@@ -641,6 +642,7 @@ export class InvoiceService {
         dueDate: format(invoice.due_date, 'd MMMM yyyy', { locale: enUS }),
         address: `${invoice.addressLine1} ${invoice.addressLine2}`,
         venueName: invoice.venueName,
+        contactEmail: invoice?.user_email || invoice?.email,
         city: invoice.cityName,
         state: invoice.stateName,
         items: invoiceDetails,

@@ -35,6 +35,7 @@ import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
 import { formatUtcToTimezoneParts } from 'src/common/utils/common.utils';
 import { BADRESP } from 'dns';
 import { BookingCategorySubcategory } from 'src/modules/booking/entities/booking-category.entity';
+import { EventCategorySubcategory } from '../events/entities/event-category-subcategory.entity';
 
 @Injectable()
 export class BookingService {
@@ -57,6 +58,8 @@ export class BookingService {
     private readonly logRepository: Repository<BookingLog>,
     @InjectRepository(BookingCategorySubcategory)
     private readonly bookingCategoryRepository: Repository<BookingCategorySubcategory>,
+    @InjectRepository(EventCategorySubcategory)
+    private readonly eventCategoriesRepository: Repository<EventCategorySubcategory>,
 
     @InjectRepository(BookingRequest)
     private readonly reqRepository: Repository<BookingRequest>,
@@ -99,7 +102,7 @@ export class BookingService {
     const { venueId, entertainers, showStartDateTime, eventId, ...data } =
       payload;
 
-      console.log(" check entertainers", JSON.stringify(entertainers));
+    console.log(' check entertainers', JSON.stringify(entertainers));
     const details = [];
 
     const event = await this.eventRepository.findOne({
@@ -1044,16 +1047,27 @@ export class BookingService {
         return { message: 'No events found', records: [], total: 0 };
 
       // 2️⃣ Fetch event-category-subcategory mappings
-      const eventCategoryMappings = await this.bookingCategoryRepository.find({
-        where: { eventId: In(eventIds) },
-        select: ['eventId', 'categoryId', 'subCategoryId'],
+      const eventCategoryMappings = await this.eventCategoriesRepository.find({
+        where: {
+          event: {
+            id: In(eventIds),
+          },
+        },
+        relations: ['event'], // include relation if you need event details (optional)
+        select: {
+          categoryId: true,
+          subCategoryId: true,
+          event: {
+            id: true,
+          },
+        },
       });
 
       // Group by eventId
       const eventCategoryMap = eventCategoryMappings.reduce(
         (acc, cur) => {
-          if (!acc[cur.eventId]) acc[cur.eventId] = [];
-          acc[cur.eventId].push({
+          if (!acc[cur.event.id]) acc[cur.event.id] = [];
+          acc[cur?.event?.id].push({
             categoryId: Number(cur.categoryId),
             subCategoryId: Number(cur.subCategoryId),
           });
@@ -1062,15 +1076,13 @@ export class BookingService {
         {} as Record<number, { categoryId: number; subCategoryId: number }[]>,
       );
 
-      console.log('Map eventCategoryMap:', eventCategoryMap);
-
       // 3️⃣ Loop through each event
       for (const event of events) {
         if (!event) continue;
 
         const eventCategories = eventCategoryMap[event.id] || [];
 
-        // Get venue details for the event
+        // Get venue details for the event (only once per event)
         const venue = await this.venueRepository
           .createQueryBuilder('venue')
           .leftJoin('venue.user', 'user')
@@ -1138,11 +1150,11 @@ export class BookingService {
             // ✅ Match event categories with entertainer’s categories
             for (const eventCat of eventCategories) {
               const foundCategory = categories.find(
-                (c) => Number(c.categoryId) === eventCat.categoryId,
+                (c) => Number(c.id) === Number(eventCat.categoryId),
               );
 
-              const foundSub = foundCategory?.subCategories?.find(
-                (sc) => Number(sc.subCategoryId) === eventCat.subCategoryId,
+              const foundSub = foundCategory?.specific_category?.find(
+                (sc) => Number(sc.id) === Number(eventCat.subCategoryId),
               );
 
               if (foundCategory && foundSub) {

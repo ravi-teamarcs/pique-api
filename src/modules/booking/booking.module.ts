@@ -24,6 +24,7 @@ import { BookingCancellation } from './entities/booking-cancellation.entity';
 import { Invoice } from '../invoice/entities/invoice.entity';
 import { InvoiceEvent } from '../admin/invoice/entities/invoices-event.entity';
 import { BookingCategorySubcategory } from './entities/booking-category.entity';
+import { EventCategorySubcategory } from '../event/entities/event-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -46,6 +47,8 @@ import { BookingCategorySubcategory } from './entities/booking-category.entity';
       Invoice,
       InvoiceEvent,
       BookingCategorySubcategory,
+      EventCategorySubcategory
+
     ]),
     EmailModule,
     NotificationModule,

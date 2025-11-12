@@ -17,6 +17,7 @@ import { Invoice } from '../invoice/entities/invoices.entity';
 import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
 import { EntertainerAvailability } from '../entertainer/entities/entertainer-availability.entity';
 import { BookingCategorySubcategory } from 'src/modules/booking/entities/booking-category.entity';
+import { EventCategorySubcategory } from '../events/entities/event-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { BookingCategorySubcategory } from 'src/modules/booking/entities/booking
       InvoiceEvent,
       EntertainerAvailability,
       BookingCategorySubcategory,
+      EventCategorySubcategory
     ]),
     NotificationModule,
     EmailModule,
