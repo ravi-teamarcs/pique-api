@@ -1120,20 +1120,36 @@ export class BookingService {
             });
 
             const savedBooking = await this.bookingRepository.save(newBooking);
+
+            // const bookingCategoryMappings = [];
+
             const bookingCategoryMappings = [];
-            for (const category of categories) {
-              const { id: categoryId, specific_category } = category;
-              for (const sub of specific_category || []) {
+
+            // eventCategories = all categories/subcategories of this event
+            for (const eventCat of eventCategories) {
+              const { categoryId, subCategoryId } = eventCat;
+
+              // Find if entertainer performs in this category/subcategory
+              const foundCategory = categories.find(
+                (cat) => Number(cat.id) === Number(categoryId),
+              );
+
+              const foundSub = foundCategory?.specific_category?.find(
+                (sub) => Number(sub.id) === Number(subCategoryId),
+              );
+
+              if (foundCategory && foundSub) {
                 const mapping = this.bookingCategoryRepository.create({
                   bookingId: savedBooking.id,
                   eventId: event.id,
                   categoryId,
-                  subCategoryId: sub.id,
+                  subCategoryId,
                 });
                 bookingCategoryMappings.push(mapping);
               }
             }
-            if (bookingCategoryMappings.length) {
+
+            if (bookingCategoryMappings.length > 0) {
               await this.bookingCategoryRepository.save(
                 bookingCategoryMappings,
               );
