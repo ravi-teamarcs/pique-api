@@ -492,7 +492,6 @@ export class EventService {
       };
       const slug = await this.generateSlug(slugPayload);
       payload['slug'] = slug;
-      console.log('start Time:', startTime, endTime, 'EndTime');
       // Here Comparison is with ISO String
 
       const hasStartDateTimeChanged =

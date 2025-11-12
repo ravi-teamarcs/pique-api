@@ -199,7 +199,11 @@ export class EventService {
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         updatePayload['status'] = 'rescheduled';
       }
-      await this.eventRepository.update({ id: event.id }, updatePayload);
+
+      // ✅ FIX: use save instead of update
+      Object.assign(event, updatePayload);
+      await this.eventRepository.save(event);
+
       if (categories.length > 0) {
         await this.eventCategoriesRepository.delete({
           event: { id: event.id },
