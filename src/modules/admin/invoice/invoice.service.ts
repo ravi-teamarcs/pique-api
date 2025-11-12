@@ -638,8 +638,8 @@ export class InvoiceService {
     try {
       const htmlContent = await this.generateInvoiceHtml({
         invoiceNumber: invoice.invoice_number,
-        issueDate: format(invoice.issue_date, 'd MMMM yyyy', { locale: enUS }),
-        dueDate: format(invoice.due_date, 'd MMMM yyyy', { locale: enUS }),
+        issueDate: format(invoice.issue_date, 'd MMM yyyy', { locale: enUS }),
+        dueDate: format(invoice.due_date, 'd MMM yyyy', { locale: enUS }),
         address: `${invoice.addressLine1} ${invoice.addressLine2}`,
         venueName: invoice.venueName,
         contactEmail: invoice?.user_email || invoice?.email,

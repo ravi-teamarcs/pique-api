@@ -1120,6 +1120,24 @@ export class BookingService {
             });
 
             const savedBooking = await this.bookingRepository.save(newBooking);
+            const bookingCategoryMappings = [];
+            for (const category of categories) {
+              const { id: categoryId, specific_category } = category;
+              for (const sub of specific_category || []) {
+                const mapping = this.bookingCategoryRepository.create({
+                  bookingId: savedBooking.id,
+                  eventId: event.id,
+                  categoryId,
+                  subCategoryId: sub.id,
+                });
+                bookingCategoryMappings.push(mapping);
+              }
+            }
+            if (bookingCategoryMappings.length) {
+              await this.bookingCategoryRepository.save(
+                bookingCategoryMappings,
+              );
+            }
 
             const logPayload = this.logRepository.create({
               bookingId: savedBooking.id,
