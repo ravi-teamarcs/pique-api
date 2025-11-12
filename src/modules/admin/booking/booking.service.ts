@@ -1231,20 +1231,32 @@ export class BookingService {
             });
 
             const savedBooking = await this.bookingRepository.save(newBooking);
+
             const bookingCategoryMappings = [];
+
             for (const category of categories) {
               const { id: categoryId, specific_category } = category;
+
               for (const sub of specific_category || []) {
-                const mapping = this.bookingCategoryRepository.create({
-                  bookingId: savedBooking.id,
-                  eventId: event.id,
-                  categoryId,
-                  subCategoryId: sub.id,
-                });
-                bookingCategoryMappings.push(mapping);
+                // Check if event category and subcategory match this entertainer's category/subcategory
+                const isMatching =
+                  event.categoryId === categoryId &&
+                  event.subCategoryId === sub.id;
+
+                if (isMatching) {
+                  const mapping = this.bookingCategoryRepository.create({
+                    bookingId: savedBooking.id,
+                    eventId: event.id,
+                    categoryId,
+                    subCategoryId: sub.id,
+                  });
+
+                  bookingCategoryMappings.push(mapping);
+                }
               }
             }
-            if (bookingCategoryMappings.length) {
+
+            if (bookingCategoryMappings.length > 0) {
               await this.bookingCategoryRepository.save(
                 bookingCategoryMappings,
               );

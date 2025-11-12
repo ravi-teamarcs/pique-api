@@ -252,7 +252,7 @@ export class AdminSeriesService {
       // 4️⃣ Add venueTimezone to each event (no other key changes)
       const seriesWithTimezone = seriesList.map((series) => ({
         ...series,
-        events: series.events.map((event:any) => ({
+        events: series.events.map((event: any) => ({
           ...event,
           venueTimezone: venueTimezones[event.venueId] || 'UTC',
         })),
