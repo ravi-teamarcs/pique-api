@@ -62,10 +62,7 @@ export class BookingController {
   @Post('series')
   @Roles('findAll')
   inviteEntertainerForSeries(@Body() payload: SeriesBookingDto) {
-    const { eventIds, entertainers } = payload;
-    return this.bookingService.inviteEntertainerForSeries(
-      eventIds,
-      entertainers,
-    );
+    const { eventMappings } = payload;
+    return this.bookingService.inviteEntertainerForSeries(eventMappings);
   }
 }

@@ -26,6 +26,8 @@ import { Categories } from '../entertainer/entities/Category.entity';
 import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
 import { EventCategorySubcategory } from '../events/entities/event-category-subcategory.entity';
 import { AnyARecord } from 'dns';
+import { BookingCategorySubcategory } from 'src/modules/booking/entities/booking-category.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
 
 @Injectable()
 export class AdminSeriesService {
@@ -34,6 +36,8 @@ export class AdminSeriesService {
     private readonly eventRepository: Repository<Event>,
     @InjectRepository(Venue)
     private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(Entertainer)
+    private readonly entertainerRepository: Repository<Entertainer>,
     @InjectRepository(Series)
     private readonly seriesRepository: Repository<Series>,
     @InjectRepository(Categories)
@@ -44,6 +48,8 @@ export class AdminSeriesService {
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(EventCategorySubcategory)
     private readonly eventCategoriesRepository: Repository<EventCategorySubcategory>,
+    @InjectRepository(BookingCategorySubcategory)
+    private readonly bookingCategoryRepository: Repository<BookingCategorySubcategory>,
     private readonly bookingService: BookingService,
   ) {}
 
@@ -947,79 +953,98 @@ export class AdminSeriesService {
 
   async getBookedEntertainerForSeries(seriesId: number) {
     try {
+      // 1️⃣ Get all events in this series
       const events = await this.eventRepository.find({
         where: { series: { id: seriesId } },
         select: ['id', 'slug', 'title'],
-        relations: ['series'], // only if you need series loaded
       });
 
-      const eventIds = events?.map((event) => Number(event.id));
-      if (eventIds.length === 0)
+      if (!events.length) {
         return { message: 'No events for series', data: [], status: true };
+      }
 
-      const rawBookings = await this.bookingRepository
-        .createQueryBuilder('booking')
-        .leftJoin('event', 'event', 'event.id =booking.eventId')
-        .leftJoin(
-          'entertainers',
-          'entertainer',
-          'entertainer.id = booking.entId',
-        )
-        .leftJoin('categories', 'category', 'category.id = booking.categoryId')
-        .leftJoin('categories', 'subcat', 'subcat.id = booking.subcategoryId')
-        .select([
-          'event.slug AS eventSlug',
-          'booking.id AS bookingId',
-          'booking.eventId AS eventId',
-          'entertainer.id AS entertainerId',
-          'entertainer.entertainer_name AS entertainerName',
-          'entertainer.contact_person AS contactPerson',
-          'entertainer.contact_number AS contactNumber',
-          'booking.categoryId AS categoryId',
-          'booking.subcategoryId AS subCategoryId',
-          'booking.status AS bookingstatus',
-          'category.name AS categoryName',
-          'subcat.name AS subCategoryName ',
-        ])
-        .where('booking.eventId IN (:...eventIds)', { eventIds })
-        .getRawMany(); // Group by eventId
-      const grouped = rawBookings.reduce((acc, row) => {
-        const existing = acc.find((e) => e.eventId === row.eventId);
-        if (existing) {
-          existing.bookings.push({
-            bookingId: row.bookingId,
-            entertainerName: row.entertainerName,
-            entertainerId: Number(row.entertainerId),
-            categoryName: row.categoryName,
-            subCategoryName: row.subCategoryName,
-            categoryId: row.categoryId,
-            subcategoryId: row.subCategoryId,
-            bookingstatus: row.bookingstatus,
-            contactPerson: row.contactPerson,
-            contactNumber: row.contactNumber,
+      const eventIds = events.map((e) => e.id);
+
+      // 2️⃣ Get all bookings for these events
+      const bookings = await this.bookingRepository.find({
+        where: { eventId: In(eventIds) },
+        select: ['id', 'entId', 'eventId', 'status'],
+      });
+
+      if (!bookings.length) {
+        return { message: 'No bookings found', data: [], status: true };
+      }
+
+      const bookingIds = bookings.map((b) => b.id);
+
+      // 3️⃣ Get category-subcategory mappings for the bookings
+      const mappings = await this.bookingCategoryRepository.find({
+        where: { bookingId: In(bookingIds) },
+        select: ['bookingId', 'categoryId', 'subCategoryId'],
+      });
+
+      // 4️⃣ Collect all unique category IDs
+      const categoryIds = Array.from(
+        new Set([
+          ...mappings.map((m) => m.categoryId),
+          ...mappings.map((m) => m.subCategoryId),
+        ]),
+      );
+
+      // 5️⃣ Fetch category & subcategory names
+      const categories = await this.categoryRepository.find({
+        where: { id: In(categoryIds) },
+        select: ['id', 'name'],
+      });
+
+      const categoryMap = new Map(categories.map((c) => [c.id, c.name]));
+
+      // 6️⃣ Fetch all entertainers for these bookings
+      const entertainerIds = Array.from(new Set(bookings.map((b) => b.entId)));
+
+      const entertainers = await this.entertainerRepository.find({
+        where: { id: In(entertainerIds) },
+        select: ['id', 'entertainerName', 'contact_person', 'contact_number'],
+      });
+
+      // Use Map for O(1) lookup
+      const entertainerMap = new Map(
+        entertainers.map((e) => [Number(e.id), e]),
+      );
+
+      // 7️⃣ Combine everything — event → bookings → categories[]
+      const grouped = events.map((event) => {
+        const eventBookings = bookings
+          .filter((b) => b.eventId === event.id)
+          .map((b) => {
+            const entertainer = entertainerMap.get(Number(b.entId));
+
+            const relatedMappings = mappings.filter(
+              (m) => m.bookingId === b.id,
+            );
+
+            return {
+              bookingId: b.id,
+              bookingstatus: b.status,
+              entertainerId: entertainer?.id || null,
+              entertainerName: entertainer?.entertainerName || null,
+              contactPerson: entertainer?.contact_person || null,
+              contactNumber: entertainer?.contact_number || null,
+              categories: relatedMappings.map((m) => ({
+                categoryId: m.categoryId,
+                categoryName: categoryMap.get(m.categoryId) || null,
+                subcategoryId: m.subCategoryId,
+                subCategoryName: categoryMap.get(m.subCategoryId) || null,
+              })),
+            };
           });
-        } else {
-          acc.push({
-            eventId: row.eventId,
-            eventSlug: row.eventSlug,
-            bookings: [
-              {
-                bookingId: row.bookingId,
-                entertainerName: row.entertainerName,
-                categoryName: row.categoryName,
-                subCategoryName: row.subCategoryName,
-                entertainerId: Number(row.entertainerId),
-                categoryId: row.categoryId,
-                subcategoryId: row.subcategoryId,
-                bookingstatus: row.bookingstatus,
-                contactPerson: row.contactPerson,
-                contactNumber: row.contactNumber,
-              },
-            ],
-          });
-        }
-        return acc;
-      }, []);
+
+        return {
+          eventId: event.id,
+          eventSlug: event.slug,
+          bookings: eventBookings,
+        };
+      });
 
       return {
         message: 'Entertainer booked for series',

@@ -13,6 +13,8 @@ import { BookingModule } from '../booking/booking.module';
 import { Categories } from '../entertainer/entities/Category.entity';
 import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
 import { EventCategorySubcategory } from '../events/entities/event-category-subcategory.entity';
+import { BookingCategorySubcategory } from 'src/modules/booking/entities/booking-category.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
 
 @Module({
   imports: [
@@ -26,7 +28,10 @@ import { EventCategorySubcategory } from '../events/entities/event-category-subc
       Booking,
       Categories,
       Neighbourhood,
-      EventCategorySubcategory
+      EventCategorySubcategory,
+      BookingCategorySubcategory,
+      Entertainer
+
     ]),
     BookingModule,
   ],
