@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { VenueEvent } from '../event/entities/event.entity';
-import { MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
+import { In, MoreThan, MoreThanOrEqual, Repository } from 'typeorm';
 import { Venue } from '../venue/entities/venue.entity';
 import { nowUtc } from 'src/common/utils/common.utils';
 import { startOfDay } from 'date-fns';
@@ -24,6 +24,7 @@ import { Status } from 'src/common/enums/event.enum';
 import { Booking } from '../booking/entities/booking.entity';
 import { BookingService } from '../booking/booking.service';
 import { EventCategorySubcategory } from '../event/entities/event-category-subcategory.entity';
+import { Category } from '../entertainer/entities/categories.entity';
 
 @Injectable()
 export class SeriesService {
@@ -36,6 +37,8 @@ export class SeriesService {
     private readonly seriesRepository: Repository<Series>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
     @InjectRepository(EventCategorySubcategory)
     private readonly eventCategoriesRepository: Repository<EventCategorySubcategory>,
     private readonly bookingService: BookingService,
@@ -199,26 +202,26 @@ export class SeriesService {
     }
   }
 
-  async getAllSeriesOfVenue(venueId: number) {
-    try {
-      const series = await this.seriesRepository.find({
-        where: { venueId },
-        relations: ['events'],
-        order: {
-          events: {
-            eventStartDateTime: 'ASC',
-          },
-        },
-      });
-      return {
-        message: 'series returned Successfully',
-        data: series,
-        status: true,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException(error.message);
-    }
-  }
+  // async getAllSeriesOfVenue(venueId: number) {
+  //   try {
+  //     const series = await this.seriesRepository.find({
+  //       where: { venueId },
+  //       relations: ['events'],
+  //       order: {
+  //         events: {
+  //           eventStartDateTime: 'ASC',
+  //         },
+  //       },
+  //     });
+  //     return {
+  //       message: 'series returned Successfully',
+  //       data: series,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
 
   // async getSeriesById(id: number, venueId: number) {
   //   let response: any;
@@ -264,6 +267,217 @@ export class SeriesService {
   //     throw new InternalServerErrorException(error.message);
   //   }
   // }
+
+  // async getAllSeriesOfVenue(venueId: number) {
+  //   try {
+  //     // 1️⃣ Fetch all series with their events
+  //     const seriesList = await this.seriesRepository.find({
+  //       where: { venueId },
+  //       relations: ['events'],
+  //       order: {
+  //         events: {
+  //           eventStartDateTime: 'ASC',
+  //         },
+  //       },
+  //     });
+
+  //     if (!seriesList.length) {
+  //       return {
+  //         message: 'series returned successfully',
+  //         data: [],
+  //         status: true,
+  //       };
+  //     }
+
+  //     // 2️⃣ Collect all event IDs
+  //     const allEventIds = seriesList.flatMap((series) =>
+  //       (series.events || []).map((event: any) => event.id),
+  //     );
+
+  //     // 3️⃣ Fetch event-category mappings (plain columns only)
+  //     const eventCategoryMappings = allEventIds.length
+  //       ? await this.eventCategoriesRepository.find({
+  //           where: { event: { id: In(allEventIds) } }, // eventId is plain column now
+  //           relations: ['event'],
+  //           select: ['event', 'categoryId', 'subCategoryId'],
+  //         })
+  //       : [];
+
+  //     // 4️⃣ Collect all unique category and subcategory IDs
+  //     const allCategoryIds = [
+  //       ...new Set(eventCategoryMappings.map((m) => m.categoryId)),
+  //     ];
+  //     const allSubCategoryIds = [
+  //       ...new Set(eventCategoryMappings.map((m) => m.subCategoryId)),
+  //     ];
+
+  //     // 5️⃣ Fetch names from `categories` and `specific_categories` tables
+  //     const [categories, subcategories] = await Promise.all([
+  //       this.categoryRepository.find({
+  //         where: { id: In(allCategoryIds) },
+  //         select: ['id', 'name'],
+  //       }),
+  //       this.categoryRepository.find({
+  //         where: { id: In(allSubCategoryIds) },
+  //         select: ['id', 'name'],
+  //       }),
+  //     ]);
+
+  //     // 6️⃣ Map category and subcategory IDs to names
+  //     const categoryMap = Object.fromEntries(
+  //       categories.map((c) => [c.id, c.name]),
+  //     );
+  //     const subCategoryMap = Object.fromEntries(
+  //       subcategories.map((s) => [s.id, s.name]),
+  //     );
+
+  //     // 7️⃣ Group mappings by eventId
+  //     const eventCategoryMap = eventCategoryMappings.reduce(
+  //       (acc, mapping: any) => {
+  //         const eventId = Number(mapping.event.id); // 👈 ensure event.id is always number
+  //         if (!acc[eventId]) acc[eventId] = [];
+  //         acc[eventId].push({
+  //           categoryId: mapping.categoryId,
+  //           categoryName: categoryMap[mapping.categoryId] || null,
+  //           subCategoryId: mapping.subCategoryId,
+  //           subCategoryName: subCategoryMap[mapping.subCategoryId] || null,
+  //         });
+  //         return acc;
+  //       },
+  //       {} as Record<number, any[]>,
+  //     );
+  //     console.log('Enriched Series:', eventCategoryMap);
+  //     // 8️⃣ Attach categories to events
+  //     const enrichedSeries = seriesList.map((series) => ({
+  //       ...series,
+  //       events: series.events.map((event: any) => ({
+  //         ...event,
+  //         categories: eventCategoryMap[Number(event.id)] || [], // ✅ number comparison
+  //       })),
+  //     }));
+
+  //     // 9️⃣ Return final response
+  //     return {
+  //       message: 'series returned Successfully',
+  //       data: enrichedSeries,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     console.error('Error in getAllSeriesOfVenue:', error);
+  //     throw new InternalServerErrorException(error.message);
+  //   }
+  // }
+  async getAllSeriesOfVenue(venueId: number) {
+    try {
+      // 1️⃣ Fetch all series with their events
+      const seriesList = await this.seriesRepository.find({
+        where: { venueId },
+        relations: ['events'],
+        order: {
+          events: {
+            eventStartDateTime: 'ASC',
+          },
+        },
+      });
+
+      if (!seriesList.length) {
+        return {
+          message: 'series returned successfully',
+          data: [],
+          status: true,
+        };
+      }
+
+      // 2️⃣ Collect all event IDs
+      const allEventIds = seriesList.flatMap((series) =>
+        (series.events || []).map((event: any) => event.id),
+      );
+
+      // 3️⃣ Fetch event-category mappings (plain columns only)
+      const eventCategoryMappings = allEventIds.length
+        ? await this.eventCategoriesRepository.find({
+            where: { event: { id: In(allEventIds) } },
+            relations: ['event'],
+            select: ['categoryId', 'subCategoryId'],
+          })
+        : [];
+
+      // 4️⃣ Collect all unique category and subcategory IDs
+      const allCategoryIds = [
+        ...new Set(eventCategoryMappings.map((m) => m.categoryId)),
+      ];
+      const allSubCategoryIds = [
+        ...new Set(eventCategoryMappings.map((m) => m.subCategoryId)),
+      ];
+
+      // 5️⃣ Fetch names from `categories` and `specific_categories` tables
+      const [categories, subcategories] = await Promise.all([
+        this.categoryRepository.find({
+          where: { id: In(allCategoryIds) },
+          select: ['id', 'name'],
+        }),
+        this.categoryRepository.find({
+          where: { id: In(allSubCategoryIds) },
+          select: ['id', 'name'],
+        }),
+      ]);
+
+      // 6️⃣ Map category and subcategory IDs to names
+      const categoryMap = Object.fromEntries(
+        categories.map((c) => [c.id, c.name]),
+      );
+      const subCategoryMap = Object.fromEntries(
+        subcategories.map((s) => [s.id, s.name]),
+      );
+
+      // 7️⃣ Group mappings by eventId (normalize to string + prevent duplicates)
+      const eventCategoryMap = eventCategoryMappings.reduce(
+        (acc, mapping: any) => {
+          const eventId = String(mapping.event.id); // ✅ ensure string key
+
+          if (!acc[eventId]) acc[eventId] = [];
+
+          // Avoid duplicate category-subcategory pairs
+          const key = `${mapping.categoryId}-${mapping.subCategoryId}`;
+          const alreadyExists = acc[eventId].some(
+            (m) => `${m.categoryId}-${m.subCategoryId}` === key,
+          );
+          if (!alreadyExists) {
+            acc[eventId].push({
+              categoryId: mapping.categoryId,
+              categoryName: categoryMap[mapping.categoryId] || null,
+              subCategoryId: mapping.subCategoryId,
+              subCategoryName: subCategoryMap[mapping.subCategoryId] || null,
+            });
+          }
+
+          return acc;
+        },
+        {} as Record<string, any[]>, // ✅ keys are strings
+      );
+
+
+      // 8️⃣ Attach categories to events (convert event.id → string)
+      const enrichedSeries = seriesList.map((series) => ({
+        ...series,
+        events: series.events.map((event: any) => ({
+          ...event,
+          categories: eventCategoryMap[String(event.id)] || [], // ✅ now matches
+        })),
+      }));
+
+      // 9️⃣ Return final response
+      return {
+        message: 'series returned Successfully',
+        data: enrichedSeries,
+        status: true,
+      };
+    } catch (error) {
+      console.error('Error in getAllSeriesOfVenue:', error);
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
   async getSeriesById(id: number, venueId: number) {
     let response: any;
     try {

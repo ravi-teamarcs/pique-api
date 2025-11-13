@@ -11,6 +11,7 @@ import { Series } from './entities/series.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { BookingModule } from '../booking/booking.module';
 import { EventCategorySubcategory } from '../event/entities/event-category-subcategory.entity';
+import { Category } from '../entertainer/entities/categories.entity';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { EventCategorySubcategory } from '../event/entities/event-category-subca
       Series,
       Booking,
       EventCategorySubcategory,
+      Category,
     ]),
     BookingModule,
   ],
