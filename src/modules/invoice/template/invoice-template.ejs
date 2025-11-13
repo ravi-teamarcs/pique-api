@@ -293,6 +293,11 @@
         <div class="bill-to">
           <p class="client-name">
             <!-- Client name can go here if needed -->
+             <p class="fw-light my-1" style="color: #0067FF;">
+  <%= invoicedata.neighbourhoodName ? invoicedata.neighbourhoodName : invoicedata.venueName %> |
+  <%= invoicedata.neighbourhoodContactPerson ? invoicedata.neighbourhoodContactPerson : invoicedata.contactPerson %>
+</p>
+
           </p>
           <h3>Bill to</h3>
           <p class="venue-info">

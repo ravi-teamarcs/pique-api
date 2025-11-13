@@ -48,10 +48,10 @@ export class Booking {
     | 'reinvited'
     | 'removed';
 
-  @Column({ name: 'category_id' })
+  @Column({ name: 'category_id', nullable: true })
   categoryId: number;
 
-  @Column({ name: 'subcategory_id' })
+  @Column({ name: 'subcategory_id', nullable: true })
   subcategoryId: number;
 
   // Also Add the new column

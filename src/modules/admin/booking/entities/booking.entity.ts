@@ -56,17 +56,17 @@ export class Booking {
   @Column({ nullable: true })
   specialNotes: string;
 
-  @Column({ name: 'category_id' })
+  @Column({ name: 'category_id', nullable: true })
   categoryId: number;
 
-  @Column({ name: 'subcategory_id' })
+  @Column({ name: 'subcategory_id', nullable: true })
   subcategoryId: number;
 
   @Column({ default: false })
   emailSentOnClose: boolean;
 
   @Column({ type: 'json', nullable: true })
-  entertainers: any
+  entertainers: any;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;

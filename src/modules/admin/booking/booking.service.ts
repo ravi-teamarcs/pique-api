@@ -33,9 +33,10 @@ import { getMonth, getYear } from 'date-fns';
 import { EntertainerAvailability } from '../entertainer/entities/entertainer-availability.entity';
 import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
 import { formatUtcToTimezoneParts } from 'src/common/utils/common.utils';
-import { BADRESP } from 'dns';
+import { AnyARecord, BADRESP } from 'dns';
 import { BookingCategorySubcategory } from 'src/modules/booking/entities/booking-category.entity';
 import { EventCategorySubcategory } from '../events/entities/event-category-subcategory.entity';
+import { SeriesBookingDto } from './dto/series-booking.dto';
 
 @Injectable()
 export class BookingService {
@@ -1027,9 +1028,12 @@ export class BookingService {
   //     throw new InternalServerErrorException(error.message);
   //   }
   // }
-  async inviteEntertainerForSeries(eventIds: number[], entertainers: any[]) {
+  async inviteEntertainerForSeries(eventMappings: any[]) {
     try {
       const details: any[] = [];
+
+      // Extract all eventIds
+      const eventIds: number[] = eventMappings.map((em) => Number(em.eventId));
 
       // 1️⃣ Fetch all events
       const events = await this.eventRepository.find({
@@ -1049,24 +1053,21 @@ export class BookingService {
       // 2️⃣ Fetch event-category-subcategory mappings
       const eventCategoryMappings = await this.eventCategoriesRepository.find({
         where: {
-          event: {
-            id: In(eventIds),
-          },
+          event: { id: In(eventIds) },
         },
-        relations: ['event'], // include relation if you need event details (optional)
+        relations: ['event'],
         select: {
+          id: true, // ✅ selects id of EventCategorySubcategory
+          event: { id: true }, // ✅ only get event.id (not full event)
           categoryId: true,
           subCategoryId: true,
-          event: {
-            id: true,
-          },
         },
       });
 
       // Group by eventId
       const eventCategoryMap = eventCategoryMappings.reduce(
         (acc, cur) => {
-          if (!acc[cur.event.id]) acc[cur.event.id] = [];
+          if (!acc[cur?.event?.id]) acc[cur?.event?.id] = [];
           acc[cur?.event?.id].push({
             categoryId: Number(cur.categoryId),
             subCategoryId: Number(cur.subCategoryId),
@@ -1076,13 +1077,15 @@ export class BookingService {
         {} as Record<number, { categoryId: number; subCategoryId: number }[]>,
       );
 
-      // 3️⃣ Loop through each event
-      for (const event of events) {
+      // 3️⃣ Loop through each event mapping
+      for (const mapping of eventMappings) {
+        const { eventId, entertainers } = mapping;
+        const event = events.find((e) => e.id === eventId);
         if (!event) continue;
 
         const eventCategories = eventCategoryMap[event.id] || [];
 
-        // Get venue details for the event (only once per event)
+        // Get venue details for the event
         const venue = await this.venueRepository
           .createQueryBuilder('venue')
           .leftJoin('venue.user', 'user')
@@ -1105,10 +1108,13 @@ export class BookingService {
 
         let anyInvitedForThisEvent = false;
 
-        // 4️⃣ Loop through entertainers
+        // 4️⃣ Loop through each entertainer for this event
         for (const entertainer of entertainers) {
           try {
             const entId = Number(entertainer.entertainerId);
+            const categories = Array.isArray(entertainer.categories)
+              ? entertainer.categories
+              : [];
 
             // Check if already invited/booked
             const alreadyBooked = await this.bookingRepository.findOne({
@@ -1139,32 +1145,32 @@ export class BookingService {
               continue;
             }
 
-            // ✅ Extract entertainer categories (frontend structure)
-            const categories = Array.isArray(entertainer.categories)
-              ? entertainer.categories
-              : [];
+            // ✅ Match entertainer categories with event categories
+            let hasMatch = false;
+            const bookingCategoryMappings = [];
 
-            let matchedCategory: any = null;
-            let matchedSubcategory: any = null;
-
-            // ✅ Match event categories with entertainer’s categories
             for (const eventCat of eventCategories) {
               const foundCategory = categories.find(
-                (c) => Number(c.id) === Number(eventCat.categoryId),
+                (cat) => Number(cat.categoryId) === Number(eventCat.categoryId),
               );
 
-              const foundSub = foundCategory?.specific_category?.find(
-                (sc) => Number(sc.id) === Number(eventCat.subCategoryId),
+              const subMatch = foundCategory?.subCategoryIds?.find(
+                (sid) => Number(sid) === Number(eventCat.subCategoryId),
               );
 
-              if (foundCategory && foundSub) {
-                matchedCategory = eventCat;
-                matchedSubcategory = foundSub;
-                break;
+              if (foundCategory && subMatch) {
+                hasMatch = true;
+                const mapping = this.bookingCategoryRepository.create({
+                  bookingId: null, // will set after booking save
+                  eventId: event.id,
+                  categoryId: eventCat.categoryId,
+                  subCategoryId: eventCat.subCategoryId,
+                });
+                bookingCategoryMappings.push(mapping);
               }
             }
 
-            if (!matchedCategory || !matchedSubcategory) {
+            if (!hasMatch) {
               details.push({
                 entertainerId: entId,
                 entertainerName: Entertainer?.name ?? null,
@@ -1220,8 +1226,6 @@ export class BookingService {
               venueId: event.venueId,
               entId,
               eventId: event.id,
-              categoryId: matchedCategory.categoryId,
-              subcategoryId: matchedCategory.subCategoryId,
               status: 'invited',
               showStartDateTime: formatInTimeZone(
                 new Date(event.eventStartDateTime),
@@ -1232,32 +1236,9 @@ export class BookingService {
 
             const savedBooking = await this.bookingRepository.save(newBooking);
 
-            // const bookingCategoryMappings = [];
-
-            const bookingCategoryMappings = [];
-
-            // eventCategories = all categories/subcategories of this event
-            for (const eventCat of eventCategories) {
-              const { categoryId, subCategoryId } = eventCat;
-
-              // Find if entertainer performs in this category/subcategory
-              const foundCategory = categories.find(
-                (cat) => Number(cat.id) === Number(categoryId),
-              );
-
-              const foundSub = foundCategory?.specific_category?.find(
-                (sub) => Number(sub.id) === Number(subCategoryId),
-              );
-
-              if (foundCategory && foundSub) {
-                const mapping = this.bookingCategoryRepository.create({
-                  bookingId: savedBooking.id,
-                  eventId: event.id,
-                  categoryId,
-                  subCategoryId,
-                });
-                bookingCategoryMappings.push(mapping);
-              }
+            // ✅ Save category mappings for this booking
+            for (const mapping of bookingCategoryMappings) {
+              mapping.bookingId = savedBooking.id;
             }
 
             if (bookingCategoryMappings.length > 0) {
@@ -1266,6 +1247,7 @@ export class BookingService {
               );
             }
 
+            // ✅ Log
             const logPayload = this.logRepository.create({
               bookingId: savedBooking.id,
               performedBy: 'admin',
@@ -1274,7 +1256,7 @@ export class BookingService {
             });
             await this.logRepository.save(logPayload);
 
-            // ✅ Email/push notification
+            // ✅ Send notification/email
             if (Entertainer?.email || Entertainer?.userEmail) {
               const { Date: eventDate, Time: startTime } =
                 formatUtcToTimezoneParts(
@@ -1337,7 +1319,6 @@ export class BookingService {
           }
         }
 
-        // Mark event as invited if any successful booking
         if (anyInvitedForThisEvent) {
           await this.eventRepository.update(
             { id: event.id },
@@ -1347,7 +1328,7 @@ export class BookingService {
       }
 
       return {
-        message: 'Entertainers invited for series successfully.',
+        message: 'Entertainers invited successfully.',
         status: true,
         data: details,
       };

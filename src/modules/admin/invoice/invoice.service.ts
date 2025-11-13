@@ -603,6 +603,7 @@ export class InvoiceService {
         'venue.email AS email',
         'venue.addressLine1 AS addressLine1',
         'venue.addressLine2 AS addressLine2',
+        'venue.contactPerson AS contactPerson',
         'venue.city AS cityCode',
         'venue.state AS stateCode',
         'venue.zipCode AS zipCode',
@@ -626,6 +627,7 @@ export class InvoiceService {
           eventId: item.eventId,
           eventName: item.slug,
           contactEmail: invoice?.user_email || invoice?.email,
+
           eventPrice: item.eventPrice,
           durationInHours: this.getDurationInHours(
             item.eventStartDateTime,
@@ -642,9 +644,13 @@ export class InvoiceService {
         dueDate: format(invoice.due_date, 'd MMM yyyy', { locale: enUS }),
         address: `${invoice.addressLine1} ${invoice.addressLine2}`,
         venueName: invoice.venueName,
+        invoicedata: {
+          venueName: invoice?.venueName,
+          contactPerson: invoice?.contactPerson,
+        },
         contactEmail: invoice?.user_email || invoice?.email,
-        city: invoice.cityName,
-        state: invoice.stateName,
+        city: invoice?.cityName,
+        state: invoice?.stateName,
         items: invoiceDetails,
         zipCode: invoice.zipCode,
         totalWithTax: invoice.total_with_tax,

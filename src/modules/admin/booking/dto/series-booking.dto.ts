@@ -1,55 +1,43 @@
-import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsInt,
-  IsNotEmpty,
+  IsNumber,
   ValidateNested,
-  IsString,
+  ArrayNotEmpty,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
-class EntertainerSpecificCategoryDto {
-  @IsInt()
-  @IsNotEmpty()
-  id: number;
-
-  @IsString()
-  specificCategoryName: string;
-}
-
-class EntertainerCategoryDto {
-  @IsInt()
-  @IsNotEmpty()
-  id: number;
-
-  @IsString()
-  categoryName: string;
+class CategoryMappingDto {
+  @IsNumber()
+  categoryId: number;
 
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => EntertainerSpecificCategoryDto)
-  specific_category: EntertainerSpecificCategoryDto[];
+  @ArrayNotEmpty()
+  subCategoryIds: number[];
 }
 
-export class EntertainerBookingDto {
-  @IsInt()
-  @IsNotEmpty()
+class EntertainerMappingDto {
+  @IsNumber()
   entertainerId: number;
 
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => EntertainerCategoryDto)
-  categories: EntertainerCategoryDto[];
+  @Type(() => CategoryMappingDto)
+  categories: CategoryMappingDto[];
+}
+
+class EventMappingDto {
+  @IsNumber()
+  eventId: number;
+
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EntertainerMappingDto)
+  entertainers: EntertainerMappingDto[];
 }
 
 export class SeriesBookingDto {
   @IsArray()
-  @IsInt({ each: true })
-  @IsNotEmpty()
-  eventIds: number[];
-
-  @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => EntertainerBookingDto)
-  @IsNotEmpty()
-  entertainers: EntertainerBookingDto[];
+  @Type(() => EventMappingDto)
+  eventMappings: EventMappingDto[];
 }
