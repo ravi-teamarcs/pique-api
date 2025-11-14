@@ -1012,7 +1012,7 @@ export class InvoiceService {
       };
     });
 
-    const totalCount = await this.invoiceRepository
+    const totalCount = await this.entInvoiceRepository
       .createQueryBuilder('invoices')
       .andWhere('invoices.user_type = :role', { role: 'entertainer' })
       .getCount();
