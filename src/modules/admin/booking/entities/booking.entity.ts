@@ -65,8 +65,8 @@ export class Booking {
   @Column({ default: false })
   emailSentOnClose: boolean;
 
-  @Column({ type: 'json', nullable: true })
-  entertainers: any;
+  // @Column({ type: 'json', nullable: true })
+  // entertainers: any;
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
