@@ -218,7 +218,6 @@ export class BookingService {
               venue.venueTimeZone ?? 'UTC',
             ),
             status: 'invited',
-            // entertainers: entertainers,
           });
 
           savedBooking = await this.bookingRepository.save(newBooking);
