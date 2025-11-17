@@ -429,172 +429,167 @@ export class EventService {
   // }
 
   // Update an event by id
-async update(id: number, dto: UpdateEventDto) {
-  const {
-    neighbourhoodId,
-    eventStartDateTime,
-    eventEndDateTime,
-    title,
-    description,
-    venueId,
-    status,
-    categories,
-  } = dto;
+  async update(id: number, dto: UpdateEventDto) {
+    const {
+      neighbourhoodId,
+      eventStartDateTime,
+      eventEndDateTime,
+      title,
+      description,
+      venueId,
+      status,
+      categories,
+    } = dto;
 
-  console.log("Update Event DTO:", dto);
+    console.log('Update Event DTO:', dto);
 
-  const event = await this.eventRepository.findOne({ where: { id } });
-  if (!event) {
-    throw new BadRequestException({
-      message: 'Event not found',
-      status: false,
-    });
-  }
+    const event = await this.eventRepository.findOne({ where: { id } });
+    if (!event) {
+      throw new BadRequestException({
+        message: 'Event not found',
+        status: false,
+      });
+    }
 
-  if (categories.length === 0) {
-    throw new BadRequestException(
-      'At least one category-subcategory pair is required',
-    );
-  }
-
-  try {
-    const venue = await this.venueRepository.findOne({
-      where: { id: dto.venueId },
-      select: ['timezone'],
-    });
-
-    console.log("Venue Timezone:", venue?.timezone);
-
-    if (!venue.timezone) {
-      console.warn(
-        `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+    if (categories.length === 0) {
+      throw new BadRequestException(
+        'At least one category-subcategory pair is required',
       );
     }
 
-    // Sanitize input by removing extra spaces
-    const sanitizedStartTime = eventStartDateTime.replace(/\s+/g, ' ').trim();
-    const sanitizedEndTime = eventEndDateTime.replace(/\s+/g, ' ').trim();
-
-    console.log("Sanitized start:", sanitizedStartTime);
-    console.log("Sanitized end:", sanitizedEndTime);
-
-    const startTime = zonedTimeToUtc(
-      sanitizedStartTime,
-      venue.timezone ?? 'UTC',
-    );
-
-    const endTime = zonedTimeToUtc(
-      sanitizedEndTime,
-      venue.timezone ?? 'UTC',
-    );
-     
-    console.log("Converted start (UTC):", startTime.toISOString());
-    console.log("Converted end (UTC):", endTime.toISOString());
-    
-    const payload = {
-      eventStartDateTime: startTime,
-      eventEndDateTime: endTime,
-      venueId,
-      title,
-      description,
-    };
-    
-    if (neighbourhoodId) {
-      payload['sub_venue_id'] = neighbourhoodId;
-    }
-
-    const slugPayload = {
-      title,
-      neighbourhoodId,
-      venueId,
-      eventStartDateTime: startTime,
-      eventEndDateTime: endTime,
-    };
-    const slug = await this.generateSlug(slugPayload);
-    payload['slug'] = slug;
-
-    // Check if times changed
-    const hasStartDateTimeChanged =
-      startTime &&
-      formatInTimeZone(startTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
-        formatInTimeZone(
-          new Date(event.eventStartDateTime),
-          'UTC',
-          "yyyy-MM-dd'T'HH:mm:ss'Z'",
-        );
-
-    const hasEndDateTimeChanged =
-      endTime &&
-      formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
-        formatInTimeZone(
-          new Date(event.eventEndDateTime),
-          'UTC',
-          "yyyy-MM-dd'T'HH:mm:ss'Z'",
-        );
-
-    console.log("Has start time changed:", hasStartDateTimeChanged);
-    console.log("Has end time changed:", hasEndDateTimeChanged);
-    console.log("Frontend status:", status);
-
-    // ✅ FIXED: Correct status priority
-    if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
-      // If time changed, ALWAYS set to rescheduled
-      payload['status'] = 'rescheduled';
-      console.log("Setting status to: rescheduled (time changed)");
-    } else if (status) {
-      // Only use frontend status if time didn't change
-      payload['status'] = status;
-      console.log("Setting status to:", status, "(time unchanged)");
-    }
-
-    console.log("Final status:", payload['status']);
-
-    Object.assign(event, payload);
-    await this.eventRepository.save(event);
-
-    // Update categories
-    if (categories.length > 0) {
-      await this.eventCategoriesRepository.delete({
-        event: { id: event.id },
+    try {
+      const venue = await this.venueRepository.findOne({
+        where: { id: dto.venueId },
+        select: ['timezone'],
       });
-      
-      const eventCategoryRecords = [];
-      for (const cat of categories) {
-        for (const subCatId of cat.subCategoryIds) {
-          eventCategoryRecords.push({
-            event: { id: event.id },
-            categoryId: cat.categoryId,
-            subCategoryId: subCatId,
-          });
-        }
+
+      console.log('Venue Timezone:', venue?.timezone);
+
+      if (!venue.timezone) {
+        console.warn(
+          `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+        );
       }
 
-      await this.eventCategoriesRepository.save(eventCategoryRecords);
-    }
+      // Sanitize input by removing extra spaces
+      const sanitizedStartTime = eventStartDateTime.replace(/\s+/g, ' ').trim();
+      const sanitizedEndTime = eventEndDateTime.replace(/\s+/g, ' ').trim();
 
-    if (status && status === 'canceled') {
-      this.checkStatusAndSendEmail(status, event.id);
-    }
+      console.log('Sanitized start:', sanitizedStartTime);
+      console.log('Sanitized end:', sanitizedEndTime);
 
-    if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
-      this.bookingService.handleChangeRequest(Number(event.id), {
-        eventStartDateTime: startTime.toISOString(),
-        eventEndDateTime: endTime.toISOString(),
-      });
+      const startTime = zonedTimeToUtc(
+        sanitizedStartTime,
+        venue.timezone ?? 'UTC',
+      );
+
+      const endTime = zonedTimeToUtc(sanitizedEndTime, venue.timezone ?? 'UTC');
+
+      console.log('Converted start (UTC):', startTime.toISOString());
+      console.log('Converted end (UTC):', endTime.toISOString());
+
+      const payload = {
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
+        venueId,
+        title,
+        description,
+      };
+
+      if (neighbourhoodId) {
+        payload['sub_venue_id'] = neighbourhoodId;
+      }
+
+      const slugPayload = {
+        title,
+        neighbourhoodId,
+        venueId,
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
+      };
+      const slug = await this.generateSlug(slugPayload);
+      payload['slug'] = slug;
+
+      // Check if times changed
+      const hasStartDateTimeChanged =
+        startTime &&
+        formatInTimeZone(startTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
+          formatInTimeZone(
+            new Date(event.eventStartDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
+
+      const hasEndDateTimeChanged =
+        endTime &&
+        formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
+          formatInTimeZone(
+            new Date(event.eventEndDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
+
+      console.log('Has start time changed:', hasStartDateTimeChanged);
+      console.log('Has end time changed:', hasEndDateTimeChanged);
+      console.log('Frontend status:', status);
+
+      // ✅ FIXED: Correct status priority
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+        // If time changed, ALWAYS set to rescheduled
+        payload['status'] = 'rescheduled';
+        console.log('Setting status to: rescheduled (time changed)');
+      } else if (status) {
+        // Only use frontend status if time didn't change
+        payload['status'] = status;
+        console.log('Setting status to:', status, '(time unchanged)');
+      }
+
+      console.log('Final status:', payload['status']);
+
+      Object.assign(event, payload);
+      await this.eventRepository.save(event);
+
+      // Update categories
+      if (categories.length > 0) {
+        await this.eventCategoriesRepository.delete({
+          event: { id: event.id },
+        });
+
+        const eventCategoryRecords = [];
+        for (const cat of categories) {
+          for (const subCatId of cat.subCategoryIds) {
+            eventCategoryRecords.push({
+              event: { id: event.id },
+              categoryId: cat.categoryId,
+              subCategoryId: subCatId,
+            });
+          }
+        }
+
+        await this.eventCategoriesRepository.save(eventCategoryRecords);
+      }
+
+      if (status && status === 'canceled') {
+        this.checkStatusAndSendEmail(status, event.id);
+      }
+
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+        this.bookingService.handleChangeRequest(Number(event.id), {
+          eventStartDateTime: startTime.toISOString(),
+          eventEndDateTime: endTime.toISOString(),
+        });
+      }
+
+      return {
+        message: 'Event updated successfully',
+        data: dto,
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
     }
-    
-    return { 
-      message: 'Event updated successfully', 
-      data: dto, 
-      status: true 
-    };
-  } catch (error) {
-    if (error instanceof HttpException) throw error;
-    throw new InternalServerErrorException(error.message);
   }
-}
-
-
 
   // Delete an event by id
   async remove(id: number) {
@@ -1125,10 +1120,7 @@ async update(id: number, dto: UpdateEventDto) {
         .createQueryBuilder('event')
         .leftJoin('venue', 'venue', 'venue.id = event.venueId')
         .leftJoin('series', 'series', 'series.id = event.series_id')
-        .where('DATE(event.eventStartDateTime) BETWEEN :start AND :end', {
-          start,
-          end,
-        })
+
         .select([
           'event.*',
           'venue.name AS venueName',
@@ -1138,6 +1130,11 @@ async update(id: number, dto: UpdateEventDto) {
           'series.seriesName AS seriesName',
         ])
         .orderBy('event.id', 'DESC')
+        .where('DATE(event.eventStartDateTime) BETWEEN :start AND :end', {
+          start,
+          end,
+        })
+        .andWhere('event.series_id IS NULL') // Exclude series events
         .getRawMany();
 
       return {

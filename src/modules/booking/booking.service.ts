@@ -676,29 +676,44 @@ export class BookingService {
 
   async entertainerBookingDetailsByEvent(eventId: number, refId: number) {
     try {
-      const bookingDetails = await this.bookingRepository
+      const rows = await this.bookingRepository
         .createQueryBuilder('booking')
         .leftJoin(
           'entertainers',
           'entertainer',
           'entertainer.id = booking.entId',
         )
-        .leftJoin('categories', 'cat', 'cat.id = booking.categoryId')
-        .leftJoin('categories', 'subcat', 'subcat.id = booking.subcategoryId')
         .leftJoin('states', 'state', 'state.id = entertainer.state')
         .leftJoin('cities', 'city', 'city.id = entertainer.city')
+
+        // Booking → Category/Subcategory mapping table
+        .leftJoin(
+          'booking_category_subcategory',
+          'bcs',
+          'bcs.booking_id = booking.id',
+        )
+
+        // categories table joined twice
+        .leftJoin('categories', 'cat', 'cat.id = bcs.category_id')
+        .leftJoin('categories', 'sub', 'sub.id = bcs.subcategory_id')
+
         .select([
-          'booking.id',
+          // EXISTING KEYS (Do NOT change)
+          'booking.id AS booking_id',
+          'booking.status AS booking_status',
+          'entertainer.contact_person AS entertainer_contact_person',
+          'entertainer.contact_number AS entertainer_contact_number',
+          'state.name AS state_name',
+          'city.name AS city_name',
           'entertainer.name AS satge_name',
-          'entertainer.entertainer_name',
-          'entertainer.contact_person',
-          'booking.status',
-          'entertainer.contact_number',
-          'subcat.name',
-          'cat.name',
-          'state.name',
-          'city.name',
+          'entertainer.entertainer_name AS entertainer_name',
           'booking.entertainers AS entertainers',
+
+          // New category/subcategory fields
+          'cat.id AS category_id',
+          'cat.name AS category_name',
+          'sub.id AS subcategory_id',
+          'sub.name AS subcategory_name',
         ])
         .where('booking.eventId = :eventId AND booking.venueId = :venueId', {
           eventId,
@@ -706,16 +721,66 @@ export class BookingService {
         })
         .getRawMany();
 
-      const parsedResults = bookingDetails.map((booking) => ({
-        ...booking,
-        entertainers: booking.entertainers
-          ? JSON.parse(booking.entertainers)
-          : null,
-      }));
+      // Group data by booking
+      const grouped = {};
+
+      rows.forEach((row) => {
+        const bId = row.booking_id;
+
+        if (!grouped[bId]) {
+          grouped[bId] = {
+            booking_id: row.booking_id,
+            booking_status: row.booking_status,
+            entertainer_contact_person: row.entertainer_contact_person,
+            entertainer_contact_number: row.entertainer_contact_number,
+            state_name: row.state_name,
+            city_name: row.city_name,
+            satge_name: row.satge_name,
+            entertainer_name: row.entertainer_name,
+            entertainers: row.entertainers
+              ? JSON.parse(row.entertainers)
+              : null,
+
+            // final required format
+            categories: [],
+          };
+        }
+
+        // if category exists
+        if (row.category_id) {
+          let cat = grouped[bId].categories.find(
+            (c) => c.categoryId === row.category_id,
+          );
+
+          if (!cat) {
+            cat = {
+              categoryId: row.category_id,
+              categoryName: row.category_name,
+              subCategories: [],
+            };
+            grouped[bId].categories.push(cat);
+          }
+
+          // add subcategory if exists
+          if (row.subcategory_id) {
+            const exists = cat.subCategories.some(
+              (s) => s.subCategoryId === row.subcategory_id,
+            );
+
+            if (!exists) {
+              cat.subCategories.push({
+                subCategoryId: row.subcategory_id,
+                subCategoryName: row.subcategory_name,
+              });
+            }
+          }
+        }
+      });
+
       return {
         message: 'Details returned successfully',
         status: true,
-        data: parsedResults,
+        data: Object.values(grouped),
       };
     } catch (error) {
       if (error instanceof HttpException) throw error;

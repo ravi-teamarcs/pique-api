@@ -123,130 +123,125 @@ export class EventService {
   }
 
   async handleUpdateEvent(dto: any, venueId: number) {
-  const {
-    title,
-    description,
-    eventId,
-    neighbourhoodId,
-    eventStartDateTime,
-    eventEndDateTime,
-    categories,
-  } = dto;
-
-  const event = await this.eventRepository.findOne({
-    where: { id: eventId, venueId },
-  });
-
-  if (!event) {
-    throw new BadRequestException('Event not found');
-  }
-
-  try {
-    const venue = await this.venueRepository.findOne({
-      where: { id: venueId },
-      select: ['timezone'],
-    });
-
-    if (!venue.timezone) {
-      console.warn(
-        `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
-      );
-    }
-
-    // Convert venue local time to UTC
-    const startTime = zonedTimeToUtc(
-      eventStartDateTime,
-      venue.timezone ?? 'UTC',
-    );
-    const endTime = zonedTimeToUtc(
-      eventEndDateTime,
-      venue.timezone ?? 'UTC',
-    );
-
-    const slugPayload = {
-      title,
-      neighbourhoodId,
-      venueId,
-      eventStartDateTime: startTime,
-      eventEndDateTime: endTime,
-    };
-    const slug = await this.generateSlug(slugPayload);
-
-    const updatePayload = {
+    const {
       title,
       description,
-      eventStartDateTime: startTime.toISOString(),
-      eventEndDateTime: endTime.toISOString(),
-      venueId,
-      slug,
-      sub_venue_id: neighbourhoodId,
-    };
+      eventId,
+      neighbourhoodId,
+      eventStartDateTime,
+      eventEndDateTime,
+      categories,
+    } = dto;
 
+    const event = await this.eventRepository.findOne({
+      where: { id: eventId, venueId },
+    });
 
-    const hasStartDateTimeChanged =
-      startTime &&
-      formatInTimeZone(startTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !== 
-        formatInTimeZone(
-          new Date(event.eventStartDateTime), 
-          'UTC',
-          "yyyy-MM-dd'T'HH:mm:ss'Z'",
-        );
-
-    const hasEndDateTimeChanged =
-      endTime &&
-      formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
-        formatInTimeZone(
-          new Date(event.eventEndDateTime), 
-          'UTC',
-          "yyyy-MM-dd'T'HH:mm:ss'Z'",
-        );
-
-    if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
-      updatePayload['status'] = 'rescheduled';
+    if (!event) {
+      throw new BadRequestException('Event not found');
     }
 
-    // Update the event
-    Object.assign(event, updatePayload);
-    await this.eventRepository.save(event);
-
-    // Update categories
-    if (categories.length > 0) {
-      await this.eventCategoriesRepository.delete({
-        event: { id: event.id },
+    try {
+      const venue = await this.venueRepository.findOne({
+        where: { id: venueId },
+        select: ['timezone'],
       });
-      
-      const eventCategoryRecords = [];
-      for (const cat of categories) {
-        for (const subCatId of cat.subCategoryIds) {
-          eventCategoryRecords.push({
-            event: { id: event.id },
-            categoryId: cat.categoryId,
-            subCategoryId: subCatId,
-          });
-        }
+
+      if (!venue.timezone) {
+        console.warn(
+          `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+        );
       }
 
-      await this.eventCategoriesRepository.save(eventCategoryRecords);
-    }
+      // Convert venue local time to UTC
+      const startTime = zonedTimeToUtc(
+        eventStartDateTime,
+        venue.timezone ?? 'UTC',
+      );
+      const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
 
-    // Notify entertainers if rescheduled
-    if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
-      this.bookingService.handleChangeRequest(Number(event.id), {
+      const slugPayload = {
+        title,
+        neighbourhoodId,
+        venueId,
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
+      };
+      const slug = await this.generateSlug(slugPayload);
+
+      const updatePayload = {
+        title,
+        description,
         eventStartDateTime: startTime.toISOString(),
         eventEndDateTime: endTime.toISOString(),
+        venueId,
+        slug,
+        sub_venue_id: neighbourhoodId,
+      };
+
+      const hasStartDateTimeChanged =
+        startTime &&
+        formatInTimeZone(startTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
+          formatInTimeZone(
+            new Date(event.eventStartDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
+
+      const hasEndDateTimeChanged =
+        endTime &&
+        formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
+          formatInTimeZone(
+            new Date(event.eventEndDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
+
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+        updatePayload['status'] = 'rescheduled';
+      }
+
+      // Update the event
+      Object.assign(event, updatePayload);
+      await this.eventRepository.save(event);
+
+      // Update categories
+      if (categories.length > 0) {
+        await this.eventCategoriesRepository.delete({
+          event: { id: event.id },
+        });
+
+        const eventCategoryRecords = [];
+        for (const cat of categories) {
+          for (const subCatId of cat.subCategoryIds) {
+            eventCategoryRecords.push({
+              event: { id: event.id },
+              categoryId: cat.categoryId,
+              subCategoryId: subCatId,
+            });
+          }
+        }
+
+        await this.eventCategoriesRepository.save(eventCategoryRecords);
+      }
+
+      // Notify entertainers if rescheduled
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+        this.bookingService.handleChangeRequest(Number(event.id), {
+          eventStartDateTime: startTime.toISOString(),
+          eventEndDateTime: endTime.toISOString(),
+        });
+      }
+
+      return { message: 'Event updated successfully', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error updating event',
+        error: error.message,
+        status: error.status,
       });
     }
-    
-    return { message: 'Event updated successfully', status: true };
-  } catch (error) {
-    throw new InternalServerErrorException({
-      message: 'Error updating event',
-      error: error.message,
-      status: error.status,
-    });
   }
-}
-
 
   async getAllEvents(id: number, page: number = 1, pageSize: number = 10) {
     try {
@@ -259,6 +254,7 @@ export class EventService {
         .leftJoin('venue', 'venue', 'venue.id = event_table.venueId')
         .leftJoin('event_table.series', 'series')
         .where('event_table.venueId = :id', { id })
+        .andWhere('event_table.series_id IS NULL')
         .select([
           'event_table.id AS id',
           'event_table.title AS title',
