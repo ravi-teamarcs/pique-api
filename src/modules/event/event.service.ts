@@ -254,7 +254,6 @@ export class EventService {
         .leftJoin('venue', 'venue', 'venue.id = event_table.venueId')
         .leftJoin('event_table.series', 'series')
         .where('event_table.venueId = :id', { id })
-        .andWhere('event_table.series_id IS NULL')
         .select([
           'event_table.id AS id',
           'event_table.title AS title',
@@ -303,7 +302,7 @@ export class EventService {
 `,
         )
 
-        .orderBy('event_table.createdAt', 'DESC')
+        .orderBy('DATE(event_table.eventStartDateTime)', 'DESC')
         .limit(take)
         .offset(skip)
         .getRawMany();
@@ -416,7 +415,7 @@ export class EventService {
           'event.status AS status',
           'event.slug AS slug',
         ])
-        .orderBy('event.createdAt', 'DESC')
+        .orderBy('Date(event.eventStartDateTime).', 'DESC')
         .getRawMany();
 
       if (!baseEvents.length) {

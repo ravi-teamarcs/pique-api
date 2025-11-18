@@ -255,7 +255,7 @@ export class EventService {
 
     const totalCount = await query.getCount();
     const records = await query
-      .orderBy('event.id', 'DESC')
+      .orderBy('DATE(event.eventStartDateTime)', 'DESC')
       .skip(skip)
       .take(pageSize)
       .getRawMany(); // ✅ Correct way to fetch raw selected fields
@@ -689,7 +689,7 @@ export class EventService {
           'event.status AS status',
           'event.isAdmin AS isAdmin',
         ])
-        .orderBy('DATE(event.eventStartDateTime)', 'ASC');
+        .orderBy('DATE(event.eventStartDateTime)', 'DESC');
 
       if (status) {
         qb.andWhere('event.status=:status', { status });
@@ -1129,12 +1129,11 @@ export class EventService {
           'venue.timezone AS addressLine2',
           'series.seriesName AS seriesName',
         ])
-        .orderBy('event.id', 'DESC')
+        .orderBy('DATE(event.eventStartDateTime)', 'DESC')
         .where('DATE(event.eventStartDateTime) BETWEEN :start AND :end', {
           start,
           end,
         })
-        .andWhere('event.series_id IS NULL') // Exclude series events
         .getRawMany();
 
       return {
