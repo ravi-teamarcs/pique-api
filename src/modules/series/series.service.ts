@@ -374,6 +374,7 @@ export class SeriesService {
         where: { venueId },
         relations: ['events'],
         order: {
+          id: 'DESC',
           events: {
             eventStartDateTime: 'ASC',
           },
@@ -455,7 +456,6 @@ export class SeriesService {
         },
         {} as Record<string, any[]>, // ✅ keys are strings
       );
-
 
       // 8️⃣ Attach categories to events (convert event.id → string)
       const enrichedSeries = seriesList.map((series) => ({
