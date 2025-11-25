@@ -243,17 +243,29 @@ export class EventService {
     }
   }
 
-  async getAllEvents(id: number, page: number = 1, pageSize: number = 10) {
+  async getAllEvents(id: number, page: number = 1, pageSize: number = 10 , search?: string) {
     try {
+
+      console.log("Search term in getAllEvents service:", search);
       const skip = (Number(page) - 1) * Number(pageSize);
       const take = Number(pageSize);
 
-      const events = await this.eventRepository
-        .createQueryBuilder('event_table') // 👈 use this alias here
+      const queryBuilder = this.eventRepository
+        .createQueryBuilder('event_table')
         .leftJoin('neighbourhood', 'hood', 'hood.id = event_table.sub_venue_id')
         .leftJoin('venue', 'venue', 'venue.id = event_table.venueId')
         .leftJoin('event_table.series', 'series')
-        .where('event_table.venueId = :id', { id })
+        .where('event_table.venueId = :id', { id });
+
+      // Add search filter if provided
+      if (search && search.trim()) {
+        queryBuilder.andWhere(
+          '(event_table.title LIKE :search OR event_table.slug LIKE :search)',
+          { search: `%${search.trim()}%` }
+        );
+      }
+
+      const events = await queryBuilder
         .select([
           'event_table.id AS id',
           'event_table.title AS title',
@@ -301,21 +313,30 @@ export class EventService {
   ) AS categories
 `,
         )
-
-        .orderBy('DATE(event_table.eventStartDateTime)', 'DESC')
+        .orderBy('event_table.eventStartDateTime', 'DESC')
         .limit(take)
         .offset(skip)
         .getRawMany();
-      // ← this returns raw data with aliases
-      const totalCount = await this.eventRepository
+
+      // Count with search filter
+      const countQueryBuilder = this.eventRepository
         .createQueryBuilder('event')
-        .where('event.venueId = :id', { id })
-        .getCount();
+        .where('event.venueId = :id', { id });
+
+      if (search && search.trim()) {
+        countQueryBuilder.andWhere(
+          '(event.title LIKE :search OR event.slug LIKE :search)',
+          { search: `%${search.trim()}%` }
+        );
+      }
+
+      const totalCount = await countQueryBuilder.getCount();
 
       const parsedEvents = events.map((event) => ({
         ...event,
         categories: event.categories ? JSON.parse(event.categories) : [],
       }));
+
       return {
         message: 'Events fetched successfully',
         count: totalCount,

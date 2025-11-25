@@ -375,7 +375,7 @@ export class SeriesService {
         relations: ['events'],
         order: {
           events: {
-            eventStartDateTime: 'ASC',
+            eventStartDateTime: 'DESC',
           },
         },
       });

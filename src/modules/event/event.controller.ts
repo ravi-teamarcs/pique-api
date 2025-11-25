@@ -48,10 +48,11 @@ export class EventController {
     @Req() req,
     @Query('page') page: number,
     @Query('pageSize') pageSize: number,
+    @Query('search') search: string,
     @Query('status') status: string,
   ) {
     const { refId } = req.user;
-    return this.eventService.getAllEvents(refId, page, pageSize);
+    return this.eventService.getAllEvents(refId, page, pageSize, search);
   }
 
   @Post('dropdown/list')

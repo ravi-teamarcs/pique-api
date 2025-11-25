@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsInt, Min, Max } from 'class-validator';
+import { IsInt, Min, Max, IsString, IsOptional } from 'class-validator';
 
 export class FilterEventDto {
   @Type(() => Number)
@@ -13,4 +13,13 @@ export class FilterEventDto {
   @Min(1900)
   @Max(2100)
   year: number;
+
+
+  @Type(() => String)
+  @IsOptional()
+  @IsString()
+  search?: string;
+
+
+
 }

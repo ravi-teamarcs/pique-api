@@ -255,7 +255,7 @@ export class EventService {
 
     const totalCount = await query.getCount();
     const records = await query
-      .orderBy('DATE(event.eventStartDateTime)', 'DESC')
+      .orderBy('event.eventStartDateTime', 'DESC')
       .skip(skip)
       .take(pageSize)
       .getRawMany(); // ✅ Correct way to fetch raw selected fields
@@ -1105,7 +1105,7 @@ export class EventService {
   // }
 
   async filterEventsByMonthAndYear(query: FilterEventDto) {
-    const { month, year } = query;
+    const { month, year, search } = query;
 
     try {
       // Base start/end for given month
@@ -1116,39 +1116,50 @@ export class EventService {
       const start = format(subDays(baseStart, 1), 'yyyy-MM-dd');
       const end = format(addDays(baseEnd, 1), 'yyyy-MM-dd');
 
-      const events = await this.eventRepository
-        .createQueryBuilder('event')
-        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
-        .leftJoin('series', 'series', 'series.id = event.series_id')
+      const queryBuilder = this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+      .leftJoin('series', 'series', 'series.id = event.series_id')
+      .select([
+        'event.*',
+        'venue.name AS venueName',
+        'venue.timezone AS venueTimeZone',
+        'venue.addressLine1 AS addressLine1',
+        'venue.timezone AS addressLine2',
+        'series.seriesName AS seriesName',
+      ])
+      .where('DATE(event.eventStartDateTime) BETWEEN :start AND :end', {
+        start,
+        end,
+      });
 
-        .select([
-          'event.*',
-          'venue.name AS venueName',
-          'venue.timezone AS venueTimeZone',
-          'venue.addressLine1 AS addressLine1',
-          'venue.timezone AS addressLine2',
-          'series.seriesName AS seriesName',
-        ])
-        .orderBy('DATE(event.eventStartDateTime)', 'DESC')
-        .where('DATE(event.eventStartDateTime) BETWEEN :start AND :end', {
-          start,
-          end,
-        })
-        .getRawMany();
+      // Add search filter if provided - search in title and slug
+      if (search) {
+      queryBuilder.andWhere(
+        '(event.title LIKE :search OR event.slug LIKE :search)',
+        {
+        search: `%${search}%`,
+        },
+      );
+      }
+
+      const events = await queryBuilder
+      .orderBy('event.eventStartDateTime', 'DESC')
+      .getRawMany();
 
       return {
-        message: 'Filtered events returned successfully',
-        data: events,
-        count: events.length,
-        status: true,
+      message: 'Filtered events returned successfully',
+      data: events,
+      count: events.length,
+      status: true,
       };
     } catch (error) {
       throw new InternalServerErrorException({
-        message: error.message,
-        status: false,
+      message: error.message,
+      status: false,
       });
     }
-  }
+    }
 
   private async addMarkupToEntertainer(basePrice: number) {
     const res = await this.settingRepo.findOne({ where: { isActive: true } });

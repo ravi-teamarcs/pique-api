@@ -255,18 +255,39 @@ export class AdminSeriesService {
         );
       }
 
-      // 4️⃣ Add venueTimezone to each event (no other key changes)
-      const seriesWithTimezone = seriesList.map((series) => ({
-        ...series,
-        events: series.events.map((event: any) => ({
+      // 4️⃣ Add venueTimezone to each event and sort events by eventStartDateTime DESC
+
+
+      const seriesWithTimezone = seriesList
+        .map((series) => ({
+          ...series,
+          events: series.events
+        .map((event: any) => ({
           ...event,
-          venueTimezone: venueTimezones[event.venueId] || 'UTC',
-        })),
-      }));
+          venueTimezone: venueTimezones[event.venueId],
+        }))
+        .sort((a, b) => {
+          const dateA = new Date(a.eventStartDateTime);
+          const dateB = new Date(b.eventStartDateTime);
+          return dateB.getTime() - dateA.getTime(); // DESC order (newest first)
+        }),
+        }))
+        .sort((a, b) => {
+          // Sort series by the latest event's eventStartDateTime in DESC order
+          const latestEventA = a.events[0]?.eventStartDateTime;
+          const latestEventB = b.events[0]?.eventStartDateTime;
+          
+          if (!latestEventA) return 1;
+          if (!latestEventB) return -1;
+          
+          const dateA = new Date(latestEventA);
+          const dateB = new Date(latestEventB);
+          return dateB.getTime() - dateA.getTime(); // DESC order
+        });
 
       // 5️⃣ Response
       return {
-        message: 'Series returned successfully',
+        message: 'Series returned successfu',
         data: seriesWithTimezone,
         totalCount,
         currentPage: page,
