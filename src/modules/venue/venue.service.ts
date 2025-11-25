@@ -1054,7 +1054,7 @@ export class VenueService {
           'event.eventEndDateTime AS eventEndDateTime',
           'event.description AS event_description',
         ])
-        .orderBy('booking.createdAt', 'DESC')
+        .orderBy('event.eventStartDateTime', 'DESC')
         .offset(skip)
         .limit(take)
         .getRawMany();

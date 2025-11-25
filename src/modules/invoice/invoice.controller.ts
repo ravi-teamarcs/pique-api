@@ -53,10 +53,14 @@ export class InvoiceController {
     @Request() req,
     @Query('page') page: number,
     @Query('pageSize') pageSize: number,
+    @Query('orderBy') orderBy?: string,
   ) {
     const { refId, role } = req.user;
-    return this.invoiceService.findAllInvoice(refId, role, page, pageSize);
+    return this.invoiceService.findAllInvoice(refId, role, page, pageSize, orderBy);
   }
+
+   
+
   @Get(':id')
   @Roles('findAll')
   async getInvoiceById(@Param('id', ParseIntPipe) id: number) {

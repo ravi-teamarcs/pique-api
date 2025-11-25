@@ -1504,7 +1504,7 @@ export class EntertainerService {
           'venue.longitude AS longitude',
           'venue.timezone AS venueTimeZone',
         ])
-        .orderBy('booking.createdAt', 'DESC'); // Corrected sorting
+        .orderBy('eventStartDateTime', 'DESC'); // Corrected sorting
 
       if (search && search.trim()) {
         bookings.andWhere(
@@ -1522,7 +1522,7 @@ export class EntertainerService {
       const totalCount = await bookings.getCount();
 
       const results = await bookings
-        .orderBy('id', 'DESC')
+        // .orderBy('id', 'DESC')
         .skip(Number(skip))
         .take(Number(pageSize))
         .getRawMany();
@@ -1978,7 +1978,7 @@ export class EntertainerService {
         ])
         .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', URL)
-        .orderBy('DATE(event.eventStartDateTime)', 'ASC');
+        .orderBy('event.eventStartDateTime', 'DESC');
 
       if (search && search.trim()) {
         events.andWhere('LOWER(event.title) LIKE :search', {

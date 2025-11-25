@@ -1097,58 +1097,73 @@ export class EventService {
     const { month, year, search } = query;
 
     try {
-      // Base start/end for given month
-      const baseStart = startOfMonth(new Date(year, month - 1));
-      const baseEnd = endOfMonth(new Date(year, month - 1));
-
-      // Extend by ±1 day to include timezone-shifted events
-      const start = format(subDays(baseStart, 1), 'yyyy-MM-dd');
-      const end = format(addDays(baseEnd, 1), 'yyyy-MM-dd');
-
       const queryBuilder = this.eventRepository
-      .createQueryBuilder('event')
-      .leftJoin('venue', 'venue', 'venue.id = event.venueId')
-      .leftJoin('series', 'series', 'series.id = event.series_id')
-      .select([
-        'event.*',
-        'venue.name AS venueName',
-        'venue.timezone AS venueTimeZone',
-        'venue.addressLine1 AS addressLine1',
-        'venue.timezone AS addressLine2',
-        'series.seriesName AS seriesName',
-      ])
-      .where('DATE(event.eventStartDateTime) BETWEEN :start AND :end', {
-        start,
-        end,
-      });
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('series', 'series', 'series.id = event.series_id')
+        .select([
+          'event.*',
+          'venue.name AS venueName',
+          'venue.timezone AS venueTimeZone',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'series.seriesName AS seriesName',
+        ]);
+
+      // Add year filter if provided
+      if (year) {
+        queryBuilder.andWhere('YEAR(event.eventStartDateTime) = :year', {
+          year,
+        });
+      }
+
+      // Add month filter if provided
+      if (month) {
+        // Base start/end for given month
+        const effectiveYear = year || new Date().getFullYear();
+        const baseStart = startOfMonth(new Date(effectiveYear, month - 1));
+        const baseEnd = endOfMonth(new Date(effectiveYear, month - 1));
+
+        // Use exact month boundaries without extending
+        const start = format(baseStart, 'yyyy-MM-dd');
+        const end = format(baseEnd, 'yyyy-MM-dd');
+
+        queryBuilder.andWhere(
+          'DATE(event.eventStartDateTime) BETWEEN :start AND :end',
+          {
+            start,
+            end,
+          },
+        );
+      }
 
       // Add search filter if provided - search in title and slug
       if (search) {
-      queryBuilder.andWhere(
-        '(event.title LIKE :search OR event.slug LIKE :search)',
-        {
-        search: `%${search}%`,
-        },
-      );
+        queryBuilder.andWhere(
+          '(event.title LIKE :search OR event.slug LIKE :search)',
+          {
+            search: `%${search}%`,
+          },
+        );
       }
 
       const events = await queryBuilder
-      .orderBy('event.eventStartDateTime', 'DESC')
-      .getRawMany();
+        .orderBy('event.eventStartDateTime', 'DESC')
+        .getRawMany();
 
       return {
-      message: 'Filtered events returned successfully',
-      data: events,
-      count: events.length,
-      status: true,
+        message: 'Filtered events returned successfully',
+        data: events,
+        count: events.length,
+        status: true,
       };
     } catch (error) {
       throw new InternalServerErrorException({
-      message: error.message,
-      status: false,
+        message: error.message,
+        status: false,
       });
     }
-    }
+  }
 
   private async addMarkupToEntertainer(basePrice: number) {
     const res = await this.settingRepo.findOne({ where: { isActive: true } });

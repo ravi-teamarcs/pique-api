@@ -374,7 +374,7 @@ export class SeriesService {
         where: { venueId },
         relations: ['events'],
         order: {
-          id: 'DESC',
+         
           events: {
             eventStartDateTime: 'DESC',
           },

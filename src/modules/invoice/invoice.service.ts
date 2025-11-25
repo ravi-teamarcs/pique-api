@@ -357,10 +357,14 @@ export class InvoiceService {
   }
 
   // Fetch All Invoices for Entertainer
-  async findAllInvoice(userId: number, role, page = 1, pageSize = 10) {
+  async findAllInvoice(userId: number, role, page = 1, pageSize = 10 , orderBy= 'invoice') {
     try {
       if (role === 'entertainer') {
-        return await this.getEntertainerInvoice(userId, page, pageSize);
+        
+         return  await this.getEntertainerInvoice(userId, page, pageSize , orderBy);
+         
+
+
       } else {
         return await this.getInvoices(userId, page, pageSize);
       }
@@ -586,64 +590,74 @@ export class InvoiceService {
     userId: number,
     page: number = 1,
     pageSize: number = 10,
+    orderBy: string = "invoice",
   ) {
-    const data = await this.entertainerInvoiceRepository
+    const query = this.entertainerInvoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('entertainers', 'ent', 'ent.id = invoices.user_id')
       .leftJoin('cities', 'city', 'city.id = ent.city')
       .leftJoin('states', 'state', 'state.id = ent.state')
       .leftJoin('users', 'user', 'user.id = ent.userId')
       .where('invoices.user_id = :userId', {
-        userId,
+      userId,
       })
       .andWhere('invoices.user_type = :role', { role: 'entertainer' })
       .select([
-        'invoices.id AS id',
-        'invoices.invoice_number AS invoice_number',
-        'invoices.user_id AS user_id',
-        'invoices.issue_date AS issue_date',
-        'invoices.due_date AS due_date',
-        'invoices.total_amount AS total_amount',
-        'invoices.tax_rate AS tax_rate',
-        'invoices.tax_amount AS tax_amount',
-        'invoices.total_with_tax AS total_with_tax',
-        'invoices.status AS status',
-        'invoices.payment_method AS payment_method',
-        'invoices.payment_date AS payment_date',
+      'invoices.id AS id',
+      'invoices.invoice_number AS invoice_number',
+      'invoices.user_id AS user_id',
+      'invoices.issue_date AS issue_date',
+      'invoices.due_date AS due_date',
+      'invoices.total_amount AS total_amount',
+      'invoices.tax_rate AS tax_rate',
+      'invoices.tax_amount AS tax_amount',
+      'invoices.total_with_tax AS total_with_tax',
+      'invoices.status AS status',
+      'invoices.payment_method AS payment_method',
+      'invoices.payment_date AS payment_date',
 
-        'ent.name AS stageName',
-        'ent.entertainer_name AS entertainerName',
-        'ent.addressLine1 AS addressLine1',
-        'ent.addressLine2 AS addressLine2',
+      'ent.name AS stageName',
+      'ent.entertainer_name AS entertainerName',
+      'ent.addressLine1 AS addressLine1',
+      'ent.addressLine2 AS addressLine2',
 
-        'ent.city AS city_code',
-        'ent.state AS state_code',
-        'state.name AS stateName',
-        'city.name AS cityName',
-        'user.phoneNumber AS phoneNumber',
-        'ent.email AS email',
+      'ent.city AS city_code',
+      'ent.state AS state_code',
+      'state.name AS stateName',
+      'city.name AS cityName',
+      'user.phoneNumber AS phoneNumber',
+      'ent.email AS email',
 
-        // This subquery gets all events in one JSON array for this invoice
-        `(
-  SELECT JSON_ARRAYAGG(
+      // This subquery gets all events in one JSON array for this invoice
+      `(
+    SELECT JSON_ARRAYAGG(
     JSON_OBJECT(
       'eventId', e.id,
       'slug', e.slug,
       'title', e.title,
       'eventStartDateTime', e.eventStartDateTime,
       'eventEndDateTime', e.eventEndDateTime,
-      'amount', ib.event_price
+      'amount', ib.event_price,
+      'status', e.status 
     )
-  )
-  FROM invoice_bookings ib
-  JOIN event e ON e.id = ib.event_id
-  WHERE ib.invoice_id = invoices.id
-) AS events`,
+    )
+    FROM invoice_bookings ib
+    JOIN event e ON e.id = ib.event_id
+    WHERE ib.invoice_id = invoices.id
+  ) AS events`,
       ])
-      .orderBy('invoices.issue_date', 'DESC')
       .offset((page - 1) * pageSize)
-      .limit(pageSize)
-      .getRawMany();
+      .limit(pageSize);
+
+    if (orderBy === 'event') {
+      query.leftJoin('invoice_bookings', 'ib', 'ib.invoice_id = invoices.id')
+         .leftJoin('event', 'e', 'e.id = ib.event_id')
+         .orderBy('e.eventStartDateTime', 'DESC');
+    } else {
+      query.orderBy('invoices.issue_date', 'DESC');
+    }
+
+    const data = await query.getRawMany();
     // const parsedResults = await Promise.all(
     //   data.map(async ({ events, ...rest }) => {
     //     const parsedEvents = events
@@ -714,6 +728,11 @@ export class InvoiceService {
       pageSize,
     };
   }
+
+
+
+
+
 
   private async getInvoices(
     userId: number,

@@ -889,14 +889,25 @@ export class InvoiceService {
   ) {
     const skip = (page - 1) * pageSize;
 
-    const data = await this.entInvoiceRepository
+    const baseQuery = this.entInvoiceRepository
       .createQueryBuilder('invoices')
       .leftJoin('entertainers', 'ent', 'ent.id = invoices.user_id')
       .leftJoin('users', 'user', 'user.id = ent.userId')
       .leftJoin('cities', 'city', 'city.id = ent.city')
       .leftJoin('states', 'state', 'state.id = ent.state')
+      .where('invoices.user_type = :role', { role: 'entertainer' });
 
-      .andWhere('invoices.user_type = :role', { role: 'entertainer' })
+    // Add search condition if provided
+    if (search) {
+      baseQuery.andWhere('invoices.invoice_number LIKE :search', {
+        search: `%${search}%`,
+      });
+    }
+
+    // Get total count with search filter
+    const totalCount = await baseQuery.getCount();
+
+    const data = await baseQuery
       .select([
         'invoices.id AS id',
         'invoices.invoice_number AS invoice_number',
@@ -928,7 +939,6 @@ export class InvoiceService {
         'city.name AS cityName',
         'user.email AS email',
 
-        // This subquery gets all events in one JSON array for this invoice
         `(
   SELECT JSON_ARRAYAGG(
     JSON_OBJECT(
@@ -946,48 +956,10 @@ export class InvoiceService {
 ) AS events`,
       ])
       .orderBy('invoices.issue_date', 'DESC')
-      .offset((page - 1) * pageSize)
+      .offset(skip)
       .limit(pageSize)
       .getRawMany();
 
-    // const parsedResults = await Promise.all(
-    //   data.map(async ({ events, pricePerHour, ...rest }) => {
-    //     return {
-    //       ...rest,
-    //       pricePerHour,
-    //       events: events
-    //         ? await Promise.all(
-    //             JSON.parse(events).map(
-    //               async ({
-    //                 eventStartDateTime,
-    //                 eventEndDateTime,
-    //                 ...eventRest
-    //               }) => {
-    //                 const duration = this.getDurationInHours(
-    //                   eventStartDateTime,
-    //                   eventEndDateTime,
-    //                 );
-
-    //                 const calculatedAmount = await this.getCalculatedAmount(
-    //                   rest.entertainerId,
-    //                   eventRest.eventId,
-    //                   duration,
-    //                 );
-
-    //                 return {
-    //                   ...eventRest,
-    //                   eventStartDateTime,
-    //                   eventEndDateTime,
-    //                   amount: Number(calculatedAmount),
-    //                   duration,
-    //                 };
-    //               },
-    //             ),
-    //           )
-    //         : [],
-    //     };
-    //   }),
-    // );
     const parsedResults = data.map(({ events, pricePerHour, ...rest }) => {
       return {
         ...rest,
@@ -1011,11 +983,6 @@ export class InvoiceService {
           : [],
       };
     });
-
-    const totalCount = await this.entInvoiceRepository
-      .createQueryBuilder('invoices')
-      .andWhere('invoices.user_type = :role', { role: 'entertainer' })
-      .getCount();
 
     return {
       message: 'Invoices fetched successfully',
@@ -1687,6 +1654,8 @@ export class InvoiceService {
   }
 
   async getVenueInvoices(page: number, pageSize: number, search, role: string) {
+
+    console.log("search", search);
     try {
       const skip = (page - 1) * pageSize;
       const baseQuery = this.invoiceRepository
