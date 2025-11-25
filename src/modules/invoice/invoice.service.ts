@@ -200,7 +200,6 @@ export class InvoiceService {
       const rateCard = await this.getEntertainerRateCard(Number(userId));
       const adminRateCard = await this.adminRateCardRepo.find({});
       let totalAmount = 0;
-      console.log('Rate Card', rateCard);
 
       for (const eventid of eventIds) {
         const { eventStartDateTime, eventEndDateTime, bookingId, eventId } =

@@ -441,8 +441,6 @@ export class EventService {
       categories,
     } = dto;
 
-    console.log('Update Event DTO:', dto);
-
     const event = await this.eventRepository.findOne({ where: { id } });
     if (!event) {
       throw new BadRequestException({
@@ -463,7 +461,6 @@ export class EventService {
         select: ['timezone'],
       });
 
-      console.log('Venue Timezone:', venue?.timezone);
 
       if (!venue.timezone) {
         console.warn(
@@ -475,8 +472,7 @@ export class EventService {
       const sanitizedStartTime = eventStartDateTime.replace(/\s+/g, ' ').trim();
       const sanitizedEndTime = eventEndDateTime.replace(/\s+/g, ' ').trim();
 
-      console.log('Sanitized start:', sanitizedStartTime);
-      console.log('Sanitized end:', sanitizedEndTime);
+      
 
       const startTime = zonedTimeToUtc(
         sanitizedStartTime,
@@ -485,9 +481,7 @@ export class EventService {
 
       const endTime = zonedTimeToUtc(sanitizedEndTime, venue.timezone ?? 'UTC');
 
-      console.log('Converted start (UTC):', startTime.toISOString());
-      console.log('Converted end (UTC):', endTime.toISOString());
-
+     
       const payload = {
         eventStartDateTime: startTime,
         eventEndDateTime: endTime,
@@ -529,22 +523,17 @@ export class EventService {
             "yyyy-MM-dd'T'HH:mm:ss'Z'",
           );
 
-      console.log('Has start time changed:', hasStartDateTimeChanged);
-      console.log('Has end time changed:', hasEndDateTimeChanged);
-      console.log('Frontend status:', status);
+     
 
       // ✅ FIXED: Correct status priority
       if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
         // If time changed, ALWAYS set to rescheduled
         payload['status'] = 'rescheduled';
-        console.log('Setting status to: rescheduled (time changed)');
       } else if (status) {
         // Only use frontend status if time didn't change
         payload['status'] = status;
-        console.log('Setting status to:', status, '(time unchanged)');
       }
 
-      console.log('Final status:', payload['status']);
 
       Object.assign(event, payload);
       await this.eventRepository.save(event);

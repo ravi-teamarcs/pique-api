@@ -169,7 +169,6 @@ export class VenueService {
 
       const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
       let timezone = getTimezoneByLatLng(lat, lng);
-      console.log('Lat long', lat, lng, 'TimeZone', timezone);
 
       const newPayload = { ...dto, latitude: lat, longitude: lng, timezone };
       // Assign address fields
@@ -848,7 +847,6 @@ export class VenueService {
 
         // Add nearby filter if requested
         if (isNearby) {
-          console.log('Debug - Adding nearby filter with radius:', radius);
           baseQuery
             .andWhere(
               'entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL',
