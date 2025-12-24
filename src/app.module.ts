@@ -19,6 +19,12 @@ import { ChatModule } from './modules/chat/chat.module';
 import { GoogleCalendarModule } from './modules/google-calendar/google-calendar.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { MulterModule } from '@nestjs/platform-express';
+import { ToursModule } from './modules/tours/tours.module';
+import { SeriesModule } from './modules/series/series.module';
+import { InvoiceCronModule } from './modules/cron/invoice/invoice-cron.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ReminderModule } from './modules/reminders/reminder.module';
+import { RatingsModule } from './modules/ratings-review/ratings.module';
 
 @Module({
   imports: [
@@ -38,18 +44,21 @@ import { MulterModule } from '@nestjs/platform-express';
         username: configService.get<string>('DB_USER'),
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_NAME'),
+        timezone: 'Z',
         entities: [join(process.cwd(), 'dist/**/*.entity.js')],
         // logging: true,
         // logger: 'advanced-console',
-        // maxQueryExecutionTime: 1000, // Good for debugging slow queries
         // synchronize: true, // Set this to false in production
       }),
     }),
+
+    ScheduleModule.forRoot(), // For Nest Js Schedule Cron Job
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'uploads'),
       serveRoot: '/uploads',
     }),
     AuthModule,
+
     UsersModule,
     VenueModule,
     EntertainerModule,
@@ -62,6 +71,11 @@ import { MulterModule } from '@nestjs/platform-express';
     ChatModule,
     GoogleCalendarModule,
     AdminModule,
+    ToursModule,
+    SeriesModule,
+    InvoiceCronModule,
+    ReminderModule,
+    RatingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

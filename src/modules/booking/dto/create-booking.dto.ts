@@ -1,16 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsEnum, IsNumber } from 'class-validator';
+import {
+  IsNotEmpty,
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsArray,
+} from 'class-validator';
 
 export class CreateBookingDto {
-  @ApiProperty({ example: '12:10:01', description: 'Timing of the Show' })
   @IsString()
   @IsNotEmpty()
-  showTime: string;
-
-  @ApiProperty({ example: '2024-01-17', description: 'Date of the Show' })
-  @IsString()
-  @IsNotEmpty()
-  showDate: string;
+  showStartDateTime: string;
 
   @ApiProperty({
     example: 'Please be on time',
@@ -20,20 +20,10 @@ export class CreateBookingDto {
   @IsString()
   specialNotes?: string;
 
-  @ApiProperty({
-    example: 'duo',
-    description: 'Role of entertainer (soloist, duo, trio, ensemble)',
-  })
-  @ApiProperty({ example: 1, description: 'Reference to the Venue' })
-  @IsNumber()
-  @IsNotEmpty()
-  venueId: number;
-
   @ApiProperty({ example: 1, description: 'Reference to the Entertainers' })
   @IsNumber()
   @IsNotEmpty()
   entertainerId: number;
-
   @ApiProperty({
     example: 1,
     description: 'Event id for which booking is created.',
@@ -41,4 +31,17 @@ export class CreateBookingDto {
   @IsNumber()
   @IsNotEmpty()
   eventId: number;
+
+  // @IsNumber()
+  // @IsNotEmpty()
+  // categoryId: number;
+
+  // @IsNumber()
+  // @IsNotEmpty()
+  // subcategoryId: number;
+  @IsArray()
+  categories: {
+    categoryId: number;
+    subCategoryIds: number[];
+  }[];
 }

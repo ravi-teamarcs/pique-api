@@ -10,10 +10,10 @@ export class ResponseDto {
   @ApiProperty({ description: 'If user is venue' })
   @IsNotEmpty()
   status:
-    | 'pending'
+    | 'invited'
     | 'confirmed'
-    | 'cancelled'
-    | 'rejected'
-    | 'completed'
+    | 'canceled'
+    | 'declined'
+    | 'applied'
     | 'rescheduled';
 }

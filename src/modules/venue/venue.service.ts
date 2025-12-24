@@ -1,27 +1,62 @@
 import {
   BadRequestException,
+  HttpException,
   HttpStatus,
   Injectable,
   InternalServerErrorException,
   NotFoundException,
+  UploadedFiles,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Brackets, Like, Repository } from 'typeorm';
+import {
+  Brackets,
+  DataSource,
+  In,
+  LessThan,
+  LessThanOrEqual,
+  Like,
+  MoreThan,
+  MoreThanOrEqual,
+  Repository,
+} from 'typeorm';
 import { Venue } from './entities/venue.entity';
 import { CreateVenueDto } from './dto/create-venue.dto';
 import { SearchEntertainerDto } from './dto/serach-entertainer.dto';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
-import { UpdateVenueDto } from './dto/update-venue.dto';
+import { UpdateVenueDto, UpdateVenueRequest } from './dto/update-venue.dto';
 import { User } from '../users/entities/users.entity';
 import { Booking } from '../booking/entities/booking.entity';
 import { Media } from '../media/entities/media.entity';
 import { Category } from '../entertainer/entities/categories.entity';
 import { VenueEvent } from '../event/entities/event.entity';
-import { VenueLocationDto } from './dto/add-location.dto';
 import { Data } from './dto/search-filter.dto';
 import { instanceToPlain } from 'class-transformer';
 import { Wishlist } from './entities/wishlist.entity';
 import { WishlistDto } from './dto/wishlist.dto';
+import { ConfigService } from '@nestjs/config';
+import { UploadedFile } from 'src/common/types/media.type';
+import { MediaService } from '../media/media.service';
+import { AddressDto } from './dto/address.dto';
+import { BookingQueryDto } from './dto/get-venue-booking.dto';
+import { Neighbourhood } from './entities/neighbourhood.entity';
+import { NeighbourhoodDto } from './dto/neighbourhood.dto';
+import { UpdatePrimaryInfoDto } from './dto/update-primary-info.dto';
+import { UpdateAddressDto } from './dto/update-address.dto';
+import { CreateNeighbourhoodDto } from './dto/create-neighbourhood.dto';
+import { UpdateNeighbourhoodDto } from './dto/update-neighbourhood.dto';
+import { EventsByMonthDto } from '../entertainer/dto/get-events-bymonth.dto';
+import { Cities } from '../location/entities/city.entity';
+import { Setting } from '../admin/settings/entities/setting.entity';
+import { GeocodingService } from '../location/geocoding.service';
+import { States } from '../location/entities/state.entity';
+import { NotificationService } from '../notification/notification.service';
+import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
+import { DateTime } from 'luxon';
+import { EntertainerCategorySubcategory } from '../entertainer/entities/entertainer-category-subcategory.entity';
+import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.entity';
+import { SpecialSubcategoryPrice } from '../admin/settings/entities/special-subcategory-prices.entity';
+import { getTimezoneByLatLng } from 'src/common/utils/slots-utils';
+import { zonedTimeToUtc } from 'date-fns-tz';
 
 @Injectable()
 export class VenueService {
@@ -40,475 +75,1473 @@ export class VenueService {
     private readonly catRepository: Repository<Category>,
     @InjectRepository(Wishlist)
     private readonly wishRepository: Repository<Wishlist>,
+    @InjectRepository(VenueEvent)
+    private readonly eventRepository: Repository<VenueEvent>,
+    @InjectRepository(Neighbourhood)
+    private readonly neighbourRepository: Repository<Neighbourhood>,
+    @InjectRepository(Setting)
+    private readonly settingRepo: Repository<Setting>,
+    @InjectRepository(Cities)
+    private readonly cityRepository: Repository<Cities>,
+    @InjectRepository(States)
+    private readonly stateRepository: Repository<States>,
+    @InjectRepository(AdminUser)
+    private readonly adminRepository: Repository<AdminUser>,
+    @InjectRepository(EntertainerCategorySubcategory)
+    private readonly entCatRepository: Repository<EntertainerCategorySubcategory>,
+    @InjectRepository(SubcategoryRate)
+    private readonly subcatRateRepo: Repository<SubcategoryRate>,
+    @InjectRepository(SpecialSubcategoryPrice)
+    private readonly specialSubcatRateRepo: Repository<SpecialSubcategoryPrice>,
+
+    private readonly config: ConfigService,
+    private readonly mediaService: MediaService,
+    private readonly dataSource: DataSource,
+    private readonly geoService: GeocodingService,
+    private readonly notificationService: NotificationService,
   ) {}
 
-  async create(createVenueDto: CreateVenueDto, userId: number) {
-    const venueExists = await this.venueRepository.findOne({
+  // New Flow   Venue Creation   Step:1
+  async createVenue(userId: number, dto) {
+    const existing = await this.venueRepository.findOne({
       where: { user: { id: userId } },
     });
-    console.log('venue exists', venueExists);
-    if (venueExists) {
+
+    // Fetching User  Query
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'email'],
+    });
+
+    if (existing?.isProfileComplete) {
       throw new BadRequestException({
-        message: 'Venue already exists for the user',
+        message: 'You already have a completed venue profile.',
+        status: false,
+      });
+    } else if (
+      existing &&
+      (existing.profileStep === 1 || existing.profileStep > 1)
+    ) {
+      throw new BadRequestException({
+        message: 'Please complete your venue profile.',
         status: false,
       });
     }
+
     const venue = this.venueRepository.create({
-      ...createVenueDto,
+      ...dto,
       user: { id: userId },
-      parentId: null,
-      isParent: true,
+      email: user?.email,
+      profileStep: 1,
     });
-    await this.venueRepository.save(venue);
-
-    return { message: 'Venue created successfully', venue, status: true };
-  }
-
-  async findAllByUser(userId: number) {
-    const venues = await this.venueRepository.find({
-      where: { user: { id: userId } },
-      select: [
-        'id',
-        'name',
-        'phone',
-        'email',
-        'addressLine1',
-        'addressLine2',
-        'description',
-        'city',
-        'state',
-        'zipCode',
-        'country',
-        'parentId',
-        'isParent',
-      ],
-    });
-
-    const resultingVenue = await Promise.all(
-      venues.map(async (item) => {
-        const venueId = item.id;
-        const media = await this.mediaRepository
-          .createQueryBuilder('media')
-          .select([
-            'media.id AS id',
-            `CONCAT('${process.env.SERVER_URI}', media.url) AS url`,
-            'media.type AS type',
-            'media.name  AS name',
-          ])
-          .where('media.userId = :userId', { userId })
-          .andWhere('media.refId = :venueId', { venueId })
-          .getRawMany();
-
-        return {
-          ...item,
-          media,
-        };
-      }),
-    );
+    const savedVenue = await this.venueRepository.save(venue);
     return {
-      message: 'Venues returned successfully',
-      count: venues.length,
-      venues: resultingVenue,
+      message: 'Primary Details saved successfully',
+      step: 1,
+      nexStep: Number('02'),
+      data: savedVenue,
       status: true,
     };
   }
 
-  async findVenueLocation(id: number, userId: number) {
-    const venue = await this.venueRepository.find({
-      where: { parentId: id },
-      select: [
-        'id',
-        'name',
-        'phone',
-        'email',
-        'addressLine1',
-        'addressLine2',
-        'description',
-        'city',
-        'state',
-        'zipCode',
-        'country',
-        'parentId',
-        'isParent',
-      ],
+  // Step :2
+
+  async updateVenueAddress(userId: number, dto: AddressDto) {
+    try {
+      const venue = await this.venueRepository.findOne({
+        where: {
+          user: { id: userId },
+          isProfileComplete: false,
+          profileStep: 1,
+        },
+      });
+
+      const city = await this.cityRepository.findOne({
+        where: { id: dto.city },
+        select: ['name'],
+      });
+      const state = await this.stateRepository.findOne({
+        where: { id: dto.state },
+        select: ['name'],
+      });
+
+      const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
+
+      const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      let timezone = getTimezoneByLatLng(lat, lng);
+      console.log('Lat long', lat, lng, 'TimeZone', timezone);
+
+      const newPayload = { ...dto, latitude: lat, longitude: lng, timezone };
+      // Assign address fields
+      Object.assign(venue, newPayload);
+
+      // Move to next step
+      venue.profileStep = 2;
+
+      await this.venueRepository.save(venue);
+
+      return {
+        message: 'Address updated successfully. Proceed to media upload.',
+        step: 2,
+        nextStep: Number('03'),
+        status: true,
+        data: venue, // already updated
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async createNeighbourhood(userId: number, dto: NeighbourhoodDto) {
+    const venue = await this.venueRepository.findOne({
+      where: { user: { id: userId } },
     });
 
-    return { message: 'Venue fetched successfully', data: venue, status: true };
+    if (!venue) {
+      throw new NotFoundException('Venue not found');
+    }
+    try {
+      await this.venueRepository.update(
+        { id: venue.id },
+        { ...dto, isProfileComplete: false, profileStep: 3 },
+      );
+
+      return {
+        message: 'Contact details  saved Successfully',
+        data: dto,
+        step: 3,
+        nextStep: Number('04'),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  // step 4 (Final Step include Media upload)
+  async uploadVenueMedia(userId: number, uploadedFiles: UploadedFile[]) {
+    try {
+      const venue = await this.venueRepository.findOneOrFail({
+        where: { user: { id: userId } },
+      });
+
+      const { data } = await this.mediaService.handleMediaUpload(
+        venue.id,
+        uploadedFiles,
+        { eventId: null },
+      );
+
+      return {
+        message: 'Media uploaded Successfully',
+        data: data,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async saveVenueDetails(userId: number) {
+    try {
+      const venue = await this.venueRepository.findOne({
+        where: { user: { id: userId } },
+      });
+
+      await this.venueRepository.update(
+        { id: venue.id },
+        {
+          isProfileComplete: true,
+          profileStep: 4,
+          status: 'active',
+        },
+      );
+      // Temporary code for removal
+      await this.userRepository.update({ id: userId }, { status: 'active' });
+
+      let admins = await this.adminRepository.find({ where: { role: '1' } });
+      if (admins?.length > 0) {
+        const message = `A  new venue ${venue?.name} has completed their profile. Please review and approve.`;
+        const notification_payload = {
+          title: 'New Venue Profile Submitted',
+          body: message,
+          type: 'profile_completion',
+        };
+        for (const admin of admins) {
+          await this.notificationService.sendAdminPush(
+            notification_payload,
+            Number(admin.id),
+          );
+        }
+      }
+
+      return {
+        message: 'Venue is created sucessfully with media.',
+        step: 4,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  // Update Logic
+
+  async updatePrimaryDetails(userId: number, dto: UpdatePrimaryInfoDto) {
+    const venue = await this.venueRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    try {
+      await this.venueRepository.update({ id: venue.id }, dto);
+      const updatedVenue = await this.venueRepository.findOne({
+        where: { user: { id: userId } },
+      });
+      return {
+        message: 'Details updates sucessfully',
+        data: updatedVenue,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+  async updateSecondaryDetails(userId: number, dto: UpdateAddressDto) {
+    const venue = await this.venueRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    const city = await this.cityRepository.findOne({
+      where: { id: dto.city },
+      select: ['name'],
+    });
+    const state = await this.stateRepository.findOne({
+      where: { id: dto.state },
+      select: ['name'],
+    });
+
+    const fullAddress = `${dto.addressLine1}, ${dto.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${dto.zipCode}`;
+
+    const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+
+    // Here get Timezone
+    let timezone = getTimezoneByLatLng(lat, lng);
+
+    const newPayload = { ...dto, latitude: lat, longitude: lng, timezone };
+
+    try {
+      await this.venueRepository.update({ id: venue.id }, newPayload);
+      const updatedVenue = await this.venueRepository.findOne({
+        where: { user: { id: userId } },
+      });
+      return {
+        message: 'Details updated sucessfully',
+        data: updatedVenue,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async updateNeighbourhood(userId: number, dto: UpdateNeighbourhoodDto) {
+    const venue = await this.venueRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    if (!venue) {
+      throw new NotFoundException('Venue not found');
+    }
+    try {
+      // const neighbourhood = this.neighbourRepository.create({
+      //   ...dto,
+      //   venueId: venue.id,
+      // });
+      // await this.neighbourRepository.save(neighbourhood);
+      // update other data
+      await this.venueRepository.update({ id: venue.id }, { ...dto });
+
+      return {
+        message: 'Contact details updated Successfully',
+        data: dto,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async findAllByUser(userId: number, refId: number) {
+    const venue = await this.venueRepository.findOne({
+      where: { user: { id: userId } },
+    });
+    const venueDetails = await this.venueRepository
+      .createQueryBuilder('venue')
+      .leftJoinAndSelect('venue.user', 'user')
+      .leftJoin('cities', 'city', 'city.id = venue.city')
+      .leftJoin('states', 'state', 'state.id = venue.state')
+      .leftJoin('countries', 'country', 'country.id = venue.country')
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'media.user_id AS media_user_id', // expose user_id
+              `JSON_ARRAYAGG(
+              JSON_OBJECT(
+                "id",media.id,
+                "url", CONCAT(:serverUri, media.url),
+                "type", media.type
+              )
+            ) AS mediaDetails`,
+            ])
+            .from('media', 'media')
+            .groupBy('media.user_id'),
+        'media', // alias for the subquery
+        'media.media_user_id = venue.id', // now using the alias correctly
+      )
+      .select([
+        'venue.id AS id',
+        'venue.name AS name',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+        'venue.description AS description',
+        'venue.city AS city_code',
+        'venue.latitude AS latitude',
+        'venue.longitude AS longitude',
+        'venue.state AS state_code',
+        'venue.country AS country_code',
+        'venue.contactPerson AS contactPerson',
+        'venue.contactNumber AS contactNumber',
+        'venue.zipCode AS zipCode',
+        'venue.venueType AS venueType',
+        'venue.timezone AS timezone',
+        'venue.isPiqueVerified AS isPiqueVerified',
+        'city.name AS city',
+        'state.name AS state',
+        'country.name AS country',
+        'user.email AS email',
+        'COALESCE(media.mediaDetails, "[]") AS media',
+      ])
+
+      .where('venue.id=:venueId', { venueId: venue.id })
+      .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+      .getRawOne();
+
+    const neighbourhood = await this.neighbourRepository.find({
+      where: { venueId: venue.id },
+    });
+    const { media, isPiqueVerified, venueType, ...rest } = venueDetails;
+    const response = {
+      ...rest,
+      media: media ? JSON.parse(media) : null,
+      isPiqueVerified: isPiqueVerified === 1 ? true : false,
+      neighbourhoods: neighbourhood,
+      venueType:
+        typeof venue.venueType === 'string'
+          ? JSON.parse(venue.venueType) // stringified array
+          : Array.isArray(venue.venueType)
+            ? venue.venueType // already array
+            : [],
+    };
+    return {
+      message: 'Venue Details fetched Successfully',
+      venue: response,
+      status: true,
+    };
+  }
+  // By Id
+  async findVenueById(id: number) {
+    const venue = await this.venueRepository.findOne({ where: { id } });
+    return {
+      message: 'Venue fetched successfully',
+      data: venue,
+      status: true,
+    };
   }
 
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
     const {
-      availability = '',
       category = [],
-      sub_category = null,
-      price = [],
       page = 1,
       pageSize = 10,
-      city = null,
+      location = null,
+      vaccinated,
+      latitude,
+      longitude,
+      isNearby,
+      radius = 100,
+      startDateTime,
+      endDateTime,
     } = query;
 
-    console.log('category', category, 'price', price);
-
-    // Pagination
     const skip = (Number(page) - 1) * Number(pageSize);
+    const take = Number(pageSize);
     const DEFAULT_MEDIA_URL =
-      'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
-    const data = [
-      { label: '500-1000', value: 1 },
-      { label: '1000-2000', value: 2 },
-      { label: '2000-3000', value: 3 },
-      { label: '3000-4000', value: 4 },
-      { label: '4000-5000', value: 5 },
-    ];
+      'https://digidemo.in/apim/uploads/assets/icons/avatar.png';
 
-    const priceRange = data
-      .filter((item) => price.includes(item.value)) // Filter only matching values
-      .map((item) => {
-        const [min, max] = item.label.split('-').map(Number); // Extract min and max from label
-        return { min, max };
+    try {
+      // Find Venue Here
+      const venue = await this.venueRepository.findOne({
+        where: { id: userId },
+        select: ['timezone'],
       });
 
-    const res = this.entertainerRepository
-      .createQueryBuilder('entertainer')
-      .leftJoinAndSelect('entertainer.user', 'user')
-      .leftJoin('cities', 'city', 'city.id = entertainer.city')
-      .leftJoin('states', 'state', 'state.id = entertainer.state')
-      .leftJoin('countries', 'country', 'country.id = entertainer.country')
-      .leftJoin('categories', 'category', 'category.id = entertainer.category')
-      .leftJoin('categories', 'subcat', 'specific_category = subcat.id')
-      .leftJoin(
-        'wishlist',
-        'wish',
-        'wish.ent_id = user.id AND wish.user_id = :userId',
-        { userId },
-      )
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
-              'booking.entertainerUserId', // Use the actual foreign key column
-              `JSON_ARRAYAGG(
-                DISTINCT JSON_OBJECT(
-                  "showDate", booking.showDate, 
-                  "showTime", booking.showTime
-                )
-              ) AS bookedDates`,
-            ])
-            .from('booking', 'booking')
-            .where('booking.status = "confirmed"')
-            .groupBy('booking.entertainerUserId'), // Ensure this matches the foreign key column
-        'bookings',
-        'bookings.entertainerUserId = user.id', // Ensure it maps correctly to the User table
-      )
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
-              'media.userId',
-              `COALESCE(MAX(CONCAT(:serverUri, media.url)), :defaultMediaUrl) AS mediaUrl`,
-            ])
+      const baseQuery = this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
+        .leftJoin(
+          'wishlist',
+          'wish',
+          'wish.ent_id = entertainer.id AND wish.user_id = :userId',
+        )
+        .leftJoin(
+          'entertainer_media',
+          'media',
+          'media.user_id = entertainer.id AND media.type = :mediaType',
+        )
+        .leftJoin(
+          (qb) =>
+            qb
+              .select('feedback.revieweeId', 'revieweeId')
+              .addSelect('LEAST(FLOOR(AVG(feedback.rating)), 5)', 'avg_rating')
+              .from('feedback', 'feedback')
+              .where('feedback.revieweeType = :revieweeType', {
+                revieweeType: 'entertainer',
+              })
+              .groupBy('feedback.revieweeId'),
+          'fb',
+          'fb.revieweeId = entertainer.id',
+        )
 
-            .from('media', 'media')
-            .where('media.type = "headshot"')
-            .groupBy('media.userId'),
-        'media',
-        'media.userId = user.id',
-      )
-      .select([
-        'user.id AS eid',
-        'user.name AS user_name',
+        .where("entertainer.status = 'active'")
+        .setParameter('userId', userId)
+        .setParameter('mediaType', 'headshot')
+        .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL);
+
+      // Track if we have category filtering
+      let hasCategoryFilter = false;
+
+      if (category && category.length > 0) {
+        hasCategoryFilter = true;
+        baseQuery
+          .andWhere((qb) => {
+            const subQuery = qb
+              .subQuery()
+              .select('ent_cat.entertainer_id')
+              .from('entertainer_category_subcategories', 'ent_cat')
+              .where('ent_cat.category_id IN (:...category)', { category })
+              .getQuery();
+            return 'entertainer.id IN ' + subQuery;
+          })
+          .leftJoin(
+            'entertainer_category_subcategories',
+            'ent_cat',
+            'entertainer.id = ent_cat.entertainer_id',
+          )
+          .leftJoin('categories', 'cat', 'cat.id = ent_cat.category_id')
+          .groupBy('entertainer.id');
+      }
+
+      if (vaccinated) {
+        baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+          vaccinated,
+        });
+      }
+
+      if (location) {
+        const [type, idStr] = location.split(',');
+        const locationId = parseInt(idStr, 10);
+
+        if (type === 'city') {
+          baseQuery.andWhere('entertainer.city = :locationId', { locationId });
+        } else if (type === 'state') {
+          baseQuery.andWhere('entertainer.state = :locationId', { locationId });
+        }
+      }
+
+      // Handle latitude/longitude and nearby filtering
+      if (latitude && longitude) {
+        baseQuery
+          .setParameter('latitude', latitude)
+          .setParameter('longitude', longitude)
+          .setParameter('radius', radius);
+
+        // Add nearby filter if requested
+        if (isNearby) {
+          baseQuery
+            .andWhere(
+              'entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL',
+            )
+            .andWhere(
+              `(
+            3959 * acos(
+              GREATEST(-1, LEAST(1,
+                cos(radians(:latitude)) *
+                cos(radians(entertainer.latitude)) *
+                cos(radians(entertainer.longitude) - radians(:longitude)) +
+                sin(radians(:latitude)) *
+                sin(radians(entertainer.latitude))
+              ))
+            )
+          ) <= :radius`,
+            );
+        }
+      }
+
+      if (startDateTime && endDateTime) {
+        const startUtc = zonedTimeToUtc(
+          startDateTime,
+          venue?.timezone ?? 'UTC',
+        );
+        const endUtc = zonedTimeToUtc(endDateTime, venue?.timezone ?? 'UTC');
+
+        console.log('StartUtc', startUtc, 'endTime', endUtc);
+
+        baseQuery.andWhere(
+          `NOT EXISTS (
+      SELECT 1
+      FROM booking b
+      JOIN event e ON e.id = b.eventId
+      WHERE b.entId = entertainer.id
+        AND e.eventStartDateTime < :endDateTime
+        AND e.eventEndDateTime > :startDateTime
+    )`,
+          {
+            startDateTime: startUtc, // Pass as Date object
+            endDateTime: endUtc,
+          },
+        );
+      }
+
+      const totalCount = await baseQuery
+        .clone()
+        .select('COUNT(DISTINCT entertainer.id)', 'count')
+        .getRawOne()
+        .then((result) => Number(result?.count || 0));
+
+      // Build the select array dynamically
+      const selectFields = [
+        'entertainer.id AS eid',
         'entertainer.name AS name',
-        'entertainer.category AS category',
-        'entertainer.specific_category AS specific_category',
-        'entertainer.performanceRole AS performanceRole',
-        'entertainer.pricePerEvent AS pricePerEvent',
+        'entertainer.entertainer_name AS entertainer_name',
+        'entertainer.isPiqueVerified AS isPiqueVerified',
         'entertainer.vaccinated AS vaccinated',
-        'entertainer.availability AS availability',
         'entertainer.status AS status',
         'entertainer.bio AS bio',
-        'user.email AS email',
         'city.name AS city',
         'state.name AS state',
         'country.name AS country',
-        'category.name AS category_name',
-        'subcat.name AS specific_category_name',
-        'media.mediaUrl As mediaUrl',
-        'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
-        `CASE
-     WHEN wish.ent_id IS NOT NULL THEN true
-     ELSE false
-     END AS isWishlisted`,
-      ])
-      .setParameter('serverUri', process.env.BASE_URL)
-      .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL);
+        `COALESCE(fb.avg_rating, 0) AS ratings`,
 
-    // **Availability Filter**
-    if (availability) {
-      res.andWhere('entertainer.availability = :availability', {
-        availability,
-      });
-    }
+        `COALESCE(CONCAT(:serverUri, media.url), :defaultMediaUrl) AS mediaUrl`,
+        `CASE WHEN wish.ent_id IS NOT NULL THEN 1 ELSE 0 END AS isWishlisted`,
+        // Calculate distance inline in SELECT when coordinates are provided
+        latitude && longitude
+          ? `CASE
+          WHEN entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL THEN
+            ROUND(
+              3959 * acos(
+                GREATEST(-1, LEAST(1,
+                  cos(radians(:latitude)) *
+                  cos(radians(entertainer.latitude)) *
+                  cos(radians(entertainer.longitude) - radians(:longitude)) +
+                  sin(radians(:latitude)) *
+                  sin(radians(entertainer.latitude))
+                ))
+              ),
+              2
+            )
+          ELSE NULL
+        END AS distanceInMiles`
+          : 'NULL AS distanceInMiles',
+      ];
 
-    // **Category Filter (Applies Only If Not Null)**
-    if (category !== null && category.length > 0) {
-      res.andWhere('entertainer.category IN (:...category)', { category });
-    }
+      // Add categories to select if category filtering is active
+      if (hasCategoryFilter) {
+        selectFields.push(
+          'JSON_ARRAYAGG(JSON_OBJECT("id", cat.id, "name", cat.name)) as categories',
+        );
+      }
 
-    // **Sub-Category Filter**
-    if (sub_category) {
-      res.andWhere('entertainer.specific_category = :sub_category', {
-        sub_category,
-      });
-    }
+      const results = await baseQuery
+        .select(selectFields)
+        .orderBy(
+          // Order by distance if nearby search, otherwise by name
+          isNearby && latitude && longitude
+            ? `ROUND(
+            3959 * acos(
+              GREATEST(-1, LEAST(1,
+                cos(radians(${latitude})) *
+                cos(radians(entertainer.latitude)) *
+                cos(radians(entertainer.longitude) - radians(${longitude})) +
+                sin(radians(${latitude})) *
+                sin(radians(entertainer.latitude))
+              ))
+            ),
+            2
+          )`
+            : 'entertainer.name',
+          'ASC',
+        )
+        .offset(skip)
+        .limit(take)
+        .getRawMany();
 
-    // **Price Range Filter (Supports Multiple Ranges)**
-    if (priceRange !== null && priceRange.length > 0) {
-      res.andWhere(
-        new Brackets((qb) => {
-          const conditions: string[] = [];
-          const params: Record<string, number> = {};
-
-          priceRange.forEach((range, index) => {
-            const minKey = `min${index}`;
-            const maxKey = `max${index}`;
-
-            conditions.push(
-              `entertainer.pricePerEvent BETWEEN :${minKey} AND :${maxKey}`,
-            );
-            params[minKey] = range.min;
-            params[maxKey] = range.max;
-          });
-
-          qb.where(conditions.join(' OR '), params);
+      const entertainers = results.map(
+        (
+          {
+            eid,
+            isWishlisted,
+            vaccinated,
+            isPiqueVerified,
+            distanceInMiles,
+            categories,
+            ratings,
+            ...item
+          },
+          index,
+        ) => ({
+          eid: Number(eid),
+          ...item,
+          isPiqueVerified: isPiqueVerified === 1,
+          isWishlisted: Boolean(isWishlisted),
+          vaccination_status:
+            vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+          ratings: Number(ratings),
+          distanceInMiles: distanceInMiles ? Number(distanceInMiles) : null,
+          categories: categories ? JSON.parse(categories) : [],
         }),
       );
+
+      return {
+        message: 'Entertainers fetched successfully',
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        entertainers,
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
     }
-
-    // **City Filter**
-    if (city) {
-      res.andWhere('entertainer.city = :city', { city });
-    }
-
-    // **Search Filter**
-    // (search && search.trim()) {
-    //   res.andWhere(
-    //     `(
-    //       LOWER(entertainer.name) LIKE :search OR
-    //       LOWER(entertainer.bio) LIKE :search OR
-    //       LOWER(user.email) LIKE :search
-    //     )`,
-    //     { search: `%${search.toLowerCase()}%` }
-    //   );
-    // }
-
-    const totalCount = await res.getCount();
-    const results = await res.skip(skip).take(Number(pageSize)).getRawMany();
-
-    // Base Query
-    const arr = [3, 4, 5, 2, 1];
-
-    // Parse JSON fields
-    const entertainers = results.map(
-      ({ isWishListed, bookedFor, ...item }, index) => {
-        return {
-          ...item,
-          isWishlisted: Boolean(isWishListed),
-          ratings: arr[index % arr.length],
-          whatwillyouget: [
-            { text: 'you will get full service' },
-            { text: 'you will get full Satisfaction' },
-            { text: 'Professional Talent' },
-            { text: 'An feeling of sophistication' },
-            { text: 'Experince of life' },
-          ],
-          bookedFor: JSON.parse(bookedFor),
-        };
-      },
-    );
-
-    return {
-      message: 'Entertainers fetched successfully',
-      totalCount,
-      page,
-      pageSize,
-      totalPages: Math.ceil(totalCount / Number(pageSize)),
-      entertainers,
-      status: true,
-    };
   }
+  async findAllEntertainersForDashboard(query: SearchEntertainerDto) {
+    const {
+      category = [],
+      page = 1,
+      pageSize = 10,
+      location = null,
+      vaccinated,
+      latitude,
+      longitude,
+      isNearby,
+      radius = 100,
+      startDateTime,
+      endDateTime,
+    } = query;
 
-  async findAllBooking(userId: number) {
-    const bookings = await this.bookingRepository
-      .createQueryBuilder('booking')
-      .leftJoinAndSelect('booking.user', 'user')
-      .leftJoinAndSelect('user.entertainer', 'entertainer')
-      .where('booking.venueUser.id = :userId', { userId })
-      .select([
-        'booking.id AS id',
-        'booking.status AS status',
-        'booking.showDate AS showDate',
-        'booking.isAccepted AS isAccepted',
-        'booking.specialNotes AS specialNotes',
-        'booking.venueId AS vid',
-        'user.id AS eid',
-        'user.email AS email',
-        'user.name AS username',
+    const skip = (Number(page) - 1) * Number(pageSize);
+    const take = Number(pageSize);
+    const DEFAULT_MEDIA_URL =
+      'https://digidemo.in/apim/uploads/assets/icons/avatar.png';
+
+    try {
+      const baseQuery = this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
+        .leftJoin(
+          'entertainer_media',
+          'media',
+          'media.user_id = entertainer.id AND media.type = :mediaType',
+        )
+        .leftJoin(
+          (qb) =>
+            qb
+              .select('feedback.revieweeId', 'revieweeId')
+              .addSelect('LEAST(FLOOR(AVG(feedback.rating)), 5)', 'avg_rating')
+              .from('feedback', 'feedback')
+              .where('feedback.revieweeType = :revieweeType', {
+                revieweeType: 'entertainer',
+              })
+              .groupBy('feedback.revieweeId'),
+          'fb',
+          'fb.revieweeId = entertainer.id',
+        )
+        .where("entertainer.status = 'active'")
+        .setParameter('mediaType', 'headshot')
+        .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL);
+      // Track if we have category filtering
+      let hasCategoryFilter = false;
+
+      if (category && category.length > 0) {
+        hasCategoryFilter = true;
+        baseQuery
+          .andWhere((qb) => {
+            const subQuery = qb
+              .subQuery()
+              .select('ent_cat.entertainer_id')
+              .from('entertainer_category_subcategories', 'ent_cat')
+              .where('ent_cat.category_id IN (:...category)', { category })
+              .getQuery();
+            return 'entertainer.id IN ' + subQuery;
+          })
+          .leftJoin(
+            'entertainer_category_subcategories',
+            'ent_cat',
+            'entertainer.id = ent_cat.entertainer_id',
+          )
+          .leftJoin('categories', 'cat', 'cat.id = ent_cat.category_id')
+          .groupBy('entertainer.id');
+      }
+
+      if (vaccinated) {
+        baseQuery.andWhere('entertainer.vaccinated = :vaccinated', {
+          vaccinated,
+        });
+      }
+
+      if (location) {
+        const [type, idStr] = location.split(',');
+        const locationId = parseInt(idStr, 10);
+
+        if (type === 'city') {
+          baseQuery.andWhere('entertainer.city = :locationId', { locationId });
+        } else if (type === 'state') {
+          baseQuery.andWhere('entertainer.state = :locationId', { locationId });
+        }
+      }
+
+      // Handle latitude/longitude and nearby filtering
+      if (latitude && longitude) {
+        baseQuery
+          .setParameter('latitude', latitude)
+          .setParameter('longitude', longitude)
+          .setParameter('radius', radius);
+
+        // Add nearby filter if requested
+        if (isNearby) {
+          console.log('Debug - Adding nearby filter with radius:', radius);
+          baseQuery
+            .andWhere(
+              'entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL',
+            )
+            .andWhere(
+              `(
+            3959 * acos(
+              GREATEST(-1, LEAST(1,
+                cos(radians(:latitude)) *
+                cos(radians(entertainer.latitude)) *
+                cos(radians(entertainer.longitude) - radians(:longitude)) +
+                sin(radians(:latitude)) *
+                sin(radians(entertainer.latitude))
+              ))
+            )
+          ) <= :radius`,
+            );
+        }
+      }
+
+      if (startDateTime && endDateTime) {
+        const start = new Date(startDateTime);
+        const end = new Date(endDateTime);
+
+        // Ensure endDateTime covers the full day
+        const extendedEnd = new Date(end);
+        extendedEnd.setUTCDate(extendedEnd.getUTCDate() + 1);
+
+        baseQuery.andWhere(
+          `NOT EXISTS (
+        SELECT 1
+        FROM booking b
+        JOIN event e ON e.id = b.eventId
+        WHERE b.entId = entertainer.id
+          AND e.eventStartDateTime < :endDateTime
+          AND e.eventEndDateTime > :startDateTime
+      )`,
+          {
+            startDateTime: start.toISOString(),
+            endDateTime: extendedEnd.toISOString(),
+          },
+        );
+      }
+
+      const totalCount = await baseQuery
+        .clone()
+        .select('COUNT(DISTINCT entertainer.id)', 'count')
+        .getRawOne()
+        .then((result) => Number(result?.count || 0));
+
+      // Build the select array dynamically
+      const selectFields = [
+        'entertainer.id AS eid',
         'entertainer.name AS name',
-        'entertainer.category AS category',
-        'entertainer.specific_category AS  specific_category',
-        'entertainer.phone1 AS phone1',
-        'entertainer.performanceRole AS performanceRole',
-        'entertainer.availability AS availability',
-        'entertainer.pricePerEvent AS pricePerEvent',
-      ])
-      .orderBy('booking.createdAt', 'DESC')
-      .getRawMany();
+        'entertainer.entertainer_name AS entertainer_name',
+        'entertainer.isPiqueVerified AS isPiqueVerified',
+        'entertainer.vaccinated AS vaccinated',
+        'entertainer.status AS status',
+        'entertainer.bio AS bio',
+        'city.name AS city',
+        'state.name AS state',
+        'country.name AS country',
+        `COALESCE(CONCAT(:serverUri, media.url), :defaultMediaUrl) AS mediaUrl`,
+        // Calculate distance inline in SELECT when coordinates are provided
+        latitude && longitude
+          ? `CASE
+          WHEN entertainer.latitude IS NOT NULL AND entertainer.longitude IS NOT NULL THEN
+            ROUND(
+              3959 * acos(
+                GREATEST(-1, LEAST(1,
+                  cos(radians(:latitude)) *
+                  cos(radians(entertainer.latitude)) *
+                  cos(radians(entertainer.longitude) - radians(:longitude)) +
+                  sin(radians(:latitude)) *
+                  sin(radians(entertainer.latitude))
+                ))
+              ),
+              2
+            )
+          ELSE NULL
+        END AS distanceInMiles`
+          : 'NULL AS distanceInMiles',
+      ];
 
-    if (!bookings) {
-      throw new Error('No bookings found');
+      // Add categories to select if category filtering is active
+      if (hasCategoryFilter) {
+        selectFields.push(
+          'JSON_ARRAYAGG(JSON_OBJECT("id", cat.id, "name", cat.name)) as categories',
+        );
+      }
+
+      const results = await baseQuery
+        .select(selectFields)
+        .orderBy(
+          // Order by distance if nearby search, otherwise by name
+          isNearby && latitude && longitude
+            ? `ROUND(
+            3959 * acos(
+              GREATEST(-1, LEAST(1,
+                cos(radians(${latitude})) *
+                cos(radians(entertainer.latitude)) *
+                cos(radians(entertainer.longitude) - radians(${longitude})) +
+                sin(radians(${latitude})) *
+                sin(radians(entertainer.latitude))
+              ))
+            ),
+            2
+          )`
+            : 'entertainer.name',
+          'ASC',
+        )
+        .offset(skip)
+        .limit(take)
+        .getRawMany();
+
+      const entertainers = results.map(
+        (
+          {
+            eid,
+            isWishlisted,
+            vaccinated,
+            isPiqueVerified,
+            distanceInMiles,
+            categories,
+            ratings,
+            ...item
+          },
+          index,
+        ) => ({
+          eid: Number(eid),
+          ...item,
+          isPiqueVerified: isPiqueVerified === 1,
+
+          vaccination_status:
+            vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+          ratings: Number(ratings),
+          distanceInMiles: distanceInMiles ? Number(distanceInMiles) : null,
+          // Parse categories JSON if present
+          categories: categories ? JSON.parse(categories) : [],
+        }),
+      );
+      return {
+        message: 'Entertainers details for dashboard fetched successfully',
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        entertainers,
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
     }
-
-    return {
-      message: 'Bookings returned successfully',
-      count: bookings.length,
-      bookings,
-      status: true,
-    };
   }
 
-  async handleUpdateVenueDetails(
-    updateVenueDto: UpdateVenueDto,
-    userId: number,
+  async findAllBooking(venueId: number, query: BookingQueryDto) {
+    const { page = 1, pageSize = 10, status = '' } = query;
+    const skip = (Number(page) - 1) * Number(pageSize);
+    const take = Number(pageSize);
+
+    try {
+      // Base query builder
+      const baseQuery = this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin(
+          'entertainers',
+          'entertainer',
+          'entertainer.id = booking.entId',
+        )
+        .leftJoin('event', 'event', 'booking.eventId = event.id')
+        .where('booking.venueId = :venueId', { venueId });
+
+      // Apply status filter if provided
+      if (status) {
+        baseQuery.andWhere('booking.status = :status', { status });
+      }
+
+      // Get total count
+      const totalCount = await baseQuery
+        .clone()
+        .select('COUNT(DISTINCT booking.id)', 'count')
+        .getRawOne()
+        .then((result) => Number(result?.count || 0));
+
+      // Get paginated results
+      const results = await baseQuery
+        .select([
+          'booking.id AS id',
+          'booking.status AS status',
+          'booking.showStartDateTime AS showStartDateTime',
+          'booking.specialNotes AS specialNotes',
+          'booking.venueId AS vid',
+          'entertainer.id AS eid',
+          'entertainer.name AS name',
+          'entertainer.category AS category',
+          'entertainer.specific_category AS specific_category',
+          'entertainer.pricePerEvent AS pricePerEvent',
+          'event.id AS event_id',
+          'event.slug AS slug',
+          'event.title AS event_title',
+          'event.status AS event_status',
+          'event.recurring AS event_recurring',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.description AS event_description',
+        ])
+        .orderBy('booking.createdAt', 'DESC')
+        .offset(skip)
+        .limit(take)
+        .getRawMany();
+
+      return {
+        message: 'Bookings returned successfully',
+        count: totalCount,
+        bookings: results,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        page,
+        pageSize,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+  // Update Venue
+  async updateVenueWithMedia(
+    venueId: number,
+    dto: UpdateVenueRequest,
+    uploadedFiles: UploadedFile[],
   ) {
-    const { venueId, ...details } = updateVenueDto;
+    const { venue } = dto;
+    let res;
+
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+
+    const existingVenue = await queryRunner.manager.findOne(Venue, {
+      where: { id: venueId },
+    });
+
+    if (!existingVenue) {
+      throw new NotFoundException('Venue not Found.');
+    }
+    try {
+      const city = await this.cityRepository.findOne({
+        where: { id: venue.city },
+        select: ['name'],
+      });
+      const state = await this.stateRepository.findOne({
+        where: { id: venue.state },
+        select: ['name'],
+      });
+
+      const fullAddress = `${venue.addressLine1}, ${venue.addressLine2 ?? ''}, ${city?.name ?? ''}, ${state?.name ?? ''} ${venue.zipCode}`;
+
+      const { lat, lng } = await this.geoService.geocodeAddress(fullAddress);
+      const newPayload = { ...venue, latitude: lat, longitude: lng };
+
+      await queryRunner.manager.update(
+        Venue,
+        { id: existingVenue.id },
+        newPayload,
+      );
+      if (uploadedFiles?.length > 0) {
+        res = await this.mediaService.handleMediaUpload(
+          existingVenue.id,
+          uploadedFiles,
+          { eventId: null },
+        );
+      }
+
+      const message = res
+        ? 'Venue updated successfully with Media'
+        : 'Venue Details updated Successfully';
+      return { message, status: true };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
+  // Changed
+  async handleRemoveVenue(id: number) {
     const venue = await this.venueRepository.findOne({
-      where: { id: venueId, user: { id: userId } },
+      where: { id: id },
     });
 
     if (!venue) {
       throw new NotFoundException({
         message: 'Venue not found',
-        error: 'Not Found',
-        status: 'false',
-      });
-    }
-
-    const updateVenue = await this.venueRepository.update(
-      { id: venue.id },
-      details,
-    );
-    if (updateVenue.affected) {
-      return { message: 'Venue updated successfully', status: true };
-    } else {
-      throw new InternalServerErrorException({
-        message: 'something went wrong ',
         status: false,
       });
     }
-  }
 
-  async handleRemoveVenue(id: number, userId: number) {
     try {
-      const venue = await this.venueRepository.findOne({
-        where: { id: id, user: { id: userId } },
-      });
-      console.log('venue', venue);
-      if (!venue) {
-        throw new NotFoundException({
-          message: 'Venue not found',
-          status: false,
-        });
-      }
+      await this.venueRepository.delete({ id: venue.id });
 
-      const res = await this.venueRepository.delete({ id: venue.id });
-
-      if (res.affected && res.affected > 0) {
-        return { message: 'Venue deleted successfully', status: true };
-      }
+      return { message: 'Venue deleted successfully', status: true };
     } catch (error) {
       throw new InternalServerErrorException({
-        message: 'something went wrong',
+        message: error.message,
         status: false,
       });
     }
   }
 
-  async findEntertainerDetails(userId: number) {
-    const DEFAULT_MEDIA_URL =
-      'https://digidemo.in/api/uploads/2025/031741334326736-839589383.png';
-
+  async findEntertainerDetails(id: number, venueId: number) {
     const res = await this.entertainerRepository
       .createQueryBuilder('entertainer')
-      .leftJoinAndSelect('entertainer.user', 'user')
       .leftJoin('cities', 'city', 'city.id = entertainer.city')
       .leftJoin('states', 'state', 'state.id = entertainer.state')
       .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
       .leftJoin('categories', 'category', 'category.id = entertainer.category')
-      .leftJoin('categories', 'subcat', 'specific_category = subcat.id')
+      .leftJoin(
+        'wishlist',
+        'wish',
+        'wish.ent_id = entertainer.id AND wish.user_id = :venueId',
+      )
+      .leftJoin(
+        'categories',
+        'subcat',
+        'subcat.id = entertainer.specific_category',
+      )
+
       .leftJoin(
         (qb) =>
           qb
             .select([
-              'booking.entertainerUserId',
-              'JSON_ARRAYAGG(DISTINCT JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookedDates',
+              'media.user_id AS media_user_id',
+              `JSON_ARRAYAGG(
+          JSON_OBJECT(
+            "url", CONCAT(:serverUri, media.url),
+            "type", media.type
+          )
+        ) AS mediaDetails`,
             ])
-            .from('booking', 'booking')
-            .where('booking.status = "confirmed"')
-            .groupBy('booking.entertainerUserId'),
-        'bookings',
-        'bookings.entertainerUserId = user.id',
+            .from('entertainer_media', 'media')
+            .groupBy('media.user_id'),
+        'media', // keep subquery alias same
+        'media.media_user_id = entertainer.id', // join condition unchanged
       )
       .leftJoin(
         (qb) =>
           qb
-            .select([
-              'media.userId',
-              `COALESCE(
-                (SELECT CONCAT(:serverUri, m1.url) FROM media m1 
-                 WHERE m1.userId = media.userId AND m1.type = 'headshot' 
-                 ORDER BY m1.id LIMIT 1), 
-                :defaultMediaUrl
-              ) AS headshotUrl`,
-              `COALESCE(
-                (SELECT CONCAT(:serverUri, m2.url) FROM media m2 
-                 WHERE m2.userId = media.userId AND m2.type = 'image' 
-                 ORDER BY m2.id LIMIT 1), 
-                :defaultMediaUrl
-              ) AS imageUrl`,
-            ])
-            .from('media', 'media')
-            .groupBy('media.userId'),
-        'media',
-        'media.userId = user.id',
+            .select('feedback.revieweeId', 'revieweeId')
+            .addSelect('LEAST(FLOOR(AVG(feedback.rating)), 5)', 'avg_rating')
+            .from('feedback', 'feedback')
+            .where('feedback.revieweeType = :revieweeType', {
+              revieweeType: 'entertainer',
+            })
+            .groupBy('feedback.revieweeId'),
+        'fb',
+        'fb.revieweeId = entertainer.id',
       )
+
       .select([
-        'user.id AS eid',
-        'user.email AS email',
-        'user.name AS username',
-        'entertainer.name AS entertainer_name',
-        'entertainer.category AS category',
-        'entertainer.specific_category AS specific_category',
-        'category.name AS category_name',
-        'subcat.name AS specific_category_name',
-        'entertainer.phone1 AS phone1',
-        'entertainer.performanceRole AS performanceRole',
-        'entertainer.availability AS availability',
+        'entertainer.id AS eid',
+        'entertainer.name AS name',
+        'entertainer.entertainer_name AS entertainer_name',
+        'entertainer.isPiqueVerified AS isPiqueVerified',
         'entertainer.pricePerEvent AS pricePerEvent',
-        'COALESCE(bookings.bookedDates, "[]") AS bookedFor',
-        'COALESCE(media.headshotUrl, :defaultMediaUrl) AS headshotUrl',
-        'COALESCE(media.imageUrl, :defaultMediaUrl) AS imageUrl',
+        'entertainer.socialLinks AS socialLinks',
+        'entertainer.contact_person AS contactPerson',
+        'entertainer.contact_number AS contactNumber',
+        'entertainer.timezone AS timezone',
+        'state.name AS stateName',
+        'country.name AS countryName',
+        'city.name AS cityName',
+        'code.StateCode AS stateCode',
+        `COALESCE(fb.avg_rating, 0) AS ratings`,
+
+        `CASE 
+       WHEN entertainer.services IS NULL OR entertainer.services = '' 
+       THEN '[]' 
+     ELSE entertainer.services 
+     END AS services`,
+        'entertainer.bio AS bio',
+        'entertainer.vaccinated AS vaccinated',
+
+        'COALESCE(media.mediaDetails, "[]") AS media',
+        `CASE
+        WHEN wish.ent_id IS NOT NULL THEN 1
+        ELSE 0
+        END AS isWishlisted`,
       ])
-      .setParameter('serverUri', process.env.BASE_URL)
-      .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL)
+      .where('entertainer.id = :id', { id })
+      .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+      .setParameter('venueId', venueId)
       .getRawOne();
-    const { bookedFor, ...details } = res;
+
+    //  Get Entertainer Details
+
+    const rawCategories = await this.entCatRepository
+      .createQueryBuilder('ecs')
+      .leftJoin('categories', 'cat', 'cat.id = ecs.category_id') // Category relation
+      .where('ecs.entertainerId = :entertainerId', { entertainerId: id })
+      .select([
+        'cat.id AS categoryId',
+        'cat.name AS categoryName',
+        'ecs.subcategoryIds AS subcategoryIds',
+      ])
+      .getRawMany();
+
+    const subcategoryIds = rawCategories.flatMap((row) =>
+      typeof row.subcategoryIds === 'string'
+        ? row.subcategoryIds.split(',').map(Number)
+        : [],
+    );
+
+    const uniqueSubcategoryIds = [...new Set(subcategoryIds)];
+
+    //   Now get all the subcategory
+
+    const subcategories = await this.catRepository
+      .createQueryBuilder('subcat')
+      .leftJoinAndSelect(
+        'subcategory_rates',
+        'subRates',
+        'subRates.subcategoryId = subcat.id',
+      )
+      .where('subcat.id IN (:...ids)', { ids: uniqueSubcategoryIds })
+      .select([
+        'subcat.id AS id',
+        'subcat.name AS name',
+        'subcat.catslug AS catslug',
+        'subcat.parentId AS parentId',
+        'subRates.basePrice AS basePrice',
+        'subRates.pricePerExtra30Min AS pricePerExtra30Min',
+      ])
+      .getRawMany();
+
+    const specialPrices = await this.specialSubcatRateRepo
+      .createQueryBuilder('sp')
+      .where('sp.subcategoryId IN (:...ids)', { ids: uniqueSubcategoryIds })
+      .select([
+        'sp.subcategoryId AS subcategoryId',
+        'sp.date AS date',
+        'sp.specialPrice AS price',
+        'sp.pricePerExtra30Min AS pricePerExtra30Min',
+      ])
+      .getRawMany();
+
+    const formatted = rawCategories.map((row) => {
+      const subcatIds =
+        typeof row.subcategoryIds === 'string'
+          ? row.subcategoryIds.split(',').map(Number)
+          : [];
+
+      const specific_category = subcategories
+        .filter((sub) => subcatIds.includes(sub.id))
+        .map((sub) => {
+          const specials = specialPrices
+            .filter((sp) => sp.subcategoryId === sub.id)
+            .map((sp) => ({
+              date: sp.date,
+              price: sp.price,
+              pricePerExtra30Min: sp.pricePerExtra30Min,
+            }));
+
+          return {
+            id: sub.id,
+            name: sub.name,
+            catslug: sub.catslug,
+            parentId: sub.parentId,
+            basePrice: sub.basePrice,
+            pricePerExtra30Min: sub.pricePerExtra30Min,
+            specialPrices: specials,
+          };
+        });
+
+      return {
+        id: row.categoryId,
+        categoryName: row.categoryName,
+        specific_category,
+      };
+    });
+
+    const finalPrice = await this.addMarkupToEntertainer(
+      Number(res.pricePerEvent),
+    );
+
+    const {
+      services,
+      media,
+      vaccinated,
+      isWishlisted,
+      isPiqueVerified,
+      socialLinks,
+      ...details
+    } = res;
     return {
-      message: 'Entertainer Details returned Successfully',
-      data: { ...details, bookedFor: JSON.parse(bookedFor) },
+      message: 'Entertainer details returned Successfully',
+      data: {
+        ...details,
+        isWishlisted: Boolean(isWishlisted),
+        priceWithMarkup: finalPrice,
+        isPiqueVerified: isPiqueVerified === 1 ? true : false,
+        socialLinks: socialLinks ? JSON.parse(socialLinks) : {},
+        vaccination_status:
+          vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+        services: services ? services.split(',') : [],
+        media: JSON.parse(media),
+        categories: formatted,
+      },
       status: true,
     };
   }
+  async findEntertainerDetailsForDashboard(id: number) {
+    const res = await this.entertainerRepository
+      .createQueryBuilder('entertainer')
+      .leftJoin('cities', 'city', 'city.id = entertainer.city')
+      .leftJoin('states', 'state', 'state.id = entertainer.state')
+      .leftJoin('countries', 'country', 'country.id = entertainer.country')
+      .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+      .leftJoin('categories', 'category', 'category.id = entertainer.category')
 
+      .leftJoin(
+        'categories',
+        'subcat',
+        'subcat.id = entertainer.specific_category',
+      )
+
+      .leftJoin(
+        (qb) =>
+          qb
+            .select([
+              'media.user_id AS media_user_id',
+              `JSON_ARRAYAGG(
+          JSON_OBJECT(
+            "url", CONCAT(:serverUri, media.url),
+            "type", media.type
+          )
+        ) AS mediaDetails`,
+            ])
+            .from('entertainer_media', 'media') // ✅ changed table name only
+            .groupBy('media.user_id'),
+        'media', // keep subquery alias same
+        'media.media_user_id = entertainer.id', // join condition unchanged
+      )
+
+      .select([
+        'entertainer.id AS eid',
+        'entertainer.name AS name',
+        'entertainer.entertainer_name AS entertainer_name',
+        'entertainer.isPiqueVerified AS isPiqueVerified',
+        'entertainer.pricePerEvent AS pricePerEvent',
+        'entertainer.socialLinks AS socialLinks',
+        'entertainer.contact_person AS contactPerson',
+        'entertainer.contact_number AS contactNumber',
+        'entertainer.timezone AS timezone',
+        'state.name AS stateName',
+        'country.name AS countryName',
+        'city.name AS cityName',
+        'code.StateCode AS stateCode',
+
+        `CASE 
+       WHEN entertainer.services IS NULL OR entertainer.services = '' 
+       THEN '[]' 
+     ELSE entertainer.services 
+     END AS services`,
+        'entertainer.bio AS bio',
+        'entertainer.vaccinated AS vaccinated',
+
+        'COALESCE(media.mediaDetails, "[]") AS media',
+      ])
+      .where('entertainer.id = :id', { id })
+      .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+
+      .getRawOne();
+
+    //  Get Entertainer Details
+
+    const rawCategories = await this.entCatRepository
+      .createQueryBuilder('ecs')
+      .leftJoin('categories', 'cat', 'cat.id = ecs.category_id') // Category relation
+      .where('ecs.entertainerId = :entertainerId', { entertainerId: id })
+      .select([
+        'cat.id AS categoryId',
+        'cat.name AS categoryName',
+        'ecs.subcategoryIds AS subcategoryIds',
+      ])
+      .getRawMany();
+
+    const subcategoryIds = rawCategories.flatMap((row) =>
+      typeof row.subcategoryIds === 'string'
+        ? row.subcategoryIds.split(',').map(Number)
+        : [],
+    );
+
+    const uniqueSubcategoryIds = [...new Set(subcategoryIds)];
+
+    //   Now get all the subcategory
+
+    const subcategories = await this.catRepository
+      .createQueryBuilder('subcat')
+      .leftJoinAndSelect(
+        'subcategory_rates',
+        'subRates',
+        'subRates.subcategoryId = subcat.id',
+      )
+      .where('subcat.id IN (:...ids)', { ids: uniqueSubcategoryIds })
+      .select([
+        'subcat.id AS id',
+        'subcat.name AS name',
+        'subcat.catslug AS catslug',
+        'subcat.parentId AS parentId',
+        'subRates.basePrice AS basePrice',
+        'subRates.pricePerExtra30Min AS pricePerExtra30Min',
+      ])
+      .getRawMany();
+
+    const specialPrices = await this.specialSubcatRateRepo
+      .createQueryBuilder('sp')
+      .where('sp.subcategoryId IN (:...ids)', { ids: uniqueSubcategoryIds })
+      .select([
+        'sp.subcategoryId AS subcategoryId',
+        'sp.date AS date',
+        'sp.specialPrice AS price',
+      ])
+      .getRawMany();
+
+    const formatted = rawCategories.map((row) => {
+      const subcatIds =
+        typeof row.subcategoryIds === 'string'
+          ? row.subcategoryIds.split(',').map(Number)
+          : [];
+
+      const specific_category = subcategories
+        .filter((sub) => subcatIds.includes(sub.id))
+        .map((sub) => {
+          const specials = specialPrices
+            .filter((sp) => sp.subcategoryId === sub.id)
+            .map((sp) => ({
+              date: sp.date,
+              price: sp.price,
+            }));
+
+          return {
+            id: sub.id,
+            name: sub.name,
+            catslug: sub.catslug,
+            parentId: sub.parentId,
+            basePrice: sub.basePrice,
+            pricePerExtra30Min: sub.pricePerExtra30Min,
+            specialPrices: specials,
+          };
+        });
+
+      return {
+        id: row.categoryId,
+        categoryName: row.categoryName,
+        specific_category,
+      };
+    });
+
+    const finalPrice = await this.addMarkupToEntertainer(
+      Number(res.pricePerEvent),
+    );
+
+    const {
+      services,
+      media,
+      vaccinated,
+      isPiqueVerified,
+      socialLinks,
+      ...details
+    } = res;
+    return {
+      message: 'Entertainer details returned successfully for dashboard.',
+      data: {
+        ...details,
+
+        priceWithMarkup: finalPrice,
+        isPiqueVerified: isPiqueVerified === 1 ? true : false,
+        socialLinks: socialLinks ? JSON.parse(socialLinks) : {},
+        vaccination_status:
+          vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+        services: services ? services.split(',') : [],
+        media: JSON.parse(media),
+        categories: formatted,
+      },
+      status: true,
+    };
+  }
+  // Working
   async getSearchSuggestions(query: string) {
     const categories = await this.catRepository.find({
       where: { name: Like(`%${query}%`), parentId: 0 },
@@ -524,42 +1557,27 @@ export class VenueService {
   async getAllEntertainersByCategory(cid: number) {
     const results = await this.entertainerRepository
       .createQueryBuilder('entertainer')
-      .leftJoin('entertainer.user', 'user')
       .leftJoin(
         (qb) =>
           qb
             .select([
-              'booking.userId AS entertainerId',
-              'JSON_ARRAYAGG(JSON_OBJECT("showDate", booking.showDate, "showTime", booking.showTime)) AS bookings',
-            ])
-            .from('booking', 'booking')
-            .groupBy('booking.userId'),
-        'bookings',
-        'bookings.entertainerId = user.id',
-      )
-      .leftJoin(
-        (qb) =>
-          qb
-            .select([
-              'media.userId AS userId',
+              'media.user_id AS user_id',
               "JSON_ARRAYAGG(JSON_OBJECT('id', media.id, 'url', CONCAT(:serverUri, media.url), 'type', media.type, 'name', media.name)) AS mediaFiles",
             ])
             .from('media', 'media')
-            .groupBy('media.userId'),
+            .groupBy('media.user_id'),
         'media',
-        'media.userId = user.id',
+        'media.user_id = entertainer.id',
       )
+
       .select([
-        'user.id AS eid',
+        'entertainer.id AS eid',
         'entertainer.name AS name',
         'entertainer.bio AS bio',
-        'entertainer.phone1 AS phone1',
-        'entertainer.phone2 AS phone2',
         'entertainer.category AS category',
         'entertainer.pricePerEvent AS pricePerEvent',
         'entertainer.availability AS availability',
         'entertainer.socialLinks AS socialLinks',
-        'COALESCE(bookings.bookings, "[]") AS bookings', // Default to empty array if no bookings
         'COALESCE(media.mediaFiles, "[]") AS media',
       ])
       .where('entertainer.category = :cid', { cid })
@@ -580,35 +1598,6 @@ export class VenueService {
     };
   }
 
-  async addVenueLocation(userId: number, locDto: VenueLocationDto) {
-    const parentVenue = await this.venueRepository.findOne({
-      where: { user: { id: userId }, isParent: true },
-    });
-
-    if (!parentVenue) {
-      throw new BadRequestException({
-        message: 'Can not Add venue Location',
-        status: false,
-        error: 'Parent venue do not exists',
-      });
-    }
-
-    const venueLoc = this.venueRepository.create({
-      ...locDto,
-      name: parentVenue.name,
-      user: { id: userId },
-      description: parentVenue.description,
-      parentId: parentVenue.id,
-      isParent: false,
-    });
-
-    await this.venueRepository.save(venueLoc);
-    return {
-      message: 'Venue location added successfully',
-      status: true,
-    };
-  }
-
   async getAllCategories(query: Data) {
     const { category } = query;
 
@@ -618,13 +1607,13 @@ export class VenueService {
       where: { parentId: id },
       select: ['id', 'name', 'iconUrl'],
     });
-    console.log('categories', categories);
     const plainCat = instanceToPlain(categories);
 
-    const Data = plainCat.map(({ iconUrl, ...rest }) => ({
+    const baseUrl = this.config.get<string>('BASE_URL');
+    const Data = categories.map(({ iconUrl, ...rest }) => ({
       ...rest,
-      activeIcon: iconUrl,
-      inactiveIcon: iconUrl.replace(/(\.\w+)$/, '_grey$1'), // Adds "_gray" before file extension
+      activeIcon: `${baseUrl}${iconUrl}`,
+      inactiveIcon: `${baseUrl}${iconUrl.replace(/(\.\w+)$/, '_grey$1')}`,
     }));
 
     const filter = plainCat.map((item) => ({
@@ -657,48 +1646,301 @@ export class VenueService {
     };
   }
 
-  async toggleWishlist(userId: number, wishDto: WishlistDto) {
+  async toggleWishlist(venueId: number, wishDto: WishlistDto) {
     // Check if entertainer is already in wishlist
     const { entId, ...wish } = wishDto;
 
     const existingWishlist = await this.wishRepository.findOne({
-      where: { user_id: userId, ent_id: entId },
+      where: { user_id: venueId, ent_id: entId },
     });
 
     if (existingWishlist) {
       // Remove from wishlist if already present
       const res = await this.wishRepository.remove(existingWishlist);
-      console.log('Removed Entertainer', res);
       return { message: 'Entertainer Removed from wishlist', status: true };
     }
     //  Add to wishlist if not present
-    const wishlistItem = this.wishRepository.create({
-      ...wish,
-      ent_id: entId,
-      user_id: userId,
-    });
-    await this.wishRepository.save(wishlistItem);
-    return { message: ' Entertainer Added to wishlist', status: true };
+    try {
+      const wishlistItem = this.wishRepository.create({
+        ...wish,
+        ent_id: entId,
+        user_id: venueId,
+      });
+      await this.wishRepository.save(wishlistItem);
+      return { message: 'Entertainer Added to wishlist', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: 'Error adding entertainer to wishlist',
+        error: error.message,
+        status: false,
+      });
+    }
   }
 
-  async getWishlist(userId: number) {
-    const wishlistItems = await this.wishRepository.find({
-      where: { user_id: userId },
-      select: [
-        'id',
-        'name',
-        'category',
-        'specific_category',
-        'ent_id',
-        'username',
-        'url',
-        'ratings',
-      ],
-    });
+  // async getWishlist(venueId: number) {
+  //   const wishlistItems = await this.wishRepository
+  //     .createQueryBuilder('wish')
+  //     .leftJoin(
+  //       'categories',
+  //       'cat',
+  //       'cat.id = wish.category AND cat.parentId = 0',
+  //     )
+  //     .leftJoin(
+  //       'categories',
+  //       'subcat',
+  //       'subcat.id = wish.specific_category AND subcat.parentId = wish.category ',
+  //     )
+  //     .select([
+  //       'wish.id',
+  //       'wish.name AS name',
+  //       'wish.category AS category',
+  //       'wish.specific_category AS specific_category',
+  //       'wish.ent_id AS eid',
+  //       'wish.username AS user_name',
+  //       'wish.url AS mediaUrl',
+  //       'wish.ratings AS ratings',
+  //       'cat.name AS category_name',
+  //       'subcat.name AS specific_category_name',
+  //     ])
+  //     .where('wish.user_id = :venueId', { venueId })
+  //     .getRawMany();
+
+  //   console.log('Old', wishlistItems);
+
+  //   return {
+  //     message: 'Wishlist fetched Successfully',
+  //     data: wishlistItems,
+  //     status: true,
+  //   };
+  // }
+
+  // Latest Code
+  async getWishlist(venueId: number) {
+    const wishlistItems = await this.wishRepository
+      .createQueryBuilder('wish')
+      .leftJoin('entertainers', 'entertainer', 'entertainer.id = wish.ent_id')
+      .leftJoin('venue', 'venue', 'venue.id = wish.user_id')
+      .leftJoin(
+        'entertainer_media',
+        'media',
+        'media.user_id = entertainer.id AND media.type = :mediaType',
+        { mediaType: 'headshot' },
+      )
+      .leftJoin(
+        (qb) =>
+          qb
+            .select('feedback.revieweeId', 'revieweeId')
+            .addSelect('LEAST(FLOOR(AVG(feedback.rating)), 5)', 'avg_rating')
+            .from('feedback', 'feedback')
+            .where('feedback.revieweeType = :revieweeType', {
+              revieweeType: 'entertainer',
+            })
+            .groupBy('feedback.revieweeId'),
+        'fb',
+        'fb.revieweeId = wish.ent_id',
+      )
+      .select([
+        'wish.id',
+        'entertainer.name AS name',
+        'entertainer.id AS eid',
+        'entertainer.entertainer_name AS user_name',
+        'media.url AS mediaUrl',
+        `COALESCE(fb.avg_rating, 0) AS ratings`,
+      ])
+      .where('wish.user_id = :venueId', { venueId })
+      .getRawMany();
+
+    const BASE_URL = this.config.get<'string'>('BASE_URL');
+    const parsedWishlistItems = wishlistItems?.map(
+      ({ ratings, mediaUrl, ...item }) => ({
+        ...item,
+        mediaUrl: `${BASE_URL}${mediaUrl}`,
+        ratings: Number(ratings),
+      }),
+    );
     return {
       message: 'Wishlist fetched Successfully',
-      data: wishlistItems,
+      data: parsedWishlistItems,
       status: true,
     };
+  }
+
+  async removeFromWishlist(id: number, venueId: number) {
+    const wishlistItem = await this.wishRepository.findOne({
+      where: { ent_id: id, user_id: venueId },
+    });
+
+    if (!wishlistItem) {
+      throw new NotFoundException({
+        message: 'Wishlist item not found',
+        status: false,
+      });
+    }
+
+    await this.wishRepository.remove(wishlistItem);
+    return { message: 'Wishlist item removed successfully', status: true };
+  }
+
+  // Creation Logic Neighbourhood
+  async create(dto: CreateNeighbourhoodDto, venueId: number) {
+    const neighbourhood = this.neighbourRepository.create({ ...dto, venueId });
+    const saved = await this.neighbourRepository.save(neighbourhood);
+    return {
+      message: 'Neighbourhood added successfully',
+      data: saved,
+      status: true,
+    };
+  }
+
+  async update(id: number, dto: UpdateNeighbourhoodDto) {
+    await this.neighbourRepository.update(id, dto);
+    return { message: 'Neighbourhood updated successfully', status: true };
+  }
+
+  async getVenueNeighbourhoods(id: number) {
+    const res = await this.neighbourRepository.find({
+      where: { venueId: id },
+    });
+    return {
+      message: 'Neighbourhood fetched successfully',
+      data: res,
+      totalCount: res.length,
+      status: true,
+    };
+  }
+  async neighbourhoodById(id: number) {
+    const res = await this.neighbourRepository.findOne({
+      where: { id: id },
+    });
+    return {
+      message: 'Neighbourhood fetched successfully',
+      data: res,
+      status: true,
+    };
+  }
+
+  async removeNeighbourhood(id: number) {
+    const result = await this.neighbourRepository.delete(id);
+    if (result.affected === 0) {
+      throw new NotFoundException('Neighbourhood not found');
+    }
+    return { message: 'Neighbourhood deleted successfully', status: true };
+  }
+
+  async getEventDetailsByMonth(venueId: number, query: EventsByMonthDto) {
+    const {
+      date = '', // e.g., '2025-04'
+      page = 1,
+      pageSize = 10,
+      status = '',
+    } = query;
+
+    // If date is not provided, use current year and month
+    const current = new Date();
+    const year = date ? Number(date.split('-')[0]) : current.getFullYear();
+    const month = date ? Number(date.split('-')[1]) : current.getMonth() + 1;
+
+    const skip = (page - 1) * pageSize;
+
+    try {
+      const qb = this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .where('event.venueId = :venueId', { venueId })
+        .andWhere('YEAR(event.eventStartDateTime) = :year', { year })
+        .andWhere('MONTH(event.eventEndDateTime) = :month', { month })
+        .select([
+          'event.id AS event_id',
+          'event.title AS title',
+          'event.slug AS slug',
+          `CONCAT(venue.addressLine1, ' ', venue.addressLine2) AS location`,
+          'event.description AS description',
+          // Added two new fields
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.status AS status',
+        ])
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC');
+
+      if (status) {
+        qb.andWhere('event.status=:status', { status });
+      }
+
+      const totalCount = await qb.getCount();
+      const results = await qb.skip(skip).take(pageSize).getRawMany();
+
+      return {
+        message: 'Events returned successfully',
+        data: results,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / pageSize),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  // Working Both
+  async entertainerPerformanceHistoryOnVenue(
+    id: number,
+    venueId: number,
+    page: number = 1,
+    pageSize: number = 10,
+  ) {
+    try {
+      const skip = (Number(page) - 1) * Number(pageSize);
+      const take = Number(pageSize);
+
+      const currentDate = new Date().toISOString().split('T')[0];
+
+      const history = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .select([
+          'booking.id AS id ',
+          'event.eventStartDateTime AS eventStartDateTime',
+        ])
+        .where(
+          'booking.entId =:id AND booking.venueId =:venueId AND booking.status IN (:...status)',
+          {
+            id,
+            venueId,
+            status: ['completed'],
+          },
+        )
+        .andWhere('DATE(event.eventStartDateTime) <= :currentDate', {
+          currentDate,
+        })
+        .andWhere('event.status = "completed"')
+        .orderBy('DATE(event.eventStartDateTime)', 'DESC')
+        .offset(skip)
+        .limit(take)
+        .getRawMany();
+      return {
+        message: 'Entertainer Performance history fetched Successfully',
+        data: history,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  private async addMarkupToEntertainer(basePrice: number) {
+    const res = await this.settingRepo.findOne({ where: { isActive: true } });
+    if (!res) return basePrice;
+    const { markupType, markupValue } = res;
+
+    let finalPrice =
+      markupType === 'fixed'
+        ? basePrice + markupValue
+        : basePrice + (markupValue / 100) * basePrice;
+    return finalPrice;
   }
 }

@@ -3,13 +3,19 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/users.entity';
 import { InvoiceController } from './invoice.controller';
 import { InvoiceService } from './invoice.service';
-import { Booking } from '../booking/entities/booking.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { Venue } from '../venue/entities/venue.entity';
-import { Invoice } from '../admin/invoice/Entity/invoices.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
+import { Booking } from '../booking/entities/booking.entity';
+import { Invoice } from './entities/invoice.entity';
+import { InvoiceBooking } from './entities/invoice-booking.entity';
+import { EmailModule } from '../Email/email.module';
+import { EntertainerInvoice } from './entities/entertainer-invoice.entity';
+import { EntertainerRateCard } from '../entertainer/entities/entertainer-rate-card.entity';
+import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.entity';
+import { BookingCategorySubcategory } from '../booking/entities/booking-category.entity';
 
 @Module({
   imports: [
@@ -22,10 +28,16 @@ import { EndPoints } from '../auth/entities/endpoint.entity';
       Role,
       Access,
       EndPoints,
+      InvoiceBooking,
+      EntertainerInvoice,
+      EntertainerRateCard,
+      SubcategoryRate,
+      BookingCategorySubcategory,
     ]),
+    EmailModule,
   ],
   providers: [InvoiceService],
   controllers: [InvoiceController],
-  exports: [],
+  exports: [InvoiceService],
 })
 export class InvoiceModule {}

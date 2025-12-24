@@ -1,0 +1,23 @@
+import { IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
+
+export class UpdateInvoiceStatus {
+  @IsNumber()
+  @IsNotEmpty()
+  invAmountPaid: number;
+
+  @IsString()
+  @IsNotEmpty()
+  chequeNo: string;
+  @IsString()
+  @IsString()
+  @IsNotEmpty()
+  paymentDate: string;
+
+  @IsIn(['paid'])
+  @IsNotEmpty()
+  status: 'paid';
+
+  @IsIn(['venue', 'entertainer'])
+  @IsNotEmpty()
+  role: 'venue' | 'entertainer';
+}

@@ -1,12 +1,9 @@
-import { User } from '../../users/entities/users.entity';
-
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn,
   UpdateDateColumn,
-  ManyToOne,
 } from 'typeorm';
 
 @Entity('booking')
@@ -14,14 +11,11 @@ export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.venueBookings)
-  venueUser: User;
-
-  @ManyToOne(() => User, (user) => user.entertainerBookings)
-  entertainerUser: User;
-
   @Column({ nullable: false })
   venueId: number;
+
+  @Column({ nullable: false })
+  entId: number;
 
   @Column({ nullable: false })
   eventId: number;
@@ -29,49 +23,50 @@ export class Booking {
   @Column({
     type: 'enum',
     enum: [
-      'pending',
+      'invited',
       'confirmed',
-      'accepted',
-      'cancelled',
-      'rejected',
+      'applied',
+      'canceled',
+      'declined',
       'completed',
       'rescheduled',
+      'removed',
+      'closed',
+      'reinvited',
     ],
-    default: 'pending',
+    default: 'invited',
   })
   status:
-    | 'pending'
+    | 'invited'
     | 'confirmed'
-    | 'cancelled'
-    | 'rejected'
+    | 'canceled'
+    | 'declined'
     | 'completed'
-    | 'rescheduled';
+    | 'applied'
+    | 'rescheduled'
+    | 'closed'
+    | 'reinvited'
+    | 'removed';
 
-  @Column({ type: 'time' })
-  showTime: Date;
+  @Column({ name: 'category_id', nullable: true })
+  categoryId: number;
 
-  @Column({ type: 'date' })
-  showDate: Date;
+  @Column({ name: 'subcategory_id', nullable: true })
+  subcategoryId: number;
 
-  @Column({
-    type: 'enum',
-    enum: ['accepted', 'rejected', 'pending'],
-    default: 'pending',
-  })
-  isAccepted: 'accepted' | 'rejected' | 'pending';
+  // Also Add the new column
+  @Column({ type: 'timestamp' })
+  showStartDateTime: Date;
 
-  @Column()
+  @Column({ nullable: true })
   specialNotes: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  statusDate: Date;
+  @Column({ default: false })
+  emailSentOnClose: boolean;
 
-  @Column({ type: 'timestamp', nullable: true })
-  isAcceptedDate: Date;
-
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

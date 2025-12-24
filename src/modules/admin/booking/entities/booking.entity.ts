@@ -6,21 +6,17 @@ import {
   UpdateDateColumn,
   ManyToOne,
 } from 'typeorm';
-import { User } from '../../users/Entity/users.entity';
 
 @Entity('booking')
 export class Booking {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @ManyToOne(() => User, (user) => user.venueBookings)
-  venueUser: User;
-
-  @ManyToOne(() => User, (user) => user.entertainerBookings)
-  entertainerUser: User;
-
   @Column({ nullable: false })
   venueId: number;
+
+  @Column({ nullable: false })
+  entId: number;
 
   @Column({ nullable: false })
   eventId: number;
@@ -28,49 +24,53 @@ export class Booking {
   @Column({
     type: 'enum',
     enum: [
-      'pending',
+      'invited',
       'confirmed',
-      'accepted',
-      'cancelled',
-      'rejected',
+      'applied',
+      'canceled',
       'completed',
       'rescheduled',
+      'declined',
+      'removed',
+      'closed',
+      'reinvited',
     ],
-    default: 'pending',
+    default: 'invited',
   })
   status:
-    | 'pending'
+    | 'invited'
     | 'confirmed'
-    | 'cancelled'
-    | 'rejected'
+    | 'closed'
+    | 'canceled'
+    | 'applied'
     | 'completed'
-    | 'rescheduled';
+    | 'rescheduled'
+    | 'declined'
+    | 'reinvited'
+    | 'removed';
 
-  @Column({ type: 'time' })
-  showTime: Date;
+  //Added new Column
+  @Column({ type: 'timestamp' })
+  showStartDateTime: Date;
 
-  @Column({ type: 'date' })
-  showDate: Date;
-
-  @Column({
-    type: 'enum',
-    enum: ['accepted', 'rejected', 'pending'],
-    default: 'pending',
-  })
-  isAccepted: 'accepted' | 'rejected' | 'pending';
-
-  @Column()
+  @Column({ nullable: true })
   specialNotes: string;
 
-  @Column({ type: 'timestamp', nullable: true })
-  statusDate: Date;
+  @Column({ name: 'category_id', nullable: true })
+  categoryId: number;
 
-  @Column({ type: 'timestamp', nullable: true })
-  isAcceptedDate: Date;
+  @Column({ name: 'subcategory_id', nullable: true })
+  subcategoryId: number;
 
-  @CreateDateColumn()
+  @Column({ default: false })
+  emailSentOnClose: boolean;
+
+  @Column({ type: 'json', nullable: true })
+  entertainers: any;
+
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

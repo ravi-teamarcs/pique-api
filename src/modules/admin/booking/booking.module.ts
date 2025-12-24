@@ -6,10 +6,39 @@ import { Booking } from './entities/booking.entity';
 import { Role } from '../adminuser/entities/role.entity';
 import { Capability } from '../adminuser/entities/capability.entity';
 import { RoleCapability } from '../auth/entities/role-capabilities.entity';
+import { NotificationModule } from 'src/modules/notification/notification.module';
+import { EmailModule } from 'src/modules/Email/email.module';
+import { BookingRequest } from './entities/modify-booking.entity';
+import { Entertainer } from '../entertainer/entities/entertainer.entity';
+import { BookingLog } from '../../admin/booking/entities/booking-log.entity';
+import { Event } from '../events/entities/event.entity';
+import { Venue } from '../venue/entities/venue.entity';
+import { Invoice } from '../invoice/entities/invoices.entity';
+import { InvoiceEvent } from '../invoice/entities/invoices-event.entity';
+import { EntertainerAvailability } from '../entertainer/entities/entertainer-availability.entity';
+import { BookingCategorySubcategory } from 'src/modules/booking/entities/booking-category.entity';
+import { EventCategorySubcategory } from '../events/entities/event-category-subcategory.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Booking, RoleCapability, Role, Capability]),
+    TypeOrmModule.forFeature([
+      Booking,
+      RoleCapability,
+      Role,
+      Capability,
+      Entertainer,
+      BookingRequest,
+      BookingLog,
+      Event,
+      Venue,
+      Invoice,
+      InvoiceEvent,
+      EntertainerAvailability,
+      BookingCategorySubcategory,
+      EventCategorySubcategory
+    ]),
+    NotificationModule,
+    EmailModule,
   ],
   controllers: [BookingController],
   providers: [BookingService],

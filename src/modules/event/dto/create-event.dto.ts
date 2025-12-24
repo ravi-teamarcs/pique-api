@@ -5,9 +5,25 @@ import {
   IsNotEmpty,
   IsBoolean,
   IsEnum,
+  IsOptional,
+  IsInt,
+  IsArray,
+  ArrayNotEmpty,
 } from 'class-validator';
-import { Recurring, Status } from 'src/common/enums/event.enum';
+export class CategorySubcategoryDto {
+  @ApiProperty({ example: 1, description: 'Category ID' })
+  @IsInt()
+  categoryId: number;
 
+  @ApiProperty({
+    example: [2, 3],
+    description: 'Subcategory IDs under this category',
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsInt({ each: true })
+  subCategoryIds: number[];
+}
 export class CreateEventDto {
   @ApiProperty({ example: 1, description: 'Venue for  which event is created' })
   @IsNotEmpty()
@@ -18,7 +34,7 @@ export class CreateEventDto {
     example: 'singing concert',
     description: 'Title of the event',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   title: string;
 
@@ -26,48 +42,25 @@ export class CreateEventDto {
     example: '2025-02-13T14:30:00Z',
     description: 'Start dateTime of the event',
   })
-  @IsNotEmpty()
   @IsString()
-  startTime: string;
+  @IsNotEmpty()
+  eventStartDateTime: string;
 
-  @ApiProperty({
-    example: '2025-02-13T14:30:00Z',
-    description: 'End dateTime of the event',
-  })
-  @IsNotEmpty()
   @IsString()
-  endTime: string;
-
-  @ApiProperty({ example: 'Noida', description: 'Type of event' })
   @IsNotEmpty()
-  @IsString()
-  location: string;
+  eventEndDateTime: string;
 
   @ApiProperty({ description: 'Description of event' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   description: string;
 
-  // @ApiProperty({ example: 'singing', description: 'Type of the event' })
-  // @IsNotEmpty()
-  // @IsString()
-  // type: string;
+  @ApiProperty({ description: 'Description of event' })
+  @IsOptional()
+  @IsNumber()
+  neighbourhoodId: number;
 
-  @ApiProperty({ example: false, description: 'Is Event creator Admin ?' })
-  @IsBoolean()
-  @IsNotEmpty()
-  isAdmin: boolean;
-
-  @ApiProperty({ example: 'none', description: 'Describe event recurrence' })
-  @IsEnum(Recurring)
-  @IsNotEmpty()
-  recurring: Recurring;
-
-  @ApiProperty({
-    example: 'scheduled',
-    description: 'Status of the Event',
-  })
-  @IsEnum(Status)
-  @IsNotEmpty()
-  status: Status;
+  @IsArray()
+  @ArrayNotEmpty()
+  categories: CategorySubcategoryDto[];
 }

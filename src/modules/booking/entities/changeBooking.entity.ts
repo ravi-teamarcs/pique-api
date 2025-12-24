@@ -25,16 +25,18 @@ export class BookingRequest {
   @Column({ type: 'date' })
   reqShowDate: string;
 
+  @Column()
+  reqEventId: number;
   @Column({
     type: 'enum',
-    enum: ['pending', 'approved', 'rejected'],
-    default: 'pending',
+    enum: ['invited', 'approved', 'rejected'],
+    default: 'invited',
   })
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'invited' | 'approved' | 'rejected';
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

@@ -3,7 +3,9 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -25,12 +27,19 @@ export class InvoiceController {
     description: 'Invoice  created  Successfully.',
   })
   // Route to Generate the Invoice for specific  Booking
-  @Roles('findAll')
   @Post()
-  createInvoice(@Request() req) {
-    const { userId } = req.user;
-    console.log("Inside controller of Invoice")
-    return this.invoiceService.generateInvoice(userId);
+  @Roles('findAll')
+  createInvoice(@Request() req, @Body() invoicePayload: InvoiceDto) {
+    const { refId } = req.user;
+    const { eventIds, monthStr } = invoicePayload;
+    return this.invoiceService.generateInvoice(refId, eventIds, monthStr);
+  }
+
+  @Post('/pdf')
+  @Roles('findAll')
+  generateInvoicePdf(@Request() req, @Body('invoiceId') invoiceId: number) {
+    const { refId } = req.user;
+    // return this.invoiceService.generateInvoicePdf(invoiceId);
   }
 
   @ApiOperation({ summary: 'Get All Invoices' })
@@ -38,11 +47,19 @@ export class InvoiceController {
     status: 200,
     description: 'All Invoices fetched successfully.',
   })
-  @Roles('findAll')
   @Get()
-  getAllInvoices(@Request() req) {
-    const { userId } = req.user;
-    console.log(userId ,"indide get");
-    return this.invoiceService.findAllInvoice(userId);
+  @Roles('findAll')
+  getAllInvoices(
+    @Request() req,
+    @Query('page') page: number,
+    @Query('pageSize') pageSize: number,
+  ) {
+    const { refId, role } = req.user;
+    return this.invoiceService.findAllInvoice(refId, role, page, pageSize);
+  }
+  @Get(':id')
+  @Roles('findAll')
+  async getInvoiceById(@Param('id', ParseIntPipe) id: number) {
+    return this.invoiceService.getInvoiceById(id);
   }
 }

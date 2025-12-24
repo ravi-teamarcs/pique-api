@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../users/entities/users.entity';
 import { BookingService } from './booking.service';
@@ -12,6 +12,19 @@ import { BookingRequest } from './entities/changeBooking.entity';
 import { BookingLog } from './entities/booking-log.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { EmailModule } from '../Email/email.module';
+import { NotificationModule } from '../notification/notification.module';
+import { GoogleCalendarModule } from '../google-calendar/google-calendar.module';
+import { Event } from '../admin/events/entities/event.entity';
+import { EntertainerAvailability } from '../entertainer/entities/availability.entity';
+import { VenueEvent } from '../event/entities/event.entity';
+import { CancellationReason } from './entities/cancelation-reason.entity';
+import { BookingCancellationService } from './booking-cancellation.service';
+import { BookingCancellationController } from './booking-cancellation.controller';
+import { BookingCancellation } from './entities/booking-cancellation.entity';
+import { Invoice } from '../invoice/entities/invoice.entity';
+import { InvoiceEvent } from '../admin/invoice/entities/invoices-event.entity';
+import { BookingCategorySubcategory } from './entities/booking-category.entity';
+import { EventCategorySubcategory } from '../event/entities/event-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -26,11 +39,23 @@ import { EmailModule } from '../Email/email.module';
       BookingLog,
       User,
       Entertainer,
+      EntertainerAvailability,
+      Event,
+      VenueEvent,
+      CancellationReason,
+      BookingCancellation,
+      Invoice,
+      InvoiceEvent,
+      BookingCategorySubcategory,
+      EventCategorySubcategory
+
     ]),
     EmailModule,
+    NotificationModule,
+    GoogleCalendarModule,
   ],
-  controllers: [BookingController],
-  providers: [BookingService],
+  controllers: [BookingController, BookingCancellationController],
+  providers: [BookingService, BookingCancellationService],
   exports: [BookingService],
 })
 export class BookingModule {}

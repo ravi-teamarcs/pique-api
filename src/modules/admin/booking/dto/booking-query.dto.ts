@@ -13,7 +13,7 @@ export class BookingQueryDto {
   @IsOptional()
   @IsEnum([
     'pending',
-    'cancelled',
+    'canceled',
     'rejected',
     'accepted',
     'rescheduled',
@@ -22,7 +22,7 @@ export class BookingQueryDto {
   ])
   status:
     | 'pending'
-    | 'cancelled'
+    | 'canceled'
     | 'rejected'
     | 'accepted'
     | 'rescheduled'

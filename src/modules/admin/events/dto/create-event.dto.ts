@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsString,
   IsNumber,
@@ -6,23 +7,37 @@ import {
   IsBoolean,
   IsEnum,
   IsDate,
+  IsOptional,
+  IsInt,
+  IsArray,
+  ArrayNotEmpty,
 } from 'class-validator';
+export class CategorySubcategoryDto {
+  @ApiProperty({ example: 1, description: 'Category ID' })
+  @IsInt()
+  categoryId: number;
 
+  @ApiProperty({
+    example: [2, 3],
+    description: 'Subcategory IDs under this category',
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsInt({ each: true })
+  subCategoryIds: number[];
+}
 export class CreateEventDto {
   @ApiProperty({ example: 1, description: 'Venue for  which event is created' })
   @IsNotEmpty()
   @IsNumber()
+  @Transform(({ value }) => Number(value))
   venueId: number;
-
-  @IsNotEmpty()
-  @IsNumber()
-  userId: number;
 
   @ApiProperty({
     example: 'singing concert',
     description: 'Title of the event',
   })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   title: string;
 
@@ -30,44 +45,24 @@ export class CreateEventDto {
     example: '2025-02-13T14:30:00Z',
     description: 'Start dateTime of the event',
   })
-  @IsNotEmpty()
   @IsString()
-  startTime: string;
+  @IsNotEmpty()
+  eventStartDateTime: string;
 
-  @ApiProperty({
-    example: '2025-02-13T14:30:00Z',
-    description: 'End dateTime of the event',
-  })
-  @IsNotEmpty()
   @IsString()
-  endTime: string;
-
-  @ApiProperty({ example: 'Noida', description: 'Type of event' })
   @IsNotEmpty()
-  @IsString()
-  location: string;
+  eventEndDateTime: string;
 
   @ApiProperty({ description: 'Description of event' })
-  @IsNotEmpty()
+  @IsOptional()
   @IsString()
   description: string;
 
-  @IsEnum(['none', 'daily', 'weekly', 'monthly'])
-  @IsNotEmpty()
-  recurring: 'none' | 'daily' | 'weekly' | 'monthly' = 'none';
+  @IsOptional()
+  @Transform(({ value }) => Number(value))
+  neighbourhoodId: number;
 
-  @IsEnum(['unpublished', 'scheduled', 'confirmed', 'cancelled', 'completed'])
-  @IsNotEmpty()
-  status:
-    | 'unpublished'
-    | 'scheduled'
-    | 'confirmed'
-    | 'cancelled'
-    | 'completed'
-    | 'scheduled';
-
-  @ApiProperty({ example: false, description: 'Is Event creator Admin ?' })
-  @IsBoolean()
-  @IsNotEmpty()
-  isAdmin: boolean;
+  @IsArray()
+  @ArrayNotEmpty()
+  categories: CategorySubcategoryDto[];
 }
