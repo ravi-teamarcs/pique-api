@@ -56,7 +56,8 @@ import { EntertainerCategorySubcategory } from '../entertainer/entities/entertai
 import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.entity';
 import { SpecialSubcategoryPrice } from '../admin/settings/entities/special-subcategory-prices.entity';
 import { getTimezoneByLatLng } from 'src/common/utils/slots-utils';
-import { zonedTimeToUtc } from 'date-fns-tz';
+import { utcToZonedTime, zonedTimeToUtc } from 'date-fns-tz';
+import { format } from 'date-fns';
 
 @Injectable()
 export class VenueService {
@@ -99,7 +100,7 @@ export class VenueService {
     private readonly dataSource: DataSource,
     private readonly geoService: GeocodingService,
     private readonly notificationService: NotificationService,
-  ) {}
+  ) { }
 
   // New Flow   Venue Creation   Step:1
   async createVenue(userId: number, dto) {
@@ -481,6 +482,8 @@ export class VenueService {
   async findAllEntertainers(query: SearchEntertainerDto, userId: number) {
     const {
       category = [],
+      subcategory = [],
+      specific_category = [],
       page = 1,
       pageSize = 10,
       location = null,
@@ -491,7 +494,15 @@ export class VenueService {
       radius = 100,
       startDateTime,
       endDateTime,
+      dashboard = false
     } = query;
+
+    const effectiveSubcategory =
+      Array.isArray(subcategory) && subcategory.length > 0
+        ? subcategory
+        : Array.isArray(specific_category)
+          ? specific_category
+          : [];
 
     const skip = (Number(page) - 1) * Number(pageSize);
     const take = Number(pageSize);
@@ -533,12 +544,12 @@ export class VenueService {
           'fb',
           'fb.revieweeId = entertainer.id',
         )
-
         .where("entertainer.status = 'active'")
         .setParameter('userId', userId)
         .setParameter('mediaType', 'headshot')
         .setParameter('serverUri', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL);
+
 
       // Track if we have category filtering
       let hasCategoryFilter = false;
@@ -554,14 +565,24 @@ export class VenueService {
               .where('ent_cat.category_id IN (:...category)', { category })
               .getQuery();
             return 'entertainer.id IN ' + subQuery;
-          })
-          .leftJoin(
-            'entertainer_category_subcategories',
-            'ent_cat',
-            'entertainer.id = ent_cat.entertainer_id',
-          )
-          .leftJoin('categories', 'cat', 'cat.id = ent_cat.category_id')
-          .groupBy('entertainer.id');
+          });
+      }
+
+      if (effectiveSubcategory && effectiveSubcategory.length > 0) {
+        baseQuery.andWhere((qb) => {
+          const subQuery = qb
+            .subQuery()
+            .select('ent_sub.entertainer_id')
+            .from('entertainer_category_subcategories', 'ent_sub')
+            .where(
+              `(${effectiveSubcategory
+                .map((id) => `FIND_IN_SET('${id}', ent_sub.subcategory_ids) > 0`)
+                .join(' OR ')})`
+            )
+            .getQuery();
+
+          return 'entertainer.id IN ' + subQuery;
+        });
       }
 
       if (vaccinated) {
@@ -610,40 +631,187 @@ export class VenueService {
         }
       }
 
+
+
+      //   if (startDateTime && endDateTime) {
+      //     const timezone = venue?.timezone ?? 'UTC';
+
+      //     const startUtc = zonedTimeToUtc(startDateTime, timezone);
+      //     const endUtc = zonedTimeToUtc(endDateTime, timezone);
+
+      //     const startLocal = utcToZonedTime(startUtc, timezone);
+      //     const endLocal = utcToZonedTime(endUtc, timezone);
+
+      //     const startLocalDateString = format(startLocal, 'yyyy-MM-dd');
+      //     const endLocalDateString = format(endLocal, 'yyyy-MM-dd');
+
+      //     baseQuery.andWhere(
+      //       `NOT EXISTS (
+      //       SELECT 1 
+      //       FROM booking b 
+      //       JOIN event e ON e.id = b.eventId
+      //       WHERE b.entId = entertainer.id 
+      //       AND b.status = 'confirmed'
+      //       AND e.eventStartDateTime < :endUtc 
+      //       AND e.eventEndDateTime > :startUtc
+      //     )`,
+      //       { startUtc, endUtc }
+      //     );
+
+      //     function resolveSlotLocal(dateUtc: Date, tz: string) {
+      //       const local = utcToZonedTime(dateUtc, tz);
+      //       const hour = local.getHours();
+
+      //       if (hour >= 6 && hour < 12) return 'morning';
+      //       if (hour >= 12 && hour < 18) return 'afternoon';
+      //       return 'evening';
+      //     }
+
+      //     const startSlot = resolveSlotLocal(startUtc, timezone);
+      //     const endSlot = resolveSlotLocal(endUtc, timezone);
+      //     const SLOT_ORDER = ['morning', 'afternoon', 'evening'] as const;
+
+      //     const startIndex = SLOT_ORDER.indexOf(startSlot);
+      //     const endIndex = SLOT_ORDER.indexOf(endSlot);
+
+      //     const requestedSlots =
+      //       startIndex <= endIndex
+      //         ? SLOT_ORDER.slice(startIndex, endIndex + 1)
+      //         : SLOT_ORDER;
+
+      //     const slotOverlapConditions = requestedSlots
+      //       .map((slot) => `JSON_CONTAINS(ud.slots, '"${slot}"')`)
+      //       .join(' OR ');
+
+      //     baseQuery.andWhere(
+      //       `NOT EXISTS (
+      //   SELECT 1
+      //   FROM booking b
+      //   JOIN event e ON e.id = b.eventId
+      //   WHERE b.entId = entertainer.id
+      //     AND e.eventStartDateTime < :endUtc
+      //     AND e.eventEndDateTime > :startUtc
+      // )`,
+      //       {
+      //         startUtc,
+      //         endUtc,
+      //       }
+      //     );
+
+      //     baseQuery.andWhere(
+      //       `NOT EXISTS (
+      //   SELECT 1
+      //   FROM entertainer_availability ea,
+      //        JSON_TABLE(
+      //          ea.unavailable_dates,
+      //          '$[*]' COLUMNS (
+      //            unavailable_date DATE PATH '$.date',
+      //            slots JSON PATH '$.slots'
+      //          )
+      //        ) ud
+      //   WHERE ea.entertainer_id = entertainer.id
+      //     -- Fix 1: Use String Comparison for Dates
+      //     AND ud.unavailable_date BETWEEN :startLocalDate AND :endLocalDate
+      //     AND (
+      //       -- Check if "whole_day" is blocked
+      //       JSON_CONTAINS(ud.slots, '"whole_day"')
+
+      //       -- Fix 2: Use OR condition instead of JSON_OVERLAPS
+      //       OR (${slotOverlapConditions})
+      //     )
+      // )`,
+      //       {
+      //         startLocalDate: startLocalDateString, // '2026-01-30'
+      //         endLocalDate: endLocalDateString,
+      //       }
+      //     );
+      //   }
       if (startDateTime && endDateTime) {
-        const startUtc = zonedTimeToUtc(
-          startDateTime,
-          venue?.timezone ?? 'UTC',
-        );
-        const endUtc = zonedTimeToUtc(endDateTime, venue?.timezone ?? 'UTC');
+        const timezone = venue?.timezone ?? 'UTC';
 
-        console.log('StartUtc', startUtc, 'endTime', endUtc);
+        const startUtc = zonedTimeToUtc(startDateTime, timezone);
+        const endUtc = zonedTimeToUtc(endDateTime, timezone);
 
+        const startLocal = utcToZonedTime(startUtc, timezone);
+        const endLocal = utcToZonedTime(endUtc, timezone);
+
+        const startLocalDateString = format(startLocal, 'yyyy-MM-dd');
+        const endLocalDateString = format(endLocal, 'yyyy-MM-dd');
+
+        // 1. Check against Bookings Table using showStartDateTime
         baseQuery.andWhere(
           `NOT EXISTS (
-      SELECT 1
-      FROM booking b
-      JOIN event e ON e.id = b.eventId
-      WHERE b.entId = entertainer.id
-        AND e.eventStartDateTime < :endDateTime
-        AND e.eventEndDateTime > :startDateTime
+      SELECT 1 
+      FROM booking b 
+      WHERE b.entId = entertainer.id 
+      AND b.status = 'confirmed'
+     AND b.showStartDateTime >= :startUtc
+      AND b.showStartDateTime <= :endUtc
     )`,
           {
-            startDateTime: startUtc, // Pass as Date object
-            endDateTime: endUtc,
-          },
+            startUtc: format(startUtc, 'yyyy-MM-dd HH:mm:ss'),
+            endUtc: format(endUtc, 'yyyy-MM-dd HH:mm:ss')
+}
+        );
+
+        function resolveSlotLocal(dateUtc: Date, tz: string) {
+          const local = utcToZonedTime(dateUtc, tz);
+          const hour = local.getHours();
+
+          if (hour >= 6 && hour < 12) return 'morning';
+          if (hour >= 12 && hour < 18) return 'afternoon';
+          return 'evening';
+        }
+
+        const startSlot = resolveSlotLocal(startUtc, timezone);
+        const endSlot = resolveSlotLocal(endUtc, timezone);
+        const SLOT_ORDER = ['morning', 'afternoon', 'evening'] as const;
+
+        const startIndex = SLOT_ORDER.indexOf(startSlot);
+        const endIndex = SLOT_ORDER.indexOf(endSlot);
+
+        const requestedSlots =
+          startIndex <= endIndex
+            ? SLOT_ORDER.slice(startIndex, endIndex + 1)
+            : SLOT_ORDER;
+
+        const slotOverlapConditions = requestedSlots
+          .map((slot) => `JSON_CONTAINS(ud.slots, '"${slot}"')`)
+          .join(' OR ');
+
+        // 2. Check against Manual Availability (Blackout dates)
+        baseQuery.andWhere(
+          ` NOT EXISTS (
+            SELECT 1
+            FROM entertainer_availability ea,
+            JSON_TABLE(
+             ea.unavailable_dates,
+             '$[*]' COLUMNS (
+               unavailable_date DATE PATH '$.date',
+               slots JSON PATH '$.slots'
+               )
+            ) ud
+            WHERE ea.entertainer_id = entertainer.id
+            AND ud.unavailable_date BETWEEN :startLocalDate AND :endLocalDate
+            AND (
+            JSON_CONTAINS(ud.slots, '"whole_day"')
+            OR (${slotOverlapConditions || '1=0'})
+            )
+            )`,
+          {
+            startLocalDate: startLocalDateString,
+            endLocalDate: endLocalDateString,
+          }
         );
       }
-
       const totalCount = await baseQuery
         .clone()
         .select('COUNT(DISTINCT entertainer.id)', 'count')
         .getRawOne()
         .then((result) => Number(result?.count || 0));
 
-      // Build the select array dynamically
       const selectFields = [
-        'entertainer.id AS eid',
+        'DISTINCT entertainer.id AS eid',
         'entertainer.name AS name',
         'entertainer.entertainer_name AS entertainer_name',
         'entertainer.isPiqueVerified AS isPiqueVerified',
@@ -678,13 +846,6 @@ export class VenueService {
           : 'NULL AS distanceInMiles',
       ];
 
-      // Add categories to select if category filtering is active
-      if (hasCategoryFilter) {
-        selectFields.push(
-          'JSON_ARRAYAGG(JSON_OBJECT("id", cat.id, "name", cat.name)) as categories',
-        );
-      }
-
       const results = await baseQuery
         .select(selectFields)
         .orderBy(
@@ -709,6 +870,36 @@ export class VenueService {
         .limit(take)
         .getRawMany();
 
+      // Extract entertainer IDs for fetching categories and subcategories
+      const entertainerIds = results.map((r) => Number(r.eid));
+      let categoryMap = new Map();
+
+      // Fetch categories and subcategories only if we have entertainment results
+      if (entertainerIds.length > 0) {
+        const placeholders = entertainerIds.map(() => '?').join(',');
+        const categoryData = await this.dataSource.query(
+          `SELECT 
+            ent_cat.entertainer_id,
+            JSON_ARRAYAGG(JSON_OBJECT("id", cat.id, "name", cat.name)) as categories,
+            JSON_ARRAYAGG(JSON_OBJECT("id", subcat.id, "name", subcat.name)) as subcategories
+          FROM entertainer_category_subcategories ent_cat
+          LEFT JOIN categories cat ON cat.id = ent_cat.category_id
+          LEFT JOIN categories subcat ON subcat.parentId = ent_cat.category_id 
+            AND FIND_IN_SET(subcat.id, ent_cat.subcategory_ids)
+          WHERE ent_cat.entertainer_id IN (${placeholders})
+          GROUP BY ent_cat.entertainer_id`,
+          entertainerIds
+        );
+
+        // Create a map for quick lookup
+        categoryData.forEach((row) => {
+          categoryMap.set(row.entertainer_id, {
+            categories: row.categories ? JSON.parse(row.categories).filter(cat => cat.id !== null) : [],
+            subcategories: row.subcategories ? JSON.parse(row.subcategories).filter(subcat => subcat.id !== null) : [],
+          });
+        });
+      }
+
       const entertainers = results.map(
         (
           {
@@ -717,22 +908,24 @@ export class VenueService {
             vaccinated,
             isPiqueVerified,
             distanceInMiles,
-            categories,
-            ratings,
             ...item
           },
           index,
-        ) => ({
-          eid: Number(eid),
-          ...item,
-          isPiqueVerified: isPiqueVerified === 1,
-          isWishlisted: Boolean(isWishlisted),
-          vaccination_status:
-            vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
-          ratings: Number(ratings),
-          distanceInMiles: distanceInMiles ? Number(distanceInMiles) : null,
-          categories: categories ? JSON.parse(categories) : [],
-        }),
+        ) => {
+          const categoryInfo = categoryMap.get(Number(eid)) || { categories: [], subcategories: [] };
+          return {
+            eid: Number(eid),
+            ...item,
+            isPiqueVerified: isPiqueVerified === 1,
+            isWishlisted: Boolean(isWishlisted),
+            vaccination_status:
+              vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+            ratings: Number(item.ratings),
+            distanceInMiles: distanceInMiles ? Number(distanceInMiles) : null,
+            categories: categoryInfo.categories,
+            subcategories: categoryInfo.subcategories,
+          };
+        }
       );
 
       return {
@@ -749,6 +942,7 @@ export class VenueService {
       throw new InternalServerErrorException(error.message);
     }
   }
+
   async findAllEntertainersForDashboard(query: SearchEntertainerDto) {
     const {
       category = [],
@@ -776,6 +970,17 @@ export class VenueService {
         .leftJoin('states', 'state', 'state.id = entertainer.state')
         .leftJoin('countries', 'country', 'country.id = entertainer.country')
         .leftJoin(
+          'entertainer_category_subcategories',
+          'ent_cat',
+          'entertainer.id = ent_cat.entertainer_id',
+        )
+        .leftJoin('categories', 'cat', 'cat.id = ent_cat.category_id')
+        .leftJoin(
+          'categories',
+          'subcat',
+          'subcat.parentId = ent_cat.category_id AND FIND_IN_SET(subcat.id, ent_cat.subcategory_ids)',
+        )
+        .leftJoin(
           'entertainer_media',
           'media',
           'media.user_id = entertainer.id AND media.type = :mediaType',
@@ -793,15 +998,21 @@ export class VenueService {
           'fb',
           'fb.revieweeId = entertainer.id',
         )
+        .andWhere((qb) => {
+          const subQuery = qb
+            .subQuery()
+            .select('1')
+            .from('booking', 'b')
+            .where('b.entId = entertainer.id')
+            .getQuery();
+          return 'NOT EXISTS ' + subQuery;
+        })
         .where("entertainer.status = 'active'")
         .setParameter('mediaType', 'headshot')
         .setParameter('serverUri', this.config.get<string>('BASE_URL'))
         .setParameter('defaultMediaUrl', DEFAULT_MEDIA_URL);
-      // Track if we have category filtering
-      let hasCategoryFilter = false;
 
       if (category && category.length > 0) {
-        hasCategoryFilter = true;
         baseQuery
           .andWhere((qb) => {
             const subQuery = qb
@@ -811,14 +1022,7 @@ export class VenueService {
               .where('ent_cat.category_id IN (:...category)', { category })
               .getQuery();
             return 'entertainer.id IN ' + subQuery;
-          })
-          .leftJoin(
-            'entertainer_category_subcategories',
-            'ent_cat',
-            'entertainer.id = ent_cat.entertainer_id',
-          )
-          .leftJoin('categories', 'cat', 'cat.id = ent_cat.category_id')
-          .groupBy('entertainer.id');
+          });
       }
 
       if (vaccinated) {
@@ -929,17 +1133,13 @@ export class VenueService {
           ELSE NULL
         END AS distanceInMiles`
           : 'NULL AS distanceInMiles',
+        `COALESCE(CONCAT('[', GROUP_CONCAT(DISTINCT JSON_OBJECT("id", cat.id, "name", cat.name) SEPARATOR ','), ']'), '[]') AS categories`,
+        `COALESCE(CONCAT('[', GROUP_CONCAT(DISTINCT JSON_OBJECT("id", subcat.id, "name", subcat.name, "categoryId", cat.id) SEPARATOR ','), ']'), '[]') AS subcategories`,
       ];
-
-      // Add categories to select if category filtering is active
-      if (hasCategoryFilter) {
-        selectFields.push(
-          'JSON_ARRAYAGG(JSON_OBJECT("id", cat.id, "name", cat.name)) as categories',
-        );
-      }
 
       const results = await baseQuery
         .select(selectFields)
+        .groupBy('entertainer.id')
         .orderBy(
           // Order by distance if nearby search, otherwise by name
           isNearby && latitude && longitude
@@ -963,30 +1163,42 @@ export class VenueService {
         .getRawMany();
 
       const entertainers = results.map(
-        (
-          {
-            eid,
-            isWishlisted,
-            vaccinated,
-            isPiqueVerified,
-            distanceInMiles,
-            categories,
-            ratings,
-            ...item
-          },
-          index,
-        ) => ({
-          eid: Number(eid),
-          ...item,
-          isPiqueVerified: isPiqueVerified === 1,
+        ({
+          eid,
+          vaccinated,
+          isPiqueVerified,
+          distanceInMiles,
+          categories,
+          subcategories,
+          ratings,
+          ...item
+        }) => {
+          const parsedCategories = categories ? JSON.parse(categories) : [];
+          const parsedSubcategories = subcategories
+            ? JSON.parse(subcategories)
+            : [];
 
-          vaccination_status:
-            vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
-          ratings: Number(ratings),
-          distanceInMiles: distanceInMiles ? Number(distanceInMiles) : null,
-          // Parse categories JSON if present
-          categories: categories ? JSON.parse(categories) : [],
-        }),
+          return {
+            eid: Number(eid),
+            ...item,
+            isPiqueVerified: isPiqueVerified === 1,
+            vaccination_status:
+              vaccinated === 'yes' ? 'Vaccinated' : 'Not Vaccinated',
+            ratings: Number(ratings),
+            distanceInMiles: distanceInMiles ? Number(distanceInMiles) : null,
+            // Keep backward compatible fields and include subcategory data.
+            categories: Array.isArray(parsedCategories) ? parsedCategories : [],
+            subcategories: Array.isArray(parsedSubcategories)
+              ? parsedSubcategories
+              : [],
+            category: Array.isArray(parsedCategories)
+              ? parsedCategories.map((cat) => cat?.id).filter(Boolean)
+              : [],
+            specific_category: Array.isArray(parsedSubcategories)
+              ? parsedSubcategories.map((sub) => sub?.id).filter(Boolean)
+              : [],
+          };
+        },
       );
       return {
         message: 'Entertainers details for dashboard fetched successfully',

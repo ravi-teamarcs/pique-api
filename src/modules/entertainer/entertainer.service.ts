@@ -73,6 +73,7 @@ import { EntertainerRateCard } from './entities/entertainer-rate-card.entity';
 import { EntertainerRateCardDto } from './dto/rate-card.dto';
 import { EntertainerInvoice } from '../invoice/entities/entertainer-invoice.entity';
 import { EventCategorySubcategory } from '../event/entities/event-category-subcategory.entity';
+import ca from 'date-fns/esm/locale/ca/index.js';
 
 @Injectable()
 export class EntertainerService {
@@ -887,19 +888,34 @@ export class EntertainerService {
         ])
         .getRawMany();
 
+      // const subcategoryIds = rawCategories.flatMap((row) =>
+      //   typeof row.subcategoryIds === 'string'
+      //     ? row.subcategoryIds.split(',').map(Number)
+      //     : [],
+      // );
       const subcategoryIds = rawCategories.flatMap((row) =>
-        typeof row.subcategoryIds === 'string'
-          ? row.subcategoryIds.split(',').map(Number)
+        typeof row.subcategoryIds === 'string' && row.subcategoryIds.trim().length > 0
+          ? row.subcategoryIds
+            .split(',')
+            .map((s) => Number(s.trim())) // Convert to number
+            .filter((n) => !isNaN(n) && n > 0) // Remove NaNs and 0s
           : [],
       );
 
       const uniqueSubcategoryIds = [...new Set(subcategoryIds)];
 
       //   Now get all the subcategory
-      const subcategories = await this.categoryRepository.find({
-        where: { id: In(uniqueSubcategoryIds) },
-        select: ['id', 'name', 'catslug', 'parentId'],
-      });
+      // const subcategories = await this.categoryRepository.find({
+      //   where: { id: In(uniqueSubcategoryIds) },
+      //   select: ['id', 'name', 'catslug', 'parentId'],
+      // });
+      let subcategories = [];
+      if (uniqueSubcategoryIds.length > 0) {
+        subcategories = await this.categoryRepository.find({
+          where: { id: In(uniqueSubcategoryIds) },
+          select: ['id', 'name', 'catslug', 'parentId'],
+        });
+      }
 
       const formatted = rawCategories.map((row) => {
         const subcatIds =
@@ -1350,26 +1366,56 @@ export class EntertainerService {
 
       if (!entertainer) throw new NotFoundException('Entertainer not found');
 
-      // Updation logic
+      if (!category || !category.length) {
+        throw new BadRequestException(
+          'At least one subcategory must be selected',
+        );
+      } 
+      if (!specific_category || !specific_category.length) {
+        throw new BadRequestException(
+          'At least one subcategory must be selected',
+        );
+      }
 
-      await this.entCatRepository.delete({ entertainerId: entertainer.id });
+      
+      // 1. Delete old records
+      await this.entCatRepository.delete({
+        entertainerId: entertainer.id,
+      });
 
-      // Create new empty records (subcategoryIds will be added in step 7)
+      // 2. Fetch & validate subcategories
+      const validSubCategories = await this.categoryRepository.find({
+        where: {
+          id: In(specific_category),
+          parentId: In(category),
+        },
+        select: ['id', 'parentId'],
+      });
+
+      // 3. Optional strict validation
+      if (specific_category.length && !validSubCategories.length) {
+        throw new BadRequestException(
+          'Selected subcategory does not belong to selected categories',
+        );
+      }
+
+      // 4. Create records per category
       const records = category.map((catId: number) => {
+        const subIdsForCategory = validSubCategories
+          .filter(sub => sub.parentId === catId)
+          .map(sub => sub.id);
+
         return this.entCatRepository.create({
           entertainerId: entertainer.id,
           category: { id: catId },
-          subcategoryIds: [],
+          subcategoryIds: subIdsForCategory, // [] if none
         });
       });
+
+      // 5. Save
       await this.entCatRepository.save(records);
 
-      for (const item of specific_category) {
-        await this.entCatRepository.update(
-          { entertainerId: entertainer.id, category: { id: item.categoryId } },
-          { subcategoryIds: item.subcategoryIds },
-        );
-      }
+
 
       await this.entertainerRepository.update(
         { id: Number(entertainer.id) },

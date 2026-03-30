@@ -155,6 +155,7 @@ export class EntertainerService {
 
     // Process the records
 
+  try{
     const parsedRecords = await Promise.all(
       records.map(
         async ({
@@ -165,12 +166,19 @@ export class EntertainerService {
           isPiqueVerified,
           ...rest
         }) => {
-          const categories = await this.getFormattedCategories(Number(id));
+          // 1. Convert and Validate ID
+          const entId = Number(id);
+
+          // 2. Only call the database if we have a valid number
+          // If entId is NaN (Not a Number), return an empty array instead of crashing
+          const categories = !isNaN(entId)
+            ? await this.getFormattedCategories(entId)
+            : [];
 
           return {
-            id: Number(id),
+            id: entId, // Use the converted number
             services: services ? services.split(',') : [],
-            isPiqueVerified: isPiqueVerified === 1 ? true : false, // Convert to boolean
+            isPiqueVerified: isPiqueVerified === 1,
             socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
             priceWithMarkup: await this.addMarkupToEntertainer(pricePerEvent),
             pricePerEvent,
@@ -180,7 +188,6 @@ export class EntertainerService {
         },
       ),
     );
-
     return {
       message: 'Entertainers fetched successfully.',
       records: parsedRecords,
@@ -189,6 +196,12 @@ export class EntertainerService {
       currentPage: page,
       totalPages: Math.ceil(total / pageSize), // Added for better pagination info
     };
+  }
+  catch(e){
+    throw new BadRequestException(e.message);
+  }
+
+    
   }
 
   async getEntertainerByentertainerId(entertainerId: number) {
@@ -560,27 +573,56 @@ export class EntertainerService {
         { id: entertainer.id },
         payload,
       );
-      // New Logic to update
-      await this.entCatRepository.delete({ entertainerId: entertainer.id });
+
+      if (!category || !category.length) {
+        throw new BadRequestException(
+          'At least one subcategory must be selected',
+        );
+      }
+      if (!specific_category || !specific_category.length) {
+        throw new BadRequestException(
+          'At least one subcategory must be selected',
+        );
+      }
+
+      // 1. Delete old records
+      await this.entCatRepository.delete({
+        entertainerId: entertainer.id,
+      });
+
+      // 2. Fetch & validate subcategories
+      const validSubCategories = await this.CategoryRepository.find({
+        where: {
+          id: In(specific_category),
+          parentId: In(category),
+        },
+        select: ['id', 'parentId'],
+      });
+
+      // 3. Optional strict validation
+      if (specific_category.length && !validSubCategories.length) {
+        throw new BadRequestException(
+          'Selected subcategory does not belong to selected categories',
+        );
+      }
+
+      // 4. Create records per category
       const records = category.map((catId: number) => {
+        const subIdsForCategory = validSubCategories
+          .filter(sub => sub.parentId === catId)
+          .map(sub => sub.id);
+
         return this.entCatRepository.create({
           entertainerId: entertainer.id,
           category: { id: catId },
-          subcategoryIds: [],
+          subcategoryIds: subIdsForCategory, // [] if none
         });
       });
 
+      // 5. Save
       await this.entCatRepository.save(records);
 
-      for (const item of specific_category) {
-        await this.entCatRepository.update(
-          {
-            entertainerId: entertainer.id,
-            category: { id: item.categoryId },
-          },
-          { subcategoryIds: item.subcategoryIds },
-        );
-      }
+
 
       if (uploadedFiles?.length > 0) {
         await this.mediaService.handleEntertainerMediaUpload(
@@ -1509,7 +1551,10 @@ export class EntertainerService {
 
       const subcategoryIds = rawCategories.flatMap((row) =>
         typeof row.subcategoryIds === 'string'
-          ? row.subcategoryIds.split(',').map(Number)
+          ? row.subcategoryIds
+            .split(',')
+            .map((val) => Number(val.trim())) // Trim whitespace
+            .filter((val) => !isNaN(val) && val > 0) // <--- CRITICAL FIX: Remove NaN
           : [],
       );
 

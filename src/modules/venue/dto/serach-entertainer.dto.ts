@@ -42,6 +42,57 @@ export class SearchEntertainerDto {
   @IsNumber({}, { each: true }) // Ensure each element is a number
   category?: number[] | null;
 
+
+  @ApiProperty({
+    description: 'Price Range',
+    required: false,
+  })
+  @Transform(({ value }) => {
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value
+        .split(',')
+        .map((num) => num.trim()) // Trim spaces
+        .filter((num) => !isNaN(Number(num))) // Remove non-numeric values
+        .map(Number); // Convert to numbers
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .map((num) => Number(num)) // Convert array elements to numbers
+        .filter((num) => !isNaN(num)); // Ensure no NaN values
+    }
+
+    return value === null ? null : undefined; // Keep null as null, and ignore undefined
+  })
+  @IsOptional()
+  @IsArray() // Ensure it's an array
+  @IsNumber({}, { each: true }) // Ensure each element is a number
+  subcategory?: number[] | null;
+
+  @ApiProperty({
+    description: 'Subcategory alias (legacy frontend key)',
+    required: false,
+  })
+  @Transform(({ value }) => {
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value
+        .split(',')
+        .map((num) => num.trim())
+        .filter((num) => !isNaN(Number(num)))
+        .map(Number);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((num) => Number(num)).filter((num) => !isNaN(num));
+    }
+
+    return value === null ? null : undefined;
+  })
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  specific_category?: number[] | null;
+
   @ApiProperty({ description: 'Records per page you want .', required: false })
   @IsOptional()
   @IsNumber()
@@ -64,13 +115,21 @@ export class SearchEntertainerDto {
   vaccinated: 'yes' | 'no';
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    const num = Number(value);
+    return isNaN(num) ? undefined : num;
+  }, { toClassOnly: true })
   @IsNumber()
-  @Transform(({ value }) => Number(value))
   latitude?: number;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    const num = Number(value);
+    return isNaN(num) ? undefined : num;
+  }, { toClassOnly: true })
   @IsNumber()
-  @Transform(({ value }) => Number(value))
   longitude?: number;
 
   @IsOptional()
@@ -93,4 +152,7 @@ export class SearchEntertainerDto {
 
   @IsOptional()
   endDateTime: string;
+
+  @IsOptional()
+  dashboard?: boolean;
 }

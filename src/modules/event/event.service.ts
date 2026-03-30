@@ -274,7 +274,7 @@ export class EventService {
           'event_table.eventStartDateTime AS eventStartDateTime',
           'event_table.eventEndDateTime AS eventEndDateTime',
           'event_table.recurring AS recurring',
-          'venue.timezone AS venueTimeZone',
+          `COALESCE(venue.timezone, 'UTC') AS venueTimeZone`,
           'event_table.status AS status',
           'event_table.slug AS slug',
           'event_table.createdAt AS createdAt',
@@ -436,7 +436,9 @@ export class EventService {
           'event.status AS status',
           'event.slug AS slug',
         ])
-        .orderBy('Date(event.eventStartDateTime).', 'DESC')
+        .orderBy('DATE(event.eventStartDateTime)', 'DESC')
+
+        //.orderBy('Date(event.eventStartDateTime).', 'DESC')
         .getRawMany();
 
       if (!baseEvents.length) {
@@ -591,7 +593,7 @@ export class EventService {
           'venue.name AS name',
           'venue.addressLine1 AS addressLine1',
           'venue.addressLine2 AS addressLine2',
-          'venue.timezone AS venueTimeZone',
+          `COALESCE(venue.timezone, 'UTC') AS venueTimeZone`,
           'city.name AS city',
           'code.StateCode AS stateCode',
           'hood.name AS neighbourhoodName',

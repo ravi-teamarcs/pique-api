@@ -124,7 +124,8 @@ class GeneralInformationDto {
       try {
         return JSON.parse(value);
       } catch {
-        return value.split(',').map((v) => Number(v));
+        return [];
+
       }
     }
     return value;
