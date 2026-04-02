@@ -13,9 +13,20 @@ import { EndPoints } from '../auth/entities/endpoint.entity';
 import { Media } from '../media/entities/media.entity';
 import { Category } from '../entertainer/entities/categories.entity';
 import { Wishlist } from './entities/wishlist.entity';
-import { VenueDetailsController } from './venue.details.controller';
-import { VenueDetailService } from './venue.details.service';
-import { VenueDetails } from './entities/venue.details.entity';
+import { MediaModule } from '../media/media.module';
+
+import { NotificationModule } from '../notification/notification.module';
+import { Neighbourhood } from './entities/neighbourhood.entity';
+import { Cities } from '../location/entities/city.entity';
+import { States } from '../location/entities/state.entity';
+import { EntertainerModule } from '../entertainer/entertainer.module';
+import { VenueEvent } from '../event/entities/event.entity';
+import { Setting } from '../admin/settings/entities/setting.entity';
+import { LocationModule } from '../location/location.module';
+import { AdminUser } from '../admin/auth/entities/AdminUser.entity';
+import { EntertainerCategorySubcategory } from '../entertainer/entities/entertainer-category-subcategory.entity';
+import { SubcategoryRate } from '../admin/settings/entities/subcategory-rates.entity';
+import { SpecialSubcategoryPrice } from '../admin/settings/entities/special-subcategory-prices.entity';
 
 @Module({
   imports: [
@@ -30,11 +41,22 @@ import { VenueDetails } from './entities/venue.details.entity';
       Media,
       Category,
       Wishlist,
-      VenueDetails,
+      Neighbourhood,
+      Cities,
+      States,
+      VenueEvent,
+      Setting,
+      AdminUser,
+      EntertainerCategorySubcategory,
+      SubcategoryRate,
+      SpecialSubcategoryPrice,
     ]),
     BookingModule,
+    MediaModule,
+    NotificationModule,
+    LocationModule,
   ],
-  controllers: [VenueController, VenueDetailsController],
-  providers: [VenueService, VenueDetailService],
+  controllers: [VenueController],
+  providers: [VenueService],
 })
 export class VenueModule {}

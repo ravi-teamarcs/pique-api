@@ -10,10 +10,10 @@ export class CreateEventDto {
   description: string;
 
   @ApiProperty({ description: 'starting time of the event ' })
-  @IsDateString()
-  startTime: string;
+  @IsString()
+  eventStartDateTime: string;
 
   @ApiProperty({ description: 'starting time of the event ' })
-  @IsDateString()
-  endTime: string;
+  @IsString()
+  eventEndDateTime: string;
 }

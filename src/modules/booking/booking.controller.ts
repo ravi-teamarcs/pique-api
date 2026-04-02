@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   Param,
+  ParseIntPipe,
   Post,
   Request,
   UseGuards,
@@ -19,6 +21,8 @@ import { JwtAuthGuard } from '../auth/jwt.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { BookingReqResponse } from './dto/request-booking.dto';
+import { deleteFileFromServer } from 'src/common/middlewares/multer.middleware';
+import { SeriesBookingDto } from './dto/series-booking-dto';
 
 @ApiTags('Booking')
 @ApiBearerAuth()
@@ -27,19 +31,38 @@ import { BookingReqResponse } from './dto/request-booking.dto';
 export class BookingController {
   constructor(private readonly bookingService: BookingService) {}
 
-  @ApiOperation({
-    description: 'Enable Admin And Entertainer to review booking ',
-  })
-  @ApiResponse({ status: 200 })
-  @Post('approve/:requestId')
-  @HttpCode(200)
+  @Get('by-event/:eventId')
   @Roles('findAll')
-  approveChange(
-    @Param('requestId') requestId: number,
-    @Body() reqDto: BookingReqResponse,
-    @Request() req: any,
+  async getBookingsByEvent(
+    @Param('eventId', ParseIntPipe) eventId: number,
+    @Request() req,
   ) {
-    const { userId } = req.user;
-    return this.bookingService.approveChange(requestId, reqDto, userId);
+    const { refId } = req.user;
+    return this.bookingService.entertainerBookingDetailsByEvent(eventId, refId);
+  }
+
+  @Get('entertainers/details/:eventId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  async getDetailsBasedOnEvent(
+    @Param('eventId', ParseIntPipe) eventId: number,
+    @Request() req,
+  ) {
+    const { refId } = req.user;
+    return this.bookingService.getEntertainerDetailsPerEvent(eventId, refId);
+  }
+
+  // Temporary route for testing file deletion
+  // @Post('test-route')
+  // @Roles('findAll')
+  // async tetstingRoute(@Body('url') url: string) {
+  //   return deleteFileFromServer(url);
+  // }
+
+  @Post('series')
+  @Roles('findAll')
+  inviteEntertainerForSeries(@Body() payload: SeriesBookingDto) {
+    const { eventMappings } = payload;
+    return this.bookingService.inviteEntertainerForSeries(eventMappings);
   }
 }

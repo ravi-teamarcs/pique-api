@@ -1,9 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Countries } from './Entitiy/country.entity';
+import { Countries } from './entities/country.entity';
 import { Repository } from 'typeorm';
-import { Cities } from './Entitiy/city.entity';
-import { States } from './Entitiy/state.entity';
+import { Cities } from './entities/city.entity';
+import { States } from './entities/state.entity';
 
 @Injectable()
 export class LocationService {

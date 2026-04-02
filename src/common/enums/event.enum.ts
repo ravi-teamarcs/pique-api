@@ -8,7 +8,7 @@ enum Recurring {
 enum Status {
   SCHEDULED = 'scheduled',
   CONFIRMED = 'confirmed',
-  CANCELLED = 'cancelled',
+  CANCELED = 'canceled',
   COMPLETED = 'completed',
   UNPUBLISHED = 'unpublished',
 }

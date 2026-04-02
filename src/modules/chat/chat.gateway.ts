@@ -9,22 +9,50 @@ import {
 import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { JoinDto } from './dto/chat-join.dto';
+import { ConfigService } from '@nestjs/config';
+import {
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
+import * as jwt from 'jsonwebtoken';
+import * as crypto from 'crypto';
+import { SendMessage } from './dto/send-message.dto';
 
 @WebSocketGateway({
-  path: '/piqueapi/', // This sets the WebSocket server path to /piqueapi
+  namespace: '/chat', // 👈 This sets the namespace to /chat
   cors: {
-    origin: 'https://dev.teamarcs.com', // Allowing your frontend domain
+    origin: '*', // Allow any origin (for testing)
     methods: ['GET', 'POST'],
     allowedHeaders: ['Content-Type'],
     credentials: true,
   },
-  transports: ['websocket'],
+  transports: ['websocket'], // Ensure it's using WebSocket transport
 })
 export class ChatGateway implements OnGatewayDisconnect {
   @WebSocketServer() server: Server;
-  private activeUsers = new Map<string, string>(); // socketId -> userId mapping
+  private activeUsers = new Map<string, number>(); // socketId -> userId mapping
 
-  constructor(private readonly chatService: ChatService) {}
+  constructor(
+    private readonly chatService: ChatService,
+    private configService: ConfigService,
+  ) {}
+
+  // On Opening the App send token in Query.(Main Logic app initiation)
+  async handleConnection(client: Socket) {
+    const token = client.handshake.query.token as string;
+
+    try {
+      const payload = jwt.verify(
+        token,
+        this.configService.get<string>('JWT_SECRET'),
+      );
+      const { sub } = payload;
+
+      this.activeUsers.set(client.id, Number(sub));
+    } catch (err) {
+      client.disconnect(); // invalid token
+    }
+  }
 
   // When a user connects, send them their unread messages
   @SubscribeMessage('join')
@@ -32,12 +60,6 @@ export class ChatGateway implements OnGatewayDisconnect {
     @MessageBody() { userId, receiverId }: JoinDto,
     @ConnectedSocket() client: Socket,
   ) {
-    // console.log('inside Join ', userId, receiverId);
-    this.activeUsers.set(client.id, userId);
-    console.log(`User ${userId} connected with socket ${client.id}`);
-
-    console.log(`Active Users `, this.activeUsers);
-    // Fetch unread messages from MySQL
     const chatHistories = await this.chatService.getChatHistory(
       userId,
       receiverId,
@@ -45,11 +67,14 @@ export class ChatGateway implements OnGatewayDisconnect {
 
     // Send all previous chat history to the user
     chatHistories.data.forEach((msg) => {
-      client.emit('receiveMessage', msg);
+      const decryptedMessage = this.decrypt(msg.message);
+      client.emit('receiveMessage', {
+        ...msg,
+        message: decryptedMessage,
+      });
     });
 
-    // Mark messages as delivered
-
+    // Mark messages as delivered(Dobut should be marked delivered to Sender)
     await this.chatService.markMessagesAsDelivered(userId);
   }
 
@@ -57,38 +82,48 @@ export class ChatGateway implements OnGatewayDisconnect {
   @SubscribeMessage('sendMessage')
   async handleMessage(
     @MessageBody()
-    data: { senderId: string; receiverId: string; message: string },
+    data: SendMessage,
     @ConnectedSocket() client: Socket,
   ) {
-    const { senderId, receiverId, message } = data;
-    // Save message in MySQL
-    const savedMessage = await this.chatService.saveMessage(
-      senderId,
-      receiverId,
-      message,
-    );
+    try {
+      const { senderId, receiverId, message } = data;
 
-    // Check if receiver is online
-    const receiverSocketId = this.findSocketIdByUserId(receiverId);
+      // Encrypting message before SendDing.
+      const encryptedMessage = this.encrypt(message);
 
-    if (receiverSocketId) {
-      // If receiver is online, mark the message as delivered
-      await this.chatService.markMessagesAsDelivered(receiverId);
-
-      // Send message in real-time to receiver
-      this.server.to(receiverSocketId).emit('receiveMessage', savedMessage);
-    } else {
-      console.log(
-        `User ${data.receiverId} is offline. Message stored in MySQL.`,
+      // Save message in MySQL
+      const savedMessage = await this.chatService.saveMessage(
+        senderId,
+        receiverId,
+        encryptedMessage,
       );
+
+      // Check if receiver is online
+      const receiverSocketId = this.findSocketIdByUserId(receiverId);
+
+      if (receiverSocketId) {
+        // If receiver is online, mark the message as delivered
+        // await this.chatService.markMessagesAsDelivered(receiverId);
+
+        // Send message in real-time to receiver
+        this.server.to(receiverSocketId).emit('receiveMessage', savedMessage);
+      } else {
+        console.log(
+          `User ${data.receiverId} is offline. Message stored in MySQL.`,
+        );
+      }
+
+      return { message: 'Message sent', status: true };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        error: error.message,
+        status: false,
+      });
     }
-
-    return { status: 'Message sent' };
   }
-
   @SubscribeMessage('markAsRead')
   async handleMarkAsRead(
-    @MessageBody() receiverId: string,
+    @MessageBody() receiverId: number,
     @ConnectedSocket() client: Socket,
   ) {
     await this.chatService.markMessagesAsRead(receiverId);
@@ -96,7 +131,7 @@ export class ChatGateway implements OnGatewayDisconnect {
   }
 
   // Helper function to find socket ID by user ID
-  private findSocketIdByUserId(userId: string): string | undefined {
+  private findSocketIdByUserId(userId: number): string | undefined {
     for (const [socketId, storedUserId] of this.activeUsers.entries()) {
       if (storedUserId === userId) {
         return socketId;
@@ -108,12 +143,54 @@ export class ChatGateway implements OnGatewayDisconnect {
   //  When a user disconnects, remove them from the active users map
   handleDisconnect(client: Socket) {
     const userId = this.activeUsers.get(client.id);
-
     if (userId) {
       console.log(`User ${userId} disconnected, removing from active users.`);
       this.activeUsers.delete(client.id);
     }
-
     console.log('Active users after disconnect:', this.activeUsers);
+  }
+
+  // Encryption Logic
+  private encrypt(text: string): string {
+    try {
+      const ENCRYPTION_KEY = this.configService.get<string>('CHAT_SECRET_KEY'); // 32 chars
+      const IV_LENGTH = 16;
+      const ALGO = 'aes-256-cbc';
+      if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 32) {
+        throw new Error('Encryption key must be 32 characters long');
+      }
+      const iv = crypto.randomBytes(IV_LENGTH);
+
+      const cipher = crypto.createCipheriv(
+        ALGO,
+        Buffer.from(ENCRYPTION_KEY),
+        iv,
+      );
+
+      let encrypted = cipher.update(text, 'utf-8');
+      encrypted = Buffer.concat([encrypted, cipher.final()]);
+
+      return iv.toString('hex') + ':' + encrypted.toString('hex');
+    } catch (error) {
+      throw new InternalServerErrorException({
+        error: error.message,
+        status: false,
+      });
+    }
+  }
+
+  private decrypt(text: string): string {
+    const ENCRYPTION_KEY = this.configService.get<string>('CHAT_SECRET_KEY');
+    const textParts = text.split(':');
+    const iv = Buffer.from(textParts.shift()!, 'hex');
+    const encryptedText = Buffer.from(textParts.join(':'), 'hex');
+    const decipher = crypto.createDecipheriv(
+      'aes-256-cbc',
+      Buffer.from(ENCRYPTION_KEY),
+      iv,
+    );
+    let decrypted = decipher.update(encryptedText);
+    decrypted = Buffer.concat([decrypted, decipher.final()]);
+    return decrypted.toString();
   }
 }

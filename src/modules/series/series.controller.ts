@@ -1,0 +1,117 @@
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { SeriesService } from './series.service';
+import { JwtAuthGuard } from '../auth/jwt.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { SeriesDto, UpdateSeriesDto } from './dto/series.dto';
+import { SeriesEventDto } from './dto/add-event.dto';
+import { AddExistingEventToSeriesDto } from './dto/existing-event.dto';
+import { RemoveEventDto } from './dto/remove-event.dto';
+import { isThisSecond } from 'date-fns';
+
+@Controller('series')
+export class SeriesController {
+  constructor(private readonly seriesService: SeriesService) {}
+
+  @Post()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  create(@Body() payload: SeriesDto, @Req() req) {
+    const { refId } = req.user;
+    payload['venueId'] = refId;
+    return this.seriesService.createSeries(payload);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getAllSeriesForVenue(@Req() req) {
+    const { refId: venueId } = req.user;
+    return this.seriesService.getAllSeriesOfVenue(venueId);
+  }
+
+  @Get('events/upcoming')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getUpcomingEvent(@Req() req) {
+    const { refId } = req.user;
+    return this.seriesService.getUpcomingEventForSeries(refId);
+  }
+
+  @Get('booked-entertainer/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getBookedEntertainerForSeries(@Param('id', ParseIntPipe) id: number) {
+    return this.seriesService.getBookedEntertainerForSeries(id);
+  }
+
+  @Get(':seriesId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  getSeriesById(@Req() req, @Param('seriesId', ParseIntPipe) seriesId: number) {
+    const { refId: venueId } = req.user;
+    return this.seriesService.getSeriesById(seriesId, venueId);
+  }
+
+  @Post('/event')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  addEventToSeries(@Body() dto: SeriesEventDto, @Req() req) {
+    const { ref: venueId } = req.user;
+    return this.seriesService.addNewEventToSeries(dto);
+  }
+
+  @Patch('/existing-event')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  addExistingEventToSeries(
+    @Body() dto: AddExistingEventToSeriesDto,
+    @Req() req,
+  ) {
+    const { refId: venueId } = req.user;
+    const { eventId, seriesId } = dto;
+    return this.seriesService.addExistingEventToSeries(
+      eventId,
+      seriesId,
+      venueId,
+    );
+  }
+
+  @Delete('remove-event')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  removeEventfromSeries(@Body() payload: RemoveEventDto) {
+    const { eventId, seriesId } = payload;
+    return this.seriesService.removeEventFromSeries(eventId, seriesId);
+  }
+
+  @Delete(':seriesId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  removeSeriesAndEvent(
+    @Param('seriesId', ParseIntPipe) seriesId: number,
+    @Req() req,
+  ) {
+    const { refId } = req.user;
+    return this.seriesService.removeSeriesAndEvents(seriesId, refId);
+  }
+
+  @Patch()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('findAll')
+  updateSeries(@Body() payload: UpdateSeriesDto, @Req() req) {
+    const { refId: venueId } = req.user;
+    return this.seriesService.updateSeries(venueId, payload);
+  }
+}

@@ -14,27 +14,27 @@ export class BookingLog {
   @Column()
   bookingId: number;
 
-  @Column()
+  @Column({ nullable: true })
   user: number;
 
   @Column({
     type: 'enum',
     enum: [
-      'pending',
+      'invited',
       'confirmed',
       'accepted',
-      'cancelled',
-      'rejected',
-      'completed',
+      'canceled',
+      'declined',
+
       'rescheduled',
     ],
-    default: 'pending',
+    default: 'invited',
   })
   status:
-    | 'pending'
+    | 'invited'
     | 'confirmed'
-    | 'cancelled'
-    | 'rejected'
+    | 'canceled'
+    | 'declined'
     | 'completed'
     | 'rescheduled';
 
@@ -44,9 +44,9 @@ export class BookingLog {
   @Column()
   date: Date;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

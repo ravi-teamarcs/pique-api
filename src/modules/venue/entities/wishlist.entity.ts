@@ -17,7 +17,7 @@ export class Wishlist {
   @Column()
   url: string;
 
-  @Column()
+  @Column({ nullable: true })
   category: number;
 
   @Column()
@@ -26,7 +26,7 @@ export class Wishlist {
   @Column()
   ratings: number;
 
-  @Column()
+  @Column({ nullable: true })
   specific_category: number;
 
   @Column()
@@ -35,9 +35,9 @@ export class Wishlist {
   @Column()
   user_id: number;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 }

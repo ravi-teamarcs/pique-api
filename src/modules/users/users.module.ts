@@ -12,6 +12,9 @@ import { Media } from '../media/entities/media.entity';
 import { Role } from '../auth/entities/role.entity';
 import { Access } from '../auth/entities/access.entity';
 import { EndPoints } from '../auth/entities/endpoint.entity';
+import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
+import { Category } from '../entertainer/entities/categories.entity';
+import { EntertainerCategorySubcategory } from '../entertainer/entities/entertainer-category-subcategory.entity';
 
 @Module({
   imports: [
@@ -26,6 +29,9 @@ import { EndPoints } from '../auth/entities/endpoint.entity';
       Role,
       Access,
       EndPoints,
+      Neighbourhood,
+      Category,
+      EntertainerCategorySubcategory,
     ]),
   ],
   controllers: [UsersController],

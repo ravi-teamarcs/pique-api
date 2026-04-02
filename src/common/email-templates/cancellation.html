@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Opportunity Update {{eventName}}</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        color: #333;
+        background-color: #f9f9f9;
+        margin: 0;
+        padding: 0;
+      }
+      .container {
+        width: 100%;
+        max-width: 600px;
+        margin: 40px auto;
+        background: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        color: #d32f2f;
+      }
+      p {
+        line-height: 1.6;
+        margin: 15px 0;
+      }
+      .footer {
+        margin-top: 30px;
+        font-size: 0.9em;
+        color: #777;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Position Closed - {{eventName}}</h2>
+      <p>Hi {{entertainerName}},</p>
+      <p>
+        Thank you for expressing interest in the opportunity for
+        <strong>{{eventName}}</strong> scheduled on
+        <strong>{{eventDate}}</strong>.
+      </p>
+      <p>
+        The venue has completed their selection process and confirmed another
+        entertainer for this event. As a result, the position is now closed.
+      </p>
+      <p>
+        We truly appreciate your prompt response and continued interest. While
+        you were not selected for this occasion, we look forward to connecting
+        you with more opportunities in the near future.
+      </p>
+      <p>
+        Thank you for being a valued part of the Pique Entertainment community.
+        <br />
+        Wishing you success in your upcoming events!
+      </p>
+
+      <div class="footer">— Pique Entertainment Team</div>
+    </div>
+  </body>
+</html>

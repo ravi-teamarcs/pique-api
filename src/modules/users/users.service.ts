@@ -6,14 +6,17 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { User } from './entities/users.entity';
 import { CreateUserDto, UpdateUserDto } from './dto/users.dto';
-import { UpdateProfileDto } from './dto/update-profile.dto';
 import { Venue } from '../venue/entities/venue.entity';
 import { Entertainer } from '../entertainer/entities/entertainer.entity';
 import { instanceToPlain } from 'class-transformer';
-//import * as bcrypt from 'bcryptjs';
+import { Media } from '../media/entities/media.entity';
+import { ConfigService } from '@nestjs/config';
+import { Neighbourhood } from '../venue/entities/neighbourhood.entity';
+import { Category } from '../entertainer/entities/categories.entity';
+import { EntertainerCategorySubcategory } from '../entertainer/entities/entertainer-category-subcategory.entity';
 
 @Injectable()
 export class UsersService {
@@ -24,6 +27,15 @@ export class UsersService {
     private readonly venueRepository: Repository<Venue>,
     @InjectRepository(Entertainer)
     private readonly entertainerRepository: Repository<Entertainer>,
+    @InjectRepository(Neighbourhood)
+    private readonly neighbourRepository: Repository<Neighbourhood>,
+    @InjectRepository(Media)
+    private readonly mediaRepository: Repository<Media>,
+    @InjectRepository(Category)
+    private readonly categoryRepository: Repository<Category>,
+    @InjectRepository(EntertainerCategorySubcategory)
+    private readonly entCatRepository: Repository<EntertainerCategorySubcategory>,
+    private readonly config: ConfigService,
   ) {}
 
   async findByEmail(email: string): Promise<User | undefined> {
@@ -39,7 +51,10 @@ export class UsersService {
       throw new HttpException('Email already in use', HttpStatus.CONFLICT);
     }
 
-    const newUser = this.userRepository.create(createUserDto);
+    const newUser = this.userRepository.create({
+      ...createUserDto,
+      isVerified: true,
+    });
     return this.userRepository.save(newUser);
   }
 
@@ -87,171 +102,228 @@ export class UsersService {
   // User Profile
 
   async handleGetUserProfile(userId: number, role: string) {
-    console.log('UserId ', userId);
-    const response = { message: 'Profile fetched Successfully', status: true };
-   
-    if (role === 'venue') {
-      console.log('iside role');
-      const details = await this.venueRepository
+    try {
+      if (role === 'venue') {
+        return this.getVenueDetails(userId);
+      } else {
+        return this.getEntertainerDetails(userId);
+      }
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getVenueDetails(userId: number) {
+    try {
+      const venue = await this.venueRepository.findOne({
+        where: { user: { id: userId } },
+      });
+      const venueDetails = await this.venueRepository
         .createQueryBuilder('venue')
         .leftJoinAndSelect('venue.user', 'user')
-        .leftJoin('countries', 'country', 'country.id = venue.country')
         .leftJoin('cities', 'city', 'city.id = venue.city')
         .leftJoin('states', 'state', 'state.id = venue.state')
-        .where('venue.user.id = :userId', { userId })
-        // .andWhere('venue.isParent = :isParent', { isParent: 1})
+        .leftJoin('countries', 'country', 'country.id = venue.country')
+        .leftJoin(
+          (qb) =>
+            qb
+              .select([
+                'media.user_id AS media_user_id', // expose user_id
+                `JSON_ARRAYAGG(
+              JSON_OBJECT(
+                "id",media.id,
+                "url", CONCAT(:serverUri, media.url),
+                "type", media.type
+              )
+            ) AS mediaDetails`,
+              ])
+              .from('media', 'media')
+              .groupBy('media.user_id'),
+          'media', // alias for the subquery
+          'media.media_user_id = venue.id', // now using the alias correctly
+        )
         .select([
-          'user.id AS uid',
-          'user.name AS name',
+          'venue.id AS id',
+          'venue.name AS name',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'venue.description AS description',
+          'venue.city AS city_code',
+          'venue.latitude AS latitude',
+          'venue.longitude AS longitude',
+          'venue.state AS state_code',
+          'venue.country AS country_code',
+          'venue.contactPerson AS contactPerson',
+          'venue.contactNumber AS contactNumber',
+          'venue.zipCode AS zipCode',
+          'venue.venueType As venueType',
+          'venue.isPiqueVerified AS isPiqueVerified',
+          'city.name AS city',
+          'state.name AS state',
+          'country.name AS country',
+          'user.email AS email',
+          'COALESCE(media.mediaDetails, "[]") AS media',
+        ])
+
+        .where('venue.id=:venueId', { venueId: venue.id })
+        .setParameter('serverUri', this.config.get<string>('BASE_URL'))
+        .getRawOne();
+
+      const neighbourhood = await this.neighbourRepository.find({
+        where: { venueId: venue.id },
+      });
+      const { media, isPiqueVerified, venueType, ...rest } = venueDetails;
+      const response = {
+        ...rest,
+        media: media ? JSON.parse(media) : null,
+        isPiqueVerified: isPiqueVerified === 1 ? true : false,
+        neighbourhoods: neighbourhood,
+        venueType:
+          typeof venue.venueType === 'string'
+            ? JSON.parse(venue.venueType) // stringified array
+            : Array.isArray(venue.venueType)
+              ? venue.venueType // already array
+              : [],
+      };
+      return {
+        message: 'user profile fetched successfully',
+        data: response,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
+  async getEntertainerDetails(userId: number) {
+    const URL = this.config.get<string>('DEFAULT_MEDIA');
+    const ent = await this.entertainerRepository.findOne({
+      where: { user: { id: userId } },
+    });
+
+    try {
+      const entertainer = await this.entertainerRepository
+        .createQueryBuilder('entertainer')
+        .leftJoin('users', 'user', 'user.id = entertainer.userId')
+        .leftJoin('countries', 'country', 'country.id = entertainer.country')
+        .leftJoin('states', 'state', 'state.id = entertainer.state')
+        .leftJoin('cities', 'city', 'city.id = entertainer.city')
+        .leftJoin('categories', 'cat', 'cat.id = entertainer.category ')
+        .leftJoin(
+          'categories',
+          'subcat',
+          'subcat.id = entertainer.specific_category ',
+        )
+        .where('entertainer.id = :userId', {
+          userId: ent.id,
+        })
+        .select([
+          'entertainer.id AS id',
+          'entertainer.name AS stageName',
+          'entertainer.entertainer_name AS entertainerName',
           'user.email AS email',
           'user.phoneNumber AS phoneNumber',
           'user.role AS role',
-          'venue.id AS vid',
-          'venue.name AS vName',
-          'venue.phone AS vPhone',
-          'venue.email AS vEmail',
-          'venue.addressLine1 As  vAddressLine1',
-          'venue.addressLine2 As vAddressLine2',
-          'venue.description AS vDescription',
-          'venue.city As vCity',
-          'venue.state As vState',
-          'country.name AS country_name',
-          'city.name AS city_name',
-          'state.name AS state_name',
-          'venue.zipCode AS vZipCode',
-          'venue.country AS vCountry',
-          'venue.isParent As isParent',
+          'city.name AS city',
+          'country.name AS country',
+          'state.name AS state',
+          'entertainer.isPiqueVerified AS isPiqueVerified',
+          'entertainer.bio AS bio',
+          'entertainer.pricePerEvent AS pricePerEvent',
+          'entertainer.city AS city_code',
+          'entertainer.state AS state_code',
+          'entertainer.country AS country_code',
+          'entertainer.zipCode AS zipCode',
+          'entertainer.maxTravelDistanceMiles AS maxTravelDistance',
+          'entertainer.services AS services',
+          'entertainer.mediaLink AS mediaLink',
+          'entertainer.vaccinated AS vaccinated',
+          'entertainer.socialLinks AS socialLinks',
+          'entertainer.contact_person AS contactPerson',
+          'entertainer.addressLine1 AS addressLine1',
+          'entertainer.addressLine2 AS addressLine2',
+          'entertainer.contact_person AS contactPerson',
+          'entertainer.contact_number AS contactNumber',
+          'entertainer.profileStep AS profileStep',
+          'entertainer.isProfileComplete AS isProfileComplete',
+          'entertainer.category AS category',
+          'entertainer.timezone AS timezone',
+          'entertainer.specific_category AS specific_category',
         ])
+        .addSelect(
+          `(SELECT IFNULL(CONCAT(:baseUrl, m.url), :defaultMediaUrl) FROM entertainer_media m WHERE m.user_id= entertainer.id AND m.type = 'headshot' LIMIT 1)`,
+          'headshotUrl',
+        )
+        .setParameter('baseUrl', this.config.get<string>('BASE_URL'))
+        .setParameter('defaultMediaUrl', URL)
         .getRawOne();
-      console.log(details);
-      const newDetails = {
-        ...details,
-        isParent: Boolean(details.isParent),
+
+      //  Getting Raw Categories
+      const rawCategories = await this.entCatRepository
+        .createQueryBuilder('ecs')
+        .leftJoin('categories', 'cat', 'cat.id = ecs.category_id') // Category relation
+        .where('ecs.entertainerId = :entertainerId', { entertainerId: ent.id })
+        .select([
+          'cat.id AS categoryId',
+          'cat.name AS categoryName',
+          'ecs.subcategoryIds AS subcategoryIds',
+        ])
+        .getRawMany();
+
+      const subcategoryIds = rawCategories.flatMap((row) =>
+        typeof row.subcategoryIds === 'string'
+          ? row.subcategoryIds.split(',').map(Number)
+          : [],
+      );
+
+      const uniqueSubcategoryIds = [...new Set(subcategoryIds)];
+
+      //   Now get all the subcategory
+      const subcategories = await this.categoryRepository.find({
+        where: { id: In(uniqueSubcategoryIds) },
+        select: ['id', 'name', 'catslug', 'parentId'],
+      });
+
+      const formatted = rawCategories.map((row) => {
+        const subcatIds =
+          typeof row.subcategoryIds === 'string'
+            ? row.subcategoryIds.split(',').map(Number)
+            : [];
+
+        const specific_category = subcategories
+          .filter((sub) => subcatIds.includes(sub.id))
+          .map((sub) => ({
+            id: sub.id,
+            specificCategoryName: sub.name,
+          }));
+
+        return {
+          id: row.categoryId,
+          categoryName: row.categoryName,
+          specific_category,
+        };
+      });
+
+      const { socialLinks, services, id, isPiqueVerified, ...rest } =
+        entertainer;
+
+      const payload = {
+        id: Number(id),
+        services: services ? services.split(',') : [],
+        isPiqueVerified: isPiqueVerified === 1 ? true : false,
+        ...rest,
+        socialLinks: socialLinks ? JSON.parse(socialLinks) : socialLinks,
+        categories: formatted,
       };
 
-      const location = await this.venueRepository.find({
-        where: { user: { id: userId }, isParent: false },
-        select: [
-          'id',
-          'phone',
-          'addressLine1',
-          'addressLine2',
-          'country',
-          'zipCode',
-          'city',
-          'state',
-          'country',
-          'zipCode',
-          'parentId',
-          'isParent',
-        ],
-      });
-      const rest = instanceToPlain(location);
-      newDetails['locations'] = rest;
-      response['data'] = newDetails;
-      return response;
+      return {
+        message: 'user profile fetched successfully',
+        status: true,
+        data: payload,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException(error.message);
     }
-    const entDetails = await this.entertainerRepository
-      .createQueryBuilder('ent')
-      .leftJoinAndSelect('ent.user', 'user')
-      .where('ent.user.id = :userId', { userId })
-      .select([
-        'user.id AS uid',
-        'ent.name AS stageName',
-        'user.name AS name',
-        'user.email AS email',
-        'user.phoneNumber AS phoneNumber',
-        'user.role AS role',
-        'ent.category AS category',
-        'ent.bio AS bio',
-        'ent.pricePerEvent AS pricePerEvent',
-        'ent.availability AS availability',
-        'ent.vaccinated AS vaccinated',
-      ])
-      .getRawOne();
-
-    response['data'] = entDetails;
-    return response;
   }
-
-  // async handleUpdateUserProfile(
-  //   updateProfileDto: UpdateProfileDto,
-  //   userId: number,
-  //   role: string,
-  // ) {
-  //   const { userData, venueData, entertainerData } = updateProfileDto;
-  //   const { venueId, ...venueDetails } = venueData;
-
-  //   const user = this.userRepository.findOne({ where: { id: userId } });
-
-  //   if (!user) {
-  //     throw new NotFoundException('User Not Found');
-  //   }
-
-  //   await this.userRepository.update({ id: userId }, userData);
-
-  //   // Venue Role update handling.  // If venue exists.
-  //   if (role == 'venue') {
-  //     const existingVenue = await this.venueRepository.findOne({
-  //       where: { user: { id: userId }, id: venueId },
-  //     });
-
-  //     if (!existingVenue) {
-  //       // If venue do not exists.
-  //       const venue = this.venueRepository.create({
-  //         ...venueData,
-  //         user: { id: userId },
-  //       });
-
-  //       const newVenue = await this.venueRepository.save(venue);
-  //       return {
-  //         message: 'Profile Updated Successfully',
-  //         upDatedDetails: newVenue,
-  //       };
-  //     }
-
-  //     const updatedVenue = await this.venueRepository.update(
-  //       { id: existingVenue.id },
-  //       venueDetails,
-  //     );
-  //     // return {
-  //     //   message: 'Profile Updated Successfully',
-  //     //   upDatedDetails: updatedVenue,
-  //     // };
-  //   }
-
-  //   // Entertainer Role update handling.  // If entertainer exists.
-
-  //   if (role == 'entertainer') {
-  //     const existingEntertainer = await this.entertainerRepository.findOne({
-  //       where: { user: { id: userId } },
-  //     });
-
-  //     if (!existingEntertainer) {
-  //       console.log('non existing entertainer block');
-  //       const entertainer = this.entertainerRepository.create({
-  //         ...entertainerData,
-  //         user: { id: userId },
-  //       });
-
-  //       const newEntertainer =
-  //         await this.entertainerRepository.save(entertainer);
-  //       return {
-  //         message: 'Profile Updated Successfully',
-  //         upDatedDetails: newEntertainer,
-  //       };
-  //     }
-
-  //     const upDatedEntertainer = await this.entertainerRepository.update(
-  //       { id: existingEntertainer.id },
-  //       entertainerData,
-  //     );
-  //     // return {
-  //     //   message: 'Profile Updated Successfully',
-  //     //   upDatedDetails: upDatedEntertainer,
-  //     // };
-  //   }
-
-  //   return { message: 'User Profile updated successfully' };
-  // }
 }

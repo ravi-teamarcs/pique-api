@@ -5,5 +5,5 @@ export class BookingReqResponse {
   @ApiProperty({ description: 'Response true or false' })
   @IsString()
   @IsNotEmpty()
-  response: 'pending' | 'approved' | 'rejected';
+  response: 'invited' | 'approved' | 'rejected';
 }

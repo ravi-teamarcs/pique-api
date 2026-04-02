@@ -7,14 +7,16 @@ import {
   ManyToOne,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from 'typeorm';
+import { Gig } from '../../tours/entities/gig.entity';
 
 @Entity('venue')
 export class Venue {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   name: string;
 
   @Column({ nullable: true })
@@ -23,35 +25,62 @@ export class Venue {
   @Column({ nullable: true })
   email: string;
 
-  @Column()
+  @Column({ nullable: true })
   addressLine1: string;
 
-  @Column()
+  // Now made  AddressLine 2  unavailable
+  @Column({ nullable: true })
   addressLine2: string;
 
-  @Column({ type: 'text' })
+  @Column({ type: 'text', nullable: true })
   description: string;
 
-  @Column()
+  @Column({ type: 'varchar', nullable: true })
+  timezone: string;
+
+  @Column({ nullable: true })
   city: number;
 
-  @Column()
+  @Column({ nullable: true })
   state: number;
 
-  @Column()
+  @Column({ nullable: true })
   zipCode: string;
 
-  @Column()
-  country: number;
+  @Column('simple-array', { nullable: true, name: 'venue_type' })
+  venueType: string[];
 
-  @CreateDateColumn()
+  @Column({ nullable: true })
+  country: number;
+  @Column({ default: 'pending' })
+  status: 'active' | 'inactive' | 'pending' | 'rejected';
+
+  @Column({ name: 'contact_person', nullable: true })
+  contactPerson: string;
+
+  @Column({ name: 'contact_number', nullable: true })
+  contactNumber: string;
+
+  @Column('decimal', { precision: 9, scale: 6, nullable: true })
+  latitude?: number;
+
+  @Column('decimal', { precision: 9, scale: 6, nullable: true })
+  longitude?: number;
+
+  @Column({ type: 'boolean', name: 'is_pique_verified', default: false })
+  isPiqueVerified: boolean;
+
+  @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ type: 'timestamp' })
   updatedAt: Date;
 
   @ManyToOne(() => User, (user) => user.venue, { onDelete: 'CASCADE' })
   user: User;
+
+  @OneToMany(() => Gig, (gigs) => gigs.venue)
+  gigs: Gig[];
 
   @Column({ type: 'boolean', default: false })
   @Transform(({ value }) => Boolean(value))
@@ -59,6 +88,12 @@ export class Venue {
 
   @Column({ nullable: true })
   parentId: number;
+
+  @Column({ default: 0 }) // Step 0 = Not Started
+  profileStep: number; //
+
+  @Column({ default: false })
+  isProfileComplete: boolean;
 }
 
 //Note in second callback first Argument Doesn't Matter it the second one that must be property name.

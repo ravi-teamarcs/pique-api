@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en" style="margin: 0; padding: 0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Booking Automatically Rescheduled</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f9fafb;
+        margin: 0;
+        padding: 0;
+      }
+      .email-container {
+        max-width: 600px;
+        margin: auto;
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        text-align: center;
+        padding-bottom: 20px;
+        border-bottom: 1px solid #e5e7eb;
+      }
+      .header h2 {
+        margin: 0;
+        color: #111827;
+      }
+      .content {
+        padding: 20px 0;
+        color: #374151;
+        line-height: 1.6;
+      }
+      .details-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+      }
+      .details-table td {
+        padding: 8px 0;
+      }
+      .footer {
+        text-align: center;
+        font-size: 12px;
+        color: #9ca3af;
+        border-top: 1px solid #e5e7eb;
+        padding-top: 20px;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="email-container">
+      <div class="header">
+        <h2>Booking Automatically Rescheduled</h2>
+      </div>
+      <div class="content">
+        <p>Hi {{EntertainerName}},</p>
+
+        <p>
+          Please note that the event <strong>{{EventName}}</strong> has been
+          updated. As a result, your associated booking has been
+          <strong>automatically rescheduled</strong>.
+        </p>
+
+        <table class="details-table">
+          <tr>
+            <td><strong>New Event Date:</strong></td>
+            <td>{{NewDate}}</td>
+          </tr>
+          <tr>
+            <td><strong>New Time:</strong></td>
+            <td>{{NewTime}}</td>
+          </tr>
+          <tr>
+            <td><strong>Location:</strong></td>
+            <td>{{Location}}</td>
+          </tr>
+        </table>
+
+        <p>
+          You can confirm or decline this request. You can view the updated
+          details in your dashboard.
+        </p>
+
+        <p>If you have any questions, feel free to reach out to us.</p>
+
+        <p>Best regards,<br />The Pique Entertainment Team</p>
+      </div>
+      <div class="footer">
+        &copy; {{Year}} Pique Entertainment. All rights reserved.
+      </div>
+    </div>
+  </body>
+</html>

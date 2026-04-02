@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Booking Canceled</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f7;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background: #ffffff;
+        border-radius: 8px;
+        padding: 30px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+      }
+      .header {
+        text-align: center;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 15px;
+      }
+      .header h2 {
+        margin: 0;
+        color: #e74c3c;
+      }
+      .content {
+        margin-top: 20px;
+      }
+      .booking-info {
+        background-color: #f9f9f9;
+        padding: 15px;
+        border-radius: 6px;
+        margin-top: 15px;
+      }
+      .footer {
+        margin-top: 30px;
+        text-align: center;
+        color: #999;
+        font-size: 12px;
+      }
+      .button {
+        display: inline-block;
+        margin-top: 20px;
+        background-color: #3498db;
+        color: white;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+      }
+      .button:hover {
+        background-color: #2980b9;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2>Booking Canceled by Entertainer</h2>
+      </div>
+      <div class="content">
+        <p>Dear{{venueName}},</p>
+        <p>
+          We regret to inform you that <strong>{{entertainerName}}</strong> has
+          canceled their confirmed booking for your event.
+        </p>
+
+        <div class="booking-info">
+          <p><strong>Event:</strong>{{eventTitle}}</p>
+          <li>
+            <strong>Event Date & Time</strong> {{eventDate}} {{eventTime}}
+          </li>
+
+          <p><strong>Venue:</strong>{{address}}</p>
+        </div>
+
+        <p>
+          If you’d like, you can browse and book another entertainer for your
+          event.
+        </p>
+
+        <a href="[Rebooking Link]" class="button">Find Another Entertainer</a>
+
+        <p>
+          We apologize for the inconvenience and appreciate your understanding.
+        </p>
+      </div>
+
+      <div class="footer">
+        &copy; {{year}} Pique Entertainment | This is an automated message.
+      </div>
+    </div>
+  </body>
+</html>

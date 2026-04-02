@@ -1,21 +1,55 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsEnum, IsNumber } from 'class-validator';
-class AdminBookingDto {
-  @ApiProperty({ example: '12:10:01', description: 'Timing of the Show' })
-  @IsString()
-  @IsNotEmpty()
-  showTime: string;
+import { Type } from 'class-transformer';
+import {
+  IsNotEmpty,
+  IsString,
+  IsEnum,
+  IsNumber,
+  IsArray,
+  ArrayNotEmpty,
+  IsOptional,
+  IsInt,
+  ValidateNested,
+} from 'class-validator';
 
-  @ApiProperty({ example: '2024-01-17', description: 'Date of the Show' })
+export class EntertainerCategoryDto {
+  @ApiProperty({ example: 1, description: 'Category ID' })
+  @IsInt()
+  categoryId: number;
+
+  @ApiProperty({
+    example: [1, 2],
+    description: 'List of Subcategory IDs under this category',
+  })
+  @IsArray()
+  subCategoryIds: number[];
+}
+
+export class EntertainerCategoriesDto {
+  @ApiProperty({ example: 10, description: 'Entertainer ID' })
+  @IsInt()
+  entertainerId: number;
+
+  @ApiProperty({
+    type: [EntertainerCategoryDto],
+    description: 'Categories and subcategories assigned to this entertainer',
+  })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EntertainerCategoryDto)
+  categories: EntertainerCategoryDto[];
+}
+class AdminBookingDto {
   @IsString()
   @IsNotEmpty()
-  showDate: string;
+  showStartDateTime: string;
 
   @ApiProperty({
     example: 'Please be on time',
     description: 'Special Notes for the Booking',
     required: false,
   })
+  @IsOptional()
   @IsString()
   specialNotes?: string;
 
@@ -29,9 +63,11 @@ class AdminBookingDto {
   venueId: number;
 
   @ApiProperty({ example: 1, description: 'Reference to the Entertainers' })
-  @IsNumber()
   @IsNotEmpty()
-  entertainerId: number;
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => EntertainerCategoriesDto)
+  entertainers: EntertainerCategoriesDto[];
 
   @ApiProperty({
     example: 1,
@@ -41,9 +77,8 @@ class AdminBookingDto {
   @IsNotEmpty()
   eventId: number;
 
-  @IsNumber()
-  @IsNotEmpty()
-  venueUserId: number;
-}
 
+ 
+
+}
 export { AdminBookingDto };

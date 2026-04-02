@@ -9,7 +9,6 @@ class WishlistDto {
   @IsNotEmpty()
   url: string;
 
-  
   @IsString()
   @IsNotEmpty()
   username: string;
@@ -17,14 +16,6 @@ class WishlistDto {
   @IsNumber()
   @IsNotEmpty()
   ratings: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  category: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  specific_category: number;
 
   @IsNumber()
   @IsNotEmpty()

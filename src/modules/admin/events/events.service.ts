@@ -1,10 +1,54 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Like, Repository } from 'typeorm';
+import { DataSource, Like, Repository } from 'typeorm';
 
 import { CreateEventDto } from './dto/create-event.dto';
-import { Event } from './Entity/event.entity';
+import { Event } from './entities/event.entity';
 import { Booking } from 'src/modules/booking/entities/booking.entity';
+import { GetEventDto } from './dto/get-event.dto';
+import { ConfigService } from '@nestjs/config';
+import { UploadedFile } from 'src/common/types/media.type';
+import { Media } from '../media/entities/media.entity';
+import { MediaService } from '../media/media.service';
+import { EventsQueryDto } from './dto/query.dto';
+import { UpdateEventDto } from './dto/update-event.dto';
+import {
+  addDays,
+  endOfMonth,
+  format,
+  parse,
+  startOfMonth,
+  subDays,
+} from 'date-fns';
+import { Venue } from '../venue/entities/venue.entity';
+import { BookingService } from '../booking/booking.service';
+import { FilterEventDto } from './dto/filter-event.dto';
+import { Setting } from '../settings/entities/setting.entity';
+import { SubcategoryRate } from '../settings/entities/subcategory-rates.entity';
+import { SpecialSubcategoryPrice } from '../settings/entities/special-subcategory-prices.entity';
+import { DateTime } from 'luxon';
+import { format as tzFormat } from 'date-fns-tz';
+
+import {
+  formatInTimeZone,
+  format as formatTz,
+  utcToZonedTime,
+  zonedTimeToUtc,
+} from 'date-fns-tz';
+import {
+  convertUtcToTimezoneString,
+  formatUtcDate,
+  formatUtcToTimezoneParts,
+} from 'src/common/utils/common.utils';
+import { NotificationService } from 'src/modules/notification/notification.service';
+import { EmailService } from 'src/modules/Email/email.service';
+import { EventCategorySubcategory } from './entities/event-category-subcategory.entity';
 
 @Injectable()
 export class EventService {
@@ -13,14 +57,112 @@ export class EventService {
     private readonly eventRepository: Repository<Event>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Venue)
+    private readonly venueRepository: Repository<Venue>,
+    @InjectRepository(Setting)
+    private readonly settingRepo: Repository<Setting>,
+    @InjectRepository(SubcategoryRate)
+    private readonly rateCardRepo: Repository<SubcategoryRate>,
+    @InjectRepository(SpecialSubcategoryPrice)
+    private readonly specialRateCardRepo: Repository<SpecialSubcategoryPrice>,
+    @InjectRepository(EventCategorySubcategory)
+    private readonly eventCategoriesRepository: Repository<EventCategorySubcategory>,
+    private readonly mediaService: MediaService,
+    private readonly bookingService: BookingService,
+    private readonly config: ConfigService,
+    private readonly dataSource: DataSource,
+    private readonly notificationService: NotificationService,
+    private readonly emailService: EmailService,
   ) {}
 
-  // Create a new event
-  async create(createEventDto: CreateEventDto) {
-    const event = this.eventRepository.create(createEventDto);
-    const data = await this.eventRepository.save(event);
-    console.log('Data', data);
-    return { message: 'Event Creates Successfully', data: event, status: true };
+  // New code of Venue Creation with Media
+  async createEvent(dto: CreateEventDto) {
+    const {
+      title,
+      venueId,
+      eventStartDateTime,
+      eventEndDateTime,
+      description,
+      neighbourhoodId,
+      categories,
+    } = dto;
+
+    const venue = await this.venueRepository.findOne({
+      where: { id: venueId },
+      select: ['timezone'],
+    });
+
+    if (!venue.timezone) {
+      console.warn(
+        `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+      );
+    }
+
+    if (categories.length === 0) {
+      throw new BadRequestException(
+        'At least one category-subcategory pair is required',
+      );
+    }
+
+    const startTime = zonedTimeToUtc(
+      eventStartDateTime,
+      venue.timezone ?? 'UTC',
+    );
+
+    const endTime = zonedTimeToUtc(eventEndDateTime, venue.timezone ?? 'UTC');
+
+    const slugPayload = {
+      title,
+      venueId,
+      eventStartDateTime: startTime,
+      eventEndDateTime: endTime,
+      neighbourhoodId,
+    };
+
+    const savePayload = {
+      eventStartDateTime: startTime.toISOString(),
+      eventEndDateTime: endTime.toISOString(),
+      venueId,
+      title,
+
+      description: description,
+    };
+
+    //  Create Venue
+    const slug = await this.generateSlug(slugPayload);
+
+    try {
+      const event = this.eventRepository.create({
+        sub_venue_id: neighbourhoodId,
+        slug,
+        ...savePayload,
+      });
+
+      const savedEvent = await this.eventRepository.save(event);
+      const eventCategoryRecords = [];
+      for (const cat of categories) {
+        for (const subCatId of cat.subCategoryIds) {
+          eventCategoryRecords.push({
+            event: { id: savedEvent.id },
+            categoryId: cat.categoryId,
+            subCategoryId: subCatId,
+          });
+        }
+      }
+
+      await this.eventCategoriesRepository.save(eventCategoryRecords);
+
+      return {
+        message: 'Event created Successfully',
+        data: event,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        error: error.message,
+        status: false,
+      });
+    }
   }
 
   // Get all events
@@ -28,28 +170,101 @@ export class EventService {
     page,
     pageSize,
     search,
+    status,
   }: {
     page: number;
     pageSize: number;
     search: string;
-  }): Promise<{ records: Event[]; total: number }> {
+    status:
+      | 'unpublished'
+      | 'scheduled'
+      | 'confirmed'
+      | 'canceled'
+      | 'completed'
+      | '';
+  }): Promise<{
+    message: string;
+    records: Event[];
+    total: number;
+    status: boolean;
+  }> {
     const skip = (page - 1) * pageSize; // Calculate records to skip
 
-    const [records, total] = await this.eventRepository.findAndCount({
-      where: {
-        ...(search ? { title: Like(`%${search}%`) } : {}),
-      },
-      //relations: ['event'], // Include the related `User` entity
-      skip, // Pagination: records to skip
-      take: pageSize,
-      order: {
-        id: 'DESC',
-      },
-    });
+    const query = this.eventRepository
+      .createQueryBuilder('event')
+      .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+      .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+      .select([
+        // Event Details
+        'event.id AS id',
+        'event.title  AS title',
+        'event.status AS status',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventEndDateTime AS eventEndDateTime',
+        'event.description  AS description',
+        'event.category_id  AS categoryId',
+        'event.subcategory_id  AS subCategoryId',
+        'event.description  AS description',
+        'event.slug  AS slug',
+        'event.venueId AS venueId',
+        'hood.name AS neighbourhood_name',
+        'hood.name AS neighbourhood_name',
+        'hood.contactPerson AS neighbourhood_contact_person',
+        'hood.contactNumber AS neighbourhood_contact_number',
+        'hood.id AS neighbourhood_id',
+        'venue.name AS venueName',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+        'venue.timezone AS venueTimeZone',
+      ])
+      .addSelect(
+        `
+    (
+      SELECT JSON_ARRAYAGG(
+        JSON_OBJECT(
+          'categoryId', cat.id,
+          'categoryName', cat.name,
+          'subCategories',
+            (
+              SELECT JSON_ARRAYAGG(
+                JSON_OBJECT(
+                  'subCategoryId', subcat.id,
+                  'subCategoryName', subcat.name
+                )
+              )
+              FROM event_category_subcategory ecs2
+              JOIN categories subcat ON subcat.id = ecs2.subcategory_id
+              WHERE ecs2.event_id = event.id AND ecs2.category_id = cat.id
+            )
+        )
+      )
+      FROM event_category_subcategory ecs
+      JOIN categories cat ON cat.id = ecs.category_id
+      WHERE ecs.event_id = event.id
+    ) AS categories
+  `,
+      )
+      .where(search ? 'event.title LIKE :search' : '1=1', {
+        search: `%${search}%`,
+      });
+
+    // ✅ Apply status filter only if it's a valid value
+    if (status) {
+      query.andWhere('event.status = :status', { status });
+    }
+
+    const totalCount = await query.getCount();
+    const records = await query
+      .orderBy('event.eventStartDateTime', 'DESC')
+      .skip(skip)
+      .take(pageSize)
+      .getRawMany(); // ✅ Correct way to fetch raw selected fields
 
     return {
-      records, // Paginated entertainers
-      total, // Total count of entertainers
+      message: 'Events fetched successfully',
+      records,
+      total: totalCount, // Paginated results
+      status: true,
     };
   }
 
@@ -57,58 +272,1014 @@ export class EventService {
   async findOne(id: number): Promise<Event> {
     const event = await this.eventRepository
       .createQueryBuilder('event')
-      .leftJoinAndSelect('venue', 'venue', 'venue.id = event.venueId') // Correctly join the venue table
+      .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+      .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+      .leftJoin('invoice_events', 'invEvent', 'invEvent.event_id = event.id')
+      .leftJoin('invoices', 'inv', 'inv.id = invEvent.invoice_id')
+      .leftJoin('categories', 'cat', 'cat.id = event.category_id')
+      .leftJoin('categories', 'subcat', 'subcat.id = event.subcategory_id')
+
       .select([
-        'event.*', // Select all event fields
-        'venue.*',
+        // Event Details
+        'event.id AS id',
+        'event.title  AS title',
+        'event.eventStartDateTime AS eventStartDateTime',
+        'event.eventEndDateTime AS eventEndDateTime',
+        'event.status AS status',
+        'event.description  AS description',
+        'event.slug  AS slug',
+        'event.venueId AS venueId',
+        '(event.isCloseToggleActive = 1) AS isCloseToggleActive',
+        'hood.name AS neighbourhood_name',
+        'hood.name AS neighbourhood_name',
+        'hood.contactPerson AS neighbourhood_contact_person',
+        'hood.contactNumber AS neighbourhood_contact_number',
+        'hood.id AS neighbourhood_id',
+        'venue.name AS venueName',
+        'venue.addressLine1 AS addressLine1',
+        'venue.addressLine2 AS addressLine2',
+        'venue.timezone AS venueTimeZone',
+        'inv.invoice_number AS invoiceNumber',
+        'inv.id AS invoiceId',
+        'inv.status AS invoiceStatus',
+        'inv.isOutdated AS isOutdated',
       ])
+
       .where('event.id = :id', { id })
       .getRawOne(); // Use getRawOne() for raw results
 
     if (!event) {
-      throw new NotFoundException(`Event with id ${id} not found`);
+      throw new NotFoundException(`Event not found`);
     }
-    return event;
+    const { isCloseToggleActive, ...rest } = event;
+    const response = {
+      ...rest,
+      isCloseToggleActive: isCloseToggleActive === 1 ? true : false,
+    };
+
+    const rawResult = await this.eventCategoriesRepository.query(
+      `
+  SELECT JSON_ARRAYAGG(
+    JSON_OBJECT(
+      'categoryId', cat.id,
+      'categoryName', cat.name,
+      'subCategories',
+        (
+          SELECT JSON_ARRAYAGG(
+            JSON_OBJECT(
+              'subCategoryId', subcat.id,
+              'subCategoryName', subcat.name
+            )
+          )
+          FROM event_category_subcategory ecs2
+          JOIN categories subcat ON subcat.id = ecs2.subcategory_id
+          WHERE ecs2.event_id = ? AND ecs2.category_id = cat.id
+        )
+    )
+  ) AS categories
+  FROM (
+    SELECT DISTINCT ecs.category_id
+    FROM event_category_subcategory ecs
+    WHERE ecs.event_id = ?
+  ) uniq
+  JOIN categories cat ON cat.id = uniq.category_id
+  `,
+      [id, id],
+    );
+
+    // MariaDB returns an array with a single row object, e.g. [ { categories: '[...]' } ]
+    const result = rawResult?.[0]?.categories
+      ? JSON.parse(rawResult[0].categories)
+      : [];
+    response['categories'] = result ?? [];
+
+    return response;
   }
 
+  // async findOne(id: number): Promise<Event> {
+  //   console.log('Fetching event with ID:', id);
+  //   const event = await this.eventRepository
+  //     .createQueryBuilder('event')
+  //     .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+  //     .leftJoin('neighbourhood', 'hood', 'hood.id = event.sub_venue_id')
+  //     .leftJoin('invoice_events', 'invEvent', 'invEvent.event_id = event.id')
+  //     .leftJoin('invoices', 'inv', 'inv.id = invEvent.invoice_id')
+
+  //     .select(
+  //       `
+  //     event.id AS id,
+  //     event.title AS title,
+  //     event.eventStartDateTime AS eventStartDateTime,
+  //     event.eventEndDateTime AS eventEndDateTime,
+  //     event.status AS status,
+  //     event.description AS description,
+  //     event.slug AS slug,
+  //     event.category_id AS categoryId,
+  //     (event.isCloseToggleActive = 1) AS isCloseToggleActive,
+  //     hood.name AS neighbourhood_name,
+  //     hood.contactPerson AS neighbourhood_contact_person,
+  //     hood.contactNumber AS neighbourhood_contact_number,
+  //     hood.id AS neighbourhood_id,
+  //     venue.name AS venueName,
+  //     venue.addressLine1 AS addressLine1,
+  //     venue.addressLine2 AS addressLine2,
+  //     venue.timezone AS venueTimeZone,
+  //     inv.invoice_number AS invoiceNumber,
+  //     inv.id AS invoiceId,
+  //     inv.status AS invoiceStatus,
+  //     inv.isOutdated AS isOutdated,
+
+  //     (
+  //       SELECT JSON_ARRAYAGG(
+  //         JSON_OBJECT(
+  //           'categoryId', cat.id,
+  //           'categoryName', cat.name,
+  //           'subCategories',
+  //             (
+  //               SELECT JSON_ARRAYAGG(
+  //                 JSON_OBJECT(
+  //                   'subCategoryId', subcat.id,
+  //                   'subCategoryName', subcat.name
+  //                 )
+  //               )
+  //               FROM event_category_subcategory ecs2
+  //               JOIN categories subcat ON subcat.id = ecs2.subcategory_id
+  //               WHERE ecs2.event_id = event.id AND ecs2.category_id = cat.id
+  //             )
+  //         )
+  //       )
+  //       FROM event_category_subcategory ecs
+  //       JOIN categories cat ON cat.id = ecs.category_id
+  //       WHERE ecs.event_id = event.id
+  //     ) AS categories
+  //   `,
+  //     )
+  //     .where('event.id = :id', { id })
+  //     .getRawOne();
+
+  //   if (!event) {
+  //     throw new NotFoundException(`Event with id ${id} not found`);
+  //   }
+
+  //   const { isCloseToggleActive, ...rest } = event;
+  //   return {
+  //     ...rest,
+  //     isCloseToggleActive: !!isCloseToggleActive,
+  //   };
+  // }
+
   // Update an event by id
-  async update(id: number, createEventDto: CreateEventDto): Promise<Event> {
-    const event = await this.findOne(id);
-    Object.assign(event, createEventDto);
-    return this.eventRepository.save(event);
+  async update(id: number, dto: UpdateEventDto) {
+    const {
+      neighbourhoodId,
+      eventStartDateTime,
+      eventEndDateTime,
+      title,
+      description,
+      venueId,
+      status,
+      categories,
+    } = dto;
+
+    const event = await this.eventRepository.findOne({ where: { id } });
+    if (!event) {
+      throw new BadRequestException({
+        message: 'Event not found',
+        status: false,
+      });
+    }
+
+    if (categories.length === 0) {
+      throw new BadRequestException(
+        'At least one category-subcategory pair is required',
+      );
+    }
+
+    try {
+      const venue = await this.venueRepository.findOne({
+        where: { id: dto.venueId },
+        select: ['timezone'],
+      });
+
+
+      if (!venue.timezone) {
+        console.warn(
+          `No timezone set for venue ID ${venue.id}. Defaulting to UTC.`,
+        );
+      }
+
+      // Sanitize input by removing extra spaces
+      const sanitizedStartTime = eventStartDateTime.replace(/\s+/g, ' ').trim();
+      const sanitizedEndTime = eventEndDateTime.replace(/\s+/g, ' ').trim();
+
+      
+
+      const startTime = zonedTimeToUtc(
+        sanitizedStartTime,
+        venue.timezone ?? 'UTC',
+      );
+
+      const endTime = zonedTimeToUtc(sanitizedEndTime, venue.timezone ?? 'UTC');
+
+     
+      const payload = {
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
+        venueId,
+        title,
+        description,
+      };
+
+      if (neighbourhoodId) {
+        payload['sub_venue_id'] = neighbourhoodId;
+      }
+
+      const slugPayload = {
+        title,
+        neighbourhoodId,
+        venueId,
+        eventStartDateTime: startTime,
+        eventEndDateTime: endTime,
+      };
+      const slug = await this.generateSlug(slugPayload);
+      payload['slug'] = slug;
+
+      // Check if times changed
+      const hasStartDateTimeChanged =
+        startTime &&
+        formatInTimeZone(startTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
+          formatInTimeZone(
+            new Date(event.eventStartDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
+
+      const hasEndDateTimeChanged =
+        endTime &&
+        formatInTimeZone(endTime, 'UTC', "yyyy-MM-dd'T'HH:mm:ss'Z'") !==
+          formatInTimeZone(
+            new Date(event.eventEndDateTime),
+            'UTC',
+            "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          );
+
+     
+
+      // ✅ FIXED: Correct status priority
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+        // If time changed, ALWAYS set to rescheduled
+        payload['status'] = 'rescheduled';
+      } else if (status) {
+        // Only use frontend status if time didn't change
+        payload['status'] = status;
+      }
+
+
+      Object.assign(event, payload);
+      await this.eventRepository.save(event);
+
+      // Update categories
+      if (categories.length > 0) {
+        await this.eventCategoriesRepository.delete({
+          event: { id: event.id },
+        });
+
+        const eventCategoryRecords = [];
+        for (const cat of categories) {
+          for (const subCatId of cat.subCategoryIds) {
+            eventCategoryRecords.push({
+              event: { id: event.id },
+              categoryId: cat.categoryId,
+              subCategoryId: subCatId,
+            });
+          }
+        }
+
+        await this.eventCategoriesRepository.save(eventCategoryRecords);
+      }
+
+      if (status && status === 'canceled') {
+        this.checkStatusAndSendEmail(status, event.id);
+      }
+
+      if (hasStartDateTimeChanged || hasEndDateTimeChanged) {
+        this.bookingService.handleChangeRequest(Number(event.id), {
+          eventStartDateTime: startTime.toISOString(),
+          eventEndDateTime: endTime.toISOString(),
+        });
+      }
+
+      return {
+        message: 'Event updated successfully',
+        data: dto,
+        status: true,
+      };
+    } catch (error) {
+      if (error instanceof HttpException) throw error;
+      throw new InternalServerErrorException(error.message);
+    }
   }
 
   // Delete an event by id
-  async remove(id: number): Promise<void> {
-    const event = await this.findOne(id);
+  async remove(id: number) {
+    const event = await this.eventRepository.findOne({ where: { id } });
     await this.eventRepository.remove(event);
+    return { message: 'Event deleted Successfully ', status: true };
   }
 
-  //get booking using eventId
+  async getUpcomingEvent(query: GetEventDto) {
+    const { page = 1, pageSize = 5 } = query;
+    const skip = (Number(page) - 1) * Number(pageSize);
 
-  async findBooking(eventId: number): Promise<any[]> {
-    const bookings = await this.bookingRepository
-      .createQueryBuilder('booking')
-      .leftJoinAndSelect(
-        'entertainers',
-        'ent',
-        'ent.userId = booking.entertainerUserId',
-      ) // Join Entertainers table using userId
-      .leftJoinAndSelect('categories', 'cat', 'cat.id = ent.category') // Join categories table for main category
-      .leftJoinAndSelect(
-        'categories',
-        'specific_cat',
-        'specific_cat.id = ent.specific_category',
-      ) // Join categories table for specific category
-      .select([
-        'booking.*', // All booking fields
-        'ent.*', // All columns from the entertainers table
-        'cat.name AS categoryName', // Select the category name from the categories table
-        'specific_cat.name AS specific_catName', // Select the specific category name from the categories table
-      ])
-      .where('booking.eventId = :eventId', { eventId })
-      .getRawMany(); // Get raw results (not entity instances)
+    try {
+      const now = new Date().toISOString().split('T')[0];
+      // Step 1: Get total count of events (without join)
 
-    return bookings;
+      const totalCount = await this.eventRepository
+        .createQueryBuilder('event')
+        .where('DATE(event.eventStartDateTime) > :now', { now })
+        .getCount();
+
+      // Step 2: Paginate with join and select raw fields
+      const results = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('states', 'state', 'state.id = venue.state')
+        .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+        .where('DATE(event.eventStartDateTime) > :now', { now })
+        .select([
+          'event.id AS event_id',
+          'event.title AS title',
+          'event.slug AS slug',
+          'event.description AS description',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.category_id  AS categoryId',
+          'event.subcategory_id  AS subCategoryId',
+          'event.status AS status',
+          'venue.id AS venue_id',
+          'venue.name AS venue_name',
+          'venue.addressLine1 AS adressLine1',
+          'venue.addressLine2 AS adressLine2',
+          'venue.timezone AS timezone',
+          'city.name AS cityName',
+          'state.name AS stateName',
+          'code.StateCode AS stateCode',
+        ])
+        .orderBy('DATE(event.eventStartDateTime)', 'ASC')
+        .offset(skip)
+        .limit(Number(pageSize))
+        .getRawMany();
+
+      return {
+        message: 'Events returned successfully',
+        data: results,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / Number(pageSize)),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async getEventDetailsByMonth(query: EventsQueryDto) {
+    const {
+      date = '', // e.g., '2025-04'
+      page = 1,
+      pageSize = 10,
+      status = '',
+    } = query;
+
+    // If date is not provided, use current year and month
+    const current = new Date();
+    const year = date ? Number(date.split('-')[0]) : current.getFullYear();
+    const month = date ? Number(date.split('-')[1]) : current.getMonth() + 1;
+
+    const skip = (page - 1) * pageSize;
+
+    try {
+      const qb = this.eventRepository
+        .createQueryBuilder('event')
+        .andWhere('YEAR(event.eventStartDateTime) = :year', { year })
+        .andWhere('MONTH(event.eventStartDateTime) = :month', { month })
+        .select([
+          'event.id AS event_id',
+          'event.title AS title',
+          'event.userId AS userId',
+          'event.description AS description',
+          'event.recurring AS recurring',
+          'event.status AS status',
+          'event.isAdmin AS isAdmin',
+        ])
+        .orderBy('DATE(event.eventStartDateTime)', 'DESC');
+
+      if (status) {
+        qb.andWhere('event.status=:status', { status });
+      }
+
+      const totalCount = await qb.getCount();
+      const results = await qb.skip(skip).take(pageSize).getRawMany();
+
+      return {
+        message: 'Events returned successfully',
+        data: results,
+        totalCount,
+        page,
+        pageSize,
+        totalPages: Math.ceil(totalCount / pageSize),
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  private async generateSlug(payload) {
+    const {
+      neighbourhoodId,
+      title,
+      venueId,
+      eventStartDateTime,
+      eventEndDateTime,
+    } = payload;
+
+    const { name, neighbourhoodName, city, stateCode, venueTimeZone } =
+      await this.venueRepository
+        .createQueryBuilder('venue')
+        .leftJoin('cities', 'city', 'city.id = venue.city')
+        .leftJoin('states', 'state', 'state.id = venue.state')
+        .leftJoin('StateCodeUSA', 'code', 'code.id = state.id')
+        .leftJoin('neighbourhood', 'hood', 'hood.id = :neighbourhoodId', {
+          neighbourhoodId,
+        })
+        .select([
+          'venue.id AS id',
+          'venue.name AS name',
+          'venue.state AS stateId',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'venue.timezone AS venueTimeZone',
+          'city.name AS city',
+          'code.StateCode AS stateCode',
+          'hood.name AS neighbourhoodName',
+          'hood.contactPerson AS neighbourhood_contact_person',
+          'hood.contactNumber AS neighbourhood_contact_number',
+        ])
+        .where('venue.id = :id', { id: venueId })
+        .getRawOne();
+
+    const venueLocalTime = utcToZonedTime(eventStartDateTime, venueTimeZone);
+
+    // console.log(
+    //   'Venue Local Time formatted:',
+    //   formatTz(venueLocalTime, 'yyyy-MM-dd HH:mm zzz', {
+    //     timeZone: venueTimeZone,
+    //   }),
+    // );
+    const formattedDate = format(venueLocalTime, 'M/d');
+    const format12HourTime = format(venueLocalTime, 'hh:mm a');
+
+    const titleString = title ? `(${title})` : '';
+    const neighbourhoodNameString = neighbourhoodName
+      ? `${neighbourhoodName}/`
+      : '';
+    const stateString = stateCode ? `, ${stateCode}` : '';
+    const slug = `${formattedDate} at ${format12HourTime} ${titleString} at ${neighbourhoodNameString}${name} in ${city ?? ''}${stateString}`;
+
+    return slug;
+  }
+
+  // async findBookings(eventId: number) {
+  //   try {
+  //     const events = this.bookingRepository
+  //       .createQueryBuilder('booking')
+  //       .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+  //       .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+  //       .leftJoin('categories', 'subcat', 'subcat.id = booking.subcategoryId')
+  //       .leftJoin(
+  //         (subQuery) =>
+  //           subQuery
+  //             .select('bl.*')
+  //             .from(
+  //               (qb) =>
+  //                 qb
+  //                   .subQuery()
+  //                   .select('MAX(bl.id)', 'maxId')
+  //                   .addSelect('bl.bookingId', 'bookingId')
+  //                   .from('booking_log', 'bl')
+  //                   .where('bl.status IN (:...statuses)', {
+  //                     statuses: ['confirmed', 'completed'],
+  //                   })
+
+  //                   .andWhere('bl.performedBy IN (:...performedBy)', {
+  //                     performedBy: ['admin', 'venue'],
+  //                   })
+  //                   .groupBy('bl.bookingId'),
+  //               'latestLogs',
+  //             )
+  //             .innerJoin('booking_log', 'bl', 'bl.id = latestLogs.maxId'),
+  //         'log',
+  //         'log.bookingId = booking.id',
+  //       )
+  //       .select([
+  //         'booking.id AS bookingId',
+  //         'booking.status AS bookingStatus',
+  //         'booking.categoryId AS categoryId',
+  //         'booking.subcategoryId AS subcategoryId',
+  //         'subcat.name AS subCategoryName',
+  //         'ent.name AS entertainerName',
+  //         'ent.contact_person AS contactPerson',
+  //         'ent.contact_number AS contactNumber',
+  //         'ent.pricePerEvent AS pricePerHour',
+  //         'log.createdAt AS confirmationDate',
+  //         'log.performedBy AS performedBy',
+  //         'venue.timezone AS venueTimeZone',
+  //       ])
+  //       .where('booking.eventId = :eventId', { eventId })
+  //       .orderBy('booking.id', 'DESC');
+
+  //     const totalCount = await events.getCount();
+  //     const results = await events.getRawMany();
+
+  //     const parsedResult = results.map(
+  //       ({ confirmationDate, venueTimeZone, ...item }) => ({
+  //         venueLocalConfirmationDate: convertUtcToTimezoneString(
+  //           confirmationDate,
+  //           venueTimeZone,
+  //         ),
+  //         timezone: venueTimeZone,
+  //         confirmationDate,
+  //         ...item,
+  //       }),
+  //     );
+  //     const event = await this.eventRepository
+  //       .createQueryBuilder('event')
+  //       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+  //       .select([
+  //         'event.eventStartDateTime AS eventStartDateTime',
+  //         'event.eventEndDateTime AS eventEndDateTime',
+  //         'venue.timezone AS venueTimeZone',
+  //       ])
+  //       .where('event.id = :eventId', { eventId })
+  //       .getRawOne();
+
+  //     // Rate Card Repo
+  //     const rateCard = await this.rateCardRepo.find();
+
+  //     const { Date: formattedDate } = formatUtcDate(
+  //       event.eventStartDateTime,
+  //       event.venueTimeZone,
+  //     );
+  //     const specialRateCard = await this.specialRateCardRepo.find({
+  //       where: {
+  //         date: formattedDate,
+  //       },
+  //     });
+
+  //     // Now map the results to include the price with markup
+  //     if (!results || results.length === 0) return;
+
+  //     const updatedResults = await Promise.all(
+  //       parsedResult.map(async (result) => {
+  //         let price: number;
+  //         let pricePerExtra30Min: number;
+
+  //         if (specialRateCard.length > 0) {
+  //           let res = specialRateCard.find(
+  //             (item) => item.subcategoryId === result.subcategoryId,
+  //           );
+
+  //           price = res.specialPrice;
+  //           pricePerExtra30Min = res.pricePerExtra30Min;
+  //         } else {
+  //           let res = rateCard.find(
+  //             (item) => item.subcategoryId === result.subcategoryId,
+  //           );
+  //           price = res.basePrice;
+  //           pricePerExtra30Min = res.pricePerExtra30Min;
+  //         }
+
+  //         return {
+  //           ...result,
+  //           pricePerHour: price,
+  //           pricePerExtra30Min,
+  //         };
+  //       }),
+  //     );
+
+  //     return {
+  //       message: `Bookings for Event Id ${eventId} fetched successfully`,
+  //       data: updatedResults,
+  //       totalCount,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
+  async findBookings(eventId: number) {
+    try {
+      const events = this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin('entertainers', 'ent', 'ent.id = booking.entId')
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+        // 🔹 join with booking_category_subcategory to handle multiple subcategories
+        .leftJoin(
+          'booking_category_subcategory',
+          'bcs',
+          'bcs.booking_id = booking.id',
+        )
+        .leftJoin('categories', 'subcat', 'subcat.id = bcs.subcategory_id')
+        .leftJoin(
+          (subQuery) =>
+            subQuery
+              .select('bl.*')
+              .from(
+                (qb) =>
+                  qb
+                    .subQuery()
+                    .select('MAX(bl.id)', 'maxId')
+                    .addSelect('bl.bookingId', 'bookingId')
+                    .from('booking_log', 'bl')
+                    .where('bl.status IN (:...statuses)', {
+                      statuses: ['confirmed', 'completed'],
+                    })
+                    .andWhere('bl.performedBy IN (:...performedBy)', {
+                      performedBy: ['admin', 'venue'],
+                    })
+                    .groupBy('bl.bookingId'),
+                'latestLogs',
+              )
+              .innerJoin('booking_log', 'bl', 'bl.id = latestLogs.maxId'),
+          'log',
+          'log.bookingId = booking.id',
+        )
+        .select([
+          'booking.id AS bookingId',
+          'booking.status AS bookingStatus',
+          'booking.categoryId AS categoryId',
+          'ent.name AS entertainerName',
+          'ent.contact_person AS contactPerson',
+          'ent.contact_number AS contactNumber',
+          'ent.pricePerEvent AS pricePerHour',
+          'log.createdAt AS confirmationDate',
+          'log.performedBy AS performedBy',
+          'venue.timezone AS venueTimeZone',
+          // 🔹 aggregate all subcategories for each booking
+          `JSON_ARRAYAGG(
+          JSON_OBJECT(
+            'subCategoryId', bcs.subcategory_id,
+            'subCategoryName', subcat.name
+          )
+        ) AS subCategories`,
+        ])
+        .where('booking.eventId = :eventId', { eventId })
+        .groupBy('booking.id')
+        .orderBy('booking.id', 'DESC');
+
+      const totalCount = await events.getCount();
+      const results = await events.getRawMany();
+
+      const parsedResult = results.map(
+        ({ confirmationDate, venueTimeZone, subCategories, ...item }) => ({
+          venueLocalConfirmationDate: convertUtcToTimezoneString(
+            confirmationDate,
+            venueTimeZone,
+          ),
+          timezone: venueTimeZone,
+          confirmationDate,
+          subCategories: JSON.parse(subCategories || '[]'),
+          ...item,
+        }),
+      );
+
+      const event = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .select([
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'venue.timezone AS venueTimeZone',
+        ])
+        .where('event.id = :eventId', { eventId })
+        .getRawOne();
+
+      const rateCard = await this.rateCardRepo.find();
+
+      const { Date: formattedDate } = formatUtcDate(
+        event.eventStartDateTime,
+        event.venueTimeZone,
+      );
+
+      const specialRateCard = await this.specialRateCardRepo.find({
+        where: {
+          date: formattedDate,
+        },
+      });
+
+      if (!results || results.length === 0) return;
+
+      // 🔹 Updated logic: subcategory-wise pricing, not combined
+      const updatedResults = await Promise.all(
+        parsedResult.map(async (result) => {
+          const updatedSubCategories = result.subCategories.map((sub) => {
+            let res: any;
+
+            if (specialRateCard.length > 0) {
+              res = specialRateCard.find(
+                (item) => item.subcategoryId === sub.subCategoryId,
+              );
+            }
+
+            if (!res) {
+              res = rateCard.find(
+                (item) => item.subcategoryId === sub.subCategoryId,
+              );
+            }
+
+            return {
+              ...sub,
+              pricePerHour: Number(res?.specialPrice || res?.basePrice || 0),
+              pricePerExtra30Min: Number(res?.pricePerExtra30Min || 0),
+            };
+          });
+
+          return {
+            ...result,
+            subCategories: updatedSubCategories, // now each has its own pricing
+          };
+        }),
+      );
+
+      return {
+        message: `Bookings for Event Id ${eventId} fetched successfully`,
+        data: updatedResults,
+        totalCount,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  async updateEventStatus(id: number, status) {
+    try {
+      const event = await this.eventRepository.findOne({ where: { id } });
+      if (!event) throw new NotFoundException({ message: 'Event Not Found' });
+
+      await this.eventRepository.update({ id: event.id }, { status });
+    } catch (error) {
+      throw new InternalServerErrorException({ message: error.message });
+    }
+  }
+
+  // async filterEventsByMonthAndYear(query: FilterEventDto) {
+  //   const { month, year } = query;
+
+  //   try {
+  //     const start = format(
+  //       startOfMonth(new Date(year, month - 1)),
+  //       'yyyy-MM-dd',
+  //     );
+  //     const end = format(endOfMonth(new Date(year, month - 1)), 'yyyy-MM-dd');
+
+  //     const events = await this.eventRepository
+  //       .createQueryBuilder('event')
+  //       .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+  //       .leftJoin('series', 'series', 'series.id = event.series_id')
+  //       .where('DATE(event.eventStartDateTime) BETWEEN :start AND :end', {
+  //         start,
+  //         end,
+  //       })
+  //       .select([
+  //         'event.*',
+  //         'venue.name AS venueName',
+  //         'venue.timezone AS venueTimeZone',
+  //         'venue.addressLine1 AS addressLine1',
+  //         'venue.timezone AS addressLine2',
+  //         'series.seriesName AS seriesName',
+  //       ])
+  //       .orderBy('event.id', 'DESC')
+  //       .getRawMany();
+
+  //     return {
+  //       message: 'Filtered events returned successfully',
+  //       data: events,
+  //       count: events.length,
+  //       status: true,
+  //     };
+  //   } catch (error) {
+  //     throw new InternalServerErrorException({
+  //       message: error.message,
+  //       status: false,
+  //     });
+  //   }
+  // }
+
+  async filterEventsByMonthAndYear(query: FilterEventDto) {
+    const { month, year, search } = query;
+
+    try {
+      const queryBuilder = this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('series', 'series', 'series.id = event.series_id')
+        .select([
+          'event.*',
+          'venue.name AS venueName',
+          'venue.timezone AS venueTimeZone',
+          'venue.addressLine1 AS addressLine1',
+          'venue.addressLine2 AS addressLine2',
+          'series.seriesName AS seriesName',
+        ]);
+
+      // Add year filter if provided
+      if (year) {
+        queryBuilder.andWhere('YEAR(event.eventStartDateTime) = :year', {
+          year,
+        });
+      }
+
+      // Add month filter if provided
+      if (month) {
+        // Base start/end for given month
+        const effectiveYear = year || new Date().getFullYear();
+        const baseStart = startOfMonth(new Date(effectiveYear, month - 1));
+        const baseEnd = endOfMonth(new Date(effectiveYear, month - 1));
+
+        // Use exact month boundaries without extending
+        const start = format(baseStart, 'yyyy-MM-dd');
+        const end = format(baseEnd, 'yyyy-MM-dd');
+
+        queryBuilder.andWhere(
+          'DATE(event.eventStartDateTime) BETWEEN :start AND :end',
+          {
+            start,
+            end,
+          },
+        );
+      }
+
+      // Add search filter if provided - search in title and slug
+      if (search) {
+        queryBuilder.andWhere(
+          '(event.title LIKE :search OR event.slug LIKE :search)',
+          {
+            search: `%${search}%`,
+          },
+        );
+      }
+
+      const events = await queryBuilder
+        .orderBy('event.eventStartDateTime', 'DESC')
+        .getRawMany();
+
+      return {
+        message: 'Filtered events returned successfully',
+        data: events,
+        count: events.length,
+        status: true,
+      };
+    } catch (error) {
+      throw new InternalServerErrorException({
+        message: error.message,
+        status: false,
+      });
+    }
+  }
+
+  private async addMarkupToEntertainer(basePrice: number) {
+    const res = await this.settingRepo.findOne({ where: { isActive: true } });
+    if (!res) return basePrice;
+    const { markupType, markupValue } = res;
+
+    let finalPrice =
+      markupType === 'fixed'
+        ? basePrice + markupValue
+        : basePrice + (markupValue / 100) * basePrice;
+    return finalPrice;
+  }
+
+  private async checkStatusAndSendEmail(status, eventId: number) {
+    if (status === 'canceled') {
+      const bookings = await this.bookingRepository
+        .createQueryBuilder('booking')
+        .leftJoin(
+          'entertainers',
+          'entertainer',
+          'entertainer.id = booking.entId',
+        )
+        .leftJoin('users', 'user', 'user.id = entertainer.userId')
+        .leftJoin('event', 'event', 'event.id = booking.eventId')
+        .leftJoin('venue', 'venue', 'venue.id = booking.venueId')
+        .select([
+          'booking.id AS bookingId',
+          'user.email AS email',
+          'user.id AS userId',
+          'entertainer.name AS entertainerName',
+          'entertainer.email AS entertainerEmail',
+          'event.slug AS slug',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'venue.name AS venueName',
+          'venue.timezone AS venueTimeZone',
+        ])
+        .where('booking.eventId = :eventId', { eventId })
+        .andWhere('booking.status NOT IN (:...statuses)', {
+          statuses: ['removed', 'declined', 'completed'],
+        })
+        .getRawMany();
+
+      const event = await this.eventRepository
+        .createQueryBuilder('event')
+        .leftJoin('venue', 'venue', 'venue.id = event.venueId')
+        .leftJoin('users', 'user', 'user.id = venue.userId')
+        .select([
+          'user.id As userId',
+          'event.eventStartDateTime AS eventStartDateTime',
+          'event.eventEndDateTime AS eventEndDateTime',
+          'event.slug AS slugName',
+          'event.title AS title',
+          'venue.name AS venueName',
+          'venue.timezone AS venueTimeZone',
+        ])
+        .where('event.id = :eventId', { eventId })
+        .getRawOne();
+
+      for (const book of bookings) {
+        await this.bookingRepository.update(
+          { id: book.bookingId },
+          { status: 'closed' },
+        );
+
+        if (book.entertainerEmail || book.email) {
+          const { Date: eventDate, Time: startTime } = formatUtcToTimezoneParts(
+            book.eventStartDateTime,
+            book.venueTimeZone,
+          );
+          const { Time: endTime } = formatUtcToTimezoneParts(
+            book.eventEndDateTime,
+            book.venueTimeZone,
+          );
+
+          const emailPayload = {
+            to: book.entertainerEmail || book.email,
+            subject: `Event ${status}`,
+            templateName: 'cancelled-event-template.html',
+            replacements: {
+              eventName: book.slug,
+              eventDate,
+              eventTime: `${startTime} to ${endTime}`,
+              year: new Date().getFullYear(),
+            },
+          };
+          this.emailService.handleSendEmail(emailPayload);
+
+          if (book.userId) {
+            const notificationPayload = {
+              title: 'Event Canceled',
+              body: `Venue ${book.venueName} has canceled the event ${book.slug} scheduled on date : ${eventDate} and Time : ${startTime} to ${endTime}`,
+              type: 'event_canceled',
+            };
+            this.notificationService.sendPush(notificationPayload, book.userId);
+          }
+        }
+      }
+
+      const { Date: eventDate, Time: startTime } = formatUtcToTimezoneParts(
+        event.eventStartDateTime,
+        event.venueTimeZone,
+      );
+      const { Time: endTime } = formatUtcToTimezoneParts(
+        event.eventEndDateTime,
+        event.venueTimeZone,
+      );
+
+      if (event.userId) {
+        const notificationPayload = {
+          title: 'Event Canceled',
+          body: `Venue ${event.venueName} has canceled the event ${event?.slugName || event?.title} scheduled on date : ${eventDate} and Time : ${startTime} to ${endTime}`,
+          type: 'event_canceled',
+        };
+        this.notificationService.sendPush(notificationPayload, event.userId);
+      }
+    }
   }
 }

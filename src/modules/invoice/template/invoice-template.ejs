@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Invoice</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: #ffffff;
+        color: #333;
+        width: 100%;
+      }
+
+      .invoice-wrapper {
+        width: 100%;
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+      }
+
+      /* Invoice Header */
+      .invoice-header {
+        width: 100%;
+        overflow: hidden;
+        padding: 20px 30px;
+      }
+
+      .header-left {
+        width: 35%;
+        float: left;
+      }
+
+      .header-middle {
+        width: 30%;
+        float: left;
+        padding-top: 30px;
+      }
+
+      .header-right {
+        width: 35%;
+        float: right;
+        text-align: right;
+        padding-top: 10px;
+      }
+
+      .company-info h1 {
+        color: #0067ff;
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+
+      .company-info .company-name {
+        font-size: 16px;
+        color: #344054;
+        font-weight: 600;
+        margin-bottom: 5px;
+      }
+
+      .company-info .company-address {
+        color: #b0b0b0;
+        font-size: 14px;
+        line-height: 1.6;
+        font-weight: 300;
+      }
+
+      .contact-info {
+        color: #6c757d;
+        font-size: 14px;
+        line-height: 1.8;
+        font-weight: 300;
+      }
+
+      .contact-info p {
+        margin: 5px 0;
+      }
+
+      .logo-container img {
+        max-width: 150px;
+        height: auto;
+        display: block;
+        margin-left: auto;
+      }
+
+      .clearfix {
+        clear: both;
+      }
+
+      /* Bill Section */
+      .bill-section {
+        background: #edf4f9;
+        padding: 20px 30px;
+        width: 100%;
+        overflow: hidden;
+      }
+
+      .bill-to {
+        width: 100%;
+      }
+
+      .bill-section .client-name {
+        color: #0067ff;
+        font-size: 16px;
+        font-weight: 500;
+        margin: 5px 0;
+      }
+
+      .bill-section h3 {
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+        margin: 5px 0;
+      }
+
+      .bill-section .venue-info {
+        color: #424242;
+        font-size: 14px;
+        line-height: 1.6;
+        margin: 0;
+      }
+
+      /* Invoice Details */
+      .invoice-details {
+        background: #edf4f9;
+        padding: 20px 30px;
+        border-top: 1px dashed #cdcdcd;
+        width: 100%;
+      }
+
+      .invoice-details h4 {
+        font-weight: 700;
+        font-size: 16px;
+        margin-bottom: 10px;
+        color: #333;
+      }
+
+      .invoice-details p {
+        margin: 8px 0;
+        color: #424242;
+        font-size: 14px;
+      }
+
+      /* Table */
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 30px 0;
+        table-layout: fixed;
+      }
+
+      table thead {
+        background: #f8f9fa;
+      }
+
+      table th {
+        padding: 14px 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+        font-size: 14px;
+        border-bottom: 2px solid #e0e0e0;
+      }
+
+      table td {
+        padding: 14px 12px;
+        border-bottom: 1px solid #f0f0f0;
+        color: #424242;
+        font-size: 14px;
+        vertical-align: top;
+      }
+
+      table tbody tr:last-child td {
+        border-bottom: none;
+      }
+
+      /* Column widths for 4 columns */
+      table th:nth-child(1),
+      table td:nth-child(1) {
+        width: 10%;
+      }
+
+      table th:nth-child(2),
+      table td:nth-child(2) {
+        width: 55%;
+      }
+
+      table th:nth-child(3),
+      table td:nth-child(3) {
+        width: 18%;
+      }
+
+      table th:nth-child(4),
+      table td:nth-child(4) {
+        width: 17%;
+        text-align: right;
+      }
+
+      /* Total Section */
+      .total-section {
+        width: 100%;
+        overflow: hidden;
+        padding: 0 30px;
+      }
+
+      .total-box {
+        width: 50%;
+        float: right;
+        text-align: right;
+        border-bottom: 1px solid #dee2e6;
+        padding: 15px 20px;
+      }
+
+      .total-box h5 {
+        font-size: 18px;
+        font-weight: 700;
+        color: #333;
+        margin: 0;
+      }
+
+      /* Footer */
+      .footer-note {
+        padding: 20px 30px 30px 30px;
+        color: #6c757d;
+        font-size: 14px;
+        line-height: 1.8;
+        width: 100%;
+      }
+
+      .footer-note p {
+        margin: 0;
+      }
+
+      platform-fee {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 10px;
+            font-weight: 400;
+        }
+
+        .total-amount {
+            border-top: 1px solid #dee2e6;
+            padding-top: 15px;
+        }
+
+        .total-amount h5 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+        }
+    </style>
+  </head>
+  <body>
+    <div class="invoice-wrapper">
+      <div class="invoice-header">
+        <div class="header-left">
+          <div class="company-info">
+            <h1>INVOICE</h1>
+            <div class="company-name">Pique Entertainment</div>
+            <div class="company-address">
+              10 Vivian Dr<br />
+              Watertown, MA 02472
+            </div>
+          </div>
+        </div>
+        <div class="header-middle">
+          <div class="contact-info">
+            <p>PiqueEntertainment@gmail.com</p>
+            <p>603.458.8695</p>
+            <p>www.piqueentertainment.com</p>
+          </div>
+        </div>
+        <div class="header-right">
+          <div class="logo-container">
+            <img
+              src="https://digidemo.in/apim/uploads/assets/icons/invoiceiconpique.png"
+              alt="logo"
+            />
+          </div>
+        </div>
+        <div class="clearfix"></div>
+      </div>
+      
+
+      <div class="bill-section">
+        <div class="bill-to">
+          <p class="client-name">
+            <!-- Client name can go here if needed -->
+             <p class="fw-light my-1" style="color: #0067FF;">
+  <%= invoicedata.neighbourhoodName ? invoicedata.neighbourhoodName : invoicedata.venueName %> |
+  <%= invoicedata.neighbourhoodContactPerson ? invoicedata.neighbourhoodContactPerson : invoicedata.contactPerson %>
+</p>
+
+          </p>
+          <h3>Bill to</h3>
+          <p class="venue-info">
+            <%= contactEmail %><br />
+           <!-- <%= venueName %><br />
+            <%= address %><br />
+            <%= city %>, <%= state %> <%= zipCode %>  -->
+          </p>
+        </div>
+        <div class="clearfix"></div>
+      </div>
+
+      <div class="invoice-details">
+        <h4>Invoice details</h4>
+        <p>Invoice no.: <%= invoiceNumber %></p>
+        <p>Invoice date: <%= issueDate %></p>
+        <p>Due date: <%= dueDate %></p>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>SNo</th>
+            <th>Description</th>
+            <!-- <th>Duration(Hours)</th> -->
+            <!-- <th>Rate</th> -->
+            <th>Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% items.forEach((item, index) => { %>
+          <tr>
+            <td><%= index + 1 %></td>
+            <!-- <td><%= item.issueDate %></td> -->
+            <td>
+              <strong><%= item.eventName %></strong>
+            </td>
+            <!-- <td><%= item.durationInHours || 1 %></td> -->
+            <!-- <td>$<%= item.pricePerEvent %></td> -->
+            <td>$<%= item.totalAmount %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+
+      <div class="total-section">
+            <div class="total-box">
+                <div class="platform-fee">Platform Fee: $<%= platformFee %></div>
+                <div class="total-amount">
+                    <h5>Total: $<%= totalWithTax %></h5>
+                </div>
+            </div>
+            <div class="clearfix"></div>
+        </div>
+
+      <div class="footer-note">
+        <p>
+          Thank you for your business. Checks can be mailed to my company<br />
+          address, or I am happy to set up direct deposit with ACH payments.
+        </p>
+      </div>
+    </div>
+  </body>
+</html>

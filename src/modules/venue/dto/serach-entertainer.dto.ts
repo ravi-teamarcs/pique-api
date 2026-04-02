@@ -1,21 +1,15 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
-import { IsEnum, IsOptional, IsNumber, IsArray } from 'class-validator';
+import {
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  IsArray,
+  IsString,
+  IsBoolean,
+} from 'class-validator';
 
 export class SearchEntertainerDto {
-  @ApiProperty({ description: 'Name of the venue', required: false })
-  @IsOptional()
-  @IsEnum(['yes', 'no'])
-  availability: 'yes' | 'no';
-
-  @ApiProperty({
-    description: 'Sub_Category of the entertainer',
-    required: false,
-  })
-  @IsOptional()
-  @Transform(({ value }) => Number(value))
-  sub_category: number;
-
   @ApiProperty({ description: 'Page Number', required: false })
   @IsOptional()
   @IsNumber()
@@ -26,33 +20,7 @@ export class SearchEntertainerDto {
     description: 'Price Range',
     required: false,
   })
-  @IsOptional()
   @Transform(({ value }) => {
-    console.log('Received value:', value, 'Type:', typeof value);
-
-    if (typeof value === 'string' && value.trim() !== '') {
-      return value
-        .split(',')
-        .map((num) => num.trim()) // Trim spaces
-        .filter((num) => !isNaN(Number(num))) // Remove non-numeric values
-        .map(Number); // Convert to numbers
-    }
-
-    if (Array.isArray(value)) {
-      return value
-        .map((num) => Number(num)) // Convert array elements to numbers
-        .filter((num) => !isNaN(num)); // Ensure no NaN values
-    }
-
-    return value === null ? null : undefined; // Keep null as null, and ignore undefined
-  })
-  @IsArray()
-  @IsNumber({}, { each: true }) // Ensure each value in the array is a number
-  price?: number[] | null;
-
-  @Transform(({ value }) => {
-    console.log('Received value:', value, 'Type:', typeof value);
-
     if (typeof value === 'string' && value.trim() !== '') {
       return value
         .split(',')
@@ -74,15 +42,117 @@ export class SearchEntertainerDto {
   @IsNumber({}, { each: true }) // Ensure each element is a number
   category?: number[] | null;
 
+
+  @ApiProperty({
+    description: 'Price Range',
+    required: false,
+  })
+  @Transform(({ value }) => {
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value
+        .split(',')
+        .map((num) => num.trim()) // Trim spaces
+        .filter((num) => !isNaN(Number(num))) // Remove non-numeric values
+        .map(Number); // Convert to numbers
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .map((num) => Number(num)) // Convert array elements to numbers
+        .filter((num) => !isNaN(num)); // Ensure no NaN values
+    }
+
+    return value === null ? null : undefined; // Keep null as null, and ignore undefined
+  })
+  @IsOptional()
+  @IsArray() // Ensure it's an array
+  @IsNumber({}, { each: true }) // Ensure each element is a number
+  subcategory?: number[] | null;
+
+  @ApiProperty({
+    description: 'Subcategory alias (legacy frontend key)',
+    required: false,
+  })
+  @Transform(({ value }) => {
+    if (typeof value === 'string' && value.trim() !== '') {
+      return value
+        .split(',')
+        .map((num) => num.trim())
+        .filter((num) => !isNaN(Number(num)))
+        .map(Number);
+    }
+
+    if (Array.isArray(value)) {
+      return value.map((num) => Number(num)).filter((num) => !isNaN(num));
+    }
+
+    return value === null ? null : undefined;
+  })
+  @IsOptional()
+  @IsArray()
+  @IsNumber({}, { each: true })
+  specific_category?: number[] | null;
+
   @ApiProperty({ description: 'Records per page you want .', required: false })
   @IsOptional()
   @IsNumber()
   @Transform(({ value }) => Number(value))
   pageSize: number;
 
-  @ApiProperty({ description: 'city code', required: false })
+  @ApiProperty({ description: 'state,123', required: false })
+  @IsOptional()
+  @IsString()
+  location: string;
+
+  @ApiProperty({ description: 'Country Id', required: false })
   @IsOptional()
   @IsNumber()
   @Transform(({ value }) => Number(value))
-  city: number;
+  country: number;
+
+  @IsOptional()
+  @IsString()
+  vaccinated: 'yes' | 'no';
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    const num = Number(value);
+    return isNaN(num) ? undefined : num;
+  }, { toClassOnly: true })
+  @IsNumber()
+  latitude?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === undefined || value === null || value === '') return undefined;
+    const num = Number(value);
+    return isNaN(num) ? undefined : num;
+  }, { toClassOnly: true })
+  @IsNumber()
+  longitude?: number;
+
+  @IsOptional()
+  @Transform(({ value }) => {
+    if (value === 'true' || value === true) return true;
+    if (value === 'false' || value === false) return false;
+    return value; // Let @IsBoolean handle invalid cases
+  })
+  @IsBoolean()
+  isNearby?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Transform(({ value }) => Number(value))
+  radius?: number;
+
+  @IsOptional()
+  @IsString()
+  startDateTime: string;
+
+  @IsOptional()
+  endDateTime: string;
+
+  @IsOptional()
+  dashboard?: boolean;
 }
